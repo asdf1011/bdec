@@ -8,6 +8,9 @@ class HexNeedsFourBitsError(dcdr.DecodeError):
         have a multiple of 4 bits. """
     pass
 
+class ConversionNeedsBytesError(dcdr.DecodeError):
+    pass
+
 class Data:
     """ A class to hold data to be decoded """
     def __init__(self, buffer, start=None, end=None):
@@ -50,6 +53,22 @@ class Data:
         result = 0
         for bit in range(self._start, self._end):
             result = (result << 1) | self._get_bit(bit)
+        return result
+
+    def get_little_endian_integer(self):
+        """
+        Get an integer that has been encoded in little endian format
+        """
+        bits = [self._get_bit(bit) for bit in range(self._start, self._end)]
+        if len(bits) % 8 != 0:
+            raise ConversionNeedsBytesError(self)
+
+        result = 0
+        for byte in range(len(bits) / 8):
+            value = 0
+            for bit in range(8):
+                value = (value << 1) | bits[byte * 8 + bit]
+            result = result | (value << (8 * byte))
         return result
 
     def get_binary_text(self):
