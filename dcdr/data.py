@@ -47,6 +47,22 @@ class Data:
             result = (result << 1) | self._get_bit(bit)
         return result
 
+    def get_binary_text(self):
+        """
+        Get a string representing the binary data.
+
+        eg: 001 10100000
+        """
+        bits = [self._get_bit(bit) for bit in range(self._start, self._end)]
+        bytes = []
+        if len(bits) % 8 != 0:
+            bytes.append(bits[0:len(bits) % 8])
+        for i in range(len(bits) % 8, len(bits), 8):
+            bytes.append(bits[i:i+8])
+
+        bytes = ("".join(str(bit) for bit in byte) for byte in bytes)
+        return " ".join(byte for byte in bytes)
+
     @staticmethod
     def from_hex(hex): 
         hex = hex.upper()

@@ -1,5 +1,5 @@
 
-class Entry:
+class Entry(object):
     """
     A decoder entry is an item in a protocol that can be decoded.
     """
@@ -7,12 +7,23 @@ class Entry:
     def __init__(self, name):
         self.name = name
 
-    def decode(self, data, start, end):
+    def _decode(self, data):
+        """
+        Decode the given protocol entry.
+
+        Should return an iterable object for all of the 'embedded'
+        protocol entries in the same form as Entry.decode.
+        """
+        raise NotImplementedError()
+
+    def decode(self, data):
         """
         Decode this entry from input data.
 
         @param data The data to decode
-        @param start A function to be called when we start decoding
-        @param end A function to be called when we finish decoding
+        @return An iterator that returns (is_starting, Entry) tuples.
         """
-        raise NotImplementedError()
+        yield (True, self)
+        for (is_starting, entry) in self._decode(data):
+            yield (is_starting, entry)
+        yield (False, self)
