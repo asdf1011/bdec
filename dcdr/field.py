@@ -29,5 +29,9 @@ class Field(dcdr.entry.Entry):
             raise FieldNotDecodedError(self)
 
         if self._format == self.BINARY:
-            return self.data.get_binary_text()
-        raise Exception("Unknown field format of '%s'!" % self._format)
+            result = self.data.get_binary_text()
+        elif self._format == self.HEXSTRING:
+            result = self.data.get_hex()
+        else:
+            raise Exception("Unknown field format of '%s'!" % self._format)
+        return result

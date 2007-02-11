@@ -26,5 +26,9 @@ class TestData(unittest.TestCase):
         self.assertEqual(0x96, int(data.pop(8)))
         self.assertEqual(0x01, int(data.pop(8)))
 
+    def test_hexstring(self):
+        data = dt.Data.from_hex("0xf0ee9601")
+        self.assertEqual("0xf0ee9601", data.get_hex())
+
 if __name__ == "__main__":
     unittest.main()

@@ -3,6 +3,11 @@ import dcdr
 class NotEnoughDataError(dcdr.DecodeError):
     pass
 
+class HexNeedsFourBitsError(dcdr.DecodeError):
+    """ Raised when attempting to convert data to hex, and we don't
+        have a multiple of 4 bits. """
+    pass
+
 class Data:
     """ A class to hold data to be decoded """
     def __init__(self, buffer, start=None, end=None):
@@ -62,6 +67,22 @@ class Data:
 
         bytes = ("".join(str(bit) for bit in byte) for byte in bytes)
         return " ".join(byte for byte in bytes)
+
+    def get_hex(self):
+        """
+        Get a string representing the data in hex format.
+        """
+        bits = [self._get_bit(bit) for bit in range(self._start, self._end)]
+        if len(bits) % 4 != 0:
+            raise HexNeedsFourBitsError(self)
+
+        chars = ["0x"]
+        for i in range(0, len(bits), 4):
+            value = 0
+            for bit in range(4):
+                value |= bits[i + bit] << (3-bit)
+            chars.append(hex(value)[2:])
+        return "".join(chars)
 
     @staticmethod
     def from_hex(hex): 
