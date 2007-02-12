@@ -3,6 +3,7 @@ import xml.sax
 
 import dcdr.field as fld
 import dcdr.load
+import dcdr.sequence as seq
 
 class _Handler(xml.sax.handler.ContentHandler):
     """
@@ -14,7 +15,8 @@ class _Handler(xml.sax.handler.ContentHandler):
 
         self._handlers = {
             "field" : self._field,
-            "protocol" : self._protocol
+            "protocol" : self._protocol,
+            "sequence" : self._sequence
             }
         self.decoder = None
 
@@ -57,6 +59,10 @@ class _Handler(xml.sax.handler.ContentHandler):
         if 'encoding' in attributes:
             encoding = attribute['encoding']
         return fld.Field(name, lambda: length, format, encoding)
+
+    def _sequence(self, attributes, children):
+        return seq.Sequence(attributes['name'], children)
+
 
 class Importer:
     """

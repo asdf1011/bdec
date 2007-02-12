@@ -25,5 +25,22 @@ class TestXml(unittest.TestCase):
         self.assertEqual(2, len(items))
         self.assertEqual("?", decoder.get_value())
 
+    def test_sequence(self):
+        text = """
+<protocol>
+    <sequence name="bob">
+        <field name="cat" length="8" type="hex" />
+        <field name="dog" length="8" type="integer" />
+    </sequence>
+</protocol>"""
+        decoder = xml.Importer().loads(text)
+        self.assertEqual("bob", decoder.name)
+        self.assertEqual("cat", decoder.children[0].name)
+        self.assertEqual("dog", decoder.children[1].name)
+        items = list(decoder.decode(dt.Data.from_hex("0x7fac")))
+        self.assertEqual(6, len(items))
+        self.assertEqual("0x7f", decoder.children[0].get_value())
+        self.assertEqual(172, decoder.children[1].get_value())
+
 if __name__ == "__main__":
     unittest.main()

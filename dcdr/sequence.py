@@ -12,9 +12,9 @@ class Sequence(dcdr.entry.Entry):
 
     def __init__(self, name, children):
         dcdr.entry.Entry.__init__(self, name)
-        self._children = children
+        self.children = children
 
     def _decode(self, data):
-        for child in self._children:
+        for child in self.children:
             for embedded in child.decode(data):
                 yield embedded
