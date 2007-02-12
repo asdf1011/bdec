@@ -21,12 +21,13 @@ class Field(dcdr.entry.Entry):
     def __init__(self, name, get_length, format=BINARY, encoding=None, expected=None):
         dcdr.entry.Entry.__init__(self, name)
 
-        if format == self.TEXT and encoding is None:
-            encoding = "ascii"
-        elif encoding is None:
-            # We default to big endian for non text types, as little
-            # endian requires data with a length of a multiple of 8
-            encoding = self.BIG_ENDIAN
+        if encoding is None:
+            if format == self.TEXT:
+                encoding = "ascii"
+            else:
+                # We default to big endian for non text types, as little
+                # endian requires data with a length of a multiple of 8
+                encoding = self.BIG_ENDIAN
 
         self._get_length = get_length
         self._format = format
@@ -61,7 +62,7 @@ class Field(dcdr.entry.Entry):
         elif self._format == self.HEX:
             result = self.data.get_hex()
         elif self._format == self.TEXT:
-            result = str(self.data).encode(self._encoding)
+            result = str(self.data).decode(self._encoding)
         elif self._format == self.INTEGER:
             result = int(self)
         else:
