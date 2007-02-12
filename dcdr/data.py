@@ -39,6 +39,18 @@ class Data:
         assert self._end % 8 == 0
         return self._buffer[self._start / 8:self._end / 8]
 
+    def __eq__(self, other):
+        if (self._end - self._start) != (other._end - other._start):
+            return False
+
+        for i in range(self._end - self._start):
+            if self._get_bit(i + self._start) != other._get_bit(i + other._start):
+                return False
+        return True
+
+    def __ne__(self, other):
+        return not self == other
+
     def _get_bit(self, i):
         byte = i / 8
         i = i % 8

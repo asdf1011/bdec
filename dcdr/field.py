@@ -3,6 +3,9 @@ import dcdr.entry
 class FieldNotDecodedError(dcdr.DecodeError):
     pass
 
+class BadDataError(dcdr.DecodeError):
+    pass
+
 class Field(dcdr.entry.Entry):
 
     # Field format types
@@ -15,7 +18,7 @@ class Field(dcdr.entry.Entry):
     LITTLE_ENDIAN = "little endian"
     BIG_ENDIAN = "big endian"
 
-    def __init__(self, name, get_length, format=BINARY, encoding=None):
+    def __init__(self, name, get_length, format=BINARY, encoding=None, expected=None):
         dcdr.entry.Entry.__init__(self, name)
 
         if format == self.TEXT and encoding is None:
@@ -29,11 +32,15 @@ class Field(dcdr.entry.Entry):
         self._format = format
         self._encoding = encoding
         self.data = None
+        self._expected = expected
 
     def _decode(self, data):
         """ see dcdr.entry.Entry._decode """
         length = self._get_length()
         self.data = data.pop(length)
+        if self._expected is not None:
+            if self._expected != self.data:
+                raise BadDataError(self)
         return []
 
     def __int__(self):

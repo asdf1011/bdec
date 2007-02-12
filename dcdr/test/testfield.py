@@ -49,5 +49,18 @@ class TestField(unittest.TestCase):
         actual = self._get_decode_value("0x0008", 16, fld.Field.INTEGER, fld.Field.BIG_ENDIAN)
         self.assertEqual(8, actual)
 
+    def test_bad_expected_data(self):
+        field = fld.Field("bob", lambda: 8, expected=dt.Data.from_hex('0xfe'))
+        data = dt.Data.from_hex("0xf7")
+        self.assertRaises(fld.BadDataError, lambda: list(field.decode(data)))
+
+    def test_good_expected_data(self):
+        field = fld.Field("bob", lambda: 8, expected=dt.Data.from_hex('0xfe'))
+        data = dt.Data.from_hex("0xfe")
+        result = list(field.decode(data))
+        self.assertEqual(2, len(result))
+        self.assertEqual("fe", result[1][1].data.get_hex())
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -1,6 +1,7 @@
 import StringIO
 import xml.sax
 
+import dcdr.data as dt
 import dcdr.field as fld
 import dcdr.load
 import dcdr.sequence as seq
@@ -58,7 +59,10 @@ class _Handler(xml.sax.handler.ContentHandler):
         encoding = None
         if 'encoding' in attributes:
             encoding = attributes['encoding']
-        return fld.Field(name, lambda: length, format, encoding)
+        expected = None
+        if 'value' in attributes:
+            expected = dt.Data.from_hex(attributes['value'])
+        return fld.Field(name, lambda: length, format, encoding, expected)
 
     def _sequence(self, attributes, children):
         return seq.Sequence(attributes['name'], children)
