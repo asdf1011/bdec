@@ -32,7 +32,7 @@ class TestField(unittest.TestCase):
         self.assertEqual("0000 00010111", actual)
 
     def test_hexstring_type(self):
-        actual = self._get_decode_value("0x017a", 12, fld.Field.HEXSTRING)
+        actual = self._get_decode_value("0x017a", 12, fld.Field.HEX)
         self.assertEqual("0x017", actual)
 
     def test_string_type(self):

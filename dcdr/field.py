@@ -8,7 +8,7 @@ class Field(dcdr.entry.Entry):
     # Field format types
     TEXT = "text"
     INTEGER = "integer"
-    HEXSTRING = "hexstring"
+    HEX = "hex"
     BINARY = "binary"
 
     # Field 'encoding' types
@@ -51,7 +51,7 @@ class Field(dcdr.entry.Entry):
 
         if self._format == self.BINARY:
             result = self.data.get_binary_text()
-        elif self._format == self.HEXSTRING:
+        elif self._format == self.HEX:
             result = self.data.get_hex()
         elif self._format == self.TEXT:
             result = str(self.data).encode(self._encoding)
