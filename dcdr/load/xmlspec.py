@@ -57,7 +57,7 @@ class _Handler(xml.sax.handler.ContentHandler):
             format = lookup[attributes['type']]
         encoding = None
         if 'encoding' in attributes:
-            encoding = attribute['encoding']
+            encoding = attributes['encoding']
         return fld.Field(name, lambda: length, format, encoding)
 
     def _sequence(self, attributes, children):
