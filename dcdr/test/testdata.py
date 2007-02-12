@@ -28,7 +28,7 @@ class TestData(unittest.TestCase):
 
     def test_hexstring(self):
         data = dt.Data.from_hex("0xf0ee9601")
-        self.assertEqual("0xf0ee9601", data.get_hex())
+        self.assertEqual("f0ee9601", data.get_hex())
 
 if __name__ == "__main__":
     unittest.main()

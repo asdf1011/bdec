@@ -95,7 +95,7 @@ class Data:
         if len(bits) % 4 != 0:
             raise HexNeedsFourBitsError(self)
 
-        chars = ["0x"]
+        chars = []
         for i in range(0, len(bits), 4):
             value = 0
             for bit in range(4):
