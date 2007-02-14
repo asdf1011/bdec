@@ -6,7 +6,11 @@ import dcdr.load.xmlspec as xmlspec
 import dcdr.output.xml as xmlout
 
 spec = sys.argv[1]
-binary = file(sys.argv[2], 'rb').read()
+if len(sys.argv) == 3:
+    binary = file(sys.argv[2], 'rb').read()
+else:
+    binary = sys.stdin.read()
+
 decoder = xmlspec.Importer().load(file(spec, 'r'))
 
 data = dt.Data(binary)
