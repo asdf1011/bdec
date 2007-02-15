@@ -34,6 +34,9 @@ class Data:
         self._start += length
         return result
 
+    def copy(self):
+        return Data(self._buffer, self._start, self._end)
+
     def __str__(self):
         assert self._start % 8 == 0
         assert self._end % 8 == 0
