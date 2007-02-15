@@ -4,6 +4,7 @@ import unittest
 import dcdr.data as dt
 import dcdr.field as fld
 import dcdr.sequence as seq
+import dcdr.sequenceof as sof
 import dcdr.output.instance as inst
 
 class TestInstance(unittest.TestCase):
@@ -20,6 +21,17 @@ class TestInstance(unittest.TestCase):
         self.assertEqual(110, data.bob.cat)
         self.assertEqual("zip", data.bob.dog)
 
+    def test_sequenceof(self):
+        sequenceof = sof.SequenceOf("bob", 
+            fld.Field("cat", lambda: 8, fld.Field.INTEGER),
+            lambda: 4)
+        data = inst.decode(sequenceof, dt.Data.from_hex('0x6e7a6970'))
+        self.assertTrue(isinstance(data.bob, list))
+        self.assertEqual(4, len(data.bob))
+        self.assertEqual(0x6e, int(data.bob[0]))
+        self.assertEqual(0x7a, int(data.bob[1]))
+        self.assertEqual(0x69, int(data.bob[2]))
+        self.assertEqual(0x70, int(data.bob[3]))
 
 if __name__ == "__main__":
     unittest.main()
