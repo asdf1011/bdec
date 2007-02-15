@@ -7,11 +7,11 @@ class SequenceOf(dcdr.entry.Entry):
 
     def __init__(self, name, child, length):
         dcdr.entry.Entry.__init__(self, name)
-        self._child = child
+        self.child = child
         self._length = length
 
     def _decode(self, data):
         length = self._length()
         for i in range(length):
-            for item in self._child.decode(data):
+            for item in self.child.decode(data):
                 yield item

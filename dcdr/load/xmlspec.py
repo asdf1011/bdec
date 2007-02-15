@@ -6,6 +6,7 @@ import dcdr.data as dt
 import dcdr.field as fld
 import dcdr.load
 import dcdr.sequence as seq
+import dcdr.sequenceof as sof
 
 class _Handler(xml.sax.handler.ContentHandler):
     """
@@ -20,6 +21,7 @@ class _Handler(xml.sax.handler.ContentHandler):
             "field" : self._field,
             "protocol" : self._protocol,
             "sequence" : self._sequence,
+            "sequenceof" : self._sequenceof,
             }
         self.decoder = None
 
@@ -72,6 +74,12 @@ class _Handler(xml.sax.handler.ContentHandler):
 
     def _choice(self, attributes, children):
         return chc.Choice(attributes['name'], children)
+
+    def _sequenceof(self, attributes, children):
+        if len(children) != 1:
+            raise dcdr.load.LoadError("Sequence of entries can only have a single child! (got %i)" % len(children))
+        length = int(attributes['length'])
+        return sof.SequenceOf(attributes['name'], children[0], lambda: length)
 
 class Importer:
     """

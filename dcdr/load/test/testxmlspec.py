@@ -64,5 +64,20 @@ class TestXml(unittest.TestCase):
         self.assertEqual(4, len(items))
         self.assertEqual("7f", decoder.children[0].get_value())
 
+    def test_sequence_of(self):
+        text = """
+<protocol>
+    <sequenceof name="bob" length="2">
+        <field name="cat" length="8" type="hex" />
+    </sequenceof>
+</protocol>"""
+        decoder = xml.Importer().loads(text)
+        self.assertEqual("bob", decoder.name)
+        self.assertEqual("cat", decoder.child.name)
+        items = list(decoder.decode(dt.Data.from_hex("0x7fac")))
+        self.assertEqual(6, len(items))
+        # We're being lazy; we're only checking the last decode value.
+        self.assertEqual("ac", decoder.child.get_value())
+
 if __name__ == "__main__":
     unittest.main()
