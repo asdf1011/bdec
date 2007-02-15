@@ -4,7 +4,13 @@ class FieldNotDecodedError(dcdr.DecodeError):
     pass
 
 class BadDataError(dcdr.DecodeError):
-    pass
+    def __init__(self, field, expected, actual):
+        self.field = field
+        self.expected = expected
+        self.actual = actual
+
+    def __str__(self):
+        return "Expected %s, got %s" % (self.expected.get_hex(), self.actual.get_hex())
 
 class Field(dcdr.entry.Entry):
 
@@ -41,7 +47,7 @@ class Field(dcdr.entry.Entry):
         self.data = data.pop(length)
         if self._expected is not None:
             if self._expected != self.data:
-                raise BadDataError(self)
+                raise BadDataError(self, self._expected, self.data)
         return []
 
     def __int__(self):
