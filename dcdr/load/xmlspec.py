@@ -1,6 +1,7 @@
 import StringIO
 import xml.sax
 
+import dcdr.choice as chc
 import dcdr.data as dt
 import dcdr.field as fld
 import dcdr.load
@@ -15,9 +16,10 @@ class _Handler(xml.sax.handler.ContentHandler):
         self._children = []
 
         self._handlers = {
+            "choice" : self._choice,
             "field" : self._field,
             "protocol" : self._protocol,
-            "sequence" : self._sequence
+            "sequence" : self._sequence,
             }
         self.decoder = None
 
@@ -25,14 +27,15 @@ class _Handler(xml.sax.handler.ContentHandler):
         self._locator = locator
 
     def startElement(self, name, attrs):
+        if name not in self._handlers:
+            raise dcdr.load.LoadError("Unrecognised element '%s'!" % name)
+
         self._stack.append((name, attrs))
         self._children.append([])
 
     def endElement(self, name):
         assert self._stack[-1][0] == name
         (name, attrs) = self._stack.pop()
-        if name not in self._handlers:
-            raise dcdr.load.LoadError("Unrecognised element '%s'!" % name)
 
         children = self._children.pop()
         child = self._handlers[name](attrs, children)
@@ -67,6 +70,8 @@ class _Handler(xml.sax.handler.ContentHandler):
     def _sequence(self, attributes, children):
         return seq.Sequence(attributes['name'], children)
 
+    def _choice(self, attributes, children):
+        return chc.Choice(attributes['name'], children)
 
 class Importer:
     """

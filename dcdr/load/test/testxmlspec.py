@@ -48,5 +48,21 @@ class TestXml(unittest.TestCase):
         self.assertEqual("bob", decoder.name)
         self.assertRaises(fld.BadDataError, lambda: list(decoder.decode(dt.Data.from_hex("0x7a"))))
 
+    def test_choice(self):
+        text = """
+<protocol>
+    <choice name="bob">
+        <field name="cat" length="8" type="hex" />
+        <field name="dog" length="8" type="integer" />
+    </choice>
+</protocol>"""
+        decoder = xml.Importer().loads(text)
+        self.assertEqual("bob", decoder.name)
+        self.assertEqual("cat", decoder.children[0].name)
+        self.assertEqual("dog", decoder.children[1].name)
+        items = list(decoder.decode(dt.Data.from_hex("0x7fac")))
+        self.assertEqual(4, len(items))
+        self.assertEqual("7f", decoder.children[0].get_value())
+
 if __name__ == "__main__":
     unittest.main()
