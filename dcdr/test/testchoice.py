@@ -62,8 +62,22 @@ class TestChoice(unittest.TestCase):
         self.assertEqual("bob", results[2][1].name)
         self.assertEqual("bob", results[3][1].name)
         self.assertEqual("cat", results[4][1].name)
-        self.assertEqual(4, int(data))
         
+    def test_data_of_reused_field(self):
+        # Test the results of the data of a field that is referenced
+        # multiple times in a choice
+        cat = fld.Field("cat", lambda: 8)
+        choice = chc.Choice("blah", [seq.Sequence("chicken", [cat, cat])])
+        data = dt.Data.from_hex("0x0102")
+
+        decoded = []
+        for is_starting, entry in choice.decode(data):
+            if not is_starting and isinstance(entry, fld.Field):
+                decoded.append(entry.data)
+
+        self.assertEqual(2, len(decoded))
+        self.assertEqual(1, int(decoded[0]))
+        self.assertEqual(2, int(decoded[1]))
 
 if __name__ == "__main__":
     unittest.main()
