@@ -10,7 +10,7 @@ class BadDataError(dcdr.DecodeError):
         self.actual = actual
 
     def __str__(self):
-        return "Expected %s, got %s" % (self.expected.get_binary_text(), self.actual.get_binary_text())
+        return "'%s' expected %s, got %s" % (self.field.name, self.expected.get_binary_text(), self.actual.get_binary_text())
 
 class Field(dcdr.entry.Entry):
 

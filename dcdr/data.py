@@ -54,6 +54,9 @@ class Data:
     def __ne__(self, other):
         return not self == other
 
+    def __len__(self):
+        return self._end - self._start
+
     def _get_bit(self, i):
         byte = i / 8
         i = i % 8
