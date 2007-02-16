@@ -10,7 +10,7 @@ class BadDataError(dcdr.DecodeError):
         self.actual = actual
 
     def __str__(self):
-        return "Expected %s, got %s" % (self.expected.get_hex(), self.actual.get_hex())
+        return "Expected %s, got %s" % (self.expected.get_binary_text(), self.actual.get_binary_text())
 
 class Field(dcdr.entry.Entry):
 
@@ -46,7 +46,7 @@ class Field(dcdr.entry.Entry):
         length = self._get_length()
         self.data = data.pop(length)
         if self._expected is not None:
-            if self._expected != self.data:
+            if int(self._expected) != int(self.data):
                 raise BadDataError(self, self._expected, self.data)
         return []
 

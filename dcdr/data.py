@@ -120,6 +120,9 @@ class Data:
 
     @staticmethod
     def from_hex(hex): 
+        """
+        Convert a hex string to a data buffer
+        """
         hex = hex.upper()
         assert hex[:2] == "0X"
         hex = hex[2:]

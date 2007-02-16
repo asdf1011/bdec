@@ -79,5 +79,14 @@ class TestXml(unittest.TestCase):
         # We're being lazy; we're only checking the last decode value.
         self.assertEqual("ac", decoder.child.get_value())
 
+    def test_non_whole_byte_expected_value(self):
+        text = """<protocol><field name="bob" length="1" value="0x0" /></protocol>"""
+        decoder = xml.Importer().loads(text)
+        self.assertEqual("bob", decoder.name)
+        result = list(decoder.decode(dt.Data.from_hex("0x7a")))
+        self.assertEqual(2, len(result))
+        self.assertEqual(0, int(result[1][1]))
+
+
 if __name__ == "__main__":
     unittest.main()
