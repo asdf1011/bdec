@@ -18,4 +18,4 @@ xmlout.to_file(decoder, data, sys.stdout)
 
 undecoded = str(data)
 if len(undecoded) > 0:
-    sys.stderr.write('%i bytes undecoded!' % len(undecoded))
+    sys.stderr.write('%i bytes undecoded!\n' % len(undecoded))
