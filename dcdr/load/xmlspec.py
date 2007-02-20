@@ -53,7 +53,7 @@ class _Handler(xml.sax.handler.ContentHandler):
         name = attributes['name']
         length = int(attributes['length'])
         format = fld.Field.BINARY
-        if 'type' in attributes:
+        if attributes.has_key('type'):
             lookup = {
                 "binary" : fld.Field.BINARY,
                 "hex" : fld.Field.HEX,
@@ -62,10 +62,10 @@ class _Handler(xml.sax.handler.ContentHandler):
                 }
             format = lookup[attributes['type']]
         encoding = None
-        if 'encoding' in attributes:
+        if attributes.has_key('encoding'):
             encoding = attributes['encoding']
         expected = None
-        if 'value' in attributes:
+        if attributes.has_key('value'):
             expected = dt.Data.from_hex(attributes['value'])
         return fld.Field(name, lambda: length, format, encoding, expected)
 
