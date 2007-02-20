@@ -3,7 +3,7 @@ import unittest
 
 import dcdr.data as dt
 import dcdr.field as fld
-import dcdr.output.xml as xml
+import dcdr.output.xmlout as xml
 
 class TestXml(unittest.TestCase):
     def test_field(self):

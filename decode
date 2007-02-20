@@ -3,7 +3,7 @@
 import sys
 import dcdr.data as dt
 import dcdr.load.xmlspec as xmlspec
-import dcdr.output.xml as xmlout
+import dcdr.output.xmlout as xmlout
 
 spec = sys.argv[1]
 if len(sys.argv) == 3:
