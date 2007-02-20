@@ -12,6 +12,9 @@ class BadDataError(dcdr.DecodeError):
     def __str__(self):
         return "'%s' expected %s, got %s" % (self.field.name, self.expected.get_binary_text(), self.actual.get_binary_text())
 
+class BadEncodingError(dcdr.DecodeError):
+    pass
+
 class Field(dcdr.entry.Entry):
 
     # Field format types
@@ -68,7 +71,10 @@ class Field(dcdr.entry.Entry):
         elif self._format == self.HEX:
             result = self.data.get_hex()
         elif self._format == self.TEXT:
-            result = str(self.data).decode(self._encoding)
+            try:
+                result = unicode(str(self.data), self._encoding)
+            except UnicodeDecodeError:
+                raise BadEncodingError(self, self._encoding, str(self.data))
         elif self._format == self.INTEGER:
             result = int(self)
         else:
