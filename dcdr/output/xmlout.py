@@ -11,6 +11,9 @@ def to_file(decoder, binary, output, encoding="utf-8"):
     handler = xml.sax.saxutils.XMLGenerator(output, encoding)
     offset = 0
     for is_starting, entry in decoder.decode(binary):
+        if entry.is_hidden():
+            continue
+
         if is_starting:
             handler.ignorableWhitespace(' ' * offset)
             handler.startElement(_escape_name(entry.name), xml.sax.xmlreader.AttributesImpl({}))

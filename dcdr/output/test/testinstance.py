@@ -33,5 +33,13 @@ class TestInstance(unittest.TestCase):
         self.assertEqual(0x69, int(data.bob[2]))
         self.assertEqual(0x70, int(data.bob[3]))
 
+    def test_hidden_entries(self):
+        sequence = seq.Sequence("bob", [
+            fld.Field("cat:", lambda: 8, fld.Field.INTEGER),
+            fld.Field("dog", lambda: 24, fld.Field.TEXT)])
+        data = inst.decode(sequence, dt.Data.from_hex('0x6e7a6970'))
+        self.assertTrue('cat' not in dir(data.bob))
+        self.assertEqual("zip", data.bob.dog)
+
 if __name__ == "__main__":
     unittest.main()
