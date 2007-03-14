@@ -49,19 +49,24 @@ class _Handler(xml.sax.handler.ContentHandler):
             # We are referencing to a common element...
             if len(attrs) != 1:
                 raise XmlSpecError("Referenced element '%s' cannot have other attributes!" % attrs['name'])
+            if len(children) != 0:
+                raise XmlSpecError("Referenced element '%s' cannot have sub-entries!" % attrs['name'])
             child = self._common_entries[attrs['name']]
         else:
             child = self._handlers[name](attrs, children)
 
-        if len(self._children) > 0 and child is not None:
+        if child is not None:
             self._children[-1].append(child)
 
-    def _common(self, attributes, children):
-        """
-        Called when we have initialised all of the 'common' entries.
-        """
-        for child in children:
+        if len(self._stack) == 2 and self._stack[1][0] == 'common':
+            # We have to handle common entries _before_ the end of the
+            # 'common' element, as common entries can reference other
+            # common entries.
+            assert child is not None
             self._common_entries[child.name] = child
+
+    def _common(self, attributes, children):
+        pass
 
     def _protocol(self, attributes, children):
         if len(children) != 1:

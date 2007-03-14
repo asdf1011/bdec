@@ -96,5 +96,23 @@ class TestXml(unittest.TestCase):
         self.assertEqual(2, len(result))
         self.assertEqual(0x7a, int(result[1][1]))
 
+    def test_common_item_references_another(self):
+        text = """
+            <protocol>
+                <common>
+                    <field name="bob" length="8" />
+                    <sequence name="rabbit">
+                        <field name="bob" />
+                    </sequence>
+                </common>
+                <sequence name="rabbit" />
+            </protocol>"""
+
+        decoder = xml.Importer().loads(text)
+        self.assertEqual("rabbit", decoder.name)
+        result = list(decoder.decode(dt.Data.from_hex("0x7a")))
+        self.assertEqual(4, len(result))
+        self.assertEqual(0x7a, int(result[2][1]))
+
 if __name__ == "__main__":
     unittest.main()
