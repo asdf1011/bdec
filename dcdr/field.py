@@ -38,7 +38,7 @@ class Field(dcdr.entry.Entry):
                 # endian requires data with a length of a multiple of 8
                 encoding = self.BIG_ENDIAN
 
-        self._get_length = get_length
+        self.length = get_length
         self._format = format
         self._encoding = encoding
         self.data = None
@@ -46,7 +46,7 @@ class Field(dcdr.entry.Entry):
 
     def _decode(self, data):
         """ see dcdr.entry.Entry._decode """
-        length = self._get_length()
+        length = self.length()
         self.data = data.pop(length)
         if self._expected is not None:
             if int(self._expected) != int(self.data):

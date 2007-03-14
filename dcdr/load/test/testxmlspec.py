@@ -87,6 +87,14 @@ class TestXml(unittest.TestCase):
         self.assertEqual(2, len(result))
         self.assertEqual(0, int(result[1][1]))
 
+    def test_common(self):
+        text = """<protocol> <common> <field name="bob" length="8" /> </common> <field name="bob" /> </protocol>"""
+        decoder = xml.Importer().loads(text)
+        self.assertEqual("bob", decoder.name)
+        self.assertEqual(8, decoder.length())
+        result = list(decoder.decode(dt.Data.from_hex("0x7a")))
+        self.assertEqual(2, len(result))
+        self.assertEqual(0x7a, int(result[1][1]))
 
 if __name__ == "__main__":
     unittest.main()

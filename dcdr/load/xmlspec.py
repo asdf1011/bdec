@@ -8,6 +8,9 @@ import dcdr.load
 import dcdr.sequence as seq
 import dcdr.sequenceof as sof
 
+class XmlSpecError(dcdr.load.LoadError):
+    pass
+
 class _Handler(xml.sax.handler.ContentHandler):
     """
     A sax style xml handler for building a decoder from an xml specification
@@ -17,6 +20,7 @@ class _Handler(xml.sax.handler.ContentHandler):
         self._children = []
 
         self._handlers = {
+            "common" : self._common,
             "choice" : self._choice,
             "field" : self._field,
             "protocol" : self._protocol,
@@ -24,13 +28,14 @@ class _Handler(xml.sax.handler.ContentHandler):
             "sequenceof" : self._sequenceof,
             }
         self.decoder = None
+        self._common_entries = {}
 
     def setDocumentLocator(self, locator):
         self._locator = locator
 
     def startElement(self, name, attrs):
         if name not in self._handlers:
-            raise dcdr.load.LoadError("Unrecognised element '%s'!" % name)
+            raise XmlSpecError("Unrecognised element '%s'!" % name)
 
         self._stack.append((name, attrs))
         self._children.append([])
@@ -40,13 +45,27 @@ class _Handler(xml.sax.handler.ContentHandler):
         (name, attrs) = self._stack.pop()
 
         children = self._children.pop()
-        child = self._handlers[name](attrs, children)
-        if len(self._children) > 0:
+        if attrs.has_key('name') and attrs.getValue('name') in self._common_entries:
+            # We are referencing to a common element...
+            if len(attrs) != 1:
+                raise XmlSpecError("Referenced element '%s' cannot have other attributes!" % attrs['name'])
+            child = self._common_entries[attrs['name']]
+        else:
+            child = self._handlers[name](attrs, children)
+
+        if len(self._children) > 0 and child is not None:
             self._children[-1].append(child)
+
+    def _common(self, attributes, children):
+        """
+        Called when we have initialised all of the 'common' entries.
+        """
+        for child in children:
+            self._common_entries[child.name] = child
 
     def _protocol(self, attributes, children):
         if len(children) != 1:
-            raise xml.load.LoadError("Protocol should have a single entry to be decoded!")
+            raise XmlSpecError("Protocol should have a single entry to be decoded!")
         self.decoder = children[0]
 
     def _field(self, attributes, children):
@@ -77,7 +96,7 @@ class _Handler(xml.sax.handler.ContentHandler):
 
     def _sequenceof(self, attributes, children):
         if len(children) != 1:
-            raise dcdr.load.LoadError("Sequence of entries can only have a single child! (got %i)" % len(children))
+            raise XmlSpecError("Sequence of entries can only have a single child! (got %i)" % len(children))
         length = int(attributes['length'])
         return sof.SequenceOf(attributes['name'], children[0], lambda: length)
 
