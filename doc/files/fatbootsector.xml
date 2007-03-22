@@ -1,0 +1,68 @@
+<fat-bootsector>
+    <jump-instruction>
+        11101011 00111100 10010000
+    </jump-instruction>
+    <oem-name>
+        MSDOS5.0
+    </oem-name>
+    <bytes-per-sector>
+        512
+    </bytes-per-sector>
+    <sectors-per-cluster>
+        32
+    </sectors-per-cluster>
+    <reserved-sector-count>
+        1
+    </reserved-sector-count>
+    <number-of-file-allocation-tables>
+        2
+    </number-of-file-allocation-tables>
+    <max-root-directory-entries>
+        512
+    </max-root-directory-entries>
+    <total-sectors>
+        0
+    </total-sectors>
+    <media-descriptor>
+        11111000
+    </media-descriptor>
+    <sectors-per-fat>
+        250
+    </sectors-per-fat>
+    <sectors-per-track>
+        63
+    </sectors-per-track>
+    <number-of-heads>
+        255
+    </number-of-heads>
+    <hidden-sectors>
+        00100000 00000000 00000000 00000000
+    </hidden-sectors>
+    <total-sectors>
+        2031584
+    </total-sectors>
+    <physical-drive-number>
+        00000000
+    </physical-drive-number>
+    <reserved>
+        00000001
+    </reserved>
+    <signature>
+        00101001
+    </signature>
+    <id>
+        01010001 11001000 00111101 11001100
+    </id>
+    <volume-label>
+        NO NAME    
+    </volume-label>
+    <fat-file-system-type>
+        FAT16   
+    </fat-file-system-type>
+    <operating-system-boot-code>
+        33c98ed1bcf07b8ed9b800208ec0fcbd007c384e247d248bc199e83c01721c83eb3a66a11c7c26663b07268a57fc750680ca0288560280c31073eb33c98a461098f7661603461c13561e03460e13d18b7611608946fc8956feb82000f7e68b5e0b03c348f7f30146fc114efe61bf0000e8e600723926382d741760b10bbea17df3a66174324e740983c7203bfb72e6ebdca0fb7db47d8bf0ac9840740c487413b40ebb0700cd10ebefa0fd7debe6a0fc7debe1cd16cd19268b551a52b001bb0000e83b0072e85b8a5624be0b7c8bfcc746f03d7dc746f4297d8cd9894ef2894ef6c606967dcbea030000200fb6c8668b46f86603461c668bd066c1ea10eb5e0fb6c84a4a8a460d32e4f7e20346fc1356feeb4a525006536a016a10918b4618969233d2f7f691f7f64287caf7761a8af28ae8c0cc020accb80102807e020e7504b4428bf48a5624cd136161720b40750142035e0b497506f8c341bb000060666a00ebb04e544c44522020202020200d0a52656d6f7665206469736b73206f72206f74686572206d656469612eff0d0a4469736b206572726f72ff0d0a507265737320616e79206b657920746f20726573746172740d0a00000000000000accbd8
+    </operating-system-boot-code>
+    <end-of-sector-marker>
+        01010101 10101010
+    </end-of-sector-marker>
+</fat-bootsector>
