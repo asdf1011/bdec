@@ -11,6 +11,10 @@ class TestData(unittest.TestCase):
     def test_integer(self):
         self.assertEqual(3, int(dt.Data(chr(3))))
 
+    def test_little_endian_integer(self):
+        data = dt.Data.from_hex("0x010203")
+        self.assertEqual(0x030201, data.get_little_endian_integer())
+
     def test_string(self):
         self.assertEqual("Some text", str(dt.Data("Some text")))
     

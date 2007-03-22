@@ -73,19 +73,24 @@ class Data:
             result = (result << 1) | self._get_bit(bit)
         return result
 
+    def _get_bytes(self):
+        """
+        Return an iterator to a series of byte values in the data.
+        """
+        if (self._end - self._start) % 8 != 0:
+            raise ConversionNeedsBytesError(self)
+        for i in xrange(self._start, self._end, 8):
+            value = 0
+            for bit in xrange(8):
+                value = (value << 1) | self._get_bit(i + bit)
+            yield value
+
     def get_little_endian_integer(self):
         """
         Get an integer that has been encoded in little endian format
         """
-        bits = [self._get_bit(bit) for bit in range(self._start, self._end)]
-        if len(bits) % 8 != 0:
-            raise ConversionNeedsBytesError(self)
-
         result = 0
-        for byte in range(len(bits) / 8):
-            value = 0
-            for bit in range(8):
-                value = (value << 1) | bits[byte * 8 + bit]
+        for byte, value in enumerate(self._get_bytes()):
             result = result | (value << (8 * byte))
         return result
 
