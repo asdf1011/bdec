@@ -77,11 +77,18 @@ class Data:
         """
         if (self._end - self._start) % 8 != 0:
             raise ConversionNeedsBytesError(self)
-        for i in xrange(self._start, self._end, 8):
-            value = 0
-            for bit in xrange(8):
-                value = (value << 1) | self._get_bit(i + bit)
-            yield value
+        if self._start % 8 == 0:
+            # We don't need to do this on a bit by bit, as we
+            # are reading aligned bytes...
+            for byte in xrange(self._start / 8, self._end / 8):
+                yield ord(self._buffer[byte])
+        else:
+            # We have to read bit by bit
+            for i in xrange(self._start, self._end, 8):
+                value = 0
+                for bit in xrange(8):
+                    value = (value << 1) | self._get_bit(i + bit)
+                yield value
 
     def get_little_endian_integer(self):
         """
