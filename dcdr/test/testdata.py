@@ -17,6 +17,14 @@ class TestData(unittest.TestCase):
 
     def test_string(self):
         self.assertEqual("Some text", str(dt.Data("Some text")))
+
+    def test_unaligned_string(self):
+        # The first 4 bits (the 'a') will be popped, then the 5 byte
+        # string, then it'll be converted to text.
+        data = dt.Data.from_hex("0xa68656c6c6fa")
+        data.pop(4)
+        text = data.pop(5 * 8)
+        self.assertEqual('hello', str(text))
     
     def test_pop(self):
         data = dt.Data.from_hex("0xf0")

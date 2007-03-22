@@ -38,9 +38,7 @@ class Data:
         return Data(self._buffer, self._start, self._end)
 
     def __str__(self):
-        assert self._start % 8 == 0
-        assert self._end % 8 == 0
-        return self._buffer[self._start / 8:self._end / 8]
+        return "".join(chr(byte) for byte in self._get_bytes())
 
     def __eq__(self, other):
         if (self._end - self._start) != (other._end - other._start):
