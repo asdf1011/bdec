@@ -28,6 +28,14 @@ class Entry(object):
             yield (is_starting, entry)
         yield (False, self)
 
+    def encode(self, source):
+        """
+        Encode a data source.
+
+        Source will be called with the name of the item to be decoded.
+        """
+        raise NotImplementedError()
+
     def is_hidden(self):
         """
         Is this a 'hidden' entry.

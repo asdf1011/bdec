@@ -61,6 +61,10 @@ class TestField(unittest.TestCase):
         self.assertEqual(2, len(result))
         self.assertEqual("fe", result[1][1].data.get_hex())
 
+    def test_encode(self):
+        field = fld.Field("bob", lambda: 8, format=fld.Field.INTEGER)
+        result = field.encode(lambda name: 0x3f)
+        self.assertEqual(0x3f, int(result))
 
 if __name__ == "__main__":
     unittest.main()

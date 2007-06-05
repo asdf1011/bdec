@@ -1,3 +1,4 @@
+import dcdr.data as dt
 import dcdr.entry
 
 class FieldNotDecodedError(dcdr.DecodeError):
@@ -52,6 +53,31 @@ class Field(dcdr.entry.Entry):
             if int(self._expected) != int(self.data):
                 raise BadDataError(self, self._expected, self.data)
         return []
+
+    def encode(self, source):
+        if self._expected is not None:
+            data = self._expected
+        else:
+            data = source(self.name)
+
+        if self._format == self.BINARY:
+            result =  dt.Data.from_binary_text(data)
+        elif self._format == self.HEX:
+            result = dt.Data.from_hex(data)
+        elif self._format == self.TEXT:
+            try:
+                result = dt.Data(data.encode(self._encoding))
+            except UnicodeDecodeError:
+                raise BadEncodingError(self, self._encoding, data)
+        elif self._format == self.INTEGER:
+            assert self._encoding in [self.BIG_ENDIAN, self.LITTLE_ENDIAN]
+            if self._encoding == self.BIG_ENDIAN:
+                result = dt.Data.from_int_big_endian(data, self.length())
+            else:
+                result = dt.Data.from_int_little_endian(data, self.length())
+        else:
+            raise Exception("Unknown field format of '%s'!" % self._format)
+        return result
 
     def __int__(self):
         assert self._encoding in [self.BIG_ENDIAN, self.LITTLE_ENDIAN]
