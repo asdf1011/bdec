@@ -54,11 +54,11 @@ class Field(dcdr.entry.Entry):
                 raise BadDataError(self, self._expected, self.data)
         return []
 
-    def encode(self, source):
+    def encode(self, query, context):
         if self._expected is not None:
             data = self._expected
         else:
-            data = source(self.name)
+            data = query(context, self.name)
 
         if self._format == self.BINARY:
             yield dt.Data.from_binary_text(data)

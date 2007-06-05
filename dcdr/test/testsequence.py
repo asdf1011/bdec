@@ -23,5 +23,13 @@ class Sequence(unittest.TestCase):
         self.assertEqual(0x7a, int(calls[1]))
         self.assertEqual(sequence, calls[2])
 
+    def test_encode_sequence(self):
+        embedded = [fld.Field("bob", lambda: 8, format=fld.Field.INTEGER), fld.Field("cat", lambda: 8, format=fld.Field.INTEGER)]
+        sequence = seq.Sequence("blah", embedded)
+        struct = {"blah" : {"bob" : 0x01, "cat" : 0x7a}}
+        query = lambda context, name: context[name]
+        data = reduce(lambda a,b:a+b, sequence.encode(query, struct))
+        self.assertEqual("\x01\x7a", str(data))
+
 if __name__ == "__main__":
     unittest.main()

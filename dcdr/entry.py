@@ -28,12 +28,12 @@ class Entry(object):
             yield (is_starting, entry)
         yield (False, self)
 
-    def encode(self, source):
+    def encode(self, query, context):
         """
         Encode a data source.
 
-        Source will be called with the name of the item to be encoded.
-        Returns an iterator object for a series of data objects.
+        Sub-items will be queried by calling 'query' with a name and the context
+        object. Returns an iterator object for a series of data objects.
         """
         raise NotImplementedError()
 
