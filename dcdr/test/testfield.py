@@ -64,7 +64,7 @@ class TestField(unittest.TestCase):
     def test_encode(self):
         field = fld.Field("bob", lambda: 8, format=fld.Field.INTEGER)
         result = field.encode(lambda name: 0x3f)
-        self.assertEqual(0x3f, int(result))
+        self.assertEqual(0x3f, int(result.next()))
 
 if __name__ == "__main__":
     unittest.main()

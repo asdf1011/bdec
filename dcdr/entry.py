@@ -32,7 +32,8 @@ class Entry(object):
         """
         Encode a data source.
 
-        Source will be called with the name of the item to be decoded.
+        Source will be called with the name of the item to be encoded.
+        Returns an iterator object for a series of data objects.
         """
         raise NotImplementedError()
 
