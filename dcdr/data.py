@@ -80,6 +80,12 @@ class Data:
             result = (result << 1) | self._get_bit(bit)
         return result
 
+    def __add__(self, other):
+        if not isinstance(other, Data):
+            return NotImplemented
+        # Incredibly inefficient...
+        return Data.from_binary_text(self.get_binary_text() + other.get_binary_text())
+
     def _get_bytes(self):
         """
         Return an iterator to a series of byte values in the data.

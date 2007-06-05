@@ -73,5 +73,11 @@ class TestData(unittest.TestCase):
         hex = dt.Data('blah blah').get_hex()
         self.assertEqual('blah blah', str(dt.Data.from_hex(hex)))
 
+    def test_adding_data(self):
+        self.assertEqual("chicken little", str(dt.Data("chicken ") + dt.Data("little")))
+
+    def test_unaligned_bits(self):
+        self.assertEqual(0x2d, int(dt.Data.from_binary_text("010") + dt.Data.from_binary_text("1101")))
+
 if __name__ == "__main__":
     unittest.main()
