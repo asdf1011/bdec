@@ -56,9 +56,11 @@ class Field(dcdr.entry.Entry):
 
     def encode(self, query, context):
         if self._expected is not None:
-            data = self._expected
-        else:
-            data = query(context, self.name)
+            # We have expected data, so just return that as the encoded data
+            yield self._expected
+            return
+
+        data = query(context, self.name)
 
         if self._format == self.BINARY:
             yield dt.Data.from_binary_text(data)
