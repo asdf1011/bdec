@@ -12,7 +12,7 @@ class TestXml(unittest.TestCase):
         decoder = xml.Importer().loads(text)
         self.assertTrue(isinstance(decoder, fld.Field)) 
         self.assertEqual("bob", decoder.name)
-        items = list(decoder.decode(dt.Data.from_hex("0x7a")))
+        items = list(decoder.decode(dt.Data.from_hex("7a")))
         self.assertEqual(2, len(items))
         self.assertEqual("01111010", decoder.get_value())
 
@@ -21,7 +21,7 @@ class TestXml(unittest.TestCase):
         decoder = xml.Importer().loads(text)
         self.assertTrue(isinstance(decoder, fld.Field)) 
         self.assertEqual("bob", decoder.name)
-        items = list(decoder.decode(dt.Data.from_hex(hex(ord('?')))))
+        items = list(decoder.decode(dt.Data.from_hex(hex(ord('?'))[2:])))
         self.assertEqual(2, len(items))
         self.assertEqual("?", decoder.get_value())
 
@@ -37,7 +37,7 @@ class TestXml(unittest.TestCase):
         self.assertEqual("bob", decoder.name)
         self.assertEqual("cat", decoder.children[0].name)
         self.assertEqual("dog", decoder.children[1].name)
-        items = list(decoder.decode(dt.Data.from_hex("0x7fac")))
+        items = list(decoder.decode(dt.Data.from_hex("7fac")))
         self.assertEqual(6, len(items))
         self.assertEqual("7f", decoder.children[0].get_value())
         self.assertEqual(172, decoder.children[1].get_value())
@@ -46,7 +46,7 @@ class TestXml(unittest.TestCase):
         text = """<protocol><field name="bob" length="8" value="0xa0" /></protocol>"""
         decoder = xml.Importer().loads(text)
         self.assertEqual("bob", decoder.name)
-        self.assertRaises(fld.BadDataError, lambda: list(decoder.decode(dt.Data.from_hex("0x7a"))))
+        self.assertRaises(fld.BadDataError, lambda: list(decoder.decode(dt.Data.from_hex("7a"))))
 
     def test_choice(self):
         text = """
@@ -60,7 +60,7 @@ class TestXml(unittest.TestCase):
         self.assertEqual("bob", decoder.name)
         self.assertEqual("cat", decoder.children[0].name)
         self.assertEqual("dog", decoder.children[1].name)
-        items = list(decoder.decode(dt.Data.from_hex("0x7fac")))
+        items = list(decoder.decode(dt.Data.from_hex("7fac")))
         self.assertEqual(4, len(items))
         self.assertEqual("7f", decoder.children[0].get_value())
 
@@ -74,7 +74,7 @@ class TestXml(unittest.TestCase):
         decoder = xml.Importer().loads(text)
         self.assertEqual("bob", decoder.name)
         self.assertEqual("cat", decoder.child.name)
-        items = list(decoder.decode(dt.Data.from_hex("0x7fac")))
+        items = list(decoder.decode(dt.Data.from_hex("7fac")))
         self.assertEqual(6, len(items))
         # We're being lazy; we're only checking the last decode value.
         self.assertEqual("ac", decoder.child.get_value())
@@ -83,7 +83,7 @@ class TestXml(unittest.TestCase):
         text = """<protocol><field name="bob" length="1" value="0x0" /></protocol>"""
         decoder = xml.Importer().loads(text)
         self.assertEqual("bob", decoder.name)
-        result = list(decoder.decode(dt.Data.from_hex("0x7a")))
+        result = list(decoder.decode(dt.Data.from_hex("7a")))
         self.assertEqual(2, len(result))
         self.assertEqual(0, int(result[1][1]))
 
@@ -92,7 +92,7 @@ class TestXml(unittest.TestCase):
         decoder = xml.Importer().loads(text)
         self.assertEqual("bob", decoder.name)
         self.assertEqual(8, decoder.length())
-        result = list(decoder.decode(dt.Data.from_hex("0x7a")))
+        result = list(decoder.decode(dt.Data.from_hex("7a")))
         self.assertEqual(2, len(result))
         self.assertEqual(0x7a, int(result[1][1]))
 
@@ -110,7 +110,7 @@ class TestXml(unittest.TestCase):
 
         decoder = xml.Importer().loads(text)
         self.assertEqual("rabbit", decoder.name)
-        result = list(decoder.decode(dt.Data.from_hex("0x7a")))
+        result = list(decoder.decode(dt.Data.from_hex("7a")))
         self.assertEqual(4, len(result))
         self.assertEqual(0x7a, int(result[2][1]))
 

@@ -7,7 +7,7 @@ import dcdr.field as fld
 class TestField(unittest.TestCase):
     def test_decode(self):
         field = fld.Field("bob", lambda: 8)
-        data = dt.Data.from_hex("0x017a")
+        data = dt.Data.from_hex("017a")
 
         calls = []
         for is_starting, entry in field.decode(data):
@@ -28,35 +28,35 @@ class TestField(unittest.TestCase):
         return calls[1].get_value()
 
     def test_binary_type(self):
-        actual = self._get_decode_value("0x017a", 12, fld.Field.BINARY)
+        actual = self._get_decode_value("017a", 12, fld.Field.BINARY)
         self.assertEqual("0000 00010111", actual)
 
     def test_hexstring_type(self):
-        actual = self._get_decode_value("0x017a", 12, fld.Field.HEX)
+        actual = self._get_decode_value("017a", 12, fld.Field.HEX)
         self.assertEqual("017", actual)
 
     def test_string_type(self):
         raw = "chicken"
         encoded = "".join(hex(ord(char))[2:] for char in raw)
-        actual = self._get_decode_value("0x" + encoded, 8 * len(raw), fld.Field.TEXT, "ascii")
+        actual = self._get_decode_value("" + encoded, 8 * len(raw), fld.Field.TEXT, "ascii")
         self.assertEqual("chicken", actual)
 
     def test_little_endian(self):
-        actual = self._get_decode_value("0x0008", 16, fld.Field.INTEGER, fld.Field.LITTLE_ENDIAN)
+        actual = self._get_decode_value("0008", 16, fld.Field.INTEGER, fld.Field.LITTLE_ENDIAN)
         self.assertEqual(8 * 256, actual)
 
     def test_big_endian(self):
-        actual = self._get_decode_value("0x0008", 16, fld.Field.INTEGER, fld.Field.BIG_ENDIAN)
+        actual = self._get_decode_value("0008", 16, fld.Field.INTEGER, fld.Field.BIG_ENDIAN)
         self.assertEqual(8, actual)
 
     def test_bad_expected_data(self):
-        field = fld.Field("bob", lambda: 8, expected=dt.Data.from_hex('0xfe'))
-        data = dt.Data.from_hex("0xf7")
+        field = fld.Field("bob", lambda: 8, expected=dt.Data.from_hex('fe'))
+        data = dt.Data.from_hex("f7")
         self.assertRaises(fld.BadDataError, lambda: list(field.decode(data)))
 
     def test_good_expected_data(self):
-        field = fld.Field("bob", lambda: 8, expected=dt.Data.from_hex('0xfe'))
-        data = dt.Data.from_hex("0xfe")
+        field = fld.Field("bob", lambda: 8, expected=dt.Data.from_hex('fe'))
+        data = dt.Data.from_hex("fe")
         result = list(field.decode(data))
         self.assertEqual(2, len(result))
         self.assertEqual("fe", result[1][1].data.get_hex())

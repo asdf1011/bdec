@@ -10,7 +10,7 @@ class TestSequenceOf(unittest.TestCase):
         sequenceof = sof.SequenceOf("blah", fld.Field("cat", lambda: 8), lambda: 3)
 
         actual = []
-        for is_starting, entry in sequenceof.decode(dt.Data.from_hex("0xfb028c")):
+        for is_starting, entry in sequenceof.decode(dt.Data.from_hex("fb028c")):
             if not is_starting:
                 data = None
                 if isinstance(entry, fld.Field):

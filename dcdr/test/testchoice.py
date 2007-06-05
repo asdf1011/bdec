@@ -10,7 +10,7 @@ class TestChoice(unittest.TestCase):
     def test_first_successful(self):
         embedded = [fld.Field("bob", lambda: 8), fld.Field("cat", lambda: 8)]
         choice = chc.Choice("blah", embedded)
-        data = dt.Data.from_hex("0x017a")
+        data = dt.Data.from_hex("017a")
         results = list(entry for is_starting, entry in choice.decode(data) if not is_starting)
 
         self.assertEqual(2, len(results))
@@ -22,7 +22,7 @@ class TestChoice(unittest.TestCase):
     def test_second_successful(self):
         embedded = [fld.Field("bob", lambda: 24), fld.Field("cat", lambda: 8)]
         choice = chc.Choice("blah", embedded)
-        data = dt.Data.from_hex("0x7a")
+        data = dt.Data.from_hex("7a")
         results = list(entry for is_starting, entry in choice.decode(data) if not is_starting)
 
         self.assertEqual(2, len(results))
@@ -34,14 +34,14 @@ class TestChoice(unittest.TestCase):
         # In this test both embedded choices will fail, but
         # we should get the 'chicken' entry being reported
         # because it managed to decode the most before failing.
-        cat = fld.Field("cat", lambda: 8, expected=dt.Data.from_hex("0x9"))
+        cat = fld.Field("cat", lambda: 8, expected=dt.Data.from_hex("9"))
         embedded = [
             seq.Sequence("chicken", [
                 fld.Field("bob", lambda: 24), 
                 cat]),
-            fld.Field("nope", lambda: 8, expected=dt.Data.from_hex("0x7"))]
+            fld.Field("nope", lambda: 8, expected=dt.Data.from_hex("7"))]
         choice = chc.Choice("blah", embedded)
-        data = dt.Data.from_hex("0x01020304")
+        data = dt.Data.from_hex("01020304")
 
         ex = None
         results = []
@@ -68,7 +68,7 @@ class TestChoice(unittest.TestCase):
         # multiple times in a choice
         cat = fld.Field("cat", lambda: 8)
         choice = chc.Choice("blah", [seq.Sequence("chicken", [cat, cat])])
-        data = dt.Data.from_hex("0x0102")
+        data = dt.Data.from_hex("0102")
 
         decoded = []
         for is_starting, entry in choice.decode(data):

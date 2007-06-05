@@ -90,7 +90,9 @@ class _Handler(xml.sax.handler.ContentHandler):
             encoding = attributes['encoding']
         expected = None
         if attributes.has_key('value'):
-            expected = dt.Data.from_hex(attributes['value'])
+            hex = attributes['value'].upper()
+            assert hex[:2] == "0X"
+            expected = dt.Data.from_hex(hex[2:])
         return fld.Field(name, lambda: length, format, encoding, expected)
 
     def _sequence(self, attributes, children):

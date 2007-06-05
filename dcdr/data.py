@@ -179,9 +179,6 @@ class Data:
         """
         Convert a hex string to a data buffer
         """
-        hex = hex.upper()
-        assert hex[:2] == "0X"
-        hex = hex[2:]
         if len(hex) % 2:
             hex = '0' + hex
 

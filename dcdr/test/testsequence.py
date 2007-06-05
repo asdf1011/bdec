@@ -9,7 +9,7 @@ class Sequence(unittest.TestCase):
     def test_simple_sequence(self):
         embedded = [fld.Field("bob", lambda: 8), fld.Field("cat", lambda: 8)]
         sequence = seq.Sequence("blah", embedded)
-        data = dt.Data.from_hex("0x017a")
+        data = dt.Data.from_hex("017a")
 
         calls = []
         for is_starting, entry in sequence.decode(data):

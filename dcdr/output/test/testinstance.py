@@ -10,14 +10,14 @@ import dcdr.output.instance as inst
 class TestInstance(unittest.TestCase):
     def test_field(self):
         field = fld.Field("bob", lambda: 8, fld.Field.INTEGER)
-        data = inst.decode(field, dt.Data.from_hex('0x6e'))
+        data = inst.decode(field, dt.Data.from_hex('6e'))
         self.assertEqual(110, data.bob)
 
     def test_sequence(self):
         sequence = seq.Sequence("bob", [
             fld.Field("cat", lambda: 8, fld.Field.INTEGER),
             fld.Field("dog", lambda: 24, fld.Field.TEXT)])
-        data = inst.decode(sequence, dt.Data.from_hex('0x6e7a6970'))
+        data = inst.decode(sequence, dt.Data.from_hex('6e7a6970'))
         self.assertEqual(110, data.bob.cat)
         self.assertEqual("zip", data.bob.dog)
 
@@ -25,7 +25,7 @@ class TestInstance(unittest.TestCase):
         sequenceof = sof.SequenceOf("bob", 
             fld.Field("cat", lambda: 8, fld.Field.INTEGER),
             lambda: 4)
-        data = inst.decode(sequenceof, dt.Data.from_hex('0x6e7a6970'))
+        data = inst.decode(sequenceof, dt.Data.from_hex('6e7a6970'))
         self.assertTrue(isinstance(data.bob, list))
         self.assertEqual(4, len(data.bob))
         self.assertEqual(0x6e, int(data.bob[0]))
@@ -37,7 +37,7 @@ class TestInstance(unittest.TestCase):
         sequence = seq.Sequence("bob", [
             fld.Field("cat:", lambda: 8, fld.Field.INTEGER),
             fld.Field("dog", lambda: 24, fld.Field.TEXT)])
-        data = inst.decode(sequence, dt.Data.from_hex('0x6e7a6970'))
+        data = inst.decode(sequence, dt.Data.from_hex('6e7a6970'))
         self.assertTrue('cat' not in dir(data.bob))
         self.assertEqual("zip", data.bob.dog)
 
