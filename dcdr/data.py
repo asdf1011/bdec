@@ -22,6 +22,8 @@ class Data:
 
         self._start = start
         self._end = end
+        assert isinstance(self._start, int)
+        assert isinstance(self._end, int)
 
     def pop(self, length):
         """
@@ -41,6 +43,9 @@ class Data:
         return "".join(chr(byte) for byte in self._get_bytes())
 
     def __eq__(self, other):
+        if not isinstance(other, Data):
+            return NotImplemented
+
         if (self._end - self._start) != (other._end - other._start):
             return False
 
@@ -50,6 +55,9 @@ class Data:
         return True
 
     def __ne__(self, other):
+        if not isinstance(other, Data):
+            return NotImplemented
+
         return not self == other
 
     def __len__(self):
@@ -130,6 +138,40 @@ class Data:
                 value |= bits[i + bit] << (3-bit)
             chars.append(hex(value)[2:])
         return "".join(chars)
+
+    @staticmethod
+    def from_int_little_endian(value, length):
+        data = int(value)
+        if length % 8 != 0:
+            raise ConversionNeedsBytesError()
+        chars = []
+        for i in range(length / 8):
+            chars.append(chr(data & 0xff))
+            data >>= 8
+        if data != 0:
+            raise NotEnoughDataError(value)
+        return Data("".join(chars))
+
+    @staticmethod
+    def from_int_big_endian(value, length):
+        data = int(value)
+        chars = []
+        num_bytes = length / 8
+        if length % 8 != 0:
+            num_bytes += 1
+        for i in range(num_bytes):
+            chars.append(chr(data & 0xff))
+            data >>= 8
+        if data != 0:
+            raise NotEnoughDataError(value, length)
+        chars.reverse()
+
+        result = Data("".join(chars))
+        if 0 != int(result.pop(num_bytes * 8 - length)):
+            # We have an integer that isn't a multiple of 8 bits, and we
+            # couldn't quite fit it in the space available.
+            raise NotEnoughDataError(value, length)
+        return result
 
     @staticmethod
     def from_hex(hex): 

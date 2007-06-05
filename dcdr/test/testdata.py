@@ -42,5 +42,24 @@ class TestData(unittest.TestCase):
         data = dt.Data.from_hex("0xf0ee9601")
         self.assertEqual("f0ee9601", data.get_hex())
 
+    def test_encode_little_endian(self):
+        data = dt.Data.from_int_little_endian(10000, 16)
+        self.assertEqual(16, len(data))
+        self.assertEqual(10000, data.get_little_endian_integer())
+
+    def test_encode_big_endian(self):
+        data = dt.Data.from_int_big_endian(10000, 16)
+        self.assertEqual(16, len(data))
+        self.assertEqual(10000, int(data))
+
+    def test_encode_not_enough_data(self):
+        self.assertEqual(chr(255), str(dt.Data.from_int_big_endian(255, 8)))
+        self.assertRaises(dt.NotEnoughDataError, dt.Data.from_int_big_endian, 255, 7)
+
+    def test_encode_length(self):
+        data = dt.Data.from_int_big_endian(0x3e, 7)
+        self.assertEqual(7, len(data))
+        self.assertEqual(0x3e, int(data))
+
 if __name__ == "__main__":
     unittest.main()
