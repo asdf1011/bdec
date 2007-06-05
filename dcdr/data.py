@@ -1,4 +1,5 @@
 import dcdr
+import string
 
 class NotEnoughDataError(dcdr.DecodeError):
     pass
@@ -190,3 +191,28 @@ class Data:
             value = hex[offset:offset + 2]
             buffer.append(int(value, 16))
         return Data("".join(chr(value) for value in buffer))
+
+    @staticmethod
+    def from_binary_text(text):
+        """
+        Create a data object from binary text.
+
+        eg: "001 10100000"
+        """
+        buffer = []
+        value = 0
+        length = 0
+        for char in text:
+            if char not in string.whitespace:
+                if char not in ['0', '1']:
+                    raise ValueError("Invalid binary text!", text)
+                value <<= 1
+                value |= int(char)
+                length += 1
+
+                if length == 8:
+                    buffer.append(chr(value))
+                    length = 0
+                    value = 0
+        buffer.append(chr(value << (8 - length)))
+        return Data("".join(buffer), 0, len(buffer) * 8 - (8 - length))

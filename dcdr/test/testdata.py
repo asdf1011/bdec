@@ -61,5 +61,13 @@ class TestData(unittest.TestCase):
         self.assertEqual(7, len(data))
         self.assertEqual(0x3e, int(data))
 
+    def test_convert_binary_text(self):
+        self.assertEqual(3, int(dt.Data.from_binary_text('000011')))
+        self.assertEqual(17, int(dt.Data.from_binary_text('010001')))
+        self.assertEqual(255, int(dt.Data.from_binary_text('11111111')))
+        self.assertEqual(256, int(dt.Data.from_binary_text('1 00000000')))
+        data = dt.Data.from_hex('0x78f638fd')
+        self.assertEqual('78f638fd', dt.Data.from_binary_text(data.get_binary_text()).get_hex())
+
 if __name__ == "__main__":
     unittest.main()
