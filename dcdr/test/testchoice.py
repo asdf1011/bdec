@@ -79,5 +79,23 @@ class TestChoice(unittest.TestCase):
         self.assertEqual(1, int(decoded[0]))
         self.assertEqual(2, int(decoded[1]))
 
+    def test_encode(self):
+        # Test encoding of a number that is encoded in different sizes (depending on the size of the data)
+        byte_len = seq.Sequence("bob", [fld.Field("id", lambda: 1, expected=dt.Data("\x00", 7, 8)), fld.Field("dog", lambda: 8, format=fld.Field.INTEGER)])
+        word_len = seq.Sequence("bob", [fld.Field("id", lambda: 1, expected=dt.Data("\x01", 7, 8)), fld.Field("dog", lambda: 16, format=fld.Field.INTEGER)])
+        choice = chc.Choice("blah", [byte_len, word_len])
+
+        # First try encoding a number that will only fit in the 16 bit storage
+        struct = {"blah" : {"bob" : {"dog" : 10023}}}
+        query = lambda context, name: context[name]
+        data = reduce(lambda a,b:a+b, choice.encode(query, struct))
+        self.assertEqual(17, len(data))
+
+        # Now try encoding a number that will fit in the 8 bit storage
+        struct = {"blah" : {"bob" : {"dog" : 117}}}
+        query = lambda context, name: context[name]
+        data = reduce(lambda a,b:a+b, choice.encode(query, struct))
+        self.assertEqual(9, len(data))
+
 if __name__ == "__main__":
     unittest.main()
