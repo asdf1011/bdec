@@ -1,4 +1,5 @@
 import dcdr
+import string
 
 class NotEnoughDataError(dcdr.DecodeError):
     pass
@@ -9,6 +10,12 @@ class HexNeedsFourBitsError(dcdr.DecodeError):
     pass
 
 class ConversionNeedsBytesError(dcdr.DecodeError):
+    pass
+
+class InvalidBinaryTextError(dcdr.DecodeError):
+    pass
+
+class InvalidHexTextError(dcdr.DecodeError):
     pass
 
 class Data:
@@ -22,6 +29,8 @@ class Data:
 
         self._start = start
         self._end = end
+        assert isinstance(self._start, int)
+        assert isinstance(self._end, int)
 
     def pop(self, length):
         """
@@ -41,6 +50,9 @@ class Data:
         return "".join(chr(byte) for byte in self._get_bytes())
 
     def __eq__(self, other):
+        if not isinstance(other, Data):
+            return NotImplemented
+
         if (self._end - self._start) != (other._end - other._start):
             return False
 
@@ -50,6 +62,9 @@ class Data:
         return True
 
     def __ne__(self, other):
+        if not isinstance(other, Data):
+            return NotImplemented
+
         return not self == other
 
     def __len__(self):
@@ -70,6 +85,12 @@ class Data:
         for bit in range(self._start, self._end):
             result = (result << 1) | self._get_bit(bit)
         return result
+
+    def __add__(self, other):
+        if not isinstance(other, Data):
+            return NotImplemented
+        # Incredibly inefficient...
+        return Data.from_binary_text(self.get_binary_text() + other.get_binary_text())
 
     def _get_bytes(self):
         """
@@ -132,13 +153,44 @@ class Data:
         return "".join(chars)
 
     @staticmethod
+    def from_int_little_endian(value, length):
+        data = int(value)
+        if length % 8 != 0:
+            raise ConversionNeedsBytesError()
+        chars = []
+        for i in range(length / 8):
+            chars.append(chr(data & 0xff))
+            data >>= 8
+        if data != 0:
+            raise NotEnoughDataError(value)
+        return Data("".join(chars))
+
+    @staticmethod
+    def from_int_big_endian(value, length):
+        data = int(value)
+        chars = []
+        num_bytes = length / 8
+        if length % 8 != 0:
+            num_bytes += 1
+        for i in range(num_bytes):
+            chars.append(chr(data & 0xff))
+            data >>= 8
+        if data != 0:
+            raise NotEnoughDataError(value, length)
+        chars.reverse()
+
+        result = Data("".join(chars))
+        if 0 != int(result.pop(num_bytes * 8 - length)):
+            # We have an integer that isn't a multiple of 8 bits, and we
+            # couldn't quite fit it in the space available.
+            raise NotEnoughDataError(value, length)
+        return result
+
+    @staticmethod
     def from_hex(hex): 
         """
         Convert a hex string to a data buffer
         """
-        hex = hex.upper()
-        assert hex[:2] == "0X"
-        hex = hex[2:]
         if len(hex) % 2:
             hex = '0' + hex
 
@@ -146,5 +198,33 @@ class Data:
         for i in range(len(hex) / 2):
             offset = i * 2
             value = hex[offset:offset + 2]
-            buffer.append(int(value, 16))
+            try:
+                buffer.append(int(value, 16))
+            except ValueError:
+                raise InvalidHexTextError(hex)
         return Data("".join(chr(value) for value in buffer))
+
+    @staticmethod
+    def from_binary_text(text):
+        """
+        Create a data object from binary text.
+
+        eg: "001 10100000"
+        """
+        buffer = []
+        value = 0
+        length = 0
+        for char in text:
+            if char not in string.whitespace:
+                if char not in ['0', '1']:
+                    raise InvalidBinaryTextError("Invalid binary text!", text)
+                value <<= 1
+                value |= int(char)
+                length += 1
+
+                if length == 8:
+                    buffer.append(chr(value))
+                    length = 0
+                    value = 0
+        buffer.append(chr(value << (8 - length)))
+        return Data("".join(buffer), 0, len(buffer) * 8 - (8 - length))

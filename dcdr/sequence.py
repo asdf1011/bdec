@@ -13,8 +13,16 @@ class Sequence(dcdr.entry.Entry):
     def __init__(self, name, children):
         dcdr.entry.Entry.__init__(self, name)
         self.children = children
+        for child in children:
+            assert isinstance(child, dcdr.entry.Entry)
 
     def _decode(self, data):
         for child in self.children:
             for embedded in child.decode(data):
                 yield embedded
+
+    def _encode(self, query, structure):
+        for child in self.children:
+            for data in child.encode(query, structure):
+                yield data
+            

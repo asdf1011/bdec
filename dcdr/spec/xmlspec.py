@@ -4,11 +4,11 @@ import xml.sax
 import dcdr.choice as chc
 import dcdr.data as dt
 import dcdr.field as fld
-import dcdr.load
+import dcdr.spec
 import dcdr.sequence as seq
 import dcdr.sequenceof as sof
 
-class XmlSpecError(dcdr.load.LoadError):
+class XmlSpecError(dcdr.spec.LoadError):
     pass
 
 class _Handler(xml.sax.handler.ContentHandler):
@@ -90,8 +90,10 @@ class _Handler(xml.sax.handler.ContentHandler):
             encoding = attributes['encoding']
         expected = None
         if attributes.has_key('value'):
-            expected = dt.Data.from_hex(attributes['value'])
-        return fld.Field(name, lambda: length, format, encoding, expected)
+            hex = attributes['value'].upper()
+            assert hex[:2] == "0X"
+            expected = dt.Data.from_hex(hex[2:])
+        return fld.Field(name, length, format, encoding, expected)
 
     def _sequence(self, attributes, children):
         return seq.Sequence(attributes['name'], children)
@@ -103,7 +105,7 @@ class _Handler(xml.sax.handler.ContentHandler):
         if len(children) != 1:
             raise XmlSpecError("Sequence of entries can only have a single child! (got %i)" % len(children))
         length = int(attributes['length'])
-        return sof.SequenceOf(attributes['name'], children[0], lambda: length)
+        return sof.SequenceOf(attributes['name'], children[0], length)
 
 class Importer:
     """

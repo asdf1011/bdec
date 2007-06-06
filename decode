@@ -2,7 +2,7 @@
 
 import sys
 import dcdr.data as dt
-import dcdr.load.xmlspec as xmlspec
+import dcdr.spec.xmlspec as xmlspec
 import dcdr.output.xmlout as xmlout
 
 spec = sys.argv[1]
