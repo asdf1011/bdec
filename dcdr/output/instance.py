@@ -68,3 +68,20 @@ def decode(decoder, binary):
 
     assert len(stack) == 1
     return stack[0].get_value()
+
+def _get_data(obj, name):
+    if name.endswith(':'):
+        # Hidden objects aren't included in the data
+        return obj
+    try: 
+        return getattr(obj, name)
+    except AttributeError:
+        raise PythonInstanceError("Missing sub-object", obj, name)
+
+def encode(protocol, value):
+    """
+    Encode a python instance to binary data.
+
+    Returns an iterator to data objects representing the encoded structure.
+    """
+    return protocol.encode(_get_data, value)

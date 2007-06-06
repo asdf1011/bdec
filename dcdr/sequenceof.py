@@ -9,6 +9,7 @@ class SequenceOf(dcdr.entry.Entry):
         dcdr.entry.Entry.__init__(self, name)
         self.child = child
         self._length = length
+        assert isinstance(child, dcdr.entry.Entry)
 
     def _decode(self, data):
         length = self._length()

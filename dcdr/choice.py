@@ -23,6 +23,8 @@ class Choice(dcdr.entry.Entry):
 
         assert len(children) > 0
         self.children = children
+        for child in children:
+            assert isinstance(child, dcdr.entry.Entry)
 
     def _decode(self, data):
         # We attempt to decode all of the embedded items. If
