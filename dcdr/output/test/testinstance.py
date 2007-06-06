@@ -81,5 +81,17 @@ class TestInstance(unittest.TestCase):
         blah.bob.dog = 0x7a
         self.assertEqual("\x38\x7a", self._encode(sequence, blah))
 
+    def test_children_of_hidden_entries_are_visible(self):
+        sequence = seq.Sequence("bob:", [fld.Field("cat", lambda: 8, fld.Field.INTEGER), fld.Field("dog", lambda: 8, fld.Field.INTEGER)])
+        data = inst.decode(sequence, dt.Data("\x38\x7a"))
+        self.assertEqual(0x38, data.cat)
+        self.assertEqual(0x7a, data.dog)
+
+    def test_sequenceof_encode(self):
+        sequenceof = sof.SequenceOf("bob", fld.Field("cat:", lambda: 8, fld.Field.INTEGER), lambda: 4)
+        blah = _Inst()
+        blah.bob = [0x38, 0xa7, 0x70, 0x60]
+        self.assertEqual("\x38\xa7\x70\x60", self._encode(sequenceof, blah))
+
 if __name__ == "__main__":
     unittest.main()
