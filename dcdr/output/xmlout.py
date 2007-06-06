@@ -13,7 +13,7 @@ class MissingElementError(dcdr.DecodeError):
     pass
 
 def _escape_name(name):
-    return name.replace(' ', '-')
+    return name.replace(' ', '-').replace('(', '_').replace(')', '_')
 
 def to_file(decoder, binary, output, encoding="utf-8"):
     handler = xml.sax.saxutils.XMLGenerator(output, encoding)
@@ -49,6 +49,10 @@ def _query_element(obj, name):
 
     If the child has no sub-elements itself, return the element text contents.
     """
+    if name.endswith(':'):
+        return obj
+
+    name = _escape_name(name)
     for child in obj.childNodes:
         if child.nodeType == xml.dom.Node.ELEMENT_NODE and child.tagName == name:
             text = ""
