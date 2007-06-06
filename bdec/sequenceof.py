@@ -1,15 +1,15 @@
-import dcdr.entry
+import bdec.entry
 
-class SequenceOf(dcdr.entry.Entry):
+class SequenceOf(bdec.entry.Entry):
     """
     A protocol entry representing a sequence of another protocol entry.
     """
 
     def __init__(self, name, child, length):
-        dcdr.entry.Entry.__init__(self, name)
+        bdec.entry.Entry.__init__(self, name)
         self.child = child
         self._length = length
-        assert isinstance(child, dcdr.entry.Entry)
+        assert isinstance(child, bdec.entry.Entry)
 
     def _decode(self, data):
         length = int(self._length)

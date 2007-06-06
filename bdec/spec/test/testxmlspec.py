@@ -2,9 +2,9 @@
 
 import unittest
 
-import dcdr.data as dt
-import dcdr.field as fld
-import dcdr.spec.xmlspec as xml
+import bdec.data as dt
+import bdec.field as fld
+import bdec.spec.xmlspec as xml
 
 class TestXml(unittest.TestCase):
     def test_simple_field(self):

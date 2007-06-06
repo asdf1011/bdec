@@ -3,10 +3,10 @@ import xml.dom.minidom
 import xml.sax.saxutils
 import xml.sax.xmlreader
 
-import dcdr
-import dcdr.field as fld
+import bdec
+import bdec.field as fld
 
-class MissingElementError(dcdr.DecodeError):
+class MissingElementError(bdec.DecodeError):
     """
     Thrown when the xml we are encoding is missing an expected element.
     """

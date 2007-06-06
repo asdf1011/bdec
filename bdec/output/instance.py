@@ -1,6 +1,6 @@
-import dcdr.field as fld
-import dcdr.output
-import dcdr.sequenceof as sof
+import bdec.field as fld
+import bdec.output
+import bdec.sequenceof as sof
 
 def _escape(name):
     return name.replace(' ', '_')
@@ -8,7 +8,7 @@ def _escape(name):
 class _Item:
     pass
 
-class PythonInstanceError(dcdr.output.OutputError):
+class PythonInstanceError(bdec.output.OutputError):
     """
     An error occurred trying to create the python instance from the decoded data
     """

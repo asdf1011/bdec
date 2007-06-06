@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 import unittest
 
-import dcdr
-import dcdr.data as dt
+import bdec
+import bdec.data as dt
 
 class TestData(unittest.TestCase):
     def test_pop_empty_data(self):

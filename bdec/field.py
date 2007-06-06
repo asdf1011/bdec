@@ -1,10 +1,10 @@
-import dcdr.data as dt
-import dcdr.entry
+import bdec.data as dt
+import bdec.entry
 
-class FieldNotDecodedError(dcdr.DecodeError):
+class FieldNotDecodedError(bdec.DecodeError):
     pass
 
-class BadDataError(dcdr.DecodeError):
+class BadDataError(bdec.DecodeError):
     def __init__(self, field, expected, actual):
         self.field = field
         self.expected = expected
@@ -13,22 +13,22 @@ class BadDataError(dcdr.DecodeError):
     def __str__(self):
         return "'%s' expected %s, got %s" % (self.field.name, self.expected.get_binary_text(), self.actual.get_binary_text())
 
-class BadEncodingError(dcdr.DecodeError):
+class BadEncodingError(bdec.DecodeError):
     pass
 
-class BadFormatError(dcdr.DecodeError):
+class BadFormatError(bdec.DecodeError):
     """
     Got the wrong sort of data type when encoding.
     """
     pass
 
-class InvalidLengthData(dcdr.DecodeError):
+class InvalidLengthData(bdec.DecodeError):
     """
     Got given data of the wrong size to encode.
     """
     pass
 
-class Field(dcdr.entry.Entry):
+class Field(bdec.entry.Entry):
 
     # Field format types
     TEXT = "text"
@@ -43,7 +43,7 @@ class Field(dcdr.entry.Entry):
     BIG_ENDIAN = "big endian"
 
     def __init__(self, name, length, format=BINARY, encoding=None, expected=None):
-        dcdr.entry.Entry.__init__(self, name)
+        bdec.entry.Entry.__init__(self, name)
         assert format in self._formats
         assert expected is None or isinstance(expected, dt.Data)
 
@@ -62,7 +62,7 @@ class Field(dcdr.entry.Entry):
         self._expected = expected
 
     def _decode(self, data):
-        """ see dcdr.entry.Entry._decode """
+        """ see bdec.entry.Entry._decode """
         length = int(self.length)
         self.data = data.pop(length)
         if self._expected is not None:

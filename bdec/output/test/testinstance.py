@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 import unittest
 
-import dcdr.choice as chc
-import dcdr.data as dt
-import dcdr.field as fld
-import dcdr.sequence as seq
-import dcdr.sequenceof as sof
-import dcdr.output.instance as inst
+import bdec.choice as chc
+import bdec.data as dt
+import bdec.field as fld
+import bdec.sequence as seq
+import bdec.sequenceof as sof
+import bdec.output.instance as inst
 
 class _Inst():
     """

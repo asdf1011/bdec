@@ -1,6 +1,6 @@
-import dcdr.entry
+import bdec.entry
 
-class Sequence(dcdr.entry.Entry):
+class Sequence(bdec.entry.Entry):
     """
     A sequence type protocol entry.
 
@@ -11,10 +11,10 @@ class Sequence(dcdr.entry.Entry):
     """
 
     def __init__(self, name, children):
-        dcdr.entry.Entry.__init__(self, name)
+        bdec.entry.Entry.__init__(self, name)
         self.children = children
         for child in children:
-            assert isinstance(child, dcdr.entry.Entry)
+            assert isinstance(child, bdec.entry.Entry)
 
     def _decode(self, data):
         for child in self.children:

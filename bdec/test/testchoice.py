@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 import unittest
 
-import dcdr.choice as chc
-import dcdr.data as dt
-import dcdr.field as fld
-import dcdr.sequence as seq
+import bdec.choice as chc
+import bdec.data as dt
+import bdec.field as fld
+import bdec.sequence as seq
 
 class TestChoice(unittest.TestCase):
     def test_first_successful(self):

@@ -45,7 +45,7 @@ class Entry(object):
         # into memory. This is because it supports 'searching backwards', plus the
         # reference to the root element is kept. Maybe a push system would be better?
         #
-        # Problem is, push doesn't work particularly well for dcdr.output.instance, nor
+        # Problem is, push doesn't work particularly well for bdec.output.instance, nor
         # for choice entries (where we need to re-wind...)
         return self._encode(query, query(context, self.name))
 

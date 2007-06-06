@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
 import unittest
-import dcdr.data as dt
-import dcdr.field as fld
-import dcdr.sequence as seq
+import bdec.data as dt
+import bdec.field as fld
+import bdec.sequence as seq
 
 class Sequence(unittest.TestCase):
     def test_simple_sequence(self):

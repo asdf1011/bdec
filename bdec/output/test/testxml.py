@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 import unittest
 
-import dcdr.data as dt
-import dcdr.field as fld
-import dcdr.output.xmlout as xml
-import dcdr.sequence as seq
+import bdec.data as dt
+import bdec.field as fld
+import bdec.output.xmlout as xml
+import bdec.sequence as seq
 
 class TestXml(unittest.TestCase):
     def test_field(self):

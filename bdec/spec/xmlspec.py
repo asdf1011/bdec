@@ -1,14 +1,14 @@
 import StringIO
 import xml.sax
 
-import dcdr.choice as chc
-import dcdr.data as dt
-import dcdr.field as fld
-import dcdr.spec
-import dcdr.sequence as seq
-import dcdr.sequenceof as sof
+import bdec.choice as chc
+import bdec.data as dt
+import bdec.field as fld
+import bdec.spec
+import bdec.sequence as seq
+import bdec.sequenceof as sof
 
-class XmlSpecError(dcdr.spec.LoadError):
+class XmlSpecError(bdec.spec.LoadError):
     pass
 
 class _Handler(xml.sax.handler.ContentHandler):

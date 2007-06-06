@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 import unittest
 
-import dcdr.data as dt
-import dcdr.field as fld
+import bdec.data as dt
+import bdec.field as fld
 
 class TestField(unittest.TestCase):
     def test_decode(self):

@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 import unittest
 
-import dcdr.data as dt
-import dcdr.field as fld
-import dcdr.sequenceof as sof
+import bdec.data as dt
+import bdec.field as fld
+import bdec.sequenceof as sof
 
 class TestSequenceOf(unittest.TestCase):
     def test_sequence_of_field(self):

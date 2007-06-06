@@ -1,21 +1,21 @@
-import dcdr
+import bdec
 import string
 
-class NotEnoughDataError(dcdr.DecodeError):
+class NotEnoughDataError(bdec.DecodeError):
     pass
 
-class HexNeedsFourBitsError(dcdr.DecodeError):
+class HexNeedsFourBitsError(bdec.DecodeError):
     """ Raised when attempting to convert data to hex, and we don't
         have a multiple of 4 bits. """
     pass
 
-class ConversionNeedsBytesError(dcdr.DecodeError):
+class ConversionNeedsBytesError(bdec.DecodeError):
     pass
 
-class InvalidBinaryTextError(dcdr.DecodeError):
+class InvalidBinaryTextError(bdec.DecodeError):
     pass
 
-class InvalidHexTextError(dcdr.DecodeError):
+class InvalidHexTextError(bdec.DecodeError):
     pass
 
 class Data:

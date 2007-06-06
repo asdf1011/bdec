@@ -1,8 +1,8 @@
 
-import dcdr.entry
-import dcdr.field as fld
+import bdec.entry
+import bdec.field as fld
 
-class ChoiceDecodeError(dcdr.DecodeError):
+class ChoiceDecodeError(bdec.DecodeError):
     """
     One of the entries under the choice failed to decode.
 
@@ -11,7 +11,7 @@ class ChoiceDecodeError(dcdr.DecodeError):
     """
     pass
 
-class Choice(dcdr.entry.Entry):
+class Choice(bdec.entry.Entry):
     """
     Implement an entry that can be one of many entries.
 
@@ -19,12 +19,12 @@ class Choice(dcdr.entry.Entry):
     """
 
     def __init__(self, name, children):
-        dcdr.entry.Entry.__init__(self, name)
+        bdec.entry.Entry.__init__(self, name)
 
         assert len(children) > 0
         self.children = children
         for child in children:
-            assert isinstance(child, dcdr.entry.Entry)
+            assert isinstance(child, bdec.entry.Entry)
 
     def _decode(self, data):
         # We attempt to decode all of the embedded items. If
@@ -42,7 +42,7 @@ class Choice(dcdr.entry.Entry):
                 # We successfully decoded the entry!
                 best_guess = child
                 break
-            except dcdr.DecodeError, ex:
+            except bdec.DecodeError, ex:
                 if best_guess is None or bits_decoded > best_guess_bits:
                     best_guess = child
                     best_guess_bits = bits_decoded
@@ -69,7 +69,7 @@ class Choice(dcdr.entry.Entry):
                 # We successfully encoded the entry!
                 best_guess = child
                 break
-            except dcdr.DecodeError, ex:
+            except bdec.DecodeError, ex:
                 if best_guess is None or bits_encoded > best_guess_bits:
                     best_guess = child
                     best_guess_bits = bits_encoded
