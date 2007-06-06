@@ -4,11 +4,11 @@ import xml.sax
 import dcdr.choice as chc
 import dcdr.data as dt
 import dcdr.field as fld
-import dcdr.load
+import dcdr.spec
 import dcdr.sequence as seq
 import dcdr.sequenceof as sof
 
-class XmlSpecError(dcdr.load.LoadError):
+class XmlSpecError(dcdr.spec.LoadError):
     pass
 
 class _Handler(xml.sax.handler.ContentHandler):

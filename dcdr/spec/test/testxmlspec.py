@@ -4,7 +4,7 @@ import unittest
 
 import dcdr.data as dt
 import dcdr.field as fld
-import dcdr.load.xmlspec as xml
+import dcdr.spec.xmlspec as xml
 
 class TestXml(unittest.TestCase):
     def test_simple_field(self):
