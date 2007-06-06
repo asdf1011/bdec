@@ -27,5 +27,14 @@ class TestXml(unittest.TestCase):
         data = reduce(lambda a,b:a+b, xml.encode(sequence, text))
         self.assertEqual("\x05\x12", str(data))
 
+    def test_encoded_text_length_ignores_whitespace(self):
+        """
+        Test that the encode text ignores the additional whitespace that xml puts around the body text.
+        """
+        text = "<blah><cat>\n    rabbit\n</cat></blah>"
+        sequence = seq.Sequence("blah", [fld.Field("cat", 48, fld.Field.TEXT)])
+        data = reduce(lambda a,b:a+b, xml.encode(sequence, text))
+        self.assertEqual("rabbit", str(data))
+
 if __name__ == "__main__":
     unittest.main()

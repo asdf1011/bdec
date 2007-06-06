@@ -61,7 +61,7 @@ def _query_element(obj, name):
                     # This element has sub-elements, so return the element itself.
                     return child
                 elif subchild.nodeType == xml.dom.Node.TEXT_NODE:
-                    text = subchild.data
+                    text = subchild.data.strip()
             # No sub-elements; just return the text of the element.
             return text
     raise MissingElementError(obj, name)
