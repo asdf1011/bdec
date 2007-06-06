@@ -28,6 +28,12 @@ class Entry(object):
             yield (is_starting, entry)
         yield (False, self)
 
+    def _encode(self, query, context):
+        """
+        Encode a data source, with the context being the data to encode.
+        """
+        raise NotImplementedError()
+
     def encode(self, query, context):
         """
         Encode a data source.
@@ -35,7 +41,7 @@ class Entry(object):
         Sub-items will be queried by calling 'query' with a name and the context
         object. Returns an iterator object for a series of data objects.
         """
-        raise NotImplementedError()
+        return self._encode(query, query(context, self.name))
 
     def is_hidden(self):
         """

@@ -23,5 +23,12 @@ class TestSequenceOf(unittest.TestCase):
             ("blah", None)]
         self.assertEqual(expected, actual)
 
+    def test_encoding(self):
+        sequenceof = sof.SequenceOf("blah", fld.Field("cat", lambda: 8, format=fld.Field.INTEGER), lambda: 3)
+        data = {"blah" : [{"cat":5}, {"cat":9}, {"cat":0xf6}]}
+        query = lambda context, name: context[name] 
+        data = reduce(lambda a,b:a+b, sequenceof.encode(query, data))
+        self.assertEqual("\x05\x09\xf6", str(data))
+
 if __name__ == "__main__":
     unittest.main()

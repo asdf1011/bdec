@@ -19,8 +19,7 @@ class Sequence(dcdr.entry.Entry):
             for embedded in child.decode(data):
                 yield embedded
 
-    def encode(self, query, context):
-        structure = query(context, self.name)
+    def _encode(self, query, structure):
         for child in self.children:
             for data in child.encode(query, structure):
                 yield data

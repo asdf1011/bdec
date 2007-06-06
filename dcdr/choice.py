@@ -53,11 +53,9 @@ class Choice(dcdr.entry.Entry):
         for is_starting, entry in best_guess.decode(data):
             yield is_starting, entry
 
-    def encode(self, query, context):
+    def _encode(self, query, choice):
         # We attempt to encode all of the embedded items, until we find
         # an encoder capable of doing it.
-        choice = query(context, self.name)
-
         best_guess = None
         best_guess_bits = 0
         for child in self.children:

@@ -15,3 +15,8 @@ class SequenceOf(dcdr.entry.Entry):
         for i in range(length):
             for item in self.child.decode(data):
                 yield item
+
+    def _encode(self, query, sequenceof):
+        for child in sequenceof:
+            for data in self.child.encode(query, child):
+                yield data
