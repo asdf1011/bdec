@@ -22,6 +22,12 @@ class BadFormatError(dcdr.DecodeError):
     """
     pass
 
+class InvalidLengthData(dcdr.DecodeError):
+    """
+    Got given data of the wrong size to encode.
+    """
+    pass
+
 class Field(dcdr.entry.Entry):
 
     # Field format types
@@ -83,27 +89,32 @@ class Field(dcdr.entry.Entry):
             return
 
         data = query(context, self.name)
+        length = int(self.length)
         if self._format == self.BINARY:
             self._check_type(data, str)
-            yield dt.Data.from_binary_text(data)
+            result = dt.Data.from_binary_text(data)
         elif self._format == self.HEX:
             self._check_type(data, str)
-            yield dt.Data.from_hex(data)
+            result = dt.Data.from_hex(data)
         elif self._format == self.TEXT:
             self._check_type(data, str)
             try:
-                yield dt.Data(data.encode(self._encoding))
+                result = dt.Data(data.encode(self._encoding))
             except UnicodeDecodeError:
                 raise BadEncodingError(self, self._encoding, data)
         elif self._format == self.INTEGER:
             self._check_type(data, int)
             assert self._encoding in [self.BIG_ENDIAN, self.LITTLE_ENDIAN]
             if self._encoding == self.BIG_ENDIAN:
-                yield dt.Data.from_int_big_endian(data, int(self.length))
+                result = dt.Data.from_int_big_endian(data, int(self.length))
             else:
-                yield dt.Data.from_int_little_endian(data, int(self.length))
+                result = dt.Data.from_int_little_endian(data, int(self.length))
         else:
             raise Exception("Unknown field format of '%s'!" % self._format)
+
+        if len(result) != length:
+            raise InvalidLengthData(length, data)
+        yield result
 
     def __int__(self):
         assert self._encoding in [self.BIG_ENDIAN, self.LITTLE_ENDIAN]

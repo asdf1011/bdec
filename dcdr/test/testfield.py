@@ -66,5 +66,21 @@ class TestField(unittest.TestCase):
         result = field.encode(lambda name, context: 0x3f, None)
         self.assertEqual(0x3f, int(result.next()))
 
+    def test_encoded_size_matches_expected_size(self):
+        """
+        When we specify a size for a field, what we actually encode should match it.
+        """
+        text = fld.Field("bob", 48, format=fld.Field.TEXT)
+        self.assertEqual("rabbit", str(text.encode(lambda name, context: "rabbit", None).next()))
+        self.assertRaises(fld.InvalidLengthData, text.encode(lambda name, context: "boxfish", None).next)
+
+        binary = fld.Field("bob", 8, format=fld.Field.BINARY)
+        self.assertEqual("\x39", str(binary.encode(lambda name, context: "00111001", None).next()))
+        self.assertRaises(fld.InvalidLengthData, binary.encode(lambda name, context: "1011", None).next)
+
+        hex = fld.Field("bob", 8, format=fld.Field.HEX)
+        self.assertEqual("\xe7", str(hex.encode(lambda name, context: "e7", None).next()))
+        self.assertRaises(fld.InvalidLengthData, hex.encode(lambda name, context: "ecd", None).next)
+
 if __name__ == "__main__":
     unittest.main()
