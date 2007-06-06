@@ -66,7 +66,7 @@ class Choice(dcdr.entry.Entry):
                 for data in child.encode(query, choice):
                     bits_encoded += len(data)
 
-                # We successfully decoded the entry!
+                # We successfully encoded the entry!
                 best_guess = child
                 break
             except dcdr.DecodeError, ex:

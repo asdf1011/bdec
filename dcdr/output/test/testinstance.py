@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import unittest
 
+import dcdr.choice as chc
 import dcdr.data as dt
 import dcdr.field as fld
 import dcdr.sequence as seq
@@ -92,6 +93,12 @@ class TestInstance(unittest.TestCase):
         blah = _Inst()
         blah.bob = [0x38, 0xa7, 0x70, 0x60]
         self.assertEqual("\x38\xa7\x70\x60", self._encode(sequenceof, blah))
+
+    def test_choice_encode(self):
+        choice = chc.Choice("bob", [fld.Field("blah", lambda: 60, fld.Field.INTEGER), fld.Field("text", lambda: 56, fld.Field.TEXT)])
+        blah = _Inst()
+        blah.bob.text = "chicken"
+        self.assertEqual("chicken", self._encode(choice, blah))
 
 if __name__ == "__main__":
     unittest.main()

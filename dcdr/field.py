@@ -16,6 +16,12 @@ class BadDataError(dcdr.DecodeError):
 class BadEncodingError(dcdr.DecodeError):
     pass
 
+class BadFormatError(dcdr.DecodeError):
+    """
+    Got the wrong sort of data type when encoding.
+    """
+    pass
+
 class Field(dcdr.entry.Entry):
 
     # Field format types
@@ -24,12 +30,16 @@ class Field(dcdr.entry.Entry):
     HEX = "hex"
     BINARY = "binary"
 
+    _formats = [TEXT, INTEGER, HEX, BINARY]
+
     # Field 'encoding' types
     LITTLE_ENDIAN = "little endian"
     BIG_ENDIAN = "big endian"
 
     def __init__(self, name, get_length, format=BINARY, encoding=None, expected=None):
         dcdr.entry.Entry.__init__(self, name)
+        assert format in self._formats
+        assert expected is None or isinstance(expected, dt.Data)
 
         if encoding is None:
             if format == self.TEXT:
@@ -54,6 +64,14 @@ class Field(dcdr.entry.Entry):
                 raise BadDataError(self, self._expected, self.data)
         return []
 
+    def _check_type(self, data, expected_type):
+        # Try to conver object to the expected type; if it fails, raise
+        # an error.
+        try:
+            expected_type(data)
+        except:
+            raise BadFormatError(data, expected_type)
+
     def encode(self, query, context):
         """
         Note that we override 'encode', not '_encode', as we do not want to query
@@ -66,15 +84,19 @@ class Field(dcdr.entry.Entry):
 
         data = query(context, self.name)
         if self._format == self.BINARY:
+            self._check_type(data, str)
             yield dt.Data.from_binary_text(data)
         elif self._format == self.HEX:
+            self._check_type(data, str)
             yield dt.Data.from_hex(data)
         elif self._format == self.TEXT:
+            self._check_type(data, str)
             try:
                 yield dt.Data(data.encode(self._encoding))
             except UnicodeDecodeError:
                 raise BadEncodingError(self, self._encoding, data)
         elif self._format == self.INTEGER:
+            self._check_type(data, int)
             assert self._encoding in [self.BIG_ENDIAN, self.LITTLE_ENDIAN]
             if self._encoding == self.BIG_ENDIAN:
                 yield dt.Data.from_int_big_endian(data, self.length())
