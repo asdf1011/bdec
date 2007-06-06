@@ -12,6 +12,12 @@ class HexNeedsFourBitsError(dcdr.DecodeError):
 class ConversionNeedsBytesError(dcdr.DecodeError):
     pass
 
+class InvalidBinaryTextError(dcdr.DecodeError):
+    pass
+
+class InvalidHexTextError(dcdr.DecodeError):
+    pass
+
 class Data:
     """ A class to hold data to be decoded """
     def __init__(self, buffer, start=None, end=None):
@@ -192,7 +198,10 @@ class Data:
         for i in range(len(hex) / 2):
             offset = i * 2
             value = hex[offset:offset + 2]
-            buffer.append(int(value, 16))
+            try:
+                buffer.append(int(value, 16))
+            except ValueError:
+                raise InvalidHexTextError(hex)
         return Data("".join(chr(value) for value in buffer))
 
     @staticmethod
@@ -208,7 +217,7 @@ class Data:
         for char in text:
             if char not in string.whitespace:
                 if char not in ['0', '1']:
-                    raise ValueError("Invalid binary text!", text)
+                    raise InvalidBinaryTextError("Invalid binary text!", text)
                 value <<= 1
                 value |= int(char)
                 length += 1
