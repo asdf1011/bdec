@@ -12,7 +12,7 @@ class SequenceOf(dcdr.entry.Entry):
         assert isinstance(child, dcdr.entry.Entry)
 
     def _decode(self, data):
-        length = self._length()
+        length = int(self._length)
         for i in range(length):
             for item in self.child.decode(data):
                 yield item

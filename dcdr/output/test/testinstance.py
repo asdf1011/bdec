@@ -21,22 +21,22 @@ class _Inst():
 
 class TestInstance(unittest.TestCase):
     def test_field(self):
-        field = fld.Field("bob", lambda: 8, fld.Field.INTEGER)
+        field = fld.Field("bob", 8, fld.Field.INTEGER)
         data = inst.decode(field, dt.Data.from_hex('6e'))
         self.assertEqual(110, data.bob)
 
     def test_sequence(self):
         sequence = seq.Sequence("bob", [
-            fld.Field("cat", lambda: 8, fld.Field.INTEGER),
-            fld.Field("dog", lambda: 24, fld.Field.TEXT)])
+            fld.Field("cat", 8, fld.Field.INTEGER),
+            fld.Field("dog", 24, fld.Field.TEXT)])
         data = inst.decode(sequence, dt.Data.from_hex('6e7a6970'))
         self.assertEqual(110, data.bob.cat)
         self.assertEqual("zip", data.bob.dog)
 
     def test_sequenceof(self):
         sequenceof = sof.SequenceOf("bob", 
-            fld.Field("cat", lambda: 8, fld.Field.INTEGER),
-            lambda: 4)
+            fld.Field("cat", 8, fld.Field.INTEGER),
+            4)
         data = inst.decode(sequenceof, dt.Data.from_hex('6e7a6970'))
         self.assertTrue(isinstance(data.bob, list))
         self.assertEqual(4, len(data.bob))
@@ -47,8 +47,8 @@ class TestInstance(unittest.TestCase):
 
     def test_hidden_entries(self):
         sequence = seq.Sequence("bob", [
-            fld.Field("cat:", lambda: 8, fld.Field.INTEGER),
-            fld.Field("dog", lambda: 24, fld.Field.TEXT)])
+            fld.Field("cat:", 8, fld.Field.INTEGER),
+            fld.Field("dog", 24, fld.Field.TEXT)])
         data = inst.decode(sequence, dt.Data.from_hex('6e7a6970'))
         self.assertTrue('cat' not in "".join(dir(data.bob)))
         self.assertEqual("zip", data.bob.dog)
@@ -70,32 +70,32 @@ class TestInstance(unittest.TestCase):
         return data
 
     def test_field_encode(self):
-        field = fld.Field("bob", lambda: 8, fld.Field.INTEGER)
+        field = fld.Field("bob", 8, fld.Field.INTEGER)
         blah = _Inst()
         blah.bob = 0x6e
         self.assertEqual("\x6e", self._encode(field, blah))
 
     def test_sequence_encode(self):
-        sequence = seq.Sequence("bob", [fld.Field("cat", lambda: 8, fld.Field.INTEGER), fld.Field("dog", lambda: 8, fld.Field.INTEGER)])
+        sequence = seq.Sequence("bob", [fld.Field("cat", 8, fld.Field.INTEGER), fld.Field("dog", 8, fld.Field.INTEGER)])
         blah = _Inst()
         blah.bob.cat = 0x38
         blah.bob.dog = 0x7a
         self.assertEqual("\x38\x7a", self._encode(sequence, blah))
 
     def test_children_of_hidden_entries_are_visible(self):
-        sequence = seq.Sequence("bob:", [fld.Field("cat", lambda: 8, fld.Field.INTEGER), fld.Field("dog", lambda: 8, fld.Field.INTEGER)])
+        sequence = seq.Sequence("bob:", [fld.Field("cat", 8, fld.Field.INTEGER), fld.Field("dog", 8, fld.Field.INTEGER)])
         data = inst.decode(sequence, dt.Data("\x38\x7a"))
         self.assertEqual(0x38, data.cat)
         self.assertEqual(0x7a, data.dog)
 
     def test_sequenceof_encode(self):
-        sequenceof = sof.SequenceOf("bob", fld.Field("cat:", lambda: 8, fld.Field.INTEGER), lambda: 4)
+        sequenceof = sof.SequenceOf("bob", fld.Field("cat:", 8, fld.Field.INTEGER), 4)
         blah = _Inst()
         blah.bob = [0x38, 0xa7, 0x70, 0x60]
         self.assertEqual("\x38\xa7\x70\x60", self._encode(sequenceof, blah))
 
     def test_choice_encode(self):
-        choice = chc.Choice("bob", [fld.Field("blah", lambda: 60, fld.Field.INTEGER), fld.Field("text", lambda: 56, fld.Field.TEXT)])
+        choice = chc.Choice("bob", [fld.Field("blah", 60, fld.Field.INTEGER), fld.Field("text", 56, fld.Field.TEXT)])
         blah = _Inst()
         blah.bob.text = "chicken"
         self.assertEqual("chicken", self._encode(choice, blah))

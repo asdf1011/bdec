@@ -36,7 +36,7 @@ class Field(dcdr.entry.Entry):
     LITTLE_ENDIAN = "little endian"
     BIG_ENDIAN = "big endian"
 
-    def __init__(self, name, get_length, format=BINARY, encoding=None, expected=None):
+    def __init__(self, name, length, format=BINARY, encoding=None, expected=None):
         dcdr.entry.Entry.__init__(self, name)
         assert format in self._formats
         assert expected is None or isinstance(expected, dt.Data)
@@ -49,7 +49,7 @@ class Field(dcdr.entry.Entry):
                 # endian requires data with a length of a multiple of 8
                 encoding = self.BIG_ENDIAN
 
-        self.length = get_length
+        self.length = length
         self._format = format
         self._encoding = encoding
         self.data = None
@@ -57,7 +57,7 @@ class Field(dcdr.entry.Entry):
 
     def _decode(self, data):
         """ see dcdr.entry.Entry._decode """
-        length = self.length()
+        length = int(self.length)
         self.data = data.pop(length)
         if self._expected is not None:
             if int(self._expected) != int(self.data):
@@ -99,9 +99,9 @@ class Field(dcdr.entry.Entry):
             self._check_type(data, int)
             assert self._encoding in [self.BIG_ENDIAN, self.LITTLE_ENDIAN]
             if self._encoding == self.BIG_ENDIAN:
-                yield dt.Data.from_int_big_endian(data, self.length())
+                yield dt.Data.from_int_big_endian(data, int(self.length))
             else:
-                yield dt.Data.from_int_little_endian(data, self.length())
+                yield dt.Data.from_int_little_endian(data, int(self.length))
         else:
             raise Exception("Unknown field format of '%s'!" % self._format)
 

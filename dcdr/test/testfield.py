@@ -6,7 +6,7 @@ import dcdr.field as fld
 
 class TestField(unittest.TestCase):
     def test_decode(self):
-        field = fld.Field("bob", lambda: 8)
+        field = fld.Field("bob", 8)
         data = dt.Data.from_hex("017a")
 
         calls = []
@@ -19,7 +19,7 @@ class TestField(unittest.TestCase):
         self.assertEqual(0x7a, int(data))
 
     def _get_decode_value(self, hex, length, format, encoding=""):
-        field = fld.Field("bob", lambda: length, format, encoding)
+        field = fld.Field("bob", length, format, encoding)
         data = dt.Data.from_hex(hex)
         calls = []
         for is_starting, entry in field.decode(data):
@@ -50,19 +50,19 @@ class TestField(unittest.TestCase):
         self.assertEqual(8, actual)
 
     def test_bad_expected_data(self):
-        field = fld.Field("bob", lambda: 8, expected=dt.Data.from_hex('fe'))
+        field = fld.Field("bob", 8, expected=dt.Data.from_hex('fe'))
         data = dt.Data.from_hex("f7")
         self.assertRaises(fld.BadDataError, lambda: list(field.decode(data)))
 
     def test_good_expected_data(self):
-        field = fld.Field("bob", lambda: 8, expected=dt.Data.from_hex('fe'))
+        field = fld.Field("bob", 8, expected=dt.Data.from_hex('fe'))
         data = dt.Data.from_hex("fe")
         result = list(field.decode(data))
         self.assertEqual(2, len(result))
         self.assertEqual("fe", result[1][1].data.get_hex())
 
     def test_encode(self):
-        field = fld.Field("bob", lambda: 8, format=fld.Field.INTEGER)
+        field = fld.Field("bob", 8, format=fld.Field.INTEGER)
         result = field.encode(lambda name, context: 0x3f, None)
         self.assertEqual(0x3f, int(result.next()))
 

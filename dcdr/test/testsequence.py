@@ -7,7 +7,7 @@ import dcdr.sequence as seq
 
 class Sequence(unittest.TestCase):
     def test_simple_sequence(self):
-        embedded = [fld.Field("bob", lambda: 8), fld.Field("cat", lambda: 8)]
+        embedded = [fld.Field("bob", 8), fld.Field("cat", 8)]
         sequence = seq.Sequence("blah", embedded)
         data = dt.Data.from_hex("017a")
 
@@ -24,7 +24,7 @@ class Sequence(unittest.TestCase):
         self.assertEqual(sequence, calls[2])
 
     def test_encode_sequence(self):
-        embedded = [fld.Field("bob", lambda: 8, format=fld.Field.INTEGER), fld.Field("cat", lambda: 8, format=fld.Field.INTEGER)]
+        embedded = [fld.Field("bob", 8, format=fld.Field.INTEGER), fld.Field("cat", 8, format=fld.Field.INTEGER)]
         sequence = seq.Sequence("blah", embedded)
         struct = {"blah" : {"bob" : 0x01, "cat" : 0x7a}}
         query = lambda context, name: context[name]

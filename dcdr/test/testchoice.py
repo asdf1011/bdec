@@ -8,7 +8,7 @@ import dcdr.sequence as seq
 
 class TestChoice(unittest.TestCase):
     def test_first_successful(self):
-        embedded = [fld.Field("bob", lambda: 8), fld.Field("cat", lambda: 8)]
+        embedded = [fld.Field("bob", 8), fld.Field("cat", 8)]
         choice = chc.Choice("blah", embedded)
         data = dt.Data.from_hex("017a")
         results = list(entry for is_starting, entry in choice.decode(data) if not is_starting)
@@ -20,7 +20,7 @@ class TestChoice(unittest.TestCase):
         self.assertEqual(0x7a, int(data))
 
     def test_second_successful(self):
-        embedded = [fld.Field("bob", lambda: 24), fld.Field("cat", lambda: 8)]
+        embedded = [fld.Field("bob", 24), fld.Field("cat", 8)]
         choice = chc.Choice("blah", embedded)
         data = dt.Data.from_hex("7a")
         results = list(entry for is_starting, entry in choice.decode(data) if not is_starting)
@@ -34,12 +34,12 @@ class TestChoice(unittest.TestCase):
         # In this test both embedded choices will fail, but
         # we should get the 'chicken' entry being reported
         # because it managed to decode the most before failing.
-        cat = fld.Field("cat", lambda: 8, expected=dt.Data.from_hex("9"))
+        cat = fld.Field("cat", 8, expected=dt.Data.from_hex("9"))
         embedded = [
             seq.Sequence("chicken", [
-                fld.Field("bob", lambda: 24), 
+                fld.Field("bob", 24), 
                 cat]),
-            fld.Field("nope", lambda: 8, expected=dt.Data.from_hex("7"))]
+            fld.Field("nope", 8, expected=dt.Data.from_hex("7"))]
         choice = chc.Choice("blah", embedded)
         data = dt.Data.from_hex("01020304")
 
@@ -66,7 +66,7 @@ class TestChoice(unittest.TestCase):
     def test_data_of_reused_field(self):
         # Test the results of the data of a field that is referenced
         # multiple times in a choice
-        cat = fld.Field("cat", lambda: 8)
+        cat = fld.Field("cat", 8)
         choice = chc.Choice("blah", [seq.Sequence("chicken", [cat, cat])])
         data = dt.Data.from_hex("0102")
 
@@ -81,8 +81,8 @@ class TestChoice(unittest.TestCase):
 
     def test_encode(self):
         # Test encoding of a number that is encoded in different sizes (depending on the size of the data)
-        byte_len = seq.Sequence("bob", [fld.Field("id", lambda: 1, expected=dt.Data("\x00", 7, 8)), fld.Field("dog", lambda: 8, format=fld.Field.INTEGER)])
-        word_len = seq.Sequence("bob", [fld.Field("id", lambda: 1, expected=dt.Data("\x01", 7, 8)), fld.Field("dog", lambda: 16, format=fld.Field.INTEGER)])
+        byte_len = seq.Sequence("bob", [fld.Field("id", 1, expected=dt.Data("\x00", 7, 8)), fld.Field("dog", 8, format=fld.Field.INTEGER)])
+        word_len = seq.Sequence("bob", [fld.Field("id", 1, expected=dt.Data("\x01", 7, 8)), fld.Field("dog", 16, format=fld.Field.INTEGER)])
         choice = chc.Choice("blah", [byte_len, word_len])
 
         # First try encoding a number that will only fit in the 16 bit storage
