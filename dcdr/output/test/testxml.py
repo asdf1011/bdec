@@ -19,5 +19,13 @@ class TestXml(unittest.TestCase):
         text = xml.to_string(sequence, dt.Data.from_hex('6e7a6970'))
         self.assertEqual("<bob>\n    <dog>\n        zip\n    </dog>\n</bob>\n", text)
 
+    def test_xml_encode(self):
+        text = "<blah><cat>5</cat><dog>18</dog></blah>"
+        sequence = seq.Sequence("blah", [
+            fld.Field("cat", lambda: 8, fld.Field.INTEGER),
+            fld.Field("dog", lambda: 8, fld.Field.INTEGER)])
+        data = reduce(lambda a,b:a+b, xml.encode(sequence, text))
+        self.assertEqual("\x05\x12", str(data))
+
 if __name__ == "__main__":
     unittest.main()

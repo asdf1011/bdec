@@ -41,6 +41,12 @@ class Entry(object):
         Sub-items will be queried by calling 'query' with a name and the context
         object. Returns an iterator object for a series of data objects.
         """
+        # This interface isn't too good; it requires us to load the _entire_ document
+        # into memory. This is because it supports 'searching backwards', plus the
+        # reference to the root element is kept. Maybe a push system would be better?
+        #
+        # Problem is, push doesn't work particularly well for dcdr.output.instance, nor
+        # for choice entries (where we need to re-wind...)
         return self._encode(query, query(context, self.name))
 
     def is_hidden(self):
