@@ -1,3 +1,5 @@
+import logging
+import string
 import StringIO
 import xml.dom.minidom
 import xml.sax.saxutils
@@ -30,7 +32,10 @@ def to_file(decoder, binary, output, encoding="utf-8"):
         else:
             if isinstance(entry, fld.Field):
                 handler.ignorableWhitespace(' ' * offset)
-                handler.characters(unicode(entry.get_value()))
+                text = unicode(entry.get_value())
+                if len(text) > 0 and text[0] in string.whitespace or text[-1] in string.whitespace:
+                    logging.warning('%s has leading/trailing whitespace (%s); it will not re-encode exactly. Consider changing the format to hex.', entry, text)
+                handler.characters(text)
                 handler.ignorableWhitespace('\n')
             offset = offset - 4
             handler.ignorableWhitespace(' ' * offset)
@@ -61,6 +66,9 @@ def _query_element(obj, name):
                     # This element has sub-elements, so return the element itself.
                     return child
                 elif subchild.nodeType == xml.dom.Node.TEXT_NODE:
+                    # NOTE: We have to strip to avoid getting all of the extra whitespace,
+                    # but if there was leading or trailing whitespace on the original
+                    # data, it'll get lost (which can cause encoding to fail).
                     text = subchild.data.strip()
             # No sub-elements; just return the text of the element.
             return text
