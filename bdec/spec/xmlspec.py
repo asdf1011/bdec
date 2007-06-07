@@ -130,8 +130,8 @@ def load(xml):
     """
     Load an xml specification from a filename or file object.
     """
-    if isinstance(filename, basestring):
-        xml = open(filename, "r")
+    if isinstance(xml, basestring):
+        xml = open(xml, "r")
         result = _load_from_file(xml)
         xml.close()
     else:
