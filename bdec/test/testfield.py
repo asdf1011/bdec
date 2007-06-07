@@ -83,7 +83,13 @@ class TestField(unittest.TestCase):
         self.assertRaises(fld.InvalidLengthData, hex.encode(lambda name, context: "ecd", None).next)
 
     def test_string_conversion(self):
+        # Just test that we can convert fields to a string sanely... the actual format
+        # doesn't matter.
         self.assertEqual("text 'bob' (ascii)", str(fld.Field("bob", 8, format=fld.Field.TEXT)))
+
+    def test_bad_format_error(self):
+        field = fld.Field("bob", 8, format=fld.Field.INTEGER)
+        self.assertRaises(fld.BadFormatError, field.encode(lambda name, context: "rabbit", None).next)
 
 if __name__ == "__main__":
     unittest.main()

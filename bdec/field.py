@@ -20,7 +20,13 @@ class BadFormatError(bdec.DecodeError):
     """
     Got the wrong sort of data type when encoding.
     """
-    pass
+    def __init__(self, field, data, expected_type):
+        self.field = field
+        self.data = data
+        self.expected_type = expected_type
+
+    def __str__(self):
+        return "BadFormatError: %s expected %s got %s" % (self.field, self.expected_type, self.data)
 
 class InvalidLengthData(bdec.DecodeError):
     """
@@ -76,13 +82,11 @@ class Field(bdec.entry.Entry):
                 raise BadDataError(self, self._expected, self.data)
         return []
 
-    def _check_type(self, data, expected_type):
-        # Try to conver object to the expected type; if it fails, raise
-        # an error.
+    def _convert_type(self, data, expected_type):
         try:
-            expected_type(data)
-        except:
-            raise BadFormatError(data, expected_type)
+            return expected_type(data)
+        except: 
+            raise BadFormatError(self, data, expected_type)
 
     def encode(self, query, context):
         """
@@ -97,24 +101,22 @@ class Field(bdec.entry.Entry):
         data = query(context, self.name)
         length = int(self.length)
         if self._format == self.BINARY:
-            self._check_type(data, str)
-            result = dt.Data.from_binary_text(data)
+            result = dt.Data.from_binary_text(self._convert_type(data, str))
         elif self._format == self.HEX:
-            self._check_type(data, str)
-            result = dt.Data.from_hex(data)
+            result = dt.Data.from_hex(self._convert_type(data, str))
         elif self._format == self.TEXT:
-            self._check_type(data, str)
+            text = self._convert_type(data, str)
             try:
-                result = dt.Data(data.encode(self._encoding))
+                result = dt.Data(text.encode(self._encoding))
             except UnicodeDecodeError:
                 raise BadEncodingError(self, self._encoding, data)
         elif self._format == self.INTEGER:
-            self._check_type(data, int)
+            
             assert self._encoding in [self.BIG_ENDIAN, self.LITTLE_ENDIAN]
             if self._encoding == self.BIG_ENDIAN:
-                result = dt.Data.from_int_big_endian(data, int(self.length))
+                result = dt.Data.from_int_big_endian(self._convert_type(data, int), int(self.length))
             else:
-                result = dt.Data.from_int_little_endian(data, int(self.length))
+                result = dt.Data.from_int_little_endian(self._convert_type(data, int), int(self.length))
         else:
             raise Exception("Unknown field format of '%s'!" % self._format)
 
