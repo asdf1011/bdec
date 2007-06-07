@@ -26,7 +26,13 @@ class InvalidLengthData(bdec.DecodeError):
     """
     Got given data of the wrong size to encode.
     """
-    pass
+    def __init__(self, field, length, data):
+        self.field = field
+        self.length = length
+        self.data = data
+
+    def __str__(self):
+        return "%s expected length %i, got length %i (%s)" % (self.field, self.length, len(self.data), self.data.get_binary_text())
 
 class Field(bdec.entry.Entry):
 
@@ -113,8 +119,11 @@ class Field(bdec.entry.Entry):
             raise Exception("Unknown field format of '%s'!" % self._format)
 
         if len(result) != length:
-            raise InvalidLengthData(length, data)
+            raise InvalidLengthData(self, length, result)
         yield result
+
+    def __str__(self):
+        return "%s '%s' (%s)" % (self._format, self.name, self._encoding)
 
     def __int__(self):
         assert self._encoding in [self.BIG_ENDIAN, self.LITTLE_ENDIAN]

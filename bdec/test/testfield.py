@@ -82,5 +82,8 @@ class TestField(unittest.TestCase):
         self.assertEqual("\xe7", str(hex.encode(lambda name, context: "e7", None).next()))
         self.assertRaises(fld.InvalidLengthData, hex.encode(lambda name, context: "ecd", None).next)
 
+    def test_string_conversion(self):
+        self.assertEqual("text 'bob' (ascii)", str(fld.Field("bob", 8, format=fld.Field.TEXT)))
+
 if __name__ == "__main__":
     unittest.main()
