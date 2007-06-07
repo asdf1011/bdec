@@ -100,5 +100,11 @@ class TestInstance(unittest.TestCase):
         blah.bob.text = "chicken"
         self.assertEqual("chicken", self._encode(choice, blah))
 
+    def test_encode_item_with_space(self):
+        field = fld.Field("bobs cat", 8, fld.Field.INTEGER)
+        blah = _Inst()
+        blah.bobs_cat = 0x6e
+        self.assertEqual("\x6e", self._encode(field, blah))
+
 if __name__ == "__main__":
     unittest.main()

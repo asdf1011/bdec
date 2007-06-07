@@ -68,6 +68,8 @@ def _get_data(obj, name):
         # Hidden objects aren't included in the data
         return obj
 
+    name = _escape(name)
+
     try: 
         return getattr(obj, name)
     except AttributeError:
