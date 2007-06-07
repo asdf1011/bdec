@@ -79,5 +79,8 @@ class TestData(unittest.TestCase):
     def test_unaligned_bits(self):
         self.assertEqual(0x2d, int(dt.Data.from_binary_text("010") + dt.Data.from_binary_text("1101")))
 
+    def test_hex_conversion(self):
+        self.assertEqual("\x23\x45\x67", str(dt.Data.from_hex("23 45 67")))
+
 if __name__ == "__main__":
     unittest.main()

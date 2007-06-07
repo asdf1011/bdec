@@ -189,19 +189,28 @@ class Data:
     @staticmethod
     def from_hex(hex): 
         """
-        Convert a hex string to a data buffer
-        """
-        if len(hex) % 2:
-            hex = '0' + hex
+        Convert a hex string to a data buffer.
 
+        The hex entries can be seperated by whitespace, with multi-byte entries
+        seperated on even characters.  For example, '0e 9a bc', or '0e9abc'.
+
+        Entries without whitespace with an odd number of characters will be 
+        treated as if it had a leading zero; eg: 'e02' will be interpreted as
+        being the two byte value '0e02'.
+        """
         buffer = []
-        for i in range(len(hex) / 2):
-            offset = i * 2
-            value = hex[offset:offset + 2]
-            try:
-                buffer.append(int(value, 16))
-            except ValueError:
-                raise InvalidHexTextError(hex)
+        entries = hex.split()
+        for entry in entries:
+            if len(entry) % 2:
+                entry = '0' + entry
+
+            for i in range(len(entry) / 2):
+                offset = i * 2
+                value = entry[offset:offset + 2]
+                try:
+                    buffer.append(int(value, 16))
+                except ValueError:
+                    raise InvalidHexTextError(hex)
         return Data("".join(chr(value) for value in buffer))
 
     @staticmethod
