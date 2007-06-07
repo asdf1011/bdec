@@ -6,7 +6,7 @@ import bdec.spec.xmlspec as xmlspec
 import bdec.output.xmlout as xmlout
 
 spec = sys.argv[1]
-protocol = xmlspec.Importer().load(file(spec, 'r'))
+protocol = xmlspec.load(file(spec, 'r'))
 
 if len(sys.argv) == 3:
     xml = file(sys.argv[2], 'rb').read()

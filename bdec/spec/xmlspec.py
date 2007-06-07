@@ -107,27 +107,33 @@ class _Handler(xml.sax.handler.ContentHandler):
         length = int(attributes['length'])
         return sof.SequenceOf(attributes['name'], children[0], length)
 
-class Importer:
+def _load_from_file(file):
     """
-    Class to create a decoder from an xml specification
+    Read a string from open file and interpret it as an
+    xml data stream identifying a protocol entity.
+
+    @return Returns a decoder entry.
     """
+    parser = xml.sax.make_parser()
+    handler = _Handler()
+    parser.setContentHandler(handler)
+    parser.parse(file)
+    return handler.decoder
 
-    def loads(self, xml):
-        """
-        Parse an xml data stream, interpreting it as a protocol
-        specification.
-        """
-        return self.load(StringIO.StringIO(xml))
+def loads(xml):
+    """
+    Parse an xml string, interpreting it as a protocol specification.
+    """
+    return _load_from_file(StringIO.StringIO(xml))
 
-    def load(self, file):
-        """
-        Read a string from open file and interpret it as an
-        xml data stream identifying a protocol entity.
-
-        @return Returns a decoder entry.
-        """
-        parser = xml.sax.make_parser()
-        handler = _Handler()
-        parser.setContentHandler(handler)
-        parser.parse(file)
-        return handler.decoder
+def load(xml):
+    """
+    Load an xml specification from a filename or file object.
+    """
+    if isinstance(filename, basestring):
+        xml = open(filename, "r")
+        result = _load_from_file(xml)
+        xml.close()
+    else:
+        result = _load_from_file(xml)
+    return result

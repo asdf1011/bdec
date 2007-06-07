@@ -9,7 +9,7 @@ import bdec.spec.xmlspec as xml
 class TestXml(unittest.TestCase):
     def test_simple_field(self):
         text = """<protocol><field name="bob" length="8" /></protocol>"""
-        decoder = xml.Importer().loads(text)
+        decoder = xml.loads(text)
         self.assertTrue(isinstance(decoder, fld.Field)) 
         self.assertEqual("bob", decoder.name)
         items = list(decoder.decode(dt.Data.from_hex("7a")))
@@ -18,7 +18,7 @@ class TestXml(unittest.TestCase):
 
     def test_simple_text_field(self):
         text = """<protocol><field name="bob" length="8" type="text" /></protocol>"""
-        decoder = xml.Importer().loads(text)
+        decoder = xml.loads(text)
         self.assertTrue(isinstance(decoder, fld.Field)) 
         self.assertEqual("bob", decoder.name)
         items = list(decoder.decode(dt.Data.from_hex(hex(ord('?'))[2:])))
@@ -33,7 +33,7 @@ class TestXml(unittest.TestCase):
         <field name="dog" length="8" type="integer" />
     </sequence>
 </protocol>"""
-        decoder = xml.Importer().loads(text)
+        decoder = xml.loads(text)
         self.assertEqual("bob", decoder.name)
         self.assertEqual("cat", decoder.children[0].name)
         self.assertEqual("dog", decoder.children[1].name)
@@ -44,7 +44,7 @@ class TestXml(unittest.TestCase):
 
     def test_bad_expected_value(self):
         text = """<protocol><field name="bob" length="8" value="0xa0" /></protocol>"""
-        decoder = xml.Importer().loads(text)
+        decoder = xml.loads(text)
         self.assertEqual("bob", decoder.name)
         self.assertRaises(fld.BadDataError, lambda: list(decoder.decode(dt.Data.from_hex("7a"))))
 
@@ -56,7 +56,7 @@ class TestXml(unittest.TestCase):
         <field name="dog" length="8" type="integer" />
     </choice>
 </protocol>"""
-        decoder = xml.Importer().loads(text)
+        decoder = xml.loads(text)
         self.assertEqual("bob", decoder.name)
         self.assertEqual("cat", decoder.children[0].name)
         self.assertEqual("dog", decoder.children[1].name)
@@ -71,7 +71,7 @@ class TestXml(unittest.TestCase):
         <field name="cat" length="8" type="hex" />
     </sequenceof>
 </protocol>"""
-        decoder = xml.Importer().loads(text)
+        decoder = xml.loads(text)
         self.assertEqual("bob", decoder.name)
         self.assertEqual("cat", decoder.child.name)
         items = list(decoder.decode(dt.Data.from_hex("7fac")))
@@ -81,7 +81,7 @@ class TestXml(unittest.TestCase):
 
     def test_non_whole_byte_expected_value(self):
         text = """<protocol><field name="bob" length="1" value="0x0" /></protocol>"""
-        decoder = xml.Importer().loads(text)
+        decoder = xml.loads(text)
         self.assertEqual("bob", decoder.name)
         result = list(decoder.decode(dt.Data.from_hex("7a")))
         self.assertEqual(2, len(result))
@@ -89,7 +89,7 @@ class TestXml(unittest.TestCase):
 
     def test_common(self):
         text = """<protocol> <common> <field name="bob" length="8" /> </common> <field name="bob" /> </protocol>"""
-        decoder = xml.Importer().loads(text)
+        decoder = xml.loads(text)
         self.assertEqual("bob", decoder.name)
         self.assertEqual(8, decoder.length)
         result = list(decoder.decode(dt.Data.from_hex("7a")))
@@ -108,7 +108,7 @@ class TestXml(unittest.TestCase):
                 <sequence name="rabbit" />
             </protocol>"""
 
-        decoder = xml.Importer().loads(text)
+        decoder = xml.loads(text)
         self.assertEqual("rabbit", decoder.name)
         result = list(decoder.decode(dt.Data.from_hex("7a")))
         self.assertEqual(4, len(result))

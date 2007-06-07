@@ -11,7 +11,7 @@ if len(sys.argv) == 3:
 else:
     binary = sys.stdin.read()
 
-decoder = xmlspec.Importer().load(file(spec, 'r'))
+decoder = xmlspec.load(file(spec, 'r'))
 
 data = dt.Data(binary)
 xmlout.to_file(decoder, data, sys.stdout)
