@@ -1,51 +1,64 @@
 import bdec.data as dt
 import bdec.entry
 
-class FieldNotDecodedError(bdec.DecodeError):
-    pass
-
-class BadDataError(bdec.DecodeError):
-    def __init__(self, field, expected, actual):
+class FieldError(bdec.DecodeError):
+    def __init__(self, field):
         self.field = field
+
+    def __str__(self):
+        return "%s: %s" % (self.__class__, self.field)
+
+class FieldNotDecodedError(FieldError):
+    def __init__(self, field):
+        FieldError.__init__(self, field)
+
+class BadDataError(FieldError):
+    def __init__(self, field, expected, actual):
+        FieldError.__init__(self, field)
         self.expected = expected
         self.actual = actual
 
     def __str__(self):
         return "'%s' expected %s, got %s" % (self.field.name, self.expected.get_binary_text(), self.actual.get_binary_text())
 
-class BadEncodingError(bdec.DecodeError):
-    pass
+class BadEncodingError(FieldError):
+    def __init__(self, field, data):
+        FieldError.__init__(self, field)
+        self.data = data
 
-class BadFormatError(bdec.DecodeError):
+    def __str__(self):
+        return "BadEncodingError: %s couldn't encode %s" % (self.field, self.data)
+
+class BadFormatError(FieldError):
     """
     Got the wrong sort of data type when encoding.
     """
     def __init__(self, field, data, expected_type):
-        self.field = field
+        FieldError.__init__(self, field)
         self.data = data
         self.expected_type = expected_type
 
     def __str__(self):
         return "BadFormatError: %s expected %s got %s" % (self.field, self.expected_type, self.data)
 
-class InvalidLengthData(bdec.DecodeError):
+class InvalidLengthData(FieldError):
     """
     Got given data of the wrong size to encode.
     """
     def __init__(self, field, length, data):
-        self.field = field
+        FieldError.__init__(self, field)
         self.length = length
         self.data = data
 
     def __str__(self):
         return "%s expected length %i, got length %i (%s)" % (self.field, self.length, len(self.data), self.data.get_binary_text())
 
-class FieldDataError(bdec.DecodeError):
+class FieldDataError(FieldError):
     """
     An error with converting the data to the specified type.
     """
     def __init__(self, field, error):
-        self.field = field
+        FieldError.__init__(self, field)
         self.error = error
 
     def __str__(self):
@@ -115,7 +128,7 @@ class Field(bdec.entry.Entry):
             try:
                 result = dt.Data(text.encode(self._encoding))
             except UnicodeDecodeError:
-                raise BadEncodingError(self, self._encoding, data)
+                raise BadEncodingError(self, data)
         elif self._format == self.INTEGER:
             
             assert self._encoding in [self.BIG_ENDIAN, self.LITTLE_ENDIAN]
@@ -190,7 +203,7 @@ class Field(bdec.entry.Entry):
             try:
                 result = unicode(str(self.data), self._encoding)
             except UnicodeDecodeError:
-                raise BadEncodingError(self, self._encoding, str(self.data))
+                raise BadEncodingError(self, str(self.data))
         elif self._format == self.INTEGER:
             result = int(self)
         else:
