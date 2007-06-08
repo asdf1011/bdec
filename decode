@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import sys
+import bdec
 import bdec.data as dt
 import bdec.spec.xmlspec as xmlspec
 import bdec.output.xmlout as xmlout
@@ -14,7 +15,10 @@ else:
 decoder = xmlspec.load(file(spec, 'r'))
 
 data = dt.Data(binary)
-xmlout.to_file(decoder, data, sys.stdout)
+try:
+    xmlout.to_file(decoder, data, sys.stdout)
+except bdec.DecodeError, ex:
+    sys.exit(str(ex))
 
 undecoded = str(data)
 if len(undecoded) > 0:
