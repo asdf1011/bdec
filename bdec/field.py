@@ -94,11 +94,28 @@ class Field(bdec.entry.Entry):
         for items with an expected value.
         """
         if self._expected is not None:
-            # We have expected data, so just return that as the encoded data
-            yield self._expected
-            return
+            if self.is_hidden():
+                try:
+                    data = query(context, self.name)
+                except bdec.DecodeError:
+                    # The hidden variable wasn't included in the output, so just
+                    # use the 'expected' value.
+                    yield self._expected
+                    return
+            else:
+                # We are an expected value, but not hidden (and so must be present
+                # in the data to be encoded).
+                data = query(context, self.name)
+                
+            if data is None or data == "":
+                # The expected value object was present, but didn't have any data (eg:
+                # the xml output may not include expected values).
+                yield self._expected
+                return
+        else:
+            # We don't have any expected data, so we'll query it from the input.
+            data = query(context, self.name)
 
-        data = query(context, self.name)
         length = int(self.length)
         if self._format == self.BINARY:
             result = dt.Data.from_binary_text(self._convert_type(data, str))
@@ -122,6 +139,8 @@ class Field(bdec.entry.Entry):
 
         if len(result) != length:
             raise InvalidLengthData(self, length, result)
+        if self._expected is not None and result != self._expected:
+            raise BadDataError(self, self._encoding, result)
         yield result
 
     def __str__(self):

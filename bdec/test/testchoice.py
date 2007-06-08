@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import unittest
 
+import bdec
 import bdec.choice as chc
 import bdec.data as dt
 import bdec.field as fld
@@ -81,19 +82,21 @@ class TestChoice(unittest.TestCase):
 
     def test_encode(self):
         # Test encoding of a number that is encoded in different sizes (depending on the size of the data)
-        byte_len = seq.Sequence("bob", [fld.Field("id", 1, expected=dt.Data("\x00", 7, 8)), fld.Field("dog", 8, format=fld.Field.INTEGER)])
-        word_len = seq.Sequence("bob", [fld.Field("id", 1, expected=dt.Data("\x01", 7, 8)), fld.Field("dog", 16, format=fld.Field.INTEGER)])
+        byte_len = seq.Sequence("bob", [fld.Field("id:", 1, expected=dt.Data("\x00", 7, 8)), fld.Field("dog", 8, format=fld.Field.INTEGER)])
+        word_len = seq.Sequence("bob", [fld.Field("id:", 1, expected=dt.Data("\x01", 7, 8)), fld.Field("dog", 16, format=fld.Field.INTEGER)])
         choice = chc.Choice("blah", [byte_len, word_len])
 
         # First try encoding a number that will only fit in the 16 bit storage
         struct = {"blah" : {"bob" : {"dog" : 10023}}}
-        query = lambda context, name: context[name]
+        def query(context, name):
+            if name not in context:
+                raise bdec.DecodeError()
+            return context[name]
         data = reduce(lambda a,b:a+b, choice.encode(query, struct))
         self.assertEqual(17, len(data))
 
         # Now try encoding a number that will fit in the 8 bit storage
         struct = {"blah" : {"bob" : {"dog" : 117}}}
-        query = lambda context, name: context[name]
         data = reduce(lambda a,b:a+b, choice.encode(query, struct))
         self.assertEqual(9, len(data))
 

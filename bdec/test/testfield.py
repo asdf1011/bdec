@@ -95,5 +95,31 @@ class TestField(unittest.TestCase):
         field = fld.Field("bob", 8, format=fld.Field.INTEGER)
         self.assertRaises(fld.BadFormatError, field.encode(lambda name, context: "rabbit", None).next)
 
+    def test_encode_of_missing_visible_field_with_expected_value_fails(self):
+        field = fld.Field("bob", 8, expected=dt.Data("c"))
+        class MissingField:
+            pass
+        def fail_query(obj, name):
+            raise MissingField()
+        self.assertRaises(MissingField, field.encode(fail_query, None).next)
+
+    def test_encode_of_field_with_expected_value_fails_when_given_bad_data(self):
+        field = fld.Field("bob", 8, fld.Field.TEXT, expected=dt.Data("c"))
+        def bad_data_query(obj, name):
+            return "d"
+        self.assertRaises(fld.BadDataError, field.encode(bad_data_query, None).next)
+
+    def test_encode_of_field_with_expected_value_succeeds_with_missing_data(self):
+        """
+        Some outputs won't include expected data values.
+
+        For example, xml-output may not display expected field values (to
+        make for clearer outptu).
+        """
+        field = fld.Field("bob", 8, expected=dt.Data("c"))
+        def no_data_query(obj, name):
+            return ""
+        self.assertEqual("c", str(field.encode(no_data_query, None).next()))
+
 if __name__ == "__main__":
     unittest.main()

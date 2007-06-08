@@ -39,7 +39,10 @@ class Entry(object):
         Encode a data source.
 
         Sub-items will be queried by calling 'query' with a name and the context
-        object. Returns an iterator object for a series of data objects.
+        object. This query should raise an error derived from bdec.DecodeError
+        on failure.
+        
+        Returns an iterator object for a series of data objects.
         """
         # This interface isn't too good; it requires us to load the _entire_ document
         # into memory. This is because it supports 'searching backwards', plus the
