@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import unittest
 
-import bdec
+import bdec.entry as ent
 import bdec.choice as chc
 import bdec.data as dt
 import bdec.field as fld
@@ -90,7 +90,7 @@ class TestChoice(unittest.TestCase):
         struct = {"blah" : {"bob" : {"dog" : 10023}}}
         def query(context, name):
             if name not in context:
-                raise bdec.DecodeError()
+                raise ent.MissingInstanceError(context, name)
             return context[name]
         data = reduce(lambda a,b:a+b, choice.encode(query, struct))
         self.assertEqual(17, len(data))

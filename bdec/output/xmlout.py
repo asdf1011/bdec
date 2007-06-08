@@ -5,14 +5,8 @@ import xml.dom.minidom
 import xml.sax.saxutils
 import xml.sax.xmlreader
 
-import bdec
+import bdec.entry as ent
 import bdec.field as fld
-
-class MissingElementError(bdec.DecodeError):
-    """
-    Thrown when the xml we are encoding is missing an expected element.
-    """
-    pass
 
 def _escape_name(name):
     return name.replace(' ', '-').replace('(', '_').replace(')', '_')
@@ -54,9 +48,6 @@ def _query_element(obj, name):
 
     If the child has no sub-elements itself, return the element text contents.
     """
-    if name.endswith(':'):
-        return obj
-
     name = _escape_name(name)
     for child in obj.childNodes:
         if child.nodeType == xml.dom.Node.ELEMENT_NODE and child.tagName == name:
@@ -72,7 +63,8 @@ def _query_element(obj, name):
                     text = subchild.data.strip()
             # No sub-elements; just return the text of the element.
             return text
-    raise MissingElementError(obj, name)
+
+    raise ent.MissingInstanceError(obj, name)
 
 def encode(protocol, xmldata):
     """

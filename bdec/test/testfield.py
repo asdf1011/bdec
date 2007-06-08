@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import unittest
 
+import bdec.entry as ent
 import bdec.data as dt
 import bdec.field as fld
 

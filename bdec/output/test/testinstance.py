@@ -106,5 +106,11 @@ class TestInstance(unittest.TestCase):
         blah.bobs_cat = 0x6e
         self.assertEqual("\x6e", self._encode(field, blah))
 
+    def test_encode_of_missing_hidden_field_doesnt_use_parent_context(self):
+        field = fld.Field("bob:", 8, expected=dt.Data("c"))
+        class Blah():
+            pass
+        self.assertEqual("c", self._encode(field, Blah()))
+
 if __name__ == "__main__":
     unittest.main()

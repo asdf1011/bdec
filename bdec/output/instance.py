@@ -1,3 +1,4 @@
+import bdec.entry as ent
 import bdec.field as fld
 import bdec.output
 import bdec.sequenceof as sof
@@ -6,12 +7,6 @@ def _escape(name):
     return name.replace(' ', '_')
 
 class _Item:
-    pass
-
-class PythonInstanceError(bdec.output.OutputError):
-    """
-    An error occurred trying to create the python instance from the decoded data
-    """
     pass
 
 class _DecodedItem:
@@ -65,15 +60,14 @@ def decode(decoder, binary):
 
 def _get_data(obj, name):
     if name.endswith(':'):
-        # Hidden objects aren't included in the data
-        return obj
+        raise ent.MissingInstanceError(obj, name)
 
     name = _escape(name)
 
     try: 
         return getattr(obj, name)
     except AttributeError:
-        raise PythonInstanceError("Missing sub-object", obj, name)
+        raise ent.MissingInstanceError(obj, name)
 
 def encode(protocol, value):
     """

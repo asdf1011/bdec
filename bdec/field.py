@@ -154,7 +154,7 @@ class Field(bdec.entry.Entry):
             if self.is_hidden():
                 try:
                     data = query(context, self.name)
-                except bdec.DecodeError:
+                except bdec.entry.MissingInstanceError:
                     # The hidden variable wasn't included in the output, so just
                     # use the 'expected' value.
                     yield self._expected
@@ -171,7 +171,10 @@ class Field(bdec.entry.Entry):
                 return
         else:
             # We don't have any expected data, so we'll query it from the input.
-            data = query(context, self.name)
+            if self.is_hidden():
+                data = context
+            else:
+                data = query(context, self.name)
 
         try:
             result = self._encode_data(data)

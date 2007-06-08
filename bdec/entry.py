@@ -1,3 +1,15 @@
+import bdec
+
+class MissingInstanceError(bdec.DecodeError):
+    """
+    Error raised during encoding when a parent object doesn't have a named child object.
+    """
+    def __init__(self, parent, child):
+        self.parent = parent
+        self.child = child
+
+    def __str__(self):
+        return "object '%s' doesn't have child object '%s'" % (self.parent, self.child)
 
 class Entry(object):
     """
@@ -34,13 +46,13 @@ class Entry(object):
         """
         raise NotImplementedError()
 
-    def encode(self, query, context):
+    def encode(self, query, parent_context):
         """
         Encode a data source.
 
         Sub-items will be queried by calling 'query' with a name and the context
-        object. This query should raise an error derived from bdec.DecodeError
-        on failure.
+        object. This query should raise a MissingInstanceError if the instance
+        could not be found.
         
         Returns an iterator object for a series of data objects.
         """
@@ -50,7 +62,16 @@ class Entry(object):
         #
         # Problem is, push doesn't work particularly well for bdec.output.instance, nor
         # for choice entries (where we need to re-wind...)
-        return self._encode(query, query(context, self.name))
+
+        try:
+            context = query(parent_context, self.name)
+        except MissingInstanceError:
+            if not self.is_hidden():
+                raise
+            # The instance wasn't included in the input, but as it is hidden, we'll
+            # keep using the current context.
+            context = parent_context
+        return self._encode(query, context)
 
     def is_hidden(self):
         """
