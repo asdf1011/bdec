@@ -40,6 +40,17 @@ class InvalidLengthData(bdec.DecodeError):
     def __str__(self):
         return "%s expected length %i, got length %i (%s)" % (self.field, self.length, len(self.data), self.data.get_binary_text())
 
+class FieldDataError(bdec.DecodeError):
+    """
+    An error with converting the data to the specified type.
+    """
+    def __init__(self, field, error):
+        self.field = field
+        self.error = error
+
+    def __str__(self):
+        return "%s - %s" % (self.field, self.error)
+
 class Field(bdec.entry.Entry):
 
     # Field format types
@@ -88,6 +99,39 @@ class Field(bdec.entry.Entry):
         except: 
             raise BadFormatError(self, data, expected_type)
 
+    def _encode_data(self, data):
+        """
+        Convert an object to a dt.Data object.
+
+        Can raise dt.DataError errors.
+        """
+        length = int(self.length)
+        if self._format == self.BINARY:
+            result = dt.Data.from_binary_text(self._convert_type(data, str))
+        elif self._format == self.HEX:
+            result = dt.Data.from_hex(self._convert_type(data, str))
+        elif self._format == self.TEXT:
+            text = self._convert_type(data, str)
+            try:
+                result = dt.Data(text.encode(self._encoding))
+            except UnicodeDecodeError:
+                raise BadEncodingError(self, self._encoding, data)
+        elif self._format == self.INTEGER:
+            
+            assert self._encoding in [self.BIG_ENDIAN, self.LITTLE_ENDIAN]
+            if self._encoding == self.BIG_ENDIAN:
+                result = dt.Data.from_int_big_endian(self._convert_type(data, int), length)
+            else:
+                result = dt.Data.from_int_little_endian(self._convert_type(data, int), length)
+        else:
+            raise Exception("Unknown field format of '%s'!" % self._format)
+
+        if len(result) != length:
+            raise InvalidLengthData(self, length, result)
+        if self._expected is not None and result != self._expected:
+            raise BadDataError(self, self._encoding, result)
+        return result
+
     def encode(self, query, context):
         """
         Note that we override 'encode', not '_encode', as we do not want to query
@@ -116,31 +160,10 @@ class Field(bdec.entry.Entry):
             # We don't have any expected data, so we'll query it from the input.
             data = query(context, self.name)
 
-        length = int(self.length)
-        if self._format == self.BINARY:
-            result = dt.Data.from_binary_text(self._convert_type(data, str))
-        elif self._format == self.HEX:
-            result = dt.Data.from_hex(self._convert_type(data, str))
-        elif self._format == self.TEXT:
-            text = self._convert_type(data, str)
-            try:
-                result = dt.Data(text.encode(self._encoding))
-            except UnicodeDecodeError:
-                raise BadEncodingError(self, self._encoding, data)
-        elif self._format == self.INTEGER:
-            
-            assert self._encoding in [self.BIG_ENDIAN, self.LITTLE_ENDIAN]
-            if self._encoding == self.BIG_ENDIAN:
-                result = dt.Data.from_int_big_endian(self._convert_type(data, int), int(self.length))
-            else:
-                result = dt.Data.from_int_little_endian(self._convert_type(data, int), int(self.length))
-        else:
-            raise Exception("Unknown field format of '%s'!" % self._format)
-
-        if len(result) != length:
-            raise InvalidLengthData(self, length, result)
-        if self._expected is not None and result != self._expected:
-            raise BadDataError(self, self._encoding, result)
+        try:
+            result = self._encode_data(data)
+        except dt.DataError, ex:
+            raise FieldDataError(self, ex)
         yield result
 
     def __str__(self):

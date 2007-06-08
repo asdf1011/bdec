@@ -1,21 +1,27 @@
 import bdec
 import string
 
-class NotEnoughDataError(bdec.DecodeError):
+class DataError(bdec.DecodeError):
+    """
+    Base class for all data errors.
+    """
     pass
 
-class HexNeedsFourBitsError(bdec.DecodeError):
+class NotEnoughDataError(DataError):
+    pass
+
+class HexNeedsFourBitsError(DataError):
     """ Raised when attempting to convert data to hex, and we don't
         have a multiple of 4 bits. """
     pass
 
-class ConversionNeedsBytesError(bdec.DecodeError):
+class ConversionNeedsBytesError(DataError):
     pass
 
-class InvalidBinaryTextError(bdec.DecodeError):
+class InvalidBinaryTextError(DataError):
     pass
 
-class InvalidHexTextError(bdec.DecodeError):
+class InvalidHexTextError(DataError):
     pass
 
 class Data:
