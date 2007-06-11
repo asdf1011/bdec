@@ -3,6 +3,7 @@ import bdec.entry
 
 class FieldError(bdec.DecodeError):
     def __init__(self, field):
+        assert isinstance(field, Field)
         self.field = field
 
     def __str__(self):
@@ -15,6 +16,8 @@ class FieldNotDecodedError(FieldError):
 class BadDataError(FieldError):
     def __init__(self, field, expected, actual):
         FieldError.__init__(self, field)
+        assert isinstance(expected, dt.Data)
+        assert isinstance(actual, dt.Data)
         self.expected = expected
         self.actual = actual
 
@@ -142,7 +145,7 @@ class Field(bdec.entry.Entry):
         if len(result) != length:
             raise InvalidLengthData(self, length, result)
         if self._expected is not None and result != self._expected:
-            raise BadDataError(self, self._encoding, result)
+            raise BadDataError(self, self._expected, result)
         return result
 
     def encode(self, query, context):
