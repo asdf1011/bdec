@@ -54,7 +54,7 @@ class TestData(unittest.TestCase):
 
     def test_encode_not_enough_data(self):
         self.assertEqual(chr(255), str(dt.Data.from_int_big_endian(255, 8)))
-        self.assertRaises(dt.NotEnoughDataError, dt.Data.from_int_big_endian, 255, 7)
+        self.assertRaises(dt.IntegerTooLongError, dt.Data.from_int_big_endian, 255, 7)
 
     def test_encode_length(self):
         data = dt.Data.from_int_big_endian(0x3e, 7)

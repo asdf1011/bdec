@@ -8,7 +8,20 @@ class DataError(bdec.DecodeError):
     pass
 
 class NotEnoughDataError(DataError):
-    pass
+    def __init__(self, requested_length, available_length):
+        self.requested = requested_length
+        self.available = available_length
+
+    def __str__(self):
+        return "Asked for %i bits, but only have %i bits available!" % (self.requested, self.available)
+
+class IntegerTooLongError(DataError):
+    def __init__(self, value, length):
+        self.value = value
+        self.length = length
+
+    def __str__(self):
+        return "Cannot encode value %i in %i bits" % (self.value, self.length)
 
 class HexNeedsFourBitsError(DataError):
     """ Raised when attempting to convert data to hex, and we don't
@@ -43,7 +56,7 @@ class Data:
         Pop data from this data object
         """
         if length > self._end - self._start:
-            raise NotEnoughDataError("Asked for %i bits, but only have %i bits available!" % (length, self._end - self._start))
+            raise NotEnoughDataError(length, self._end - self._start)
 
         result = Data(self._buffer, self._start, self._start + length)
         self._start += length
@@ -168,7 +181,7 @@ class Data:
             chars.append(chr(data & 0xff))
             data >>= 8
         if data != 0:
-            raise NotEnoughDataError(value)
+            raise IntegerTooLongError(value, length)
         return Data("".join(chars))
 
     @staticmethod
@@ -189,7 +202,7 @@ class Data:
         if 0 != int(result.pop(num_bytes * 8 - length)):
             # We have an integer that isn't a multiple of 8 bits, and we
             # couldn't quite fit it in the space available.
-            raise NotEnoughDataError(value, length)
+            raise IntegerTooLongError(value, length)
         return result
 
     @staticmethod
