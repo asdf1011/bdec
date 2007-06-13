@@ -45,9 +45,14 @@ def compile(text):
     expression = Forward()
     factor = integer | ('(' + expression + ')').addParseAction(lambda s,l,t:t[1])
 
-    add = ('+' + factor).addParseAction(_half(operator.add))
-    sub = ('-' + factor).addParseAction(_half(operator.sub))
-    expression << (factor + ZeroOrMore(add | sub)).addParseAction(_collapse)
+    mul = ('*' + factor).addParseAction(_half(operator.mul))
+    div = ('/' + factor).addParseAction(_half(operator.div))
+    mod = ('%' + factor).addParseAction(_half(operator.mod))
+    term = (factor + ZeroOrMore(mul | div | mod)).addParseAction(_collapse)
+
+    add = ('+' + term).addParseAction(_half(operator.add))
+    sub = ('-' + term).addParseAction(_half(operator.sub))
+    expression << (term + ZeroOrMore(add | sub)).addParseAction(_collapse)
 
     complete = expression + StringEnd()
     try:
