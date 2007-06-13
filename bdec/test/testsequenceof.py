@@ -30,5 +30,11 @@ class TestSequenceOf(unittest.TestCase):
         data = reduce(lambda a,b:a+b, sequenceof.encode(query, data))
         self.assertEqual("\x05\x09\xf6", str(data))
 
+    def test_invalid_encoding_length(self):
+        sequenceof = sof.SequenceOf("blah", fld.Field("cat", 8, format=fld.Field.INTEGER), 3)
+        data = {"blah" : [{"cat":5}, {"cat":9}]}
+        query = lambda context, name: context[name] 
+        self.assertRaises(sof.InvalidSequenceOfLength, list, sequenceof.encode(query, data))
+
 if __name__ == "__main__":
     unittest.main()
