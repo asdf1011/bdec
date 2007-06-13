@@ -7,6 +7,7 @@ import bdec.field as fld
 import bdec.spec
 import bdec.sequence as seq
 import bdec.sequenceof as sof
+import bdec.spec.expression as exp
 
 class XmlSpecError(bdec.spec.LoadError):
     pass
@@ -73,9 +74,12 @@ class _Handler(xml.sax.handler.ContentHandler):
             raise XmlSpecError("Protocol should have a single entry to be decoded!")
         self.decoder = children[0]
 
+    def _decode_length(self, text):
+        return exp.compile(text)
+
     def _field(self, attributes, children):
         name = attributes['name']
-        length = int(attributes['length'])
+        length = self._decode_length(attributes['length'])
         format = fld.Field.BINARY
         if attributes.has_key('type'):
             lookup = {
@@ -104,7 +108,7 @@ class _Handler(xml.sax.handler.ContentHandler):
     def _sequenceof(self, attributes, children):
         if len(children) != 1:
             raise XmlSpecError("Sequence of entries can only have a single child! (got %i)" % len(children))
-        length = int(attributes['length'])
+        length = self._decode_length(attributes['length'])
         return sof.SequenceOf(attributes['name'], children[0], length)
 
 def _load_from_file(file):
