@@ -30,9 +30,15 @@ def _collapse(s,l,t):
         result = next(result)
     return result
 
-def compile(text):
+def _no_named_lookups(name):
+    raise NotImplementedError("Named lookups not supported")
+
+def compile(text, name_lookup=_no_named_lookups):
     """
-    Compile a length text into an integer convertible object.
+    Compile a length expression into an integer convertible object.
+
+    :param name_lookup: A object to call to query a named integer 
+        convertible object.
     """
     try:
         return int(text)
@@ -40,10 +46,12 @@ def compile(text):
         pass
 
     # We have a complicated expression; we'll have to parse it.
-    from pyparsing import Word, nums, Forward, StringEnd, ZeroOrMore, ParseException
+    from pyparsing import Word, alphas, nums, Forward, StringEnd, ZeroOrMore, ParseException
     integer = Word(nums).addParseAction(lambda s,l,t: [int(t[0])])
+    named_reference = ('${' + Word(alphas) + '}').addParseAction(lambda s,l,t:name_lookup(t[1]))
+
     expression = Forward()
-    factor = integer | ('(' + expression + ')').addParseAction(lambda s,l,t:t[1])
+    factor = integer | named_reference | ('(' + expression + ')').addParseAction(lambda s,l,t:t[1])
 
     mul = ('*' + factor).addParseAction(_half(operator.mul))
     div = ('/' + factor).addParseAction(_half(operator.div))

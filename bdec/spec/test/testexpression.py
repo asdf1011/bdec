@@ -32,3 +32,10 @@ class TestExpression(unittest.TestCase):
     def test_bimdas(self):
         self.assertEqual(25, int(exp.compile('5 + 2 * 10')))
         self.assertEqual(70, int(exp.compile('(5 + 2) * 10')))
+
+    def test_named_reference(self):
+        _lookup = {"bob":3, "cat":5}
+        query = lambda name: _lookup[name]
+        self.assertEqual(3, int(exp.compile('${bob}', query)))
+        self.assertEqual(13, int(exp.compile('${bob} + 2 * ${cat}', query)))
+
