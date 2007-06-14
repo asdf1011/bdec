@@ -88,6 +88,8 @@ class _Handler(xml.sax.handler.ContentHandler):
             }
         self.decoder = None
         self._common_entries = {}
+
+        self.lookup = {}
         self.locator = None
 
     def setDocumentLocator(self, locator):
@@ -120,6 +122,8 @@ class _Handler(xml.sax.handler.ContentHandler):
 
         if child is not None:
             self._children[-1].append(child)
+
+            self.lookup[child] = (self._filename, self.locator.getLineNumber(), self.locator.getColumnNumber())
 
         if len(self._stack) == 2 and self._stack[1][0] == 'common':
             # We have to handle common entries _before_ the end of the
@@ -196,7 +200,8 @@ def _load_from_file(file, filename):
     Read a string from open file and interpret it as an
     xml data stream identifying a protocol entity.
 
-    @return Returns a decoder entry.
+    @return Returns a tuple containing the decoder entry, and a dictionary
+        of decoder entries to (filename, line number, column number)
     """
     parser = xml.sax.make_parser()
     handler = _Handler(filename)
@@ -206,7 +211,7 @@ def _load_from_file(file, filename):
     except xml.sax.SAXParseException, ex:
         # The sax parse exception object can operate as a locator
         raise XmlError(ex.args[0], filename, ex)
-    return handler.decoder
+    return (handler.decoder, handler.lookup)
 
 def loads(xml):
     """
