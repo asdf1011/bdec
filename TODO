@@ -36,6 +36,22 @@ Being able to generate an an xml spec from an in memory protocol would
 make it easy to convert between different protocol representations.
 
 
+Allow encoding of a protocol with complex expressions
+-----------------------------------------------------
+
+Currently encoding protocols that have complex expressions isn't supported.
+This would be a useful feature.
+
+
+Allow selecting fields from under a choice
+------------------------------------------
+
+Some protocols encode fields as being one of several lengths; to use that
+field as a length requires us to be able to select fields under a choice
+in an expression (only valid if every option of the choice supports that
+field).
+
+
 Protocol specification
 ======================
 

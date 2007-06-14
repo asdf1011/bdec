@@ -44,6 +44,16 @@ class NonFieldError(exp.ExpressionError):
     def __str__(self):
         return "Expression can only reference fields (%s)" % self.entry
 
+class NonSequenceError(exp.ExpressionError):
+    """
+    Asked for a child of a non-sequence object.
+    """
+    def __init__(self, entry):
+        self.entry = entry
+
+    def __str__(self):
+        return "Expressions can only reference children of sequences (%s)" % self.entry
+
 class MissingReferenceError(exp.ExpressionError):
     def __init__(self, name):
         self.name = name
@@ -146,13 +156,38 @@ class _Handler(xml.sax.handler.ContentHandler):
         except exp.ExpressionError, ex:
             raise XmlExpressionError(ex, self._filename, self.locator)
 
-    def _query_field(self, name):
+    def _query_field(self, fullname):
+        """
+        Get an object that returns the decoded value of a field.
+
+        The fullname is the qualified name of the entry with respect to
+        the current entry.
+        """
+        names = fullname.split('.')
+
+        # Find the first name by walking up the stack
         for children in reversed(self._children):
-            for child in reversed(children):
-                if child.name == name:
-                    if not isinstance(child, fld.Field):
-                        raise NonFieldError(child)
-                    return _FieldResult(child)
+            for entry in reversed(children):
+                if entry.name == names[0]:
+                    # We've found the top-level name; now drill down until
+                    # we find the child.
+                    for name in names[1:]:
+                        if not isinstance(entry, seq.Sequence):
+                            # TODO: It can be useful to be able to look inside
+                            # a choice (for example, with fields with a variable
+                            # sized length).
+                            raise NonSequenceError(fullname)
+
+                        for child in entry.children:
+                            if child.name == name:
+                                entry = child
+                                break
+                        else:
+                            raise MissingReferenceError(fullname)
+
+                    if not isinstance(entry, fld.Field):
+                        raise NonFieldError(entry)
+                    return _FieldResult(entry)
         raise MissingReferenceError(name)
 
     def _field(self, attributes, children):

@@ -139,5 +139,19 @@ class TestXml(unittest.TestCase):
         text = """<protocol><sequence name="bob"></sequence></protocol>"""
         self.assertRaises(xml.EmptySequenceError, xml.loads, text)
 
+    def test_expression_references_sub_field(self):
+        text = """
+            <protocol>
+                <sequence name="rabbit">
+                    <sequence name="cat">
+                        <field name="length:" length="8" type="integer" />
+                    </sequence>
+                    <field name="bob" length="${cat.length:} * 8" type="text" />
+                </sequence>
+            </protocol>"""
+        decoder = xml.loads(text)[0]
+        result = list(decoder.decode(dt.Data("\x05hello")))
+        self.assertEqual("hello", result[6][1].get_value())
+
 if __name__ == "__main__":
     unittest.main()
