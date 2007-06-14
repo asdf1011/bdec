@@ -105,6 +105,11 @@ class Field(bdec.entry.Entry):
     def add_listener(self, listener):
         """
         Add a listener to be called when the field decodes.
+
+        Note that the listener will be call for every internal decode, not
+        just the ones that are propageted to the user (for example, if a
+        field is in a choice that later fails to decode, the listener will
+        still be notified).
         """
         self._listeners.append(listener)
 
