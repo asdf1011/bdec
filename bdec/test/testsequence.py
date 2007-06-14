@@ -27,7 +27,7 @@ class Sequence(unittest.TestCase):
         embedded = [fld.Field("bob", 8, format=fld.Field.INTEGER), fld.Field("cat", 8, format=fld.Field.INTEGER)]
         sequence = seq.Sequence("blah", embedded)
         struct = {"blah" : {"bob" : 0x01, "cat" : 0x7a}}
-        query = lambda context, name: context[name]
+        query = lambda context, child: context[child.name]
         data = reduce(lambda a,b:a+b, sequence.encode(query, struct))
         self.assertEqual("\x01\x7a", str(data))
 

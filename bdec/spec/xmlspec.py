@@ -175,7 +175,7 @@ class _Handler(xml.sax.handler.ContentHandler):
 
     def _sequence(self, attributes, children):
         if len(children) == 0:
-            raise EmptySequenceError(attributes['name'])
+            raise EmptySequenceError(attributes['name'], self._filename, self.locator)
         return seq.Sequence(attributes['name'], children)
 
     def _choice(self, attributes, children):

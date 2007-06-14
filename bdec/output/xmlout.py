@@ -55,13 +55,13 @@ def to_string(decoder, binary, verbose=False):
     return buffer.getvalue()
 
 
-def _query_element(obj, name):
+def _query_element(obj, child):
     """
     Get a named child-element of a node.
 
     If the child has no sub-elements itself, return the element text contents.
     """
-    name = _escape_name(name)
+    name = _escape_name(child.name)
     for child in obj.childNodes:
         if child.nodeType == xml.dom.Node.ELEMENT_NODE and child.tagName == name:
             text = ""
@@ -77,7 +77,7 @@ def _query_element(obj, name):
             # No sub-elements; just return the text of the element.
             return text
 
-    raise ent.MissingInstanceError(obj, name)
+    raise ent.MissingInstanceError(obj, child)
 
 def encode(protocol, xmldata):
     """
