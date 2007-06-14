@@ -122,5 +122,13 @@ class TestField(unittest.TestCase):
             return ""
         self.assertEqual("c", str(field.encode(no_data_query, None).next()))
 
+    def test_listener(self):
+        field = fld.Field("bob", 8)
+        callbacks = []
+        field.add_listener(lambda entry: callbacks.append(entry))
+        self.assertEqual(0, len(callbacks))
+        list(field.decode(dt.Data('a')))
+        self.assertEqual('a',  str(callbacks[0].data))
+
 if __name__ == "__main__":
     unittest.main()
