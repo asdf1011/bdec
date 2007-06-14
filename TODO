@@ -1,0 +1,98 @@
+These page is a list of things it would be nice to have in both the
+specification, plus the implementation.
+
+Implementation
+==============
+
+Loading error messages
+----------------------
+
+When loading fails, display the location in the xml document where
+it all went wrong (for example, when expression text fails to decode).
+
+
+Runtime error messages
+----------------------
+
+Store a lookup of protocol entries to xml locations, so on decode 
+or encode error we can display the location in the specification.
+
+
+Protocol specification
+======================
+
+Recursive common elements
+-------------------------
+
+It would be useful to be able to recursively reference common entries.
+A simple example is parsing of a null terminated string; if it is zero,
+then no more characters, otherwise read another.
+
+eg:: 
+   <choice name="null terminting:">
+      <field name="null:" length="8" value="0x0" /> 
+      <sequence name="non null:">
+         <field name="char" length="8" type="ascii" />
+         <choice name="null terminating:" />
+      </sequence>
+   </choice>
+
+Note that this has very poor recursive characteristics... maybe a better
+way for these instances would be a modified sequenceof. (see jpeg 'image 
+file directory' for a more complex recursive entry).
+
+
+Changing 'default' encoding
+---------------------------
+
+The tiff header in the jpeg format has a field that specifies the 'encoding'
+of all integers that follow (eg: little endian or big endian). This currently
+means writing the specification _twice_, once with big endian format and
+once for little endian format. Add a mechanism to change the default format for
+all 'embedded' fields.
+
+eg::
+   <common>
+       <sequence name="structure">
+           <field name="length:" length="16" type="integer" encoding="default" />
+           <field name="data" length="${length:} * 8" type="ascii" />
+       </sequence>
+   </common>
+   <choice name="encoding:">
+      <sequence name="intel:">
+          <field name="id:" length="8" value="0x0" />
+          <default-encoding value="big endian" />
+          <sequence name="structure" />
+      </sequence>
+      <sequence name="motorola:">
+          <field name="id:" length="8" value="0x1" />
+          <default-encoding value="little endian" />
+          <sequence name="structure" />
+      </sequence>
+   </choice>
+
+
+Out of order decoding
+---------------------
+
+For some protocols (eg: 'image file directory' of jpeg), the encoding of certain
+fields is defined at runtime, but such that the data to be decoded isn't aligned
+with the format specifier.
+
+eg::
+   <common>
+       <choice name="data type">
+           <field name="integer" length="8" value="0x0" />
+           <field name="string" length="8" value="0x0" />
+           <field name="float" length="8" value="0x0" />
+       </choice>
+   </common>
+   <sequence name="data">
+      <field name="num items:" length="8" type="integer" />
+      <sequenceof name="items" length="${num items:}">
+         <choice name="data type" />
+      </sequenceof>
+      <!-- And now the list of items, with the types just specified... -->
+      <!-- ???? -->
+   </sequence>
+
