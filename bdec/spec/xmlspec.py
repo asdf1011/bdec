@@ -141,7 +141,11 @@ class _Handler(xml.sax.handler.ContentHandler):
     def _sequenceof(self, attributes, children):
         if len(children) != 1:
             raise XmlSpecError("Sequence of entries can only have a single child! (got %i)" % len(children))
-        length = self._decode_length(attributes['length'])
+
+        # Default to being a greedy sequenceof, unless we have a length specified
+        length = None
+        if attributes.has_key('length'):
+            length = self._decode_length(attributes['length'])
         return sof.SequenceOf(attributes['name'], children[0], length)
 
 def _load_from_file(file):
