@@ -114,5 +114,18 @@ class TestXml(unittest.TestCase):
         self.assertEqual(4, len(result))
         self.assertEqual(0x7a, int(result[2][1]))
 
+    def test_expression_references_field(self):
+        text = """
+            <protocol>
+                <sequence name="rabbit">
+                    <field name="length:" length="8" type="integer" />
+                    <field name="bob" length="${length:} * 8" type="text" />
+                </sequence>
+            </protocol>"""
+        decoder = xml.loads(text)
+        result = list(decoder.decode(dt.Data("\x05hello")))
+        self.assertEqual(6, len(result))
+        self.assertEqual("hello", result[4][1].get_value())
+
 if __name__ == "__main__":
     unittest.main()

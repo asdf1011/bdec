@@ -12,6 +12,30 @@ import bdec.spec.expression as exp
 class XmlSpecError(bdec.spec.LoadError):
     pass
 
+class NonFieldError(exp.ExpressionError):
+    def __init__(self, entry):
+        self.entry = entry
+
+    def __str__(self):
+        return "Expression can only reference fields (%s)" % self.entry
+
+class MissingReferenceError(exp.ExpressionError):
+    def __init__(self, name):
+        self.name = name
+
+    def __str__(self):
+        return "Expression references unknown field %s" % name
+
+class _FieldResult:
+    """
+    Object returning the result of a field when cast to an integer.
+    """
+    def __init__(self, field):
+        self.field = field
+
+    def __int__(self):
+        return int(self.field)
+
 class _Handler(xml.sax.handler.ContentHandler):
     """
     A sax style xml handler for building a decoder from an xml specification
@@ -75,7 +99,16 @@ class _Handler(xml.sax.handler.ContentHandler):
         self.decoder = children[0]
 
     def _decode_length(self, text):
-        return exp.compile(text)
+        return exp.compile(text, self._query_field)
+
+    def _query_field(self, name):
+        for children in reversed(self._children):
+            for child in reversed(children):
+                if child.name == name:
+                    if not isinstance(child, fld.Field):
+                        raise NonFieldError(child)
+                    return _FieldResult(child)
+        raise MissingReferenceError(name)
 
     def _field(self, attributes, children):
         name = attributes['name']

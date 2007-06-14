@@ -8,6 +8,22 @@ class ExpressionError(bdec.spec.LoadError):
     def __str__(self):
         return str(self.error)
 
+class _Delayed:
+    """
+    Class to delay the operation of an integer operation.
+
+    This is because some parts of an expression may not be accessible until
+    the expression is used (for example, an expression object that
+    references the decoded value of another field).
+    """
+    def __init__(self, op, left, right):
+        self.op = op
+        self.left = left
+        self.right = right
+
+    def __int__(self):
+        return self.op(int(self.left), int(self.right))
+
 def _half(op):
     """
     Create a handler to handle half of a binary expression.
@@ -16,7 +32,7 @@ def _half(op):
     of the binary expression.
     """
     def handler(s,l,t):
-        return lambda left: op(left, t[1])
+        return lambda left: _Delayed(op, left, t[1])
     return handler
 
 def _collapse(s,l,t):
