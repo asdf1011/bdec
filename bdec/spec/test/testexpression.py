@@ -34,8 +34,9 @@ class TestExpression(unittest.TestCase):
         self.assertEqual(70, int(exp.compile('(5 + 2) * 10')))
 
     def test_named_reference(self):
-        _lookup = {"bob":3, "cat":5}
+        # Note that we'll use a few odd characters to see if the are valid...
+        _lookup = {"bob":3, "cat :_":5}
         query = lambda name: _lookup[name]
         self.assertEqual(3, int(exp.compile('${bob}', query)))
-        self.assertEqual(13, int(exp.compile('${bob} + 2 * ${cat}', query)))
+        self.assertEqual(13, int(exp.compile('${bob} + 2 * ${cat :_}', query)))
 

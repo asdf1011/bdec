@@ -46,9 +46,9 @@ def compile(text, name_lookup=_no_named_lookups):
         pass
 
     # We have a complicated expression; we'll have to parse it.
-    from pyparsing import Word, alphas, nums, Forward, StringEnd, ZeroOrMore, ParseException
+    from pyparsing import Word, alphanums, nums, Forward, StringEnd, ZeroOrMore, ParseException
     integer = Word(nums).addParseAction(lambda s,l,t: [int(t[0])])
-    named_reference = ('${' + Word(alphas) + '}').addParseAction(lambda s,l,t:name_lookup(t[1]))
+    named_reference = ('${' + Word(alphanums + ' _+:') + '}').addParseAction(lambda s,l,t:name_lookup(t[1]))
 
     expression = Forward()
     factor = integer | named_reference | ('(' + expression + ')').addParseAction(lambda s,l,t:t[1])
