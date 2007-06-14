@@ -45,5 +45,12 @@ class TestSequenceOf(unittest.TestCase):
         self.assertEqual(14, len(decode))
         self.assertEqual(24, len(data))
 
+    def test_encoding_greedy_sequenceof(self):
+        sequenceof = sof.SequenceOf("blah", fld.Field("cat", 8, format=fld.Field.INTEGER), None)
+        data = {"blah" : [{"cat":5}, {"cat":9}, {"cat":0xf6}]}
+        query = lambda context, name: context[name] 
+        data = reduce(lambda a,b:a+b, sequenceof.encode(query, data))
+        self.assertEqual("\x05\x09\xf6", str(data))
+
 if __name__ == "__main__":
     unittest.main()

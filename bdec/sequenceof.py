@@ -45,7 +45,7 @@ class SequenceOf(bdec.entry.Entry):
                     yield item
 
     def _encode(self, query, sequenceof):
-        if int(self._length) != len(sequenceof):
+        if self._length is not None and int(self._length) != len(sequenceof):
             raise InvalidSequenceOfLength(self, self._length, sequenceof)
 
         for child in sequenceof:
