@@ -15,16 +15,34 @@ class SequenceOf(bdec.entry.Entry):
     """
 
     def __init__(self, name, child, length):
+        """
+        A length of None will result in a 'greedy' sequence, which will
+        decode as many child items as possible until decoding fails.
+        """
         bdec.entry.Entry.__init__(self, name)
         self.child = child
         self._length = length
         assert isinstance(child, bdec.entry.Entry)
 
     def _decode(self, data):
-        length = int(self._length)
-        for i in range(length):
-            for item in self.child.decode(data):
-                yield item
+        if self._length is not None:
+            length = int(self._length)
+            for i in range(length):
+                for item in self.child.decode(data):
+                    yield item
+        else:
+            # Greedy sequenceof; keep on decoding until it fails.
+            while 1:
+                iterator = self.child.decode(data.copy()) 
+                try:
+                    while 1:
+                        iterator.next()
+                except bdec.DecodeError:
+                    break
+                except StopIteration:
+                    pass
+                for item in self.child.decode(data):
+                    yield item
 
     def _encode(self, query, sequenceof):
         if int(self._length) != len(sequenceof):

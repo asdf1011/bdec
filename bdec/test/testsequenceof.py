@@ -3,6 +3,7 @@ import unittest
 
 import bdec.data as dt
 import bdec.field as fld
+import bdec.sequence as seq
 import bdec.sequenceof as sof
 
 class TestSequenceOf(unittest.TestCase):
@@ -35,6 +36,14 @@ class TestSequenceOf(unittest.TestCase):
         data = {"blah" : [{"cat":5}, {"cat":9}]}
         query = lambda context, name: context[name] 
         self.assertRaises(sof.InvalidSequenceOfLength, list, sequenceof.encode(query, data))
+
+    def test_decoding_greedy_sequenceof(self):
+        dog = seq.Sequence('dog', [fld.Field('bear', 8), fld.Field('id', 8, expected=dt.Data('a'))])
+        sequenceof = sof.SequenceOf("blah", dog, None)
+        data = dt.Data('1a2a3bb')
+        decode = list(sequenceof.decode(data))
+        self.assertEqual(14, len(decode))
+        self.assertEqual(24, len(data))
 
 if __name__ == "__main__":
     unittest.main()
