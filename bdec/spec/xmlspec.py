@@ -10,14 +10,32 @@ import bdec.sequenceof as sof
 import bdec.spec.expression as exp
 
 class XmlSpecError(bdec.spec.LoadError):
-    pass
+    def __init__(self, filename, locator):
+        self.filename = filename
+        self.line = locator.getLineNumber()
+        self.column = locator.getColumnNumber()
+
+    def _src(self):
+        return "%s[%s]: " % (self.filename, self.line)
+
+class XmlError(XmlSpecError):
+    """
+    Class for some common xml specification errors.
+    """
+    def __init__(self, error, filename, locator):
+        XmlSpecError.__init__(self, filename, locator)
+        self.error = error
+
+    def __str__(self):
+        return self._src() + str(self.error)
 
 class EmptySequenceError(XmlSpecError):
-    def __init__(self, name):
+    def __init__(self, name, filename, locator):
+        XmlSpecError.__init__(self, filename, locator)
         self.name = name
 
     def __str__(self):
-        return "Sequence '%s' must have children!" % self.name
+        return self._src() + "Sequence '%s' must have children!" % self.name
 
 class NonFieldError(exp.ExpressionError):
     def __init__(self, entry):
@@ -33,6 +51,14 @@ class MissingReferenceError(exp.ExpressionError):
     def __str__(self):
         return "Expression references unknown field '%s'" % self.name
 
+class XmlExpressionError(XmlSpecError):
+    def __init__(self, ex, filename, locator):
+        XmlSpecError.__init__(self, filename, locator)
+        self.ex = ex
+
+    def __str__(self):
+        return self._src() + "Expression error - " + str(self.ex)
+
 class _FieldResult:
     """
     Object returning the result of a field when cast to an integer.
@@ -47,7 +73,8 @@ class _Handler(xml.sax.handler.ContentHandler):
     """
     A sax style xml handler for building a decoder from an xml specification
     """
-    def __init__(self):
+    def __init__(self, filename):
+        self._filename = filename
         self._stack = []
         self._children = []
 
@@ -61,13 +88,17 @@ class _Handler(xml.sax.handler.ContentHandler):
             }
         self.decoder = None
         self._common_entries = {}
+        self.locator = None
 
     def setDocumentLocator(self, locator):
-        self._locator = locator
+        self.locator = locator
+
+    def _error(self, text):
+        return XmlError(text, self._filename, self.locator)
 
     def startElement(self, name, attrs):
         if name not in self._handlers:
-            raise XmlSpecError("Unrecognised element '%s'!" % name)
+            raise self._error("Unrecognised element '%s'!" % name)
 
         self._stack.append((name, attrs))
         self._children.append([])
@@ -80,9 +111,9 @@ class _Handler(xml.sax.handler.ContentHandler):
         if attrs.has_key('name') and attrs.getValue('name') in self._common_entries:
             # We are referencing to a common element...
             if len(attrs) != 1:
-                raise XmlSpecError("Referenced element '%s' cannot have other attributes!" % attrs['name'])
+                raise self._error("Referenced element '%s' cannot have other attributes!" % attrs['name'])
             if len(children) != 0:
-                raise XmlSpecError("Referenced element '%s' cannot have sub-entries!" % attrs['name'])
+                raise self._error("Referenced element '%s' cannot have sub-entries!" % attrs['name'])
             child = self._common_entries[attrs['name']]
         else:
             child = self._handlers[name](attrs, children)
@@ -102,11 +133,14 @@ class _Handler(xml.sax.handler.ContentHandler):
 
     def _protocol(self, attributes, children):
         if len(children) != 1:
-            raise XmlSpecError("Protocol should have a single entry to be decoded!")
+            raise self._error("Protocol should have a single entry to be decoded!")
         self.decoder = children[0]
 
     def _decode_length(self, text):
-        return exp.compile(text, self._query_field)
+        try:
+            return exp.compile(text, self._query_field)
+        except exp.ExpressionError, ex:
+            raise XmlExpressionError(ex, self._filename, self.locator)
 
     def _query_field(self, name):
         for children in reversed(self._children):
@@ -149,7 +183,7 @@ class _Handler(xml.sax.handler.ContentHandler):
 
     def _sequenceof(self, attributes, children):
         if len(children) != 1:
-            raise XmlSpecError("Sequence of entries can only have a single child! (got %i)" % len(children))
+            raise self._error("Sequence of entries can only have a single child! (got %i)" % len(children))
 
         # Default to being a greedy sequenceof, unless we have a length specified
         length = None
@@ -157,7 +191,7 @@ class _Handler(xml.sax.handler.ContentHandler):
             length = self._decode_length(attributes['length'])
         return sof.SequenceOf(attributes['name'], children[0], length)
 
-def _load_from_file(file):
+def _load_from_file(file, filename):
     """
     Read a string from open file and interpret it as an
     xml data stream identifying a protocol entity.
@@ -165,25 +199,29 @@ def _load_from_file(file):
     @return Returns a decoder entry.
     """
     parser = xml.sax.make_parser()
-    handler = _Handler()
+    handler = _Handler(filename)
     parser.setContentHandler(handler)
-    parser.parse(file)
+    try:
+        parser.parse(file)
+    except xml.sax.SAXParseException, ex:
+        # The sax parse exception object can operate as a locator
+        raise XmlError(ex.args[0], filename, ex)
     return handler.decoder
 
 def loads(xml):
     """
     Parse an xml string, interpreting it as a protocol specification.
     """
-    return _load_from_file(StringIO.StringIO(xml))
+    return _load_from_file(StringIO.StringIO(xml), "<string>")
 
 def load(xml):
     """
     Load an xml specification from a filename or file object.
     """
     if isinstance(xml, basestring):
-        xml = open(xml, "r")
-        result = _load_from_file(xml)
-        xml.close()
+        xmlfile = open(xml, "r")
+        result = _load_from_file(xmlfile, xml)
+        xmlfile.close()
     else:
-        result = _load_from_file(xml)
+        result = _load_from_file(xml, "<stream>")
     return result

@@ -22,7 +22,7 @@ for arg in sys.argv[1:]:
 if spec is None:
     sys.exit('Specification not set!')
 try:
-    decoder = xmlspec.load(file(spec, 'r'))
+    decoder = xmlspec.load(spec)
 except bdec.spec.LoadError, ex:
     sys.exit(str(ex))
 
