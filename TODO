@@ -6,13 +6,6 @@ areas`_.
 Implementation
 ==============
 
-Loading error messages
-----------------------
-
-When loading fails, display the location in the xml document where
-it all went wrong (for example, when expression text fails to decode).
-
-
 Runtime error messages
 ----------------------
 
