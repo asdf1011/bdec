@@ -7,9 +7,41 @@ import bdec.field as fld
 import bdec.spec
 import bdec.sequence as seq
 import bdec.sequenceof as sof
+import bdec.spec.expression as exp
 
 class XmlSpecError(bdec.spec.LoadError):
     pass
+
+class EmptySequenceError(XmlSpecError):
+    def __init__(self, name):
+        self.name = name
+
+    def __str__(self):
+        return "Sequence '%s' must have children!" % self.name
+
+class NonFieldError(exp.ExpressionError):
+    def __init__(self, entry):
+        self.entry = entry
+
+    def __str__(self):
+        return "Expression can only reference fields (%s)" % self.entry
+
+class MissingReferenceError(exp.ExpressionError):
+    def __init__(self, name):
+        self.name = name
+
+    def __str__(self):
+        return "Expression references unknown field '%s'" % self.name
+
+class _FieldResult:
+    """
+    Object returning the result of a field when cast to an integer.
+    """
+    def __init__(self, field):
+        self.field = field
+
+    def __int__(self):
+        return int(self.field)
 
 class _Handler(xml.sax.handler.ContentHandler):
     """
@@ -73,9 +105,21 @@ class _Handler(xml.sax.handler.ContentHandler):
             raise XmlSpecError("Protocol should have a single entry to be decoded!")
         self.decoder = children[0]
 
+    def _decode_length(self, text):
+        return exp.compile(text, self._query_field)
+
+    def _query_field(self, name):
+        for children in reversed(self._children):
+            for child in reversed(children):
+                if child.name == name:
+                    if not isinstance(child, fld.Field):
+                        raise NonFieldError(child)
+                    return _FieldResult(child)
+        raise MissingReferenceError(name)
+
     def _field(self, attributes, children):
         name = attributes['name']
-        length = int(attributes['length'])
+        length = self._decode_length(attributes['length'])
         format = fld.Field.BINARY
         if attributes.has_key('type'):
             lookup = {
@@ -96,6 +140,8 @@ class _Handler(xml.sax.handler.ContentHandler):
         return fld.Field(name, length, format, encoding, expected)
 
     def _sequence(self, attributes, children):
+        if len(children) == 0:
+            raise EmptySequenceError(attributes['name'])
         return seq.Sequence(attributes['name'], children)
 
     def _choice(self, attributes, children):
@@ -104,7 +150,11 @@ class _Handler(xml.sax.handler.ContentHandler):
     def _sequenceof(self, attributes, children):
         if len(children) != 1:
             raise XmlSpecError("Sequence of entries can only have a single child! (got %i)" % len(children))
-        length = int(attributes['length'])
+
+        # Default to being a greedy sequenceof, unless we have a length specified
+        length = None
+        if attributes.has_key('length'):
+            length = self._decode_length(attributes['length'])
         return sof.SequenceOf(attributes['name'], children[0], length)
 
 def _load_from_file(file):

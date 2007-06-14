@@ -174,10 +174,13 @@ class Field(bdec.entry.Entry):
                 return
         else:
             # We don't have any expected data, so we'll query it from the input.
-            if self.is_hidden():
-                data = context
-            else:
+            try:
                 data = query(context, self.name)
+            except bdec.entry.MissingInstanceError:
+                if not self.is_hidden():
+                    # The field wasn't hidden, but we failed to query the data.
+                    raise
+                data = context
 
         try:
             result = self._encode_data(data)
