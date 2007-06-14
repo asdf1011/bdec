@@ -73,11 +73,18 @@ class _FieldResult:
     """
     Object returning the result of a field when cast to an integer.
     """
-    def __init__(self, field):
-        self.field = field
+    def __init__(self):
+        self.length = None
+
+    def add_field(self, field):
+        field.add_listener(self)
+
+    def __call__(self, field):
+        self.length = int(field)
 
     def __int__(self):
-        return int(self.field)
+        assert self.length is not None
+        return self.length
 
 class _Handler(xml.sax.handler.ContentHandler):
     """
@@ -187,7 +194,10 @@ class _Handler(xml.sax.handler.ContentHandler):
 
                     if not isinstance(entry, fld.Field):
                         raise NonFieldError(entry)
-                    return _FieldResult(entry)
+
+                    result = _FieldResult()
+                    result.add_field(entry)
+                    return result
         raise MissingReferenceError(name)
 
     def _field(self, attributes, children):
