@@ -2,6 +2,7 @@ import bdec.entry
 
 class InvalidSequenceOfLength(bdec.DecodeError):
     def __init__(self, seq, length, data):
+        bdec.DecodeError.__init__(self, seq)
         self.sequenceof = seq
         self.length = length
         self.data = data

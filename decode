@@ -22,7 +22,7 @@ for arg in sys.argv[1:]:
 if spec is None:
     sys.exit('Specification not set!')
 try:
-    decoder = xmlspec.load(file(spec, 'r'))
+    decoder, lookup = xmlspec.load(spec)
 except bdec.spec.LoadError, ex:
     sys.exit(str(ex))
 
@@ -32,7 +32,8 @@ data = dt.Data(binary)
 try:
     xmlout.to_file(decoder, data, sys.stdout, verbose=verbose)
 except bdec.DecodeError, ex:
-    sys.exit(str(ex))
+    (filename, line_number, column_number) = lookup[ex.entry]
+    sys.exit("%s[%i]: %s" % (filename, line_number, str(ex)))
 
 undecoded = str(data)
 if len(undecoded) > 0:

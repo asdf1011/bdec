@@ -5,11 +5,12 @@ class MissingInstanceError(bdec.DecodeError):
     Error raised during encoding when a parent object doesn't have a named child object.
     """
     def __init__(self, parent, child):
+        bdec.DecodeError.__init__(self, child)
         self.parent = parent
         self.child = child
 
     def __str__(self):
-        return "object '%s' doesn't have child object '%s'" % (self.parent, self.child)
+        return "object '%s' doesn't have child object '%s'" % (self.parent, self.child.name)
 
 class Entry(object):
     """
@@ -64,7 +65,7 @@ class Entry(object):
         # for choice entries (where we need to re-wind...)
 
         try:
-            context = query(parent_context, self.name)
+            context = query(parent_context, self)
         except MissingInstanceError:
             if not self.is_hidden():
                 raise

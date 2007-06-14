@@ -1,7 +1,7 @@
 import bdec
 import string
 
-class DataError(bdec.DecodeError):
+class DataError(Exception):
     """
     Base class for all data errors.
     """

@@ -6,20 +6,6 @@ areas`_.
 Implementation
 ==============
 
-Loading error messages
-----------------------
-
-When loading fails, display the location in the xml document where
-it all went wrong (for example, when expression text fails to decode).
-
-
-Runtime error messages
-----------------------
-
-Store a lookup of protocol entries to xml locations, so on decode 
-or encode error we can display the location in the specification.
-
-
 File backed data source
 -----------------------
 
@@ -41,6 +27,13 @@ Choice should be smart about choosing best guess
 Instead of attempting to fully decode one field at a time, the choice
 entry should attempt to figure out what entries it couldn't be, then
 decode just that one entry.
+
+
+Generate an xml specification from an in memory protocol
+--------------------------------------------------------
+
+Being able to generate an an xml spec from an in memory protocol would
+make it easy to convert between different protocol representations.
 
 
 Protocol specification
@@ -137,5 +130,25 @@ Add a utility to 'compile' a specification to another language, such as C.
 ASN1
 ----
 
-Add a utility to load / convert an asn1 specification to the bdec specification
+Add a utility to load / convert an `asn1`_ specification to the bdec specification
 format (for BER and PER).
+
+.. _asn1: http://en.wikipedia.org/wiki/ASN.1
+
+
+CSN1
+----
+
+Add a utility to load / convert an `CSN.1`_ specification to the bdec specification
+format.
+
+.. _csn1: http://en.wikipedia.org/wiki/CSN.1
+
+
+Add a better format protocol
+----------------------------
+
+While xml is easier to programmatically read and write, it isn't very nice for the
+user. Another 'user-friendly' format would be nice. Perhaps a reStructuredText
+document with custom directives would be good; it would allow good 'in protocol'
+documentation which is almost always highly desirable.
