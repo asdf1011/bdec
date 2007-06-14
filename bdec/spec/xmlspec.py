@@ -31,7 +31,7 @@ class MissingReferenceError(exp.ExpressionError):
         self.name = name
 
     def __str__(self):
-        return "Expression references unknown field %s" % name
+        return "Expression references unknown field '%s'" % self.name
 
 class _FieldResult:
     """
