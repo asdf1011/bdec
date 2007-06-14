@@ -136,7 +136,7 @@ class TestXml(unittest.TestCase):
         self.assertEqual("abc", str(data))
 
     def test_empty_sequence_error(self):
-        text = """<protocol><sequenceof name="bob"><field name="cat" length="8" value="0x03" /></sequenceof></protocol>"""
+        text = """<protocol><sequence name="bob"></sequence></protocol>"""
         self.assertRaises(xml.EmptySequenceError, xml.loads, text)
 
 if __name__ == "__main__":

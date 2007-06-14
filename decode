@@ -6,17 +6,27 @@ import bdec.data as dt
 import bdec.spec.xmlspec as xmlspec
 import bdec.output.xmlout as xmlout
 
-spec = sys.argv[1]
-if len(sys.argv) == 3:
-    binary = file(sys.argv[2], 'rb').read()
-else:
+spec = None
+binary = None
+verbose = False
+for arg in sys.argv[1:]:
+    if arg == '--verbose':
+        verbose = True
+    elif spec is None:
+        spec = arg
+    elif binary is None:
+        binary = file(sys.argv[2], 'rb').read()
+    else:
+        sys.exit('Too many arguments!')
+
+if binary is None:
     binary = sys.stdin.read()
 
 decoder = xmlspec.load(file(spec, 'r'))
 
 data = dt.Data(binary)
 try:
-    xmlout.to_file(decoder, data, sys.stdout)
+    xmlout.to_file(decoder, data, sys.stdout, verbose=verbose)
 except bdec.DecodeError, ex:
     sys.exit(str(ex))
 

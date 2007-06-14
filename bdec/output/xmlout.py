@@ -9,13 +9,17 @@ import bdec.entry as ent
 import bdec.field as fld
 
 def _escape_name(name):
-    return name.replace(' ', '-').replace('(', '_').replace(')', '_')
+    return name.replace(' ', '-').replace('(', '_').replace(')', '_').replace(':', '_')
 
-def to_file(decoder, binary, output, encoding="utf-8"):
-    handler = xml.sax.saxutils.XMLGenerator(output, encoding)
+class _XMLGenerator(xml.sax.saxutils.XMLGenerator):
+    def comment(self, text):
+        self._out.write('<!-- %s -->' % text)
+
+def to_file(decoder, binary, output, encoding="utf-8", verbose=False):
+    handler = _XMLGenerator(output, encoding)
     offset = 0
     for is_starting, entry in decoder.decode(binary):
-        if entry.is_hidden():
+        if not verbose and entry.is_hidden():
             continue
 
         if is_starting:
@@ -31,14 +35,23 @@ def to_file(decoder, binary, output, encoding="utf-8"):
                     logging.warning('%s has leading/trailing whitespace (%s); it will not re-encode exactly. Consider changing the format to hex.', entry, text)
                 handler.characters(text)
                 handler.ignorableWhitespace('\n')
+
+                if verbose:
+                    handler.ignorableWhitespace(' ' * offset)
+                    if len(entry.data) % 8 == 0:
+                        handler.comment('hex: %s' % entry.data.get_hex())
+                    else:
+                        handler.comment('bin: %s' % entry.data.get_binary_text())
+                    handler.ignorableWhitespace('\n')
+                    
             offset = offset - 4
             handler.ignorableWhitespace(' ' * offset)
             handler.endElement(_escape_name(entry.name))
             handler.ignorableWhitespace('\n')
 
-def to_string(decoder, binary):
+def to_string(decoder, binary, verbose=False):
     buffer  = StringIO.StringIO()
-    to_file(decoder, binary, buffer)
+    to_file(decoder, binary, buffer, verbose=verbose)
     return buffer.getvalue()
 
 
@@ -60,7 +73,7 @@ def _query_element(obj, name):
                     # NOTE: We have to strip to avoid getting all of the extra whitespace,
                     # but if there was leading or trailing whitespace on the original
                     # data, it'll get lost (which can cause encoding to fail).
-                    text = subchild.data.strip()
+                    text += subchild.data.strip()
             # No sub-elements; just return the text of the element.
             return text
 

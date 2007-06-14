@@ -36,5 +36,27 @@ class TestXml(unittest.TestCase):
         data = reduce(lambda a,b:a+b, xml.encode(sequence, text))
         self.assertEqual("rabbit", str(data))
 
+    def test_verbose(self):
+        sequence = seq.Sequence("bob", [
+            fld.Field("cat:", 8, fld.Field.INTEGER),
+            fld.Field("dog", 24, fld.Field.TEXT)])
+        text = xml.to_string(sequence, dt.Data.from_hex('6d7a6970'), verbose=True)
+        expected = """<bob>
+    <cat_>
+        109
+        <!-- hex: 6d -->
+    </cat_>
+    <dog>
+        zip
+        <!-- hex: 7a6970 -->
+    </dog>
+</bob>
+"""
+        self.assertEqual(expected, text)
+
+        # Now test that we can re-encode verbose generated xml...
+        data = reduce(lambda a,b:a+b, xml.encode(sequence, text))
+        self.assertEqual("mzip", str(data))
+
 if __name__ == "__main__":
     unittest.main()
