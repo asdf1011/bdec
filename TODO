@@ -1,5 +1,7 @@
 These page is a list of things it would be nice to have in both the
-specification, plus the implementation.
+`protocol specification`_, the implementation_, and in `other
+areas`_.
+
 
 Implementation
 ==============
@@ -18,6 +20,29 @@ Store a lookup of protocol entries to xml locations, so on decode
 or encode error we can display the location in the specification.
 
 
+File backed data source
+-----------------------
+
+Use a file backed data source, so we don't need to load the entire
+binary data into memory. For inputs that don't use seeking (eg: stdin),
+create a memory backed file source (whenever Data.copy() is called).
+
+
+Encode shouldn't hold the entire output in memory
+-------------------------------------------------
+
+Currently the decode utility waits until all of the data has been
+read; instead it should write out data as it becomes available.
+
+
+Choice should be smart about choosing best guess
+------------------------------------------------
+
+Instead of attempting to fully decode one field at a time, the choice
+entry should attempt to figure out what entries it couldn't be, then
+decode just that one entry.
+
+
 Protocol specification
 ======================
 
@@ -29,6 +54,7 @@ A simple example is parsing of a null terminated string; if it is zero,
 then no more characters, otherwise read another.
 
 eg:: 
+
    <choice name="null terminting:">
       <field name="null:" length="8" value="0x0" /> 
       <sequence name="non null:">
@@ -52,6 +78,7 @@ once for little endian format. Add a mechanism to change the default format for
 all 'embedded' fields.
 
 eg::
+
    <common>
        <sequence name="structure">
            <field name="length:" length="16" type="integer" encoding="default" />
@@ -80,6 +107,7 @@ fields is defined at runtime, but such that the data to be decoded isn't aligned
 with the format specifier.
 
 eg::
+
    <common>
        <choice name="data type">
            <field name="integer" length="8" value="0x0" />
@@ -96,3 +124,18 @@ eg::
       <!-- ???? -->
    </sequence>
 
+
+Other areas
+===========
+
+Compile to other languages
+--------------------------
+
+Add a utility to 'compile' a specification to another language, such as C.
+
+
+ASN1
+----
+
+Add a utility to load / convert an asn1 specification to the bdec specification
+format (for BER and PER).
