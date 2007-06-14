@@ -12,6 +12,13 @@ import bdec.spec.expression as exp
 class XmlSpecError(bdec.spec.LoadError):
     pass
 
+class EmptySequenceError(XmlSpecError):
+    def __init__(self, name):
+        self.name = name
+
+    def __str__(self):
+        return "Sequence '%s' must have children!" % self.name
+
 class NonFieldError(exp.ExpressionError):
     def __init__(self, entry):
         self.entry = entry
@@ -133,6 +140,8 @@ class _Handler(xml.sax.handler.ContentHandler):
         return fld.Field(name, length, format, encoding, expected)
 
     def _sequence(self, attributes, children):
+        if len(children) == 0:
+            raise EmptySequenceError(attributes['name'])
         return seq.Sequence(attributes['name'], children)
 
     def _choice(self, attributes, children):

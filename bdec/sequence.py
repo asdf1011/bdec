@@ -13,6 +13,7 @@ class Sequence(bdec.entry.Entry):
     def __init__(self, name, children):
         bdec.entry.Entry.__init__(self, name)
         self.children = children
+        assert len(children) > 0
         for child in children:
             assert isinstance(child, bdec.entry.Entry)
 
