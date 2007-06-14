@@ -88,10 +88,10 @@ class TestChoice(unittest.TestCase):
 
         # First try encoding a number that will only fit in the 16 bit storage
         struct = {"blah" : {"bob" : {"dog" : 10023}}}
-        def query(context, name):
-            if name not in context:
-                raise ent.MissingInstanceError(context, name)
-            return context[name]
+        def query(context, child):
+            if child.name not in context:
+                raise ent.MissingInstanceError(context, child)
+            return context[child.name]
         data = reduce(lambda a,b:a+b, choice.encode(query, struct))
         self.assertEqual(17, len(data))
 

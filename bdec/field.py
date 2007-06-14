@@ -3,6 +3,7 @@ import bdec.entry
 
 class FieldError(bdec.DecodeError):
     def __init__(self, field):
+        bdec.DecodeError.__init__(self, field)
         assert isinstance(field, Field)
         self.field = field
 
@@ -103,7 +104,11 @@ class Field(bdec.entry.Entry):
     def _decode(self, data):
         """ see bdec.entry.Entry._decode """
         length = int(self.length)
-        self.data = data.pop(length)
+        try:
+            self.data = data.pop(length)
+        except dt.DataError, ex:
+            raise FieldDataError(self, ex)
+
         if self._expected is not None:
             if int(self._expected) != int(self.data):
                 raise BadDataError(self, self._expected, self.data)
@@ -156,7 +161,7 @@ class Field(bdec.entry.Entry):
         if self._expected is not None:
             if self.is_hidden():
                 try:
-                    data = query(context, self.name)
+                    data = query(context, self)
                 except bdec.entry.MissingInstanceError:
                     # The hidden variable wasn't included in the output, so just
                     # use the 'expected' value.
@@ -165,7 +170,7 @@ class Field(bdec.entry.Entry):
             else:
                 # We are an expected value, but not hidden (and so must be present
                 # in the data to be encoded).
-                data = query(context, self.name)
+                data = query(context, self)
                 
             if data is None or data == "":
                 # The expected value object was present, but didn't have any data (eg:
@@ -175,7 +180,7 @@ class Field(bdec.entry.Entry):
         else:
             # We don't have any expected data, so we'll query it from the input.
             try:
-                data = query(context, self.name)
+                data = query(context, self)
             except bdec.entry.MissingInstanceError:
                 if not self.is_hidden():
                     # The field wasn't hidden, but we failed to query the data.

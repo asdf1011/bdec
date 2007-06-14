@@ -58,16 +58,17 @@ def decode(decoder, binary):
     assert len(stack) == 1
     return stack[0].get_value()
 
-def _get_data(obj, name):
+def _get_data(obj,child):
+    name = child.name
     if name.endswith(':'):
-        raise ent.MissingInstanceError(obj, name)
+        raise ent.MissingInstanceError(obj, child)
 
     name = _escape(name)
 
     try: 
         return getattr(obj, name)
     except AttributeError:
-        raise ent.MissingInstanceError(obj, name)
+        raise ent.MissingInstanceError(obj, child)
 
 def encode(protocol, value):
     """

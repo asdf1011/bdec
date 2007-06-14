@@ -2,15 +2,6 @@
 import bdec.entry
 import bdec.field as fld
 
-class ChoiceDecodeError(bdec.DecodeError):
-    """
-    One of the entries under the choice failed to decode.
-
-    Ideally we should raise the decode error of the one 
-    that decoded the most, but this is easier for now.
-    """
-    pass
-
 class Choice(bdec.entry.Entry):
     """
     Implement an entry that can be one of many entries.
@@ -42,7 +33,7 @@ class Choice(bdec.entry.Entry):
                 # We successfully decoded the entry!
                 best_guess = child
                 break
-            except bdec.DecodeError, ex:
+            except bdec.DecodeError:
                 if best_guess is None or bits_decoded > best_guess_bits:
                     best_guess = child
                     best_guess_bits = bits_decoded
@@ -69,7 +60,7 @@ class Choice(bdec.entry.Entry):
                 # We successfully encoded the entry!
                 best_guess = child
                 break
-            except bdec.DecodeError, ex:
+            except bdec.DecodeError:
                 if best_guess is None or bits_encoded > best_guess_bits:
                     best_guess = child
                     best_guess_bits = bits_encoded
