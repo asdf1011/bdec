@@ -164,9 +164,6 @@
                 <field name="data" length="${length} * 8 - 16" type="hex" />
             </sequence>
         </choice>
-
-        <sequence name="resync:">
-        </sequence>
     </common>
     <sequence name="jpeg">
         <field name="soi:" length="16" value="0xffd8" />
