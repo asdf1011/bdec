@@ -3,6 +3,7 @@ import xml.sax
 
 import bdec.choice as chc
 import bdec.data as dt
+import bdec.entry as ent
 import bdec.field as fld
 import bdec.spec
 import bdec.sequence as seq
@@ -61,6 +62,13 @@ class MissingReferenceError(exp.ExpressionError):
     def __str__(self):
         return "Expression references unknown field '%s'" % self.name
 
+class ChoiceReferenceMatchError(exp.ExpressionError):
+    def __init__(self, name):
+        self.name = name
+
+    def __str__(self):
+        return "All children of a referenced choice element must match name! (%s)" % self.name
+
 class XmlExpressionError(XmlSpecError):
     def __init__(self, ex, filename, locator):
         XmlSpecError.__init__(self, filename, locator)
@@ -73,11 +81,18 @@ class _FieldResult:
     """
     Object returning the result of a field when cast to an integer.
     """
-    def __init__(self, field):
-        self.field = field
+    def __init__(self):
+        self.length = None
+
+    def add_field(self, field):
+        field.add_listener(self)
+
+    def __call__(self, field):
+        self.length = int(field)
 
     def __int__(self):
-        return int(self.field)
+        assert self.length is not None
+        return self.length
 
 class _Handler(xml.sax.handler.ContentHandler):
     """
@@ -156,38 +171,82 @@ class _Handler(xml.sax.handler.ContentHandler):
         except exp.ExpressionError, ex:
             raise XmlExpressionError(ex, self._filename, self.locator)
 
+    def _get_entry_children(self, entry, name):
+        """
+        Get an iterator to all children of an entity matching a given
+        name.
+        """
+        if isinstance(entry, seq.Sequence):
+            for child in self._get_children(entry.children, name):
+                yield child
+        elif isinstance(entry, chc.Choice):
+            found_name = None
+            for option in entry.children:
+                option_matches = False
+                for child in self._get_entry_children(option, name):
+                    option_matches = True
+                    yield child
+
+                if found_name is None:
+                    found_name = option_matches
+                else:
+                    if found_name != option_matches:
+                        # Not all of the choice entries agree; for some the
+                        # name matches, but not for others.
+                        raise ChoiceReferenceMatchError(name)
+
+    def _get_children(self, items, name):
+        """
+        Get an iterator to all children matching the given name.
+
+        There may be more then one in the event children of a 
+        'choice' entry are selected.
+        """
+        for entry in items:
+            if name == entry.name:
+                yield entry
+                return
+
+            if ent.is_hidden(entry.name):
+                # If an entry is hidden, look into its children for the name.
+                match = False
+                for child in self._get_entry_children(entry, name):
+                    match = True
+                    yield child
+                if match:
+                    return
+
     def _query_field(self, fullname):
         """
         Get an object that returns the decoded value of a field.
 
         The fullname is the qualified name of the entry with respect to
-        the current entry.
+        the current entry. 'Hidden' entries may or may not be included.
         """
         names = fullname.split('.')
 
         # Find the first name by walking up the stack
         for children in reversed(self._children):
-            for entry in reversed(children):
-                if entry.name == names[0]:
-                    # We've found the top-level name; now drill down until
-                    # we find the child.
-                    for name in names[1:]:
-                        if not isinstance(entry, seq.Sequence):
-                            # TODO: It can be useful to be able to look inside
-                            # a choice (for example, with fields with a variable
-                            # sized length).
-                            raise NonSequenceError(fullname)
+            matches = list(self._get_children(children, names[0]))
+            if matches:
+                for name in names[1:]:
+                    # We've found items that match the top name. Each of
+                    # these items _must_ support the requested names.
+                    subitems = [list(self._get_entry_children(child, name)) for child in matches]
+                    matches = []
+                    for items in subitems:
+                        if len(items) == 0:
+                            raise MissingReferenceError(name)
+                        matches.extend(items)
 
-                        for child in entry.children:
-                            if child.name == name:
-                                entry = child
-                                break
-                        else:
-                            raise MissingReferenceError(fullname)
-
+                # We've identified a list of fields that this expression is
+                # listening on; create a field result that uses them.
+                result = _FieldResult()
+                for entry in matches:
                     if not isinstance(entry, fld.Field):
                         raise NonFieldError(entry)
-                    return _FieldResult(entry)
+                    result.add_field(entry)
+                return result
         raise MissingReferenceError(name)
 
     def _field(self, attributes, children):

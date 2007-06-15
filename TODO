@@ -43,15 +43,6 @@ Currently encoding protocols that have complex expressions isn't supported.
 This would be a useful feature.
 
 
-Allow selecting fields from under a choice
-------------------------------------------
-
-Some protocols encode fields as being one of several lengths; to use that
-field as a length requires us to be able to select fields under a choice
-in an expression (only valid if every option of the choice supports that
-field).
-
-
 Protocol specification
 ======================
 

@@ -153,5 +153,70 @@ class TestXml(unittest.TestCase):
         result = list(decoder.decode(dt.Data("\x05hello")))
         self.assertEqual("hello", result[6][1].get_value())
 
+    def _decode(self, protocol, data):
+        """
+        Return a dictionary of decoded fields.
+        """
+        result = {}
+        for is_starting, entry in protocol.decode(dt.Data(data)):
+            if not is_starting and isinstance(entry, fld.Field):
+                result[entry.name] = entry.get_value()
+        return result
+
+    def test_expression_reference_choice_field(self):
+        text = """
+            <protocol>
+                <sequence name="rabbit">
+                    <choice name="variable length:">
+                        <sequence name="8 bit:">
+                           <field name="id:" length="8" value="0x0" />
+                           <field name="length:" length="8" type="integer" />
+                        </sequence>
+                        <sequence name="16 bit:">
+                           <field name="id:" length="8" value="0x1" />
+                           <field name="length:" length="16" type="integer" />
+                       </sequence>
+                    </choice>
+                    <field name="bob" length="${variable length:.length:} * 8" type="text" />
+                    <!-- Now try matching the length without specifying the hidden choice -->
+                    <field name="sue" length="${length:} * 8" type="text" />
+                </sequence>
+            </protocol>"""
+        decoder = xml.loads(text)[0]
+
+        # Try using the 8 bit length
+        result = self._decode(decoder, "\x00\x05hellokitty")
+        self.assertEqual("hello", result['bob'])
+        self.assertEqual("kitty", result['sue'])
+
+        # Try using the 16 bit length
+        result = self._decode(decoder, "\x01\x00\x05hellokitty")
+        self.assertEqual("hello", result['bob'])
+        self.assertEqual("kitty", result['sue'])
+
+    def test_not_all_choice_entries_match_error(self):
+        text = """
+            <protocol>
+                <sequence name="rabbit">
+                    <choice name="variable length:">
+                        <sequence name="8 bit:">
+                           <field name="id:" length="8" value="0x0" />
+                           <field name="length:" length="8" type="integer" />
+                        </sequence>
+                        <sequence name="16 bit:">
+                           <field name="id:" length="8" value="0x1" />
+                           <field name="longer length:" length="16" type="integer" />
+                       </sequence>
+                    </choice>
+                    <!-- Not all options in the choice have 'length:', so this should fail. -->
+                    <field name="bob" length="${variable length:.length:} * 8" type="text" />
+                </sequence>
+            </protocol>"""
+        try:
+            xml.loads(text)
+            self.fail("Exception not thrown!")
+        except xml.XmlExpressionError, ex:
+            self.assertTrue(isinstance(ex.ex, xml.ChoiceReferenceMatchError))
+
 if __name__ == "__main__":
     unittest.main()
