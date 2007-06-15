@@ -62,12 +62,14 @@ class MissingReferenceError(exp.ExpressionError):
     def __str__(self):
         return "Expression references unknown field '%s'" % self.name
 
-class ChoiceReferenceMatchError(exp.ExpressionError):
-    def __init__(self, name):
+class OptionMissingNameError(exp.ExpressionError):
+    def __init__(self, entry, name, lookup):
+        self.entry = entry
         self.name = name
+        self.filename, self.line, self.column = lookup[entry]
 
     def __str__(self):
-        return "All children of a referenced choice element must match name! (%s)" % self.name
+        return "Choice option missing referenced name '%s'\n\t%s[%i]: %s" % (self.name, self.filename, self.line, self.entry.name)
 
 class XmlExpressionError(XmlSpecError):
     def __init__(self, ex, filename, locator):
@@ -243,7 +245,13 @@ class _Handler(xml.sax.handler.ContentHandler):
                     if found_name != option_matches:
                         # Not all of the choice entries agree; for some the
                         # name matches, but not for others.
-                        raise ChoiceReferenceMatchError(name)
+                        if option_matches:
+                            # This option has the named entry, but the
+                            # previous one didn't.
+                            missing = entry.children[entry.children.index(option) - 1]
+                        else:
+                            missing = option
+                        raise OptionMissingNameError(missing, name, self.lookup)
 
     def _get_children(self, items, name):
         """

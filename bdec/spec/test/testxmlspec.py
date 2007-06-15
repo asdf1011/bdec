@@ -208,7 +208,7 @@ class TestXml(unittest.TestCase):
             xml.loads(text)
             self.fail("Exception not thrown!")
         except xml.XmlExpressionError, ex:
-            self.assertTrue(isinstance(ex.ex, xml.ChoiceReferenceMatchError))
+            self.assertTrue(isinstance(ex.ex, xml.OptionMissingNameError))
 
     def test_sequenceof_break(self):
         text = """
