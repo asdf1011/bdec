@@ -29,6 +29,18 @@ class Entry(object):
 
     def __init__(self, name):
         self.name = name
+        self._listeners = []
+
+    def add_listener(self, listener):
+        """
+        Add a listener to be called when the entry successfully decodes.
+
+        Note that the listener will be call for every internal decode, not
+        just the ones that are propageted to the user (for example, if an
+        entry is in a choice that later fails to decode, the listener will
+        still be notified).
+        """
+        self._listeners.append(listener)
 
     def _decode(self, data):
         """
@@ -50,6 +62,9 @@ class Entry(object):
         for (is_starting, entry) in self._decode(data):
             yield (is_starting, entry)
         yield (False, self)
+
+        for listener in self._listeners:
+            listener(self)
 
     def _encode(self, query, context):
         """

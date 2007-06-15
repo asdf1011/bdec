@@ -100,18 +100,6 @@ class Field(bdec.entry.Entry):
         self._encoding = encoding
         self.data = None
         self._expected = expected
-        self._listeners = []
-
-    def add_listener(self, listener):
-        """
-        Add a listener to be called when the field decodes.
-
-        Note that the listener will be call for every internal decode, not
-        just the ones that are propageted to the user (for example, if a
-        field is in a choice that later fails to decode, the listener will
-        still be notified).
-        """
-        self._listeners.append(listener)
 
     def _decode(self, data):
         """ see bdec.entry.Entry._decode """
@@ -125,8 +113,6 @@ class Field(bdec.entry.Entry):
             if int(self._expected) != int(self.data):
                 raise BadDataError(self, self._expected, self.data)
 
-        for listener in self._listeners:
-            listener(self)
         return []
 
     def _convert_type(self, data, expected_type):

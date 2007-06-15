@@ -94,6 +94,21 @@ class _FieldResult:
         assert self.length is not None
         return self.length
 
+class _BreakListener:
+    """
+    Class to stop a sequenceof when another protocol entry decodes.
+    """
+    def __init__(self):
+        self._seqof = None
+
+    def set_sequenceof(self, sequenceof):
+        assert self._seqof is None
+        self._seqof = sequenceof
+
+    def __call__(self, entry):
+        assert self._seqof is not None
+        self._seqof.stop()
+
 class _Handler(xml.sax.handler.ContentHandler):
     """
     A sax style xml handler for building a decoder from an xml specification
@@ -106,6 +121,7 @@ class _Handler(xml.sax.handler.ContentHandler):
         self._handlers = {
             "common" : self._common,
             "choice" : self._choice,
+            "end-sequenceof" : self._break,
             "field" : self._field,
             "protocol" : self._protocol,
             "sequence" : self._sequence,
@@ -116,9 +132,17 @@ class _Handler(xml.sax.handler.ContentHandler):
 
         self.lookup = {}
         self.locator = None
+        self._end_sequenceof = False
+        self._break_listener = None
 
     def setDocumentLocator(self, locator):
         self.locator = locator
+
+    def _break(self, attrs, children):
+        if len(attrs) != 0 or len(children) != 0:
+            raise self._error("end-sequenceof cannot have attributes or sub-elements")
+        assert self._end_sequenceof == False
+        self._end_sequenceof = True
 
     def _error(self, text):
         return XmlError(text, self._filename, self.locator)
@@ -146,6 +170,13 @@ class _Handler(xml.sax.handler.ContentHandler):
             child = self._handlers[name](attrs, children)
 
         if child is not None:
+            if self._end_sequenceof:
+                # There is a parent sequence of object that must stop when
+                # this entry decodes.
+                if self._break_listener is None:
+                    self._break_listener = _BreakListener()
+                child.add_listener(self._break_listener)
+                self._end_sequenceof = False
             self._children[-1].append(child)
 
             self.lookup[child] = (self._filename, self.locator.getLineNumber(), self.locator.getColumnNumber())
@@ -158,11 +189,14 @@ class _Handler(xml.sax.handler.ContentHandler):
             self._common_entries[child.name] = child
 
     def _common(self, attributes, children):
-        pass
+        if self._break_listener is not None:
+            raise self._error("end-sequenceof is not surrounded by a sequenceof")
 
     def _protocol(self, attributes, children):
         if len(children) != 1:
             raise self._error("Protocol should have a single entry to be decoded!")
+        if self._break_listener is not None:
+            raise self._error("end-sequenceof is not surrounded by a sequenceof")
         self.decoder = children[0]
 
     def _decode_length(self, text):
@@ -287,7 +321,12 @@ class _Handler(xml.sax.handler.ContentHandler):
         length = None
         if attributes.has_key('length'):
             length = self._decode_length(attributes['length'])
-        return sof.SequenceOf(attributes['name'], children[0], length)
+        result = sof.SequenceOf(attributes['name'], children[0], length)
+
+        if self._break_listener is not None:
+            self._break_listener.set_sequenceof(result)
+            self._break_listener = None
+        return result
 
 def _load_from_file(file, filename):
     """

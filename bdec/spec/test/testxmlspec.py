@@ -210,5 +210,23 @@ class TestXml(unittest.TestCase):
         except xml.XmlExpressionError, ex:
             self.assertTrue(isinstance(ex.ex, xml.ChoiceReferenceMatchError))
 
+        def test_sequenceof_break(self):
+            xml = """
+                <protocol>
+                    <sequenceof name="bob">
+                        <choice name="char:">
+                            <field name="null:" length="8" value="0x0"> <stop-sequenceof /></field>
+                            <field name="char" length="8" type="ascii" />
+                        </choice>
+                    </sequenceof>
+                </protocol>"""
+
+            protocol = xml.loads(xml)
+            result = ""
+            for is_starting, entry in protocol.decode(dt.Data("hello world\x00")):
+                if not is_starting and entry.name == "char":
+                    result += entry.get_value()
+            self.assertEqual("hello world", result)
+
 if __name__ == "__main__":
     unittest.main()
