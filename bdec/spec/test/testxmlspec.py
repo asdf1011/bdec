@@ -210,23 +210,50 @@ class TestXml(unittest.TestCase):
         except xml.XmlExpressionError, ex:
             self.assertTrue(isinstance(ex.ex, xml.ChoiceReferenceMatchError))
 
-        def test_sequenceof_break(self):
-            xml = """
-                <protocol>
-                    <sequenceof name="bob">
-                        <choice name="char:">
-                            <field name="null:" length="8" value="0x0"> <stop-sequenceof /></field>
-                            <field name="char" length="8" type="ascii" />
-                        </choice>
-                    </sequenceof>
-                </protocol>"""
+    def test_sequenceof_break(self):
+        text = """
+            <protocol>
+                <sequenceof name="bob">
+                    <choice name="char:">
+                        <field name="null:" length="8" value="0x0"> <end-sequenceof /></field>
+                        <field name="char" length="8" type="text" />
+                    </choice>
+                </sequenceof>
+            </protocol>"""
 
-            protocol = xml.loads(xml)
-            result = ""
-            for is_starting, entry in protocol.decode(dt.Data("hello world\x00")):
-                if not is_starting and entry.name == "char":
+        protocol = xml.loads(text)[0]
+        result = ""
+        for is_starting, entry in protocol.decode(dt.Data("hello world\x00")):
+            if not is_starting and entry.name == "char":
+                result += entry.get_value()
+        self.assertEqual("hello world", result)
+
+    def test_length_reference(self):
+        text = """
+           <protocol>
+               <sequence name="bob">
+                   <field name="length" length="8" type="integer" />
+                   <sequenceof name="null terminated string">
+                       <choice name="entry:">
+                           <field name="null" length="8" value="0x0" ><end-sequenceof /></field>
+                           <field name="char" length="8" type="text" />
+                       </choice>
+                   </sequenceof>
+                   <field name="unused" length="${length} * 8 - len{null terminated string}" type="text" />
+               </sequence>
+           </protocol>
+           """
+        protocol = xml.loads(text)[0]
+        result = ""
+        unused = ""
+        for is_starting, entry in protocol.decode(dt.Data("\x0fhello world\x00afd")):
+            if not is_starting:
+                if entry.name == "char":
                     result += entry.get_value()
-            self.assertEqual("hello world", result)
+                elif entry.name == "unused":
+                    unused = entry.get_value()
+        self.assertEqual("hello world", result)
+        self.assertEqual("afd", unused)
 
 if __name__ == "__main__":
     unittest.main()

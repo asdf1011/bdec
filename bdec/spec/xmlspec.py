@@ -94,6 +94,22 @@ class _FieldResult:
         assert self.length is not None
         return self.length
 
+class _LengthResult:
+    """
+    Object returning the length of a decoded entry.
+    """
+    def __init__(self, entries):
+        for entry in entries:
+            entry.add_listener(self)
+        self.length = None
+
+    def __call__(self, entry, length):
+        self.length = length
+
+    def __int__(self):
+        assert self.length is not None
+        return self.length
+
 class _BreakListener:
     """
     Class to stop a sequenceof when another protocol entry decodes.
@@ -105,7 +121,7 @@ class _BreakListener:
         assert self._seqof is None
         self._seqof = sequenceof
 
-    def __call__(self, entry):
+    def __call__(self, entry, length):
         assert self._seqof is not None
         self._seqof.stop()
 
@@ -201,7 +217,7 @@ class _Handler(xml.sax.handler.ContentHandler):
 
     def _decode_length(self, text):
         try:
-            return exp.compile(text, self._query_field)
+            return exp.compile(text, self._query_field, self._query_length)
         except exp.ExpressionError, ex:
             raise XmlExpressionError(ex, self._filename, self.locator)
 
@@ -250,12 +266,29 @@ class _Handler(xml.sax.handler.ContentHandler):
                 if match:
                     return
 
+    def _query_length(self, fullname):
+        """
+        Create an object that returns the length of decoded data in an entry.
+        """
+        return _LengthResult(self._get_entries(fullname))
+
     def _query_field(self, fullname):
         """
         Get an object that returns the decoded value of a field.
 
         The fullname is the qualified name of the entry with respect to
         the current entry. 'Hidden' entries may or may not be included.
+        """
+        result = _FieldResult()
+        for entry in self._get_entries(fullname):
+            if not isinstance(entry, fld.Field):
+                raise NonFieldError(entry)
+            result.add_field(entry)
+        return result
+
+    def _get_entries(self, fullname):
+        """
+        Get a list of all entries that match a given name.
         """
         names = fullname.split('.')
 
@@ -273,14 +306,7 @@ class _Handler(xml.sax.handler.ContentHandler):
                             raise MissingReferenceError(name)
                         matches.extend(items)
 
-                # We've identified a list of fields that this expression is
-                # listening on; create a field result that uses them.
-                result = _FieldResult()
-                for entry in matches:
-                    if not isinstance(entry, fld.Field):
-                        raise NonFieldError(entry)
-                    result.add_field(entry)
-                return result
+                return matches
         raise MissingReferenceError(name)
 
     def _field(self, attributes, children):
