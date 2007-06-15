@@ -1,0 +1,220 @@
+
+<protocol>
+    <common>
+        <!-- These are the initial fields all FAT filesystems -->
+        <sequence name="bootsector:initial fields:">
+            <field name="jump instruction" length="24" type="hex" />
+            <field name="oem name" length="64" type="text" />
+            <field name="bytes per sector" length="16" type="integer" encoding="little endian"/>
+            <field name="sectors per cluster" length="8" type="integer" />
+            <field name="reserved sector count" length="16" type="integer" encoding="little endian" />
+            <field name="number of file allocation tables" length="8" type="integer" />
+            <field name="max root directory entries" length="16" type="integer" encoding="little endian" />
+            <field name="total sectors 16 bit" length="16" type="integer" encoding="little endian" />
+            <field name="media descriptor" length="8" />
+        </sequence>
+
+        <!-- Fields that are common between FAT12 and FAT16 -->
+        <sequence name="bootsector:fat 12 and 16 common fields:">
+            <sequence name="bootsector:initial fields:" />
+            <field name="sectors per fat" length="16" type="integer" encoding="little endian" />
+            <field name="sectors per track" length="16" type="integer" encoding="little endian" />
+            <field name="number of heads" length="16" type="integer" encoding="little endian" />
+            <field name="hidden sectors" length="32" type="integer" encoding="little endian" />
+            <field name="total sectors 32 bit" length="32" type="integer" encoding="little endian" />
+            <sequence name="bootsector:common fields:" />
+            <field name="physical drive number" length="8" />
+            <field name="reserved" length="8" />
+            <field name="signature" length="8" />
+            <field name="id" length="32" />
+            <field name="volume label" length="88" type="text" />
+        </sequence>
+
+        <!-- The FAT12 bootsector -->
+        <sequence name="bootsector:fat 12:">
+            <sequence name="bootsector:fat 12 and 16 common fields:" />
+            <field name="fat" length="64" type="text" encoding="ascii" value="0x4641543132202020" /><!-- FAT 12 -->
+            <field name="operating system boot code" length="3584" type="hex" />
+            <field name="end of sector marker:" length="16" value="0x55aa" />
+        </sequence>
+
+        <!-- The FAT16 bootsector -->
+        <sequence name="bootsector:fat 16:">
+            <sequence name="bootsector:fat 12 and 16 common fields:" />
+            <field name="fat" length="64" type="text" encoding="ascii" value="0x4641543136202020" /><!-- FAT 16 -->
+            <field name="operating system boot code" length="3584" type="hex" />
+            <field name="end of sector marker:" length="16" value="0x55aa" />
+        </sequence>
+
+        <!-- The FAT32 bootsector -->
+        <sequence name="bootsector:fat 32:">
+            <sequence name="bootsector:initial fields:" />
+            <field name="unused" length="16" type="integer" encoding="little endian" />
+            <field name="sectors per track" length="16" type="integer" encoding="little endian" />
+            <field name="number of heads" length="16" type="integer" encoding="little endian" />
+            <field name="hidden sectors" length="32" type="integer" encoding="little endian" />
+            <field name="total sectors 32 bit" length="32" type="integer" encoding="little endian" />
+            <sequence name="bootsector:common fields:" />
+
+            <field name="sectors per fat" length="32" type="integer" encoding="little endian" />
+            <field name="fat flags" length="16" type="integer" encoding="little endian" />
+            <field name="version" length="16" type="integer" encoding="little endian" />
+            <field name="cluster number of root directory start" length="32" type="integer" encoding="little endian" />
+            <field name="sector number of FS Information Sector" length="16" type="integer" encoding="little endian" />
+            <field name="sector number of a copy of this boot sector" length="16" type="integer" encoding="little endian" />
+            <field name="reserved" length="96" type="integer" encoding="little endian" />
+            <field name="physical drive number" length="8" type="integer" encoding="little endian" />
+            <field name="reserved" length="8" type="integer" encoding="little endian" />
+            <field name="signature" length="8" type="integer" encoding="little endian" />
+            <field name="id (serial number)" length="32" type="integer" encoding="little endian" />
+            <field name="volume label" length="88" type="text" encoding="ascii" />
+            <field name="fat" length="64" type="text" encoding="ascii" value="0x4641543332202020" /><!-- FAT 32 -->
+            <field name="operating system boot code" length="3360" type="integer" encoding="little endian" />
+            <field name="end of sector marker" length="16" value="0x55aa" />
+        </sequence>
+
+        <!-- An entry capable of decoding all FAT bootsectors (this entry is used by the fatfuse filesystem) -->
+        <choice name="bootsector">
+            <sequence name="bootsector:fat 12:" />
+            <sequence name="bootsector:fat 16:" />
+            <sequence name="bootsector:fat 32:" />
+        </choice>
+
+        <!-- A specification for the contents of a directory cluster chain --> 
+        <sequence name="directory">
+            <sequenceof name="entries">
+                <choice name="file entry">
+                    <sequence name="no more entries">
+                        <field name="identifier:" length="8" value="0x0" />
+                        <field name="unused:" length="248" />
+
+                        <end-sequenceof />
+                    </sequence>
+
+                    <!-- FIXME This entry indicates a filename whose first character is 0xe5 (which is used as a special case for a deleted file) -->
+                    <sequence name="initial entry is 0xe5">
+                        <field name="identifier:" length="8" value="0x5" />
+                        <field name="unused:" length="248" />
+                    </sequence>
+
+                    <sequence name="dot entry">
+                        <field name="identifier:" length="8" value="0x2e" />
+                        <field name="unused:" length="248" />
+                    </sequence>
+
+                    <sequence name="erased entry">
+                        <field name="identifier:" length="8" value="0xe5" />
+                        <field name="unused:" length="248" />
+                    </sequence>
+
+                    <sequence name="long filename">
+                        <field name="sequence number" length="8" type="integer" />
+                        <field name="chars 1" length="80" type="text" encoding="utf-16" />
+                        <field name="attributes:" length="8" value="0xf" />
+                        <field name="reserved:" length="8" />
+                        <field name="checksum" length="8" type="integer" />
+                        <field name="chars 2" length="96" type="text" encoding="utf-16" />
+                        <field name="unused:" length="16" value="0x0" />
+                        <field name="chars 3" length="32" type="text" encoding="utf-16" />
+                    </sequence>
+
+                    <sequence name="dos filename">
+                        <field name="filename" length="64" type="text" />
+                        <field name="extension" length="24" type="text" />
+                        <sequence name="attributes">
+                            <field name="unused" length="1" type="integer" />
+                            <field name="device" length="1" type="integer" />
+                            <field name="archive" length="1" type="integer" />
+                            <field name="subdirectory" length="1" type="integer" />
+                            <field name="volume label" length="1" type="integer" />
+                            <field name="system" length="1" type="integer" />
+                            <field name="hidden" length="1" type="integer" />
+                            <field name="read only" length="1" type="integer" />
+                        </sequence>
+                        <field name="ignore 1" length="4" type="integer" />
+                        <field name="lowercase extension" length="1" />
+                        <field name="lowercase basename" length="1" />
+                        <field name="ignore 2" length="2" type="integer" />
+                        <sequence name="create timestamp">
+                            <field name="centiseconds" length="8" type="integer" />
+                            <field name="minute lower" length="3" type="integer" />
+                            <field name="two seconds" length="5" type="integer" />
+                            <field name="hour" length="5" type="integer" />
+                            <field name="minute upper" length="3" type="integer" />
+                            <field name="month lower" length="3" type="integer" />
+                            <field name="day" length="5" type="integer" />
+                            <field name="year" length="7" type="integer" />
+                            <field name="month upper" length="1" type="integer" />
+                        </sequence>
+                        <sequence name="access timestamp">
+                            <field name="month lower" length="3" type="integer" />
+                            <field name="day" length="5" type="integer" />
+                            <field name="year" length="7" type="integer" />
+                            <field name="month upper" length="1" type="integer" />
+                        </sequence>
+                        <!-- In FAT32, this is the high two bytes of the cluster number -->
+                        <field name="ea index" length="16" type="integer" encoding="little endian" />
+                        <sequence name="modified timestamp">
+                            <field name="minute lower" length="3" type="integer" />
+                            <field name="two seconds" length="5" type="integer" />
+                            <field name="hour" length="5" type="integer" />
+                            <field name="minute upper" length="3" type="integer" />
+
+                            <field name="month lower" length="3" type="integer" />
+                            <field name="day" length="5" type="integer" />
+                            <field name="year" length="7" type="integer" />
+                            <field name="month upper" length="1" type="integer" />
+                        </sequence>
+                        <!-- In FAT32, this is the low two bytes of the first cluster (see 'ea index' for the high two bytes) -->
+                        <field name="first cluster" length="16" type="integer" encoding="little endian" />
+                        <field name="file size" length="32" type="integer" encoding="little endian" />
+                    </sequence>
+                </choice>
+            </sequenceof>
+        </sequence>
+
+        <!-- A specification for a complete fat 12/16 filesystem. Note that we don't decode
+            the clusters; their contents are context sensitive, and must be done by a higher level
+            decoder. -->
+        <sequence name="filesystem:fat 12 or 16:">
+            <choice name="bootsector:">
+                <sequence name="bootsector:fat 12:" />
+                <sequence name="bootsector:fat 16:" />
+            </choice>
+            <field name="reserved" length="(${bootsector.reserved sector count} * ${bootsector.bytes per sector} - 512) * 8" type="hex" />
+            <sequenceof name="file allocation tables" length="${bootsector.number of file allocation tables}">
+                <sequence name="file allocation table">
+                    <field name="data" length="${bootsector.fat type:.sectors per fat} * ${bootsector.bytes per sector} * 8" />
+                </sequence>
+            </sequenceof>
+            <sequence name="directory" />
+            <field name="unused" length="(${bootsector.sectors per cluster} * ${bootsector.bytes per sector}) * 8 - len{directory}" />
+
+            <sequenceof name="clusters" length="(${bootsector.total sectors 16 bit} - ${bootsector.reserved sector count}) / ${bootsector.sectors per cluster} - 1">
+                <field name="cluster" length="${bootsector.sectors per cluster} * ${bootsector.bytes per sector} * 8" type="hex" />
+            </sequenceof>
+        </sequence>
+
+        <!-- A specification for a complete fat 32 filesystem. Note that we don't decode
+            the clusters; their contents are context sensitive, and must be done by a higher level
+            decoder. -->
+        <sequence name="filesystem:fat 32:">
+            <sequence name="bootsector:fat 32:" />
+            <field name="reserved" length="(${bootsector.reserved sector count} * ${bootsector.bytes per sector} - 512) * 8" type="hex" />
+            <sequenceof name="file allocation tables" length="${bootsector.number of file allocation tables}">
+                <sequence name="file allocation table">
+                    <field name="data" length="${bootsector.fat type:.sectors per fat} * ${bootsector.bytes per sector} * 8" />
+                </sequence>
+            </sequenceof>
+            <sequenceof name="clusters" length="(${bootsector.total sectors 16 bit} - ${bootsector.reserved sector count}) / ${bootsector.sectors per cluster}">
+                <field name="cluster" length="${bootsector.sectors per cluster} * ${bootsector.bytes per sector} * 8" type="hex" />
+            </sequenceof>
+        </sequence>
+    </common>
+    <sequence name="fat filesystem">
+        <choice name="filesystem type:">
+            <sequence name="filesystem:fat 12 or 16:" />
+            <sequence name="filesystem:fat 32:" />
+        </choice>
+    </sequence>
+</protocol>
