@@ -14,36 +14,46 @@ class SequenceOf(bdec.entry.Entry):
     """
     A protocol entry representing a sequence of another protocol entry.
     """
+    STOPPED = "stopped"
+    ITERATING = "iterating"
+    STOPPING = "stopping"
 
     def __init__(self, name, child, length):
         """
         A length of None will result in a 'greedy' sequence, which will
-        decode as many child items as possible until decoding fails.
+        keep on decoding items (until 'break' is called).
         """
         bdec.entry.Entry.__init__(self, name)
         self.child = child
         self._length = length
+        self._state = self.STOPPED
         assert isinstance(child, bdec.entry.Entry)
 
-    def _decode(self, data):
+    def stop(self):
+        """
+        Stop a currently iterating sequence of.
+        """
+        assert self._state is not self.STOPPED
+        self._state = self.STOPPING
+
+    def _loop(self):
         if self._length is not None:
             length = int(self._length)
             for i in range(length):
-                for item in self.child.decode(data):
-                    yield item
+                yield i
         else:
-            # Greedy sequenceof; keep on decoding until it fails.
             while 1:
-                iterator = self.child.decode(data.copy()) 
-                try:
-                    while 1:
-                        iterator.next()
-                except bdec.DecodeError:
-                    break
-                except StopIteration:
-                    pass
-                for item in self.child.decode(data):
-                    yield item
+                yield None
+
+    def _decode(self, data):
+        self._state = self.ITERATING
+        for i in self._loop():
+            for item in self.child.decode(data):
+                yield item
+
+            if self._state is self.STOPPING:
+                break
+        self._state = self.STOPPED
 
     def _encode(self, query, sequenceof):
         if self._length is not None and int(self._length) != len(sequenceof):

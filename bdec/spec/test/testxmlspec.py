@@ -127,14 +127,6 @@ class TestXml(unittest.TestCase):
         self.assertEqual(6, len(result))
         self.assertEqual("hello", result[4][1].get_value())
 
-    def test_greedy_sequenceof(self):
-        text = """<protocol><sequenceof name="bob"><field name="cat" length="8" value="0x03" /></sequenceof></protocol>"""
-        decoder = xml.loads(text)[0]
-        data = dt.Data("\x03\x03\x03abc")
-        items = list(decoder.decode(data))
-        self.assertEqual(8, len(items))
-        self.assertEqual("abc", str(data))
-
     def test_empty_sequence_error(self):
         text = """<protocol><sequence name="bob"></sequence></protocol>"""
         self.assertRaises(xml.EmptySequenceError, xml.loads, text)
