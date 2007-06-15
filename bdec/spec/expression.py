@@ -49,7 +49,10 @@ def _collapse(s,l,t):
 def _no_named_lookups(name):
     raise NotImplementedError("Named lookups not supported")
 
-def compile(text, name_lookup=_no_named_lookups):
+def _no_length_lookups(name):
+    raise NotImplementedError("Length lookups are not supported")
+
+def compile(text, name_lookup=_no_named_lookups, length_lookup=_no_length_lookups):
     """
     Compile a length expression into an integer convertible object.
 
@@ -63,11 +66,13 @@ def compile(text, name_lookup=_no_named_lookups):
 
     # We have a complicated expression; we'll have to parse it.
     from pyparsing import Word, alphanums, nums, Forward, StringEnd, ZeroOrMore, ParseException
+    entry_name = Word(alphanums + ' _+:.')
     integer = Word(nums).addParseAction(lambda s,l,t: [int(t[0])])
-    named_reference = ('${' + Word(alphanums + ' _+:.') + '}').addParseAction(lambda s,l,t:name_lookup(t[1]))
+    named_reference = ('${' + entry_name + '}').addParseAction(lambda s,l,t:name_lookup(t[1]))
+    length_reference = ('len{' + entry_name + '}').addParseAction(lambda s,l,t:length_lookup(t[1]))
 
     expression = Forward()
-    factor = integer | named_reference | ('(' + expression + ')').addParseAction(lambda s,l,t:t[1])
+    factor = integer | named_reference | length_reference | ('(' + expression + ')').addParseAction(lambda s,l,t:t[1])
 
     mul = ('*' + factor).addParseAction(_half(operator.mul))
     div = ('/' + factor).addParseAction(_half(operator.div))

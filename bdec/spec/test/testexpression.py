@@ -40,3 +40,7 @@ class TestExpression(unittest.TestCase):
         self.assertEqual(3, int(exp.compile('${bob}', query)))
         self.assertEqual(13, int(exp.compile('${bob} + 2 * ${cat :_}', query)))
 
+    def test_length_lookup(self):
+        query = lambda name: {"bob": 3}[name]
+        self.assertEqual(3, int(exp.compile('len{bob}', length_lookup=query)))
+
