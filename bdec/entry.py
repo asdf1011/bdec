@@ -12,6 +12,16 @@ class MissingInstanceError(bdec.DecodeError):
     def __str__(self):
         return "object '%s' doesn't have child object '%s'" % (self.parent, self.child.name)
 
+def is_hidden(name):
+    """
+    Is a name a 'hidden' name.
+
+    Entries may be hidden for many reasons; for example, we don't want to
+    see 'expected' results (that is, fields with data we expect, without
+    which the decode would fail).
+    """
+    return name.endswith(':')
+
 class Entry(object):
     """
     A decoder entry is an item in a protocol that can be decoded.
@@ -77,9 +87,5 @@ class Entry(object):
     def is_hidden(self):
         """
         Is this a 'hidden' entry.
-
-        Entries may be hidden for many reasons; for example, we don't want to
-        see 'expected' results (that is, fields with data we expect, without
-        which the decode would fail).
         """
-        return self.name.endswith(':')
+        return is_hidden(self.name)
