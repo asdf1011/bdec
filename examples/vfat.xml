@@ -173,6 +173,15 @@
             </sequenceof>
         </sequence>
 
+        <choice name="allocation table:fat 12:entry">
+            <field name="free cluster" length="12" value="0x0" />
+            <field name="next cluster" length="12" type="integer" min="0x2" max="0xFEF" />
+            <field name="last cluster in file" length="12" min="0xFF8" max="0xFFF" />
+            <field name="reserved cluster" length="12" value="0x1" />
+            <field name="reserved values" length="12" min="0xFF0" max="0xFF6" />
+            <field name="bad cluster" length="12" value="0xFF7" />
+        </choice>
+
         <!-- A specification for a complete fat 12/16 filesystem. Note that we don't decode
             the clusters; their contents are context sensitive, and must be done by a higher level
             decoder. -->
@@ -206,6 +215,7 @@
                     <field name="data" length="${bootsector.fat type:.sectors per fat} * ${bootsector.bytes per sector} * 8" />
                 </sequence>
             </sequenceof>
+            <!-- We don't decode the root directory for FAT32, as it may be several clusters long -->
             <sequenceof name="clusters" length="(${bootsector.total sectors 16 bit} - ${bootsector.reserved sector count}) / ${bootsector.sectors per cluster}">
                 <field name="cluster" length="${bootsector.sectors per cluster} * ${bootsector.bytes per sector} * 8" type="hex" />
             </sequenceof>
