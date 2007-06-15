@@ -5,7 +5,7 @@ import bdec.data as dt
 import bdec.field as fld
 import bdec.sequence as seq
 
-class Sequence(unittest.TestCase):
+class TestSequence(unittest.TestCase):
     def test_simple_sequence(self):
         embedded = [fld.Field("bob", 8), fld.Field("cat", 8)]
         sequence = seq.Sequence("blah", embedded)
@@ -30,6 +30,17 @@ class Sequence(unittest.TestCase):
         query = lambda context, child: context[child.name]
         data = reduce(lambda a,b:a+b, sequence.encode(query, struct))
         self.assertEqual("\x01\x7a", str(data))
+
+    def test_listener(self):
+        embedded = [fld.Field("bob", 8, format=fld.Field.INTEGER), fld.Field("cat", 8, format=fld.Field.INTEGER)]
+        sequence = seq.Sequence("blah", embedded)
+        callbacks = []
+        sequence.add_listener(lambda entry, length: callbacks.append((entry, length)))
+        self.assertEqual(0, len(callbacks))
+        list(sequence.decode(dt.Data.from_hex("017a")))
+        self.assertEqual(1, len(callbacks))
+        self.assertEqual(sequence, callbacks[0][0])
+        self.assertEqual(16, callbacks[0][1])
 
 if __name__ == "__main__":
     unittest.main()

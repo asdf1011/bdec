@@ -87,7 +87,7 @@ class _FieldResult:
     def add_field(self, field):
         field.add_listener(self)
 
-    def __call__(self, field):
+    def __call__(self, field, length):
         self.length = int(field)
 
     def __int__(self):
