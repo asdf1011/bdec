@@ -25,6 +25,25 @@ class BadDataError(FieldError):
     def __str__(self):
         return "'%s' expected %s, got %s" % (self.field.name, self.expected.get_binary_text(), self.actual.get_binary_text())
 
+class BadRangeError(FieldError):
+    def __init__(self, field, actual):
+        FieldError.__init__(self, field)
+        self.actual = actual
+
+    def _range(self):
+        if self.field.min is not None:
+            result = "[%i, " % int(self.field.min)
+        else:
+            result = "(-inf, "
+        if self.field.max is not None:
+            result += "%i]" % int(self.field.max)
+        else:
+            result = "inf)"
+        return result
+
+    def __str__(self):
+        return "'%s' value %s not in range %s" % (self.field.name, self.actual, self._range())
+
 class BadEncodingError(FieldError):
     def __init__(self, field, data):
         FieldError.__init__(self, field)
@@ -82,7 +101,7 @@ class Field(bdec.entry.Entry):
     LITTLE_ENDIAN = "little endian"
     BIG_ENDIAN = "big endian"
 
-    def __init__(self, name, length, format=BINARY, encoding=None, expected=None):
+    def __init__(self, name, length, format=BINARY, encoding=None, expected=None, min=None, max=None):
         bdec.entry.Entry.__init__(self, name)
         assert format in self._formats
         assert expected is None or isinstance(expected, dt.Data)
@@ -100,6 +119,8 @@ class Field(bdec.entry.Entry):
         self._encoding = encoding
         self.data = None
         self._expected = expected
+        self.min = min
+        self.max = max
 
     def _decode(self, data):
         """ see bdec.entry.Entry._decode """
@@ -112,6 +133,7 @@ class Field(bdec.entry.Entry):
         if self._expected is not None:
             if int(self._expected) != int(self.data):
                 raise BadDataError(self, self._expected, self.data)
+        self._validate_range(self.data)
 
         return []
 
@@ -188,6 +210,7 @@ class Field(bdec.entry.Entry):
                     raise
                 data = context
 
+        self._validate_range(data)
         try:
             result = self._encode_data(data)
         except dt.DataError, ex:
@@ -197,30 +220,48 @@ class Field(bdec.entry.Entry):
     def __str__(self):
         return "%s '%s' (%s)" % (self._format, self.name, self._encoding)
 
+    def _validate_range(self, data):
+        """
+        Validate any range constraints that may have been placed on this field.
+        """
+        if self.min is not None or self.max is not None:
+            value = self._decode_int(data)
+            if self.min is not None:
+                if value < int(self.min):
+                    raise BadRangeError(self, value)
+            if self.max is not None:
+                if value > int(self.max):
+                    raise BadRangeError(self, value)
+
     def __int__(self):
+        return self._decode_int(self.data)
+
+    def _decode_int(self, data):
         assert self._encoding in [self.BIG_ENDIAN, self.LITTLE_ENDIAN]
         if self._encoding == self.BIG_ENDIAN:
-            result = int(self.data)
+            result = int(data)
         else:
-            result = self.data.get_little_endian_integer()
+            result = data.get_little_endian_integer()
         return result
 
     def get_value(self):
         """ Get the decoded value """
         if self.data is None:
             raise FieldNotDecodedError(self)
+        return self._decode_value(self.data)
 
+    def _decode_value(self, data):
         if self._format == self.BINARY:
-            result = self.data.get_binary_text()
+            result = data.get_binary_text()
         elif self._format == self.HEX:
-            result = self.data.get_hex()
+            result = data.get_hex()
         elif self._format == self.TEXT:
             try:
-                result = unicode(str(self.data), self._encoding)
+                result = unicode(str(data), self._encoding)
             except UnicodeDecodeError:
-                raise BadEncodingError(self, str(self.data))
+                raise BadEncodingError(self, str(data))
         elif self._format == self.INTEGER:
-            result = int(self)
+            result = self._decode_int(data)
         else:
             raise Exception("Unknown field format of '%s'!" % self._format)
         return result
