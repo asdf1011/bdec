@@ -1,4 +1,9 @@
+<!--
+This is a protocl specification for the FAT filesystem.
 
+BUGS: The allocation table decoding uses the 16bit sector counter (so
+    decoding will fail for larger disks).
+-->
 <protocol>
     <common>
         <!-- These are the initial fields all FAT filesystems -->
@@ -22,7 +27,6 @@
             <field name="number of heads" length="16" type="integer" encoding="little endian" />
             <field name="hidden sectors" length="32" type="integer" encoding="little endian" />
             <field name="total sectors 32 bit" length="32" type="integer" encoding="little endian" />
-            <sequence name="bootsector:common fields:" />
             <field name="physical drive number" length="8" />
             <field name="reserved" length="8" />
             <field name="signature" length="8" />
@@ -54,7 +58,6 @@
             <field name="number of heads" length="16" type="integer" encoding="little endian" />
             <field name="hidden sectors" length="32" type="integer" encoding="little endian" />
             <field name="total sectors 32 bit" length="32" type="integer" encoding="little endian" />
-            <sequence name="bootsector:common fields:" />
 
             <field name="sectors per fat" length="32" type="integer" encoding="little endian" />
             <field name="fat flags" length="16" type="integer" encoding="little endian" />
@@ -173,6 +176,7 @@
             </sequenceof>
         </sequence>
 
+        <!-- The three types of allocation table entry (for FAT12, FAT16, FAT32) -->
         <choice name="allocation table:fat 12:entry">
             <field name="free cluster" length="12" value="0x0" />
             <field name="next cluster" length="12" type="integer" min="0x2" max="0xFEF" />
@@ -182,37 +186,66 @@
             <field name="bad cluster" length="12" value="0xFF7" />
         </choice>
 
-        <!-- A specification for a complete fat 12/16 filesystem. Note that we don't decode
-            the clusters; their contents are context sensitive, and must be done by a higher level
-            decoder. -->
-        <sequence name="filesystem:fat 12 or 16:">
-            <choice name="bootsector:">
-                <sequence name="bootsector:fat 12:" />
-                <sequence name="bootsector:fat 16:" />
-            </choice>
+        <choice name="allocation table:fat 16:entry">
+            <field name="free cluster" length="16" value="0x0" />
+            <field name="next cluster" length="16" type="integer" min="0x2" max="0xFFEF" />
+            <field name="last cluster in file" length="16" min="0xFFF8" max="0xFFFF" />
+            <field name="reserved cluster" length="16" value="0x1" />
+            <field name="reserved values" length="16" min="0xFFF0" max="0xFFF6" />
+            <field name="bad cluster" length="16" value="0xFFF7" />
+        </choice>
+
+        <!-- A specification for a complete fat 12 filesystem. -->
+        <sequence name="filesystem:fat 12:">
+            <sequence name="bootsector:fat 12:" />
             <field name="reserved" length="(${bootsector.reserved sector count} * ${bootsector.bytes per sector} - 512) * 8" type="hex" />
             <sequenceof name="file allocation tables" length="${bootsector.number of file allocation tables}">
                 <sequence name="file allocation table">
-                    <field name="data" length="${bootsector.fat type:.sectors per fat} * ${bootsector.bytes per sector} * 8" />
+                    <field name="media descriptor" length="8" />
+                    <field name="expected:" length="4" value="0xf" />
+                    <sequenceof name="clusters" length="${bootsector.total sectors 16 bit} / ${bootsector.sectors per cluster} - 1">
+                        <choice name="allocation table:fat 12:entry" />
+                    </sequenceof>
+                    <field name="unused" length="${bootsector.sectors per fat} * ${bootsector.bytes per sector} * 8 - len{clusters} - 12" type="hex" />
                 </sequence>
             </sequenceof>
             <sequence name="directory" />
-            <field name="unused" length="(${bootsector.sectors per cluster} * ${bootsector.bytes per sector}) * 8 - len{directory}" />
+            <field name="unused" length="(${bootsector.sectors per cluster} * ${bootsector.bytes per sector}) * 8 - len{directory}" type="hex" />
+
+            <sequenceof name="clusters" length="(${bootsector.total sectors 16 bit} - ${bootsector.reserved sector count}) / ${bootsector.sectors per cluster} - 1">
+                <field name="cluster" length="${bootsector.sectors per cluster} * ${bootsector.bytes per sector} * 8" type="hex" />
+            </sequenceof>
+        </sequence>
+        
+        <!-- A specification for a complete fat 16 filesystem. -->
+        <sequence name="filesystem:fat 16:">
+            <sequence name="bootsector:fat 16:" />
+            <field name="reserved" length="(${bootsector.reserved sector count} * ${bootsector.bytes per sector} - 512) * 8" type="hex" />
+            <sequenceof name="file allocation tables" length="${bootsector.number of file allocation tables}">
+                <sequence name="file allocation table">
+                    <field name="media descriptor" length="8" />
+                    <field name="expected:" length="8" value="0xf" />
+                    <sequenceof name="clusters" length="${bootsector.total sectors 16 bit} / ${bootsector.sectors per cluster} - 1">
+                        <choice name="allocation table:fat 16:entry" />
+                    </sequenceof>
+                    <field name="unused" length="${bootsector.sectors per fat} * ${bootsector.bytes per sector} * 8 - len{clusters} - 16" type="hex" />
+                </sequence>
+            </sequenceof>
+            <sequence name="directory" />
+            <field name="unused" length="(${bootsector.sectors per cluster} * ${bootsector.bytes per sector}) * 8 - len{directory}" type="hex" />
 
             <sequenceof name="clusters" length="(${bootsector.total sectors 16 bit} - ${bootsector.reserved sector count}) / ${bootsector.sectors per cluster} - 1">
                 <field name="cluster" length="${bootsector.sectors per cluster} * ${bootsector.bytes per sector} * 8" type="hex" />
             </sequenceof>
         </sequence>
 
-        <!-- A specification for a complete fat 32 filesystem. Note that we don't decode
-            the clusters; their contents are context sensitive, and must be done by a higher level
-            decoder. -->
+        <!-- A specification for a complete fat 32 filesystem. -->
         <sequence name="filesystem:fat 32:">
             <sequence name="bootsector:fat 32:" />
             <field name="reserved" length="(${bootsector.reserved sector count} * ${bootsector.bytes per sector} - 512) * 8" type="hex" />
             <sequenceof name="file allocation tables" length="${bootsector.number of file allocation tables}">
                 <sequence name="file allocation table">
-                    <field name="data" length="${bootsector.fat type:.sectors per fat} * ${bootsector.bytes per sector} * 8" />
+                    <field name="data" length="${bootsector.sectors per fat} * ${bootsector.bytes per sector} * 8" />
                 </sequence>
             </sequenceof>
             <!-- We don't decode the root directory for FAT32, as it may be several clusters long -->
@@ -223,7 +256,8 @@
     </common>
     <sequence name="fat filesystem">
         <choice name="filesystem type:">
-            <sequence name="filesystem:fat 12 or 16:" />
+            <sequence name="filesystem:fat 12:" />
+            <sequence name="filesystem:fat 16:" />
             <sequence name="filesystem:fat 32:" />
         </choice>
     </sequence>
