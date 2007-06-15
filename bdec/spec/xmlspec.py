@@ -337,7 +337,13 @@ class _Handler(xml.sax.handler.ContentHandler):
             hex = attributes['value'].upper()
             assert hex[:2] == "0X"
             expected = dt.Data.from_hex(hex[2:])
-        return fld.Field(name, length, format, encoding, expected)
+        min = None
+        if attributes.has_key('min'):
+            min = self._decode_length(attributes['min'])
+        max = None
+        if attributes.has_key('max'):
+            max = self._decode_length(attributes['max'])
+        return fld.Field(name, length, format, encoding, expected, min, max)
 
     def _sequence(self, attributes, children):
         if len(children) == 0:

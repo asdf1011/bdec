@@ -255,5 +255,17 @@ class TestXml(unittest.TestCase):
         self.assertEqual("hello world", result)
         self.assertEqual("afd", unused)
 
+    def test_field_range(self):
+        text = """
+            <protocol>
+                <field name="bob" type="integer" length="8" min="4" max="0xf" />
+           </protocol>
+           """
+        protocol = xml.loads(text)[0]
+        self.assertRaises(fld.BadRangeError, list, protocol.decode(dt.Data('\x03')))
+        self.assertRaises(fld.BadRangeError, list, protocol.decode(dt.Data('\x10')))
+        self.assertEqual(4, list(protocol.decode(dt.Data('\x04')))[1][1].get_value())
+        self.assertEqual(15, list(protocol.decode(dt.Data('\x0f')))[1][1].get_value())
+
 if __name__ == "__main__":
     unittest.main()
