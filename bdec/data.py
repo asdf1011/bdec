@@ -15,6 +15,14 @@ class NotEnoughDataError(DataError):
     def __str__(self):
         return "Asked for %i bits, but only have %i bits available!" % (self.requested, self.available)
 
+class PoppedNegativeBitsError(DataError):
+    def __init__(self, requested_length):
+        self.requested = requested_length
+        assert self.requested < 0
+
+    def __str__(self):
+        return "Data source asked for %i bits!" % self.requested
+
 class IntegerTooLongError(DataError):
     def __init__(self, value, length):
         self.value = value
@@ -50,11 +58,14 @@ class Data:
         self._end = end
         assert isinstance(self._start, int)
         assert isinstance(self._end, int)
+        assert self._start <= self._end
 
     def pop(self, length):
         """
         Pop data from this data object
         """
+        if length < 0:
+            raise PoppedNegativeBitsError(length)
         if length > self._end - self._start:
             raise NotEnoughDataError(length, self._end - self._start)
 

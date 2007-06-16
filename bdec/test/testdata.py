@@ -8,6 +8,10 @@ class TestData(unittest.TestCase):
     def test_pop_empty_data(self):
         self.assertRaises(dt.NotEnoughDataError, dt.Data("").pop, 1)
 
+    def test_pop_negative_number(self):
+        self.assertEqual("abcd", str(dt.Data("abcd").pop(32)))
+        self.assertRaises(dt.NotEnoughDataError, dt.Data("abcd").pop, 33)
+
     def test_integer(self):
         self.assertEqual(3, int(dt.Data(chr(3))))
 
