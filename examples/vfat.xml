@@ -210,7 +210,7 @@ BUGS: The allocation table decoding uses the 16bit sector counter (so
                     <field name="media descriptor" length="8" />
                     <field name="expected:" length="4" value="0xf" />
                     <field name="end of file marker" length="12" type="hex" />
-                    <sequenceof name="clusters" length="${bootsector.total sectors 16 bit} / ${bootsector.sectors per cluster} - 2">
+                    <sequenceof name="clusters" length="(${bootsector.total sectors 16 bit} + ${bootsector.total sectors 32 bit} - ${bootsector.reserved sector count} - ${bootsector.sectors per fat} * ${bootsector.number of file allocation tables}) / ${bootsector.sectors per cluster}">
                         <choice name="allocation table:fat 12:entry" />
                     </sequenceof>
                     <field name="unused" length="${bootsector.sectors per fat} * ${bootsector.bytes per sector} * 8 - len{clusters} - 24" type="hex" />
@@ -219,7 +219,7 @@ BUGS: The allocation table decoding uses the 16bit sector counter (so
             <sequence name="directory" />
             <field name="unused" length="(${bootsector.sectors per cluster} * ${bootsector.bytes per sector}) * 8 - len{directory}" type="hex" />
 
-            <sequenceof name="clusters" length="(${bootsector.total sectors 16 bit} - ${bootsector.reserved sector count} - ${bootsector.sectors per fat} * ${bootsector.number of file allocation tables}) / ${bootsector.sectors per cluster} - 1">
+            <sequenceof name="clusters" length="(${bootsector.total sectors 16 bit} + ${bootsector.total sectors 32 bit} - ${bootsector.reserved sector count} - ${bootsector.sectors per fat} * ${bootsector.number of file allocation tables}) / ${bootsector.sectors per cluster} - 1">
                 <field name="cluster" length="${bootsector.sectors per cluster} * ${bootsector.bytes per sector} * 8" type="hex" />
             </sequenceof>
         </sequence>
@@ -233,7 +233,7 @@ BUGS: The allocation table decoding uses the 16bit sector counter (so
                     <field name="media descriptor" length="8" />
                     <field name="expected:" length="8" value="0xff" />
                     <field name="end of file marker" length="16" type="hex" />
-                    <sequenceof name="clusters" length="${bootsector.total sectors 16 bit} / ${bootsector.sectors per cluster} - 2">
+                    <sequenceof name="clusters" length="(${bootsector.total sectors 16 bit} + ${bootsector.total sectors 32 bit} - ${bootsector.reserved sector count} - ${bootsector.sectors per fat} * ${bootsector.number of file allocation tables}) / ${bootsector.sectors per cluster}">
                         <choice name="allocation table:fat 16:entry" />
                     </sequenceof>
                     <field name="unused" length="${bootsector.sectors per fat} * ${bootsector.bytes per sector} * 8 - len{clusters} - 32" type="hex" />
@@ -242,7 +242,7 @@ BUGS: The allocation table decoding uses the 16bit sector counter (so
             <sequence name="directory" />
             <field name="unused" length="(${bootsector.sectors per cluster} * ${bootsector.bytes per sector}) * 8 - len{directory}" type="hex" />
 
-            <sequenceof name="clusters" length="(${bootsector.total sectors 16 bit} - ${bootsector.reserved sector count} - ${bootsector.sectors per fat} * ${bootsector.number of file allocation tables}) / ${bootsector.sectors per cluster} - 1">
+            <sequenceof name="clusters" length="(${bootsector.total sectors 16 bit} + ${bootsector.total sectors 32 bit} - ${bootsector.reserved sector count} - ${bootsector.sectors per fat} * ${bootsector.number of file allocation tables}) / ${bootsector.sectors per cluster} - 1">
                 <field name="cluster" length="${bootsector.sectors per cluster} * ${bootsector.bytes per sector} * 8" type="hex" />
             </sequenceof>
         </sequence>
@@ -256,7 +256,7 @@ BUGS: The allocation table decoding uses the 16bit sector counter (so
                     <field name="media descriptor" length="8" />
                     <field name="unused" length="24" type="hex" />
                     <field name="end of file marker" length="32" type="hex" />
-                    <sequenceof name="clusters" length="${bootsector.total sectors 16 bit} / ${bootsector.sectors per cluster} - 2">
+                    <sequenceof name="clusters" length="(${bootsector.total sectors 16 bit} + ${bootsector.total sectors 32 bit} - ${bootsector.reserved sector count} - ${bootsector.sectors per fat} * ${bootsector.number of file allocation tables}) / ${bootsector.sectors per cluster}">
                         <!-- We don't decode 32 bit entries, as the upper
                             four bits are reserved; due to the byte ordering,
                             these are bits 24-28 (meaning we have cannot 
@@ -267,7 +267,7 @@ BUGS: The allocation table decoding uses the 16bit sector counter (so
                 </sequence>
             </sequenceof>
             <!-- We don't decode the root directory for FAT32, as it may be several clusters long -->
-            <sequenceof name="clusters" length="(${bootsector.total sectors 16 bit} - ${bootsector.reserved sector count} - ${bootsector.sectors per fat} * ${bootsector.number of file allocation tables}) / ${bootsector.sectors per cluster}">
+            <sequenceof name="clusters" length="(${bootsector.total sectors 16 bit} + ${bootsector.total sectors 32 bit} - ${bootsector.reserved sector count} - ${bootsector.sectors per fat} * ${bootsector.number of file allocation tables}) / ${bootsector.sectors per cluster}">
                 <field name="cluster" length="${bootsector.sectors per cluster} * ${bootsector.bytes per sector} * 8" type="hex" />
             </sequenceof>
         </sequence>
