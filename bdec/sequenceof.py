@@ -10,6 +10,14 @@ class InvalidSequenceOfLength(bdec.DecodeError):
     def __str__(self):
         return "%s expected length of %i, got %i (%s)" % (self.sequenceof, self.length, len(self.data), self.data)
 
+class NegativeSequenceofLoop(bdec.DecodeError):
+    def __init__(self, seq, length):
+        bdec.DecodeError.__init__(self, seq)
+        self.length = length
+
+    def __str__(self):
+        return "%s asked to loop %i times!" % (self.entry, self.length)
+
 class SequenceOf(bdec.entry.Entry):
     """
     A protocol entry representing a sequence of another protocol entry.
@@ -39,6 +47,9 @@ class SequenceOf(bdec.entry.Entry):
     def _loop(self):
         if self._length is not None:
             length = int(self._length)
+            if length < 0:
+                raise NegativeSequenceofLoop(self, length)
+
             for i in range(length):
                 yield i
         else:

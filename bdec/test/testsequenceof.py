@@ -60,5 +60,9 @@ class TestSequenceOf(unittest.TestCase):
         data = reduce(lambda a,b:a+b, sequenceof.encode(query, data))
         self.assertEqual("\x05\x09\xf6", str(data))
 
+    def test_negative_count(self):
+        sequenceof = sof.SequenceOf("blah", fld.Field("cat", 8, format=fld.Field.INTEGER), -1)
+        self.assertRaises(sof.NegativeSequenceofLoop, list, sequenceof.decode(dt.Data("")))
+
 if __name__ == "__main__":
     unittest.main()
