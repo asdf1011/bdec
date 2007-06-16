@@ -1,5 +1,10 @@
 <!--
-This is a protocl specification for the FAT filesystem.
+This is a protocol specification for the FAT filesystem.
+
+For an overview on the FAT filesystem, see 
+http://en.wikipedia.org/wiki/File_Allocation_Table. For an excellent
+description of the actual on-disk format, see 
+http://staff.washington.edu/dittrich/misc/fatgen103.pdf.
 
 BUGS: The allocation table decoding uses the 16bit sector counter (so
     decoding will fail for larger disks).
