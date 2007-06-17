@@ -93,10 +93,10 @@
                     <field name="type:" length="8" value="0xc0" />
                     <field name="length" length="16" type="integer" encoding="big endian" />
                     <field name="data precision" length="8" type="integer" />
-                    <field name="image width" length="16" type="integer" encoding="big endian" />
                     <field name="image height" length="16" type="integer" encoding="big endian" />
+                    <field name="image width" length="16" type="integer" encoding="big endian" />
                     <field name="number of components:" length="8" type="integer" />
-                    <sequenceof name="components">
+                    <sequenceof name="components" length="${number of components:}">
                         <sequence name="component">
                             <sequence name="sampling factors">
                                 <choice name="component:type" />
