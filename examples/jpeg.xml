@@ -8,68 +8,23 @@
             <field name="Q" length="8" value="0x5" />
         </choice>
 
-        <choice name="tiff:data:encoding">
-            <field name="unsigned byte" length="16" value="0x0100" />
-            <field name="ascii string" length="16" value="0x0200" />
-            <field name="unsigned short" length="16" value="0x0300" />
-            <field name="unsigned long" length="16" value="0x0400" />
-            <field name="unsigned rational" length="16" value="0x0500" />
-            <field name="signed byte" length="16" value="0x0600" />
-            <field name="undefined" length="16" value="0x0700" />
-            <field name="signed short" length="16" value="0x0800" />
-            <field name="signed long" length="16" value="0x0900" />
-            <field name="signed rational" length="16" value="0x0a00" />
-            <field name="single float" length="16" value="0x0b00" />
-            <field name="double float" length="16" value="0x0c00" />
-            <field name="unknown" length="16" />
-        </choice>
-
-        <sequence name="image file directory">
-            <field name="number of entries:"  length="16" type="integer" encoding="little endian" />
-            <sequenceof name="entries" length="${number of entries:}">
-                <sequence name="entry">
-                    <field name="tag" length="16" type="integer" encoding="little endian" />
-                    <choice name="tiff:data:encoding" />
-                    <field name="number of components" length="32" type="integer" encoding="little endian" />
-                    <field name="offset or value" length="32" type="hex" />
-                </sequence>
-            </sequenceof>
-            <choice name="next ifd:">
-                <field name="last ifd:" length="32" value="0x0" />
-                <sequence name="another ifd:">
-                    <field name="offset to next ifd:" length="32" type="integer" encoding="little endian" />
-                    <field name="buffer" length="${offset to next ifd:}" type="hex" />
-                    <!-- FIXME -->
-                    <!--<sequence name="image file directory" />-->
-                </sequence>
-            </choice>
-        </sequence>
-
         <sequenceof name="segments">
             <choice name="segment:">
-                <!-- Exif disabled due to the difficulty parsing the image file directory
                 <sequence name="exif">
                     <field name="id:" length="8" value="0xff" />
                     <field name="type:" length="8" value="0xe1" />
-                    <field name="length" length="16" type="integer" encoding="big endian" />
-                    <field name="exif:" length="48" value="0x457869660000" />
-                    <choice name="byte align">
-                        <sequence name="intel">
-                            <field name="id:" length="16" value="0x4949" />
-                            <field name="length:" length="16" value="0x2a00" />
-                            <field name="offset to first ifd:" length="32" type="integer" encoding="little endian" />
-
-                            <field name="unused" length="(${offset to first ifd:} - 8) * 8" />
-                            <sequence name="image file directory" />
-                        </sequence>
-                        <sequence name="motorola">
-                            <field name="id:" length="16" value="0x4d4d" />
-                            <field name="length:" length="16" value="0x002a" />
-                            <field name="offset to first ifd" length="32" type="integer" encoding="big endian" /> -->
-                            <!-- FIXME: Don't have big endian data structures here... -->
-                    <!--</sequence>
-                    </choice>
-                </sequence>-->
+                    <field name="length:" length="16" type="integer" encoding="big endian" />
+                    <!-- The exif data structures are difficult to represent, as the 'offset to next ifd'
+                        field is relative to the start of the entire block (which means we need to know
+                        the length of the allready decoded blocks). Additionally, the fact that the
+                        fields can be either little endian or big endian means the structures need to be 
+                        represented _twice_.
+                        
+                        A good overview of the exif data format is available at 
+                        http://www.media.mit.edu/pia/Research/deepview/exif.html 
+                        -->
+                    <field name="data" length="${length:} * 8 - 16" type="hex" />
+                </sequence>
 
                 <sequence name="start of scan">
                     <field name="id:" length="8" value="0xff" />
