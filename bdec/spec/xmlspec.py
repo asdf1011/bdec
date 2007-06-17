@@ -324,7 +324,7 @@ class _Handler(xml.sax.handler.ContentHandler):
                         matches.extend(items)
 
                 return matches
-        raise MissingReferenceError(name)
+        raise MissingReferenceError(fullname)
 
     def _field(self, attributes, children):
         name = attributes['name']

@@ -287,6 +287,17 @@ class TestXml(unittest.TestCase):
                 result += entry.get_value()
         self.assertEqual("hello world", result)
         self.assertEqual("boo", str(data))
+        
+    def test_missing_reference_error(self):
+        text = """
+            <protocol>
+                <field name="bob" length="${missing}" />
+            </protocol>"""
+        try:
+            xml.loads(text)
+            self.fail("Exception not thrown!")
+        except xml.XmlExpressionError, ex:
+            self.assertTrue(isinstance(ex.ex, xml.MissingReferenceError))
 
 if __name__ == "__main__":
     unittest.main()
