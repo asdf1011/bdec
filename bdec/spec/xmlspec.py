@@ -121,6 +121,7 @@ class _BreakListener:
 
     def set_sequenceof(self, sequenceof):
         assert self._seqof is None
+        assert isinstance(sequenceof, sof.SequenceOf)
         self._seqof = sequenceof
 
     def __call__(self, entry, length):
@@ -159,6 +160,7 @@ class _Handler(xml.sax.handler.ContentHandler):
     def _break(self, attrs, children):
         if len(attrs) != 0 or len(children) != 0:
             raise self._error("end-sequenceof cannot have attributes or sub-elements")
+
         assert self._end_sequenceof == False
         self._end_sequenceof = True
 
@@ -169,12 +171,12 @@ class _Handler(xml.sax.handler.ContentHandler):
         if name not in self._handlers:
             raise self._error("Unrecognised element '%s'!" % name)
 
-        self._stack.append((name, attrs))
+        self._stack.append((name, attrs, []))
         self._children.append([])
 
     def endElement(self, name):
         assert self._stack[-1][0] == name
-        (name, attrs) = self._stack.pop()
+        (name, attrs, breaks) = self._stack.pop()
 
         children = self._children.pop()
         if attrs.has_key('name') and attrs.getValue('name') in self._common_entries:
@@ -188,12 +190,20 @@ class _Handler(xml.sax.handler.ContentHandler):
             child = self._handlers[name](attrs, children)
 
         if child is not None:
+            for break_notifier in breaks:
+                break_notifier.set_sequenceof(child)
+
             if self._end_sequenceof:
                 # There is a parent sequence of object that must stop when
                 # this entry decodes.
-                if self._break_listener is None:
-                    self._break_listener = _BreakListener()
-                child.add_listener(self._break_listener)
+                listener = _BreakListener()
+                child.add_listener(listener)
+                for name, attrs, breaks in reversed(self._stack):
+                    if name == "sequenceof":
+                        breaks.append(listener)
+                        break
+                else:
+                    raise self._error("end-sequenceof is not surrounded by a sequenceof")
                 self._end_sequenceof = False
             self._children[-1].append(child)
 
@@ -207,8 +217,7 @@ class _Handler(xml.sax.handler.ContentHandler):
             self._common_entries[child.name] = child
 
     def _common(self, attributes, children):
-        if self._break_listener is not None:
-            raise self._error("end-sequenceof is not surrounded by a sequenceof")
+        pass
 
     def _protocol(self, attributes, children):
         if len(children) != 1:

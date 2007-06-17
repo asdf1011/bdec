@@ -267,5 +267,26 @@ class TestXml(unittest.TestCase):
         self.assertEqual(4, list(protocol.decode(dt.Data('\x04')))[1][1].get_value())
         self.assertEqual(15, list(protocol.decode(dt.Data('\x0f')))[1][1].get_value())
 
+    def test_parent_sequenceof_ends(self):
+        text = """
+            <protocol>
+                <sequenceof name="bob">
+                    <choice name="char:">
+                        <field name="null:" length="8" value="0x0"> <end-sequenceof /></field>
+                        <sequenceof name="dont get me" length="1">
+                            <field name="char" length="8" type="text" />
+                        </sequenceof>
+                    </choice>
+                </sequenceof>
+            </protocol>"""
+        protocol = xml.loads(text)[0]
+        result = ""
+        data = dt.Data("hello world\x00boo")
+        for is_starting, entry in protocol.decode(data):
+            if not is_starting and entry.name == "char":
+                result += entry.get_value()
+        self.assertEqual("hello world", result)
+        self.assertEqual("boo", str(data))
+
 if __name__ == "__main__":
     unittest.main()
