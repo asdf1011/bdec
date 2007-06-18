@@ -7,13 +7,13 @@
     <common>
         <sequence name="syncsafe integer:">
             <field name="null:" length="1" value="0x0" />
-            <field name="1" length="7" type="integer" />
+            <field name="1:" length="7" type="integer" />
             <field name="null:" length="1" value="0x0" />
-            <field name="2" length="7" type="integer" />
+            <field name="2:" length="7" type="integer" />
             <field name="null:" length="1" value="0x0" />
-            <field name="3" length="7" type="integer" />
+            <field name="3:" length="7" type="integer" />
             <field name="null:" length="1" value="0x0" />
-            <field name="4" length="7" type="integer" />
+            <field name="4:" length="7" type="integer" />
         </sequence>
 
         <sequence name="id3v2:frame">
@@ -42,7 +42,24 @@
                 <field name="unused" length="3" />
             </sequence>
             <!-- Using a non-ascii code to eat bad characters... (usually after the null character) -->
-            <field name="text" length="(((${size:.1} * 128 + ${size:.2}) * 128 + ${size:.3}) * 128 + ${size:.4}) * 8" type="text" encoding="cp1252" />
+            <choice name="contents">
+                <sequence name="iso-8859-1:">
+                    <field name="id:" length="8" value="0x0" />
+                    <field name="text" length="(((${size:.1:} * 128 + ${size:.2:}) * 128 + ${size:.3:}) * 128 + ${size:.4:}) * 8 - 8" type="text" encoding="iso-8859-1" />
+                </sequence>
+                <sequence name="utf16-bom:">
+                    <choice name="utf id:">
+                        <field name="id:" length="8" value="0x1" />
+                        <field name="id:" length="8" value="0x2" />
+                    </choice>
+                    <field name="text" length="(((${size:.1:} * 128 + ${size:.2:}) * 128 + ${size:.3:}) * 128 + ${size:.4:}) * 8 - 8" type="text" encoding="utf-16-be" />
+                </sequence>
+                <sequence name="utf8:">
+                    <field name="id:" length="8" value="0x3" />
+                    <field name="text" length="(((${size:.1:} * 128 + ${size:.2:}) * 128 + ${size:.3:}) * 128 + ${size:.4:}) * 8 - 8" type="text" encoding="utf-8" />
+                </sequence>
+                <field name="data" length="(((${size:.1:} * 128 + ${size:.2:}) * 128 + ${size:.3:}) * 128 + ${size:.4:}) * 8" type="hex" />
+            </choice>
         </sequence>
 
         <sequence name="id3">
