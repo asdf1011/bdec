@@ -1,0 +1,107 @@
+<!-- MP3 file format.
+
+    See http://www.id3.org/id3v2.4.0-structure for information on the ID3 structure.
+    See http://www.mpgedit.org/mpgedit/mpeg_format/mpeghdr.htm for information on the frame structure.
+    -->
+<protocol>
+    <common>
+        <sequence name="syncsafe integer:">
+            <field name="null:" length="1" value="0x0" />
+            <field name="1" length="7" type="integer" />
+            <field name="null:" length="1" value="0x0" />
+            <field name="2" length="7" type="integer" />
+            <field name="null:" length="1" value="0x0" />
+            <field name="3" length="7" type="integer" />
+            <field name="null:" length="1" value="0x0" />
+            <field name="4" length="7" type="integer" />
+        </sequence>
+
+        <sequence name="id3">
+            <field name="id:" length="24" value="0x494433" />
+            <field name="major version" length="8" type="integer" />
+            <field name="minor version" length="8" type="integer" />
+            <sequence name="flags">
+                <field name="unsynchronisation" length="1" />
+                <field name="extended header" length="1" />
+                <field name="experimental" length="1" />
+                <field name="footer present" length="1" />
+                <field name="buffer" length="4" />
+            </sequence>
+            <sequence name="size" length="4">
+                <sequence name="syncsafe integer:" />
+            </sequence>
+            <field name="data" length="(((${size.1} * 128 + ${size.2}) * 128 + ${size.3}) * 128 + ${size.4}) * 8" type="hex" />
+        </sequence>
+
+        <sequence name="frame">
+            <!--<choice name="version">
+                <field name="mpeg 2.5" length="2" value="0x0" />
+                <field name="reserved" length="2" value="0x1" />
+                <field name="mpeg 2" length="2" value="0x2" />
+            </choice>
+            <choice name="layer description">
+                <field name="reserved" length="2" value="0x0" />
+                <field name="layer 3" length="2" value="0x1" />
+                <field name="layer 2" length="2" value="0x2" />
+                <field name="layer 1" length="2" value="0x3" />
+            </choice>-->
+            <field name="frame sync:" length="11" value="0x7FF" />
+            <field name="mpeg 1" length="2" value="0x3" />
+            <field name="layer 3" length="2" value="0x1" />
+            <field name="protection bit" length="1" type="integer" />
+            <choice name="bitrate">
+                <field name="free" length="4" value="0x0" />
+                <field name="32 kbs" length="4" value="0x1" />
+                <field name="40 kbs" length="4" value="0x2" />
+                <field name="48 kbs" length="4" value="0x3" />
+                <field name="56 kbs" length="4" value="0x4" />
+                <field name="64 kbs" length="4" value="0x5" />
+                <field name="80 kbs" length="4" value="0x6" />
+                <field name="96 kbs" length="4" value="0x7" />
+                <field name="112 kbs" length="4" value="0x8" />
+                <field name="128 kbs" length="4" value="0x9" />
+                <field name="160 kbs" length="4" value="0xa" />
+                <field name="192 kbs" length="4" value="0xb" />
+                <field name="224 kbs" length="4" value="0xc" />
+                <field name="256 kbs" length="4" value="0xd" />
+                <field name="320 kbs" length="4" value="0xe" />
+            </choice>
+            <choice name="sampling frequency">
+                <field name="44110 Hz" length="2" value="0x0" />
+                <field name="48000 Hz" length="2" value="0x1" />
+                <field name="32000 Hz" length="2" value="0x2" />
+            </choice>
+            <field name="padding bit" length="1" />
+            <field name="private bit" length="1" />
+            <choice name="channel mode">
+                <field name="stereo" length="2" value="0x0" />
+                <field name="joint stereo" length="2" value="0x1" />
+                <field name="dual channel" length="2" value="0x2" />
+                <field name="single channel" length="2" value="0x3" />
+            </choice>
+            <field name="mode extension" length="2" />
+            <choice name="copyright">
+                <field name="Not copyrighted" length="1" value="0x0" />
+                <field name="Copyrighted" length="1" value="0x1" />
+            </choice>
+            <choice name="original">
+                <field name="Copy of original media" length="1" value="0x0" />
+                <field name="Original media" length="1" value="0x1" />
+            </choice>
+            <choice name="emphasis">
+                <field name="none" length="2" value="0x0" />
+                <field name="50/15 ms" length="2" value="0x1" />
+                <field name="reserved" length="2" value="0x2" />
+                <field name="CCIT J.17" length="2" value="0x3" />
+            </choice>
+            <!-- Now we get to the data... but the length is dependant upon a 
+                lookup based on earlier field values (which we can't do yet...) -->
+        </sequence>
+    </common>
+    <sequence name="mp3">
+        <sequence name="id3" />
+        <sequenceof name="frames">
+            <sequence name="frame" />
+        </sequenceof>
+    </sequence>
+</protocol>
