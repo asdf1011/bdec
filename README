@@ -43,6 +43,20 @@ by running::
   dd if=/dev/sda1 bs=512 count=1 | decode bootsector.xml | sed 's/<volume-label>.*<\/volume-label>/<volume-label>SOME_LABEL<\/volume-label>/g' | encode bootsector.xml | dd of=/dev/sda1 conv=notrunc
 
 
+Similar projects
+================
+
+There other project to perform 'generic' binary decoding;
+
+* Hachoir (http://hachoir.org/) - Very powerful decoding
+  library, where binary formats are specified in python
+  code (using generators). Quite high level decoding, with
+  complex binary files being decoded.
+* Construct (http://construct.wikispaces.com/) - Decodes data 
+  structures, formats are specified in python code without too
+  much high-level intelligence. Not many formats available.
+
+
 Advantages
 ==========
 
