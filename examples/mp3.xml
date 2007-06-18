@@ -16,6 +16,35 @@
             <field name="4" length="7" type="integer" />
         </sequence>
 
+        <sequence name="id3v2:frame">
+            <field name="id" length="32" type="text" />
+            <sequence name="size:">
+                <sequence name="syncsafe integer:" />
+            </sequence>
+            <sequence name="status flags">
+                <choice name="tag alter preservation" >
+                    <field name="preserve" length="1" value="0x0" />
+                    <field name="discard" length="1" value="0x0" />
+                </choice>
+                <choice name="file alter preservation">
+                    <field name="preserve" length="1" value="0x0" />
+                    <field name="discard" length="1" value="0x0" />
+                </choice>
+                <field name="read only" length="1" />
+                <field name="unused" length="5" />
+            </sequence>
+            <sequence name="format flags">
+                <field name="has group information" length="1" />
+                <field name="has zlib compression" length="1" />
+                <field name="encrypted" length="1" />
+                <field name="unsynchronisation" length="1" />
+                <field name="has data length indicator" length="1" />
+                <field name="unused" length="3" />
+            </sequence>
+            <!-- Using a non-ascii code to eat bad characters... (usually after the null character) -->
+            <field name="text" length="(((${size:.1} * 128 + ${size:.2}) * 128 + ${size:.3}) * 128 + ${size:.4}) * 8" type="text" encoding="cp1252" />
+        </sequence>
+
         <sequence name="id3">
             <field name="id:" length="24" value="0x494433" />
             <field name="major version" length="8" type="integer" />
@@ -30,7 +59,17 @@
             <sequence name="size" length="4">
                 <sequence name="syncsafe integer:" />
             </sequence>
-            <field name="data" length="(((${size.1} * 128 + ${size.2}) * 128 + ${size.3}) * 128 + ${size.4}) * 8" type="hex" />
+            <sequenceof name="frames">
+                <choice name="frame:">
+                    <sequence name="end">
+                        <field name="id" length="32" type="text" />
+                        <field name="flags" length="16" />
+                        <field name="zero size:" length="32" value="0x0" />
+                        <end-sequenceof />
+                    </sequence>
+                    <sequence name="id3v2:frame" />
+                </choice>
+            </sequenceof>
         </sequence>
 
         <sequence name="frame">
