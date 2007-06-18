@@ -25,7 +25,8 @@ Usage
 The bdec library consists of a decoding / encoding library and a command
 line decoding and encoding applications. Given a specification, the 
 command line application will create an xml representation of the data
-contained in the binary file, and can convert the xml back to binary.
+contained in the binary file, and can (for some representations) convert
+the xml back to binary.
 
 The library is capable of creating such xml output, or optionally a python
 object representing the constructs contained in the binary data.
@@ -51,7 +52,8 @@ There other project to perform 'generic' binary decoding;
 * Hachoir (http://hachoir.org/) - Very powerful decoding
   library, where binary formats are specified in python
   code (using generators). Quite high level decoding, with
-  complex binary files being decoded.
+  complex binary files being decoded. Lots of file formats
+  are specified (at least partially).
 * Construct (http://construct.wikispaces.com/) - Decodes data 
   structures, formats are specified in python code without too
   much high-level intelligence. Not many formats available.
