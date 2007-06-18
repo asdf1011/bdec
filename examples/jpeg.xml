@@ -92,6 +92,19 @@
                     </sequence>
                 </sequence>
 
+                <sequence name="unknown APPX extension">
+                    <field name="id:" length="12" value="0xffe" />
+                    <field name="number" length="4" type="integer" />
+                    <field name="length" length="16" type="integer" encoding="big endian" />
+                    <sequenceof name="identifier">
+                        <choice name="char:">
+                            <field name="null" length="8" value="0x0"><end-sequenceof/></field>
+                            <field name="char" length="8" type="text" />
+                        </choice>
+                    </sequenceof>
+                    <field name="data" length="(${length} - len{identifier} - 2) * 8" type="hex" />
+                </sequence>
+
                 <sequence name="define quantization table">
                     <field name="id:" length="8" value="0xff" />
                     <field name="type:" length="8" type="hex" value="0xdb" />
@@ -115,18 +128,39 @@
                     <field name="symbols" length="(${length} - 19) * 8" type="hex" />
                 </sequence>
 
+
                 <sequence name="unknown segment">
                     <field name="id:" length="8" value="0xff" />
                     <field name="type" length="8" type="hex" />
                     <field name="length" length="16" type="integer" encoding="big endian" />
                     <field name="data" length="${length} * 8 - 16" type="hex" />
                 </sequence>
+
+            </choice>
+        </sequenceof>
+        <sequenceof name="data">
+            <choice name="byte:">
+                <field name="eoi:" length="16" value="0xffd9" ><end-sequenceof /></field>
+
+                <sequence name="stuffed ff:">
+                    <!-- 'FF00' bytes should be handled as simply 'FF'. We match 0xFF by using
+                        a min & max, as we don't want having an 'expected value' to hide the value
+                        in the output (it's better that it appear just as a normal byte). -->
+                    <field name="byte" length="8" type="hex" min="0xff" max="0xff" />
+                    <field name="null:" length="8" value="0x0" />
+                </sequence>
+                <sequence name="restart marker">
+                    <field name="id:" length="12" value="0xFFD" />
+                    <field name="number" length="4" min="0x0" max="0x7" />
+                </sequence>
+
+                <field name="byte" length="8" type="hex" />
             </choice>
         </sequenceof>
     </common>
     <sequence name="jpeg">
         <field name="soi:" length="16" value="0xffd8" />
         <sequenceof name="segments" />
-        <field name="eoi:" length="16" value="0xffd9" />
+        <sequenceof name="data" />
     </sequence>
 </protocol>
