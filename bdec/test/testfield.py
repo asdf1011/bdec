@@ -125,10 +125,25 @@ class TestField(unittest.TestCase):
     def test_listener(self):
         field = fld.Field("bob", 8)
         callbacks = []
-        field.add_listener(lambda entry: callbacks.append(entry))
+        field.add_listener(lambda entry, length: callbacks.append((entry, length)))
         self.assertEqual(0, len(callbacks))
         list(field.decode(dt.Data('a')))
-        self.assertEqual('a',  str(callbacks[0].data))
+        self.assertEqual('a',  str(callbacks[0][0].data))
+        self.assertEqual(8,  callbacks[0][1])
+
+    def test_range(self):
+        field = fld.Field("bob", 8, min=8, max=15)
+        self.assertRaises(fld.BadRangeError, list, field.decode(dt.Data("\x07")))
+        self.assertRaises(fld.BadRangeError, list, field.decode(dt.Data("\x10")))
+        list(field.decode(dt.Data("\x0F")))
+        list(field.decode(dt.Data("\x08")))
+
+        # Lets try printing that exception...
+        try:
+            list(field.decode(dt.Data("\x07")))
+            self.fail("Exception not thrown!")
+        except fld.BadRangeError, ex:
+            text = str(ex)
 
 if __name__ == "__main__":
     unittest.main()

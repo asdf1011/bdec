@@ -29,6 +29,22 @@ class Entry(object):
 
     def __init__(self, name):
         self.name = name
+        self._listeners = []
+
+    def add_listener(self, listener):
+        """
+        Add a listener to be called when the entry successfully decodes.
+
+        The listener will be called with this entry, and the amount of data
+        decoded as part of this entry (ie: this entry, and all of its
+        children).
+
+        Note that the listener will be called for every internal decode, not
+        just the ones that are propageted to the user (for example, if an
+        entry is in a choice that later fails to decode, the listener will
+        still be notified).
+        """
+        self._listeners.append(listener)
 
     def _decode(self, data):
         """
@@ -39,6 +55,12 @@ class Entry(object):
         """
         raise NotImplementedError()
 
+    def _decode_entry(self, data):
+        yield (True, self)
+        for (is_starting, entry) in self._decode(data):
+            yield (is_starting, entry)
+        yield (False, self)
+
     def decode(self, data):
         """
         Decode this entry from input data.
@@ -46,10 +68,15 @@ class Entry(object):
         @param data The data to decode
         @return An iterator that returns (is_starting, Entry) tuples.
         """
-        yield (True, self)
-        for (is_starting, entry) in self._decode(data):
-            yield (is_starting, entry)
-        yield (False, self)
+        import bdec.field as fld
+        length = 0
+        for is_starting, entry in self._decode_entry(data):
+            if not is_starting and isinstance(entry, fld.Field):
+                length += len(entry.data)
+            yield is_starting, entry
+
+        for listener in self._listeners:
+            listener(self, length)
 
     def _encode(self, query, context):
         """

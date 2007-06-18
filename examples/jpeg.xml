@@ -1,0 +1,166 @@
+<protocol>
+    <common>
+        <choice name="component:type">
+            <field name="Y" length="8" value="0x1" />
+            <field name="Cb" length="8" value="0x2" />
+            <field name="Cr" length="8" value="0x3" />
+            <field name="I" length="8" value="0x4" />
+            <field name="Q" length="8" value="0x5" />
+        </choice>
+
+        <sequenceof name="segments">
+            <choice name="segment:">
+                <sequence name="exif">
+                    <field name="id:" length="8" value="0xff" />
+                    <field name="type:" length="8" value="0xe1" />
+                    <field name="length:" length="16" type="integer" encoding="big endian" />
+                    <!-- The exif data structures are difficult to represent, as the 'offset to next ifd'
+                        field is relative to the start of the entire block (which means we need to know
+                        the length of the allready decoded blocks). Additionally, the fact that the
+                        fields can be either little endian or big endian means the structures need to be 
+                        represented _twice_.
+                        
+                        A good overview of the exif data format is available at 
+                        http://www.media.mit.edu/pia/Research/deepview/exif.html 
+                        -->
+                    <field name="data" length="${length:} * 8 - 16" type="hex" />
+                </sequence>
+
+                <sequence name="start of scan">
+                    <field name="id:" length="8" value="0xff" />
+                    <field name="type:" length="8" value="0xda" />
+                    <field name="length" length="16" type="integer" encoding="big endian" />
+                    <field name="number of components:" length="8" type="integer" />
+                    <sequenceof name="components" length="${number of components:}">
+                        <sequence name="component">
+                            <choice name="component:type" />
+                            <field name="huffman dc table" length="4" type="integer" />
+                            <field name="huffman ac table" length="4" type="integer" />
+                        </sequence>
+                    </sequenceof>
+                    <field name="unused" length="24" />
+
+                    <end-sequenceof />
+                </sequence>
+
+                <sequence name="start of frame 0">
+                    <field name="id:" length="8" value="0xff" />
+                    <field name="type:" length="8" value="0xc0" />
+                    <field name="length" length="16" type="integer" encoding="big endian" />
+                    <field name="data precision" length="8" type="integer" />
+                    <field name="image height" length="16" type="integer" encoding="big endian" />
+                    <field name="image width" length="16" type="integer" encoding="big endian" />
+                    <field name="number of components:" length="8" type="integer" />
+                    <sequenceof name="components" length="${number of components:}">
+                        <sequence name="component">
+                            <sequence name="sampling factors">
+                                <choice name="component:type" />
+                                <field name="horizontal" length="4" type="integer" />
+                                <field name="vertical" length="4" type="integer" />
+                            </sequence>
+                            <field name="quantization table number" length="8" type="integer" />
+                        </sequence>
+                    </sequenceof>
+                </sequence>
+
+                <sequence name="JFIF segment marker">
+                    <field name="id:" length="8" value="0xff" />
+                    <field name="type:" length="8" value="0xe0" />
+                    <field name="length" length="16" type="integer" encoding="big endian" />
+                    <field name="jfif:" length="40" value="0x4a46494600" />
+                    <field name="major revision:" length="8" value="0x1" />
+                    <field name="minor revision" length="8" type="integer" />
+                    <choice name="x/y units">
+                        <field name="no units" length="8" value="0x0" />
+                        <field name="dots per inch" length="8" value="0x1" />
+                        <field name="dots per cm" length="8" value="0x2" />
+                    </choice>
+                    <field name="x density" length="16" type="integer" encoding="big endian" />
+                    <field name="y density" length="16" type="integer" encoding="big endian" />
+                    <sequence name="thumbnail">
+                        <field name="width" length="8" type="integer" />
+                        <field name="height" length="8" type="integer" />
+                        <sequenceof name="rows" length="${height}">
+                            <sequenceof name="row" length="${width}">
+                                <sequence name="colour">
+                                    <field name="red" length="8" type="integer" />
+                                    <field name="green" length="8" type="integer" />
+                                    <field name="blue" length="8" type="integer" />
+                                </sequence>
+                            </sequenceof>
+                        </sequenceof>
+                    </sequence>
+                </sequence>
+
+                <sequence name="unknown APPX extension">
+                    <field name="id:" length="12" value="0xffe" />
+                    <field name="number" length="4" type="integer" />
+                    <field name="length" length="16" type="integer" encoding="big endian" />
+                    <sequenceof name="identifier">
+                        <choice name="char:">
+                            <field name="null" length="8" value="0x0"><end-sequenceof/></field>
+                            <field name="char" length="8" type="text" />
+                        </choice>
+                    </sequenceof>
+                    <field name="data" length="(${length} - len{identifier} - 2) * 8" type="hex" />
+                </sequence>
+
+                <sequence name="define quantization table">
+                    <field name="id:" length="8" value="0xff" />
+                    <field name="type:" length="8" type="hex" value="0xdb" />
+                    <field name="length" length="16" type="integer" encoding="big endian" />
+                    <field name="precision of qt" length="4" type="integer" />
+                    <field name="number of qt" length="4" type="integer" />
+                    <field name="quantisation table" length="64 * (${precision of qt} + 1) * 8" type="hex" />
+                </sequence>
+
+                <sequence name="define huffman table">
+                    <field name="id:" length="8" value="0xff" />
+                    <field name="type" length="8" value="0xc4" />
+                    <field name="length" length="16" type="integer" encoding="big endian" />
+                    <field name="unused:" length="3" value="0x0" />
+                    <choice name="type">
+                        <field name="dc table" length="1" value="0x0" />
+                        <field name="ac table" length="1" value="0x1" />
+                    </choice>
+                    <field name="number of ht" length="4" type="integer" />
+                    <field name="counts" length="16 * 8" type="hex" />
+                    <field name="symbols" length="(${length} - 19) * 8" type="hex" />
+                </sequence>
+
+
+                <sequence name="unknown segment">
+                    <field name="id:" length="8" value="0xff" />
+                    <field name="type" length="8" type="hex" />
+                    <field name="length" length="16" type="integer" encoding="big endian" />
+                    <field name="data" length="${length} * 8 - 16" type="hex" />
+                </sequence>
+
+            </choice>
+        </sequenceof>
+        <sequenceof name="data">
+            <choice name="byte:">
+                <field name="eoi:" length="16" value="0xffd9" ><end-sequenceof /></field>
+
+                <sequence name="stuffed ff:">
+                    <!-- 'FF00' bytes should be handled as simply 'FF'. We match 0xFF by using
+                        a min & max, as we don't want having an 'expected value' to hide the value
+                        in the output (it's better that it appear just as a normal byte). -->
+                    <field name="byte" length="8" type="hex" min="0xff" max="0xff" />
+                    <field name="null:" length="8" value="0x0" />
+                </sequence>
+                <sequence name="restart marker">
+                    <field name="id:" length="12" value="0xFFD" />
+                    <field name="number" length="4" min="0x0" max="0x7" />
+                </sequence>
+
+                <field name="byte" length="8" type="hex" />
+            </choice>
+        </sequenceof>
+    </common>
+    <sequence name="jpeg">
+        <field name="soi:" length="16" value="0xffd8" />
+        <sequenceof name="segments" />
+        <sequenceof name="data" />
+    </sequence>
+</protocol>

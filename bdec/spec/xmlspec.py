@@ -62,12 +62,14 @@ class MissingReferenceError(exp.ExpressionError):
     def __str__(self):
         return "Expression references unknown field '%s'" % self.name
 
-class ChoiceReferenceMatchError(exp.ExpressionError):
-    def __init__(self, name):
+class OptionMissingNameError(exp.ExpressionError):
+    def __init__(self, entry, name, lookup):
+        self.entry = entry
         self.name = name
+        self.filename, self.line, self.column = lookup[entry]
 
     def __str__(self):
-        return "All children of a referenced choice element must match name! (%s)" % self.name
+        return "Choice option missing referenced name '%s'\n\t%s[%i]: %s" % (self.name, self.filename, self.line, self.entry.name)
 
 class XmlExpressionError(XmlSpecError):
     def __init__(self, ex, filename, locator):
@@ -87,12 +89,44 @@ class _FieldResult:
     def add_field(self, field):
         field.add_listener(self)
 
-    def __call__(self, field):
+    def __call__(self, field, length):
         self.length = int(field)
 
     def __int__(self):
         assert self.length is not None
         return self.length
+
+class _LengthResult:
+    """
+    Object returning the length of a decoded entry.
+    """
+    def __init__(self, entries):
+        for entry in entries:
+            entry.add_listener(self)
+        self.length = None
+
+    def __call__(self, entry, length):
+        self.length = length
+
+    def __int__(self):
+        assert self.length is not None
+        return self.length
+
+class _BreakListener:
+    """
+    Class to stop a sequenceof when another protocol entry decodes.
+    """
+    def __init__(self):
+        self._seqof = None
+
+    def set_sequenceof(self, sequenceof):
+        assert self._seqof is None
+        assert isinstance(sequenceof, sof.SequenceOf)
+        self._seqof = sequenceof
+
+    def __call__(self, entry, length):
+        assert self._seqof is not None
+        self._seqof.stop()
 
 class _Handler(xml.sax.handler.ContentHandler):
     """
@@ -106,6 +140,7 @@ class _Handler(xml.sax.handler.ContentHandler):
         self._handlers = {
             "common" : self._common,
             "choice" : self._choice,
+            "end-sequenceof" : self._break,
             "field" : self._field,
             "protocol" : self._protocol,
             "sequence" : self._sequence,
@@ -116,9 +151,18 @@ class _Handler(xml.sax.handler.ContentHandler):
 
         self.lookup = {}
         self.locator = None
+        self._end_sequenceof = False
+        self._break_listener = None
 
     def setDocumentLocator(self, locator):
         self.locator = locator
+
+    def _break(self, attrs, children):
+        if len(attrs) != 0 or len(children) != 0:
+            raise self._error("end-sequenceof cannot have attributes or sub-elements")
+
+        assert self._end_sequenceof == False
+        self._end_sequenceof = True
 
     def _error(self, text):
         return XmlError(text, self._filename, self.locator)
@@ -127,12 +171,12 @@ class _Handler(xml.sax.handler.ContentHandler):
         if name not in self._handlers:
             raise self._error("Unrecognised element '%s'!" % name)
 
-        self._stack.append((name, attrs))
+        self._stack.append((name, attrs, []))
         self._children.append([])
 
     def endElement(self, name):
         assert self._stack[-1][0] == name
-        (name, attrs) = self._stack.pop()
+        (name, attrs, breaks) = self._stack.pop()
 
         children = self._children.pop()
         if attrs.has_key('name') and attrs.getValue('name') in self._common_entries:
@@ -146,6 +190,21 @@ class _Handler(xml.sax.handler.ContentHandler):
             child = self._handlers[name](attrs, children)
 
         if child is not None:
+            for break_notifier in breaks:
+                break_notifier.set_sequenceof(child)
+
+            if self._end_sequenceof:
+                # There is a parent sequence of object that must stop when
+                # this entry decodes.
+                listener = _BreakListener()
+                child.add_listener(listener)
+                for name, attrs, breaks in reversed(self._stack):
+                    if name == "sequenceof":
+                        breaks.append(listener)
+                        break
+                else:
+                    raise self._error("end-sequenceof is not surrounded by a sequenceof")
+                self._end_sequenceof = False
             self._children[-1].append(child)
 
             self.lookup[child] = (self._filename, self.locator.getLineNumber(), self.locator.getColumnNumber())
@@ -163,11 +222,13 @@ class _Handler(xml.sax.handler.ContentHandler):
     def _protocol(self, attributes, children):
         if len(children) != 1:
             raise self._error("Protocol should have a single entry to be decoded!")
+        if self._break_listener is not None:
+            raise self._error("end-sequenceof is not surrounded by a sequenceof")
         self.decoder = children[0]
 
     def _decode_length(self, text):
         try:
-            return exp.compile(text, self._query_field)
+            return exp.compile(text, self._query_field, self._query_length)
         except exp.ExpressionError, ex:
             raise XmlExpressionError(ex, self._filename, self.locator)
 
@@ -193,7 +254,13 @@ class _Handler(xml.sax.handler.ContentHandler):
                     if found_name != option_matches:
                         # Not all of the choice entries agree; for some the
                         # name matches, but not for others.
-                        raise ChoiceReferenceMatchError(name)
+                        if option_matches:
+                            # This option has the named entry, but the
+                            # previous one didn't.
+                            missing = entry.children[entry.children.index(option) - 1]
+                        else:
+                            missing = option
+                        raise OptionMissingNameError(missing, name, self.lookup)
 
     def _get_children(self, items, name):
         """
@@ -216,12 +283,29 @@ class _Handler(xml.sax.handler.ContentHandler):
                 if match:
                     return
 
+    def _query_length(self, fullname):
+        """
+        Create an object that returns the length of decoded data in an entry.
+        """
+        return _LengthResult(self._get_entries(fullname))
+
     def _query_field(self, fullname):
         """
         Get an object that returns the decoded value of a field.
 
         The fullname is the qualified name of the entry with respect to
         the current entry. 'Hidden' entries may or may not be included.
+        """
+        result = _FieldResult()
+        for entry in self._get_entries(fullname):
+            if not isinstance(entry, fld.Field):
+                raise NonFieldError(entry)
+            result.add_field(entry)
+        return result
+
+    def _get_entries(self, fullname):
+        """
+        Get a list of all entries that match a given name.
         """
         names = fullname.split('.')
 
@@ -239,15 +323,8 @@ class _Handler(xml.sax.handler.ContentHandler):
                             raise MissingReferenceError(name)
                         matches.extend(items)
 
-                # We've identified a list of fields that this expression is
-                # listening on; create a field result that uses them.
-                result = _FieldResult()
-                for entry in matches:
-                    if not isinstance(entry, fld.Field):
-                        raise NonFieldError(entry)
-                    result.add_field(entry)
-                return result
-        raise MissingReferenceError(name)
+                return matches
+        raise MissingReferenceError(fullname)
 
     def _field(self, attributes, children):
         name = attributes['name']
@@ -269,7 +346,13 @@ class _Handler(xml.sax.handler.ContentHandler):
             hex = attributes['value'].upper()
             assert hex[:2] == "0X"
             expected = dt.Data.from_hex(hex[2:])
-        return fld.Field(name, length, format, encoding, expected)
+        min = None
+        if attributes.has_key('min'):
+            min = self._decode_length(attributes['min'])
+        max = None
+        if attributes.has_key('max'):
+            max = self._decode_length(attributes['max'])
+        return fld.Field(name, length, format, encoding, expected, min, max)
 
     def _sequence(self, attributes, children):
         if len(children) == 0:
@@ -287,7 +370,12 @@ class _Handler(xml.sax.handler.ContentHandler):
         length = None
         if attributes.has_key('length'):
             length = self._decode_length(attributes['length'])
-        return sof.SequenceOf(attributes['name'], children[0], length)
+        result = sof.SequenceOf(attributes['name'], children[0], length)
+
+        if self._break_listener is not None:
+            self._break_listener.set_sequenceof(result)
+            self._break_listener = None
+        return result
 
 def _load_from_file(file, filename):
     """

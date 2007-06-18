@@ -41,8 +41,16 @@ class TestSequenceOf(unittest.TestCase):
         dog = seq.Sequence('dog', [fld.Field('bear', 8), fld.Field('id', 8, expected=dt.Data('a'))])
         sequenceof = sof.SequenceOf("blah", dog, None)
         data = dt.Data('1a2a3bb')
-        decode = list(sequenceof.decode(data))
-        self.assertEqual(14, len(decode))
+        # Lets decode until 'id' decodes twice...
+        count = total = 0
+        for is_starting, entry in sequenceof.decode(data):
+            total += 1 
+            if not is_starting and entry.name == "id":
+                count += 1
+                if count == 2:
+                    sequenceof.stop()
+
+        self.assertEqual(14, total)
         self.assertEqual(24, len(data))
 
     def test_encoding_greedy_sequenceof(self):
@@ -51,6 +59,10 @@ class TestSequenceOf(unittest.TestCase):
         query = lambda context, child: context[child.name] 
         data = reduce(lambda a,b:a+b, sequenceof.encode(query, data))
         self.assertEqual("\x05\x09\xf6", str(data))
+
+    def test_negative_count(self):
+        sequenceof = sof.SequenceOf("blah", fld.Field("cat", 8, format=fld.Field.INTEGER), -1)
+        self.assertRaises(sof.NegativeSequenceofLoop, list, sequenceof.decode(dt.Data("")))
 
 if __name__ == "__main__":
     unittest.main()

@@ -50,23 +50,8 @@ Recursive common elements
 -------------------------
 
 It would be useful to be able to recursively reference common entries.
-A simple example is parsing of a null terminated string; if it is zero,
-then no more characters, otherwise read another.
-
-eg:: 
-
-   <choice name="null terminting:">
-      <field name="null:" length="8" value="0x0" /> 
-      <sequence name="non null:">
-         <field name="char" length="8" type="ascii" />
-         <choice name="null terminating:" />
-      </sequence>
-   </choice>
-
-Note that this has very poor recursive characteristics... maybe a better
-way for these instances would be a modified sequenceof. (see jpeg 'image 
-file directory' for a more complex recursive entry).
-
+Note that this used to be desirable for data such as null-terminated
+strings, but this is no longer needed (due to 'end-sequenceof' support).
 
 Changing 'default' encoding
 ---------------------------
