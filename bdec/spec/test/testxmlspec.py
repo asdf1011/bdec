@@ -321,5 +321,26 @@ class TestXml(unittest.TestCase):
         self.assertEqual("run for your lives!", result)
         self.assertEqual("boo", str(data))
 
+    def test_match_choice_entry(self):
+        text = """
+            <protocol>
+                <sequence name="bob">
+                    <choice name="valid items:">
+                        <field name="length:" length="8" value="0x5" />
+                        <field name="length:" length="8" value="0x7" />
+                    </choice>
+                    <field name="data" length="${length:} * 8" type="text" />
+                </sequence>
+            </protocol>
+            """
+        protocol = xml.loads(text)[0]
+        result = ""
+        data = dt.Data("\x07chicken")
+        for is_starting, entry in protocol.decode(data):
+            if not is_starting and entry.name == "data":
+                result = entry.get_value()
+        self.assertEqual("chicken", result)
+
+
 if __name__ == "__main__":
     unittest.main()

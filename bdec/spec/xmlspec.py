@@ -252,7 +252,7 @@ class _Handler(xml.sax.handler.ContentHandler):
             found_name = None
             for option in entry.children:
                 option_matches = False
-                for child in self._get_entry_children(option, name):
+                for child in self._get_children([option], name):
                     option_matches = True
                     yield child
 
