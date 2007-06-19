@@ -77,15 +77,15 @@ class TestField(unittest.TestCase):
         """
         text = fld.Field("bob", 48, format=fld.Field.TEXT)
         self.assertEqual("rabbit", str(text.encode(lambda name, context: "rabbit", None).next()))
-        self.assertRaises(fld.InvalidLengthData, text.encode(lambda name, context: "boxfish", None).next)
+        self.assertRaises(ent.DataLengthError, list, text.encode(lambda name, context: "boxfish", None))
 
         binary = fld.Field("bob", 8, format=fld.Field.BINARY)
         self.assertEqual("\x39", str(binary.encode(lambda name, context: "00111001", None).next()))
-        self.assertRaises(fld.InvalidLengthData, binary.encode(lambda name, context: "1011", None).next)
+        self.assertRaises(ent.DataLengthError, list, binary.encode(lambda name, context: "1011", None))
 
         hex = fld.Field("bob", 8, format=fld.Field.HEX)
         self.assertEqual("\xe7", str(hex.encode(lambda name, context: "e7", None).next()))
-        self.assertRaises(fld.InvalidLengthData, hex.encode(lambda name, context: "ecd", None).next)
+        self.assertRaises(ent.DataLengthError, list, hex.encode(lambda name, context: "ecd", None))
 
     def test_string_conversion(self):
         # Just test that we can convert fields to a string sanely... the actual format

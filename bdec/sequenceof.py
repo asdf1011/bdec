@@ -66,7 +66,8 @@ class SequenceOf(bdec.entry.Entry):
                 break
         self._state = self.STOPPED
 
-    def _encode(self, query, sequenceof):
+    def _encode(self, query, parent):
+        sequenceof = self._get_context(query, parent)
         if self._count is not None and int(self._count) != len(sequenceof):
             raise InvalidSequenceOfCount(self, self._count, sequenceof)
 

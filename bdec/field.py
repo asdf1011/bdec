@@ -64,17 +64,6 @@ class BadFormatError(FieldError):
     def __str__(self):
         return "BadFormatError: %s expected %s got %s" % (self.field, self.expected_type, self.data)
 
-class InvalidLengthData(FieldError):
-    """
-    Got given data of the wrong size to encode.
-    """
-    def __init__(self, field, length, data):
-        FieldError.__init__(self, field)
-        self.length = length
-        self.data = data
-
-    def __str__(self):
-        return "%s expected length %i, got length %i (%s)" % (self.field, self.length, len(self.data), self.data.get_binary_text())
 
 class FieldDataError(FieldError):
     """
@@ -102,7 +91,7 @@ class Field(bdec.entry.Entry):
     BIG_ENDIAN = "big endian"
 
     def __init__(self, name, length, format=BINARY, encoding=None, expected=None, min=None, max=None):
-        bdec.entry.Entry.__init__(self, name)
+        bdec.entry.Entry.__init__(self, name, length)
         assert format in self._formats
         assert expected is None or isinstance(expected, dt.Data)
 
@@ -114,7 +103,6 @@ class Field(bdec.entry.Entry):
                 # endian requires data with a length of a multiple of 8
                 encoding = self.BIG_ENDIAN
 
-        self.length = length
         self._format = format
         self._encoding = encoding
         self.data = None
@@ -124,12 +112,7 @@ class Field(bdec.entry.Entry):
 
     def _decode(self, data):
         """ see bdec.entry.Entry._decode """
-        length = int(self.length)
-        try:
-            self.data = data.pop(length)
-        except dt.DataError, ex:
-            raise FieldDataError(self, ex)
-
+        self.data = data.pop(int(self.length))
         if self._expected is not None:
             if int(self._expected) != int(self.data):
                 raise BadDataError(self, self._expected, self.data)
@@ -170,13 +153,11 @@ class Field(bdec.entry.Entry):
         else:
             raise Exception("Unknown field format of '%s'!" % self._format)
 
-        if len(result) != length:
-            raise InvalidLengthData(self, length, result)
         if self._expected is not None and result != self._expected:
             raise BadDataError(self, self._expected, result)
         return result
 
-    def encode(self, query, context):
+    def _encode(self, query, context):
         """
         Note that we override 'encode', not '_encode', as we do not want to query
         for items with an expected value.

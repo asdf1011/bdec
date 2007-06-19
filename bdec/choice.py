@@ -46,9 +46,10 @@ class Choice(bdec.entry.Entry):
         for is_starting, entry in best_guess.decode(data):
             yield is_starting, entry
 
-    def _encode(self, query, choice):
+    def _encode(self, query, parent):
         # We attempt to encode all of the embedded items, until we find
         # an encoder capable of doing it.
+        choice = self._get_context(query, parent)
         best_guess = None
         best_guess_bits = 0
         for child in self.children:
