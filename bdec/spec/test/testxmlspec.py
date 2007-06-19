@@ -67,7 +67,7 @@ class TestXml(unittest.TestCase):
     def test_sequence_of(self):
         text = """
 <protocol>
-    <sequenceof name="bob" length="2">
+    <sequenceof name="bob" count="2">
         <field name="cat" length="8" type="hex" />
     </sequenceof>
 </protocol>"""
@@ -273,7 +273,7 @@ class TestXml(unittest.TestCase):
                 <sequenceof name="bob">
                     <choice name="char:">
                         <field name="null:" length="8" value="0x0"> <end-sequenceof /></field>
-                        <sequenceof name="dont get me" length="1">
+                        <sequenceof name="dont get me" count="1">
                             <field name="char" length="8" type="text" />
                         </sequenceof>
                     </choice>

@@ -385,10 +385,10 @@ class _Handler(xml.sax.handler.ContentHandler):
             raise self._error("Sequence of entries can only have a single child! (got %i)" % len(children))
 
         # Default to being a greedy sequenceof, unless we have a length specified
-        length = None
-        if attributes.has_key('length'):
-            length = self._parse_expression(attributes['length'])
-        result = sof.SequenceOf(attributes['name'], children[0], length)
+        count = None
+        if attributes.has_key('count'):
+            count = self._parse_expression(attributes['count'])
+        result = sof.SequenceOf(attributes['name'], children[0], count)
 
         if self._break_listener is not None:
             self._break_listener.set_sequenceof(result)
