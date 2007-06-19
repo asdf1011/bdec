@@ -5,7 +5,7 @@
     -->
 <protocol>
     <common>
-        <sequence name="syncsafe integer:">
+        <sequence name="syncsafe integer:" value="((${1:} * 128 + ${2:}) * 128 + ${3:}) * 128 + ${4:}">
             <field name="null:" length="1" value="0x0" />
             <field name="1:" length="7" type="integer" />
             <field name="null:" length="1" value="0x0" />
@@ -18,9 +18,7 @@
 
         <sequence name="id3v2:frame">
             <field name="id" length="32" type="text" />
-            <sequence name="size:">
-                <sequence name="syncsafe integer:" />
-            </sequence>
+            <sequence name="syncsafe integer:" />
             <sequence name="status flags">
                 <choice name="tag alter preservation" >
                     <field name="preserve" length="1" value="0x0" />
@@ -44,20 +42,20 @@
             <choice name="contents">
                 <sequence name="iso-8859-1:">
                     <field name="id:" length="8" value="0x0" />
-                    <field name="text" length="(((${size:.1:} * 128 + ${size:.2:}) * 128 + ${size:.3:}) * 128 + ${size:.4:}) * 8 - 8" type="text" encoding="iso-8859-1" />
+                    <field name="text" length="${syncsafe integer:} * 8 - 8" type="text" encoding="iso-8859-1" />
                 </sequence>
                 <sequence name="utf16-bom:">
                     <choice name="utf id:">
                         <field name="id:" length="8" value="0x1" />
                         <field name="id:" length="8" value="0x2" />
                     </choice>
-                    <field name="text" length="(((${size:.1:} * 128 + ${size:.2:}) * 128 + ${size:.3:}) * 128 + ${size:.4:}) * 8 - 8" type="text" encoding="utf-16-be" />
+                    <field name="text" length="${syncsafe integer:} * 8 - 8" type="text" encoding="utf-16-be" />
                 </sequence>
                 <sequence name="utf8:">
                     <field name="id:" length="8" value="0x3" />
-                    <field name="text" length="(((${size:.1:} * 128 + ${size:.2:}) * 128 + ${size:.3:}) * 128 + ${size:.4:}) * 8 - 8" type="text" encoding="utf-8" />
+                    <field name="text" length="${syncsafe integer:} * 8 - 8" type="text" encoding="utf-8" />
                 </sequence>
-                <field name="data" length="(((${size:.1:} * 128 + ${size:.2:}) * 128 + ${size:.3:}) * 128 + ${size:.4:}) * 8" type="hex" />
+                <field name="data" length="${syncsafe integer:} * 8" type="hex" />
             </choice>
         </sequence>
 
@@ -72,9 +70,7 @@
                 <field name="footer present" length="1" />
                 <field name="buffer" length="4" />
             </sequence>
-            <sequence name="size" length="4">
-                <sequence name="syncsafe integer:" />
-            </sequence>
+            <sequence name="syncsafe integer:" />
             <sequenceof name="frames">
                 <choice name="frame:">
                     <sequence name="end">
