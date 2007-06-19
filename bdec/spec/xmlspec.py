@@ -1,3 +1,4 @@
+import pickle
 import StringIO
 import xml.sax
 
@@ -192,7 +193,12 @@ class _Handler(xml.sax.handler.ContentHandler):
                 raise self._error("Referenced element '%s' cannot have other attributes!" % attrs['name'])
             if len(children) != 0:
                 raise self._error("Referenced element '%s' cannot have sub-entries!" % attrs['name'])
-            child = self._common_entries[attrs['name']]
+
+            # There is a problem where listeners to common entries will be
+            # called for all common deocdes (see the 
+            # test_common_elements_are_independent testcase). We attempt to
+            # work around this problem be copying common elements.
+            child = pickle.loads(pickle.dumps(self._common_entries[attrs['name']]))
         else:
             length = None
             if attrs.has_key('length'):

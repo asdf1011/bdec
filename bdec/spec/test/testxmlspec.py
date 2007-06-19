@@ -355,5 +355,39 @@ class TestXml(unittest.TestCase):
         result = ""
         self.assertRaises(ent.EntryDataError, list, protocol.decode(dt.Data('ab')))
 
+    def test_common_elements_are_independant(self):
+        """
+        Test that decode references to common fields are used out of context.
+        """
+        # In this case, we want 'data a' to use the length item embedded in
+        # 'length a', and not the item in 'length b'.
+        text = """
+            <protocol>
+                <common>
+                    <field name="length:" length="8" type="integer" />
+                </common>
+                <sequence name="bob">
+                    <sequence name="length a">
+                        <field name="length:" />
+                    </sequence>
+                    <sequence name="length b">
+                        <field name="length:" />
+                    </sequence>
+                    <field name="data a" length="${length a.length:} * 8" type="text" />
+                    <field name="data b" length="${length b.length:} * 8" type="text" />
+                </sequence>
+            </protocol>
+            """
+        protocol = xml.loads(text)[0]
+        a = b = ""
+        for is_starting, entry in protocol.decode(dt.Data("\x03\x06catrabbit")):
+            if not is_starting:
+                if entry.name == "data a":
+                    a = entry.get_value()
+                elif entry.name == "data b":
+                    b = entry.get_value()
+        self.assertEqual("cat", a)
+        self.assertEqual("rabbit", b)
+
 if __name__ == "__main__":
     unittest.main()
