@@ -41,7 +41,6 @@
                 <field name="has data length indicator" length="1" />
                 <field name="unused" length="3" />
             </sequence>
-            <!-- Using a non-ascii code to eat bad characters... (usually after the null character) -->
             <choice name="contents">
                 <sequence name="iso-8859-1:">
                     <field name="id:" length="8" value="0x0" />
