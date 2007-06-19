@@ -299,5 +299,27 @@ class TestXml(unittest.TestCase):
         except xml.XmlExpressionError, ex:
             self.assertTrue(isinstance(ex.ex, xml.MissingReferenceError))
 
+    def test_sequence_value(self):
+        text = """
+            <protocol>
+                <sequence name="buffer">
+                    <sequence name="middle endian" value="${byte 1:} * 16777216 + ${byte 2:} * 65536 + ${byte 3:} * 256 + ${byte 4:}" >
+                        <field name="byte 2:" length="8" />
+                        <field name="byte 1:" length="8" />
+                        <field name="byte 4:" length="8" />
+                        <field name="byte 3:" length="8" />
+                    </sequence>
+                    <field name="data" length="${middle endian} * 8" type="text" />
+                </sequence>
+            </protocol> """
+        protocol = xml.loads(text)[0]
+        result = ""
+        data = dt.Data("\x00\x00\x13\x00run for your lives!boo")
+        for is_starting, entry in protocol.decode(data):
+            if not is_starting and entry.name == "data":
+                result = entry.get_value()
+        self.assertEqual("run for your lives!", result)
+        self.assertEqual("boo", str(data))
+
 if __name__ == "__main__":
     unittest.main()

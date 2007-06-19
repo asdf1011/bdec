@@ -8,11 +8,16 @@ class Sequence(bdec.entry.Entry):
     entry types, and they are decoded one after the other.
     All of the child protocol entries must be decoded for
     the sequence to successfully decode.
+
+    A sequence object may be assigned a value, derived from
+    the child elements. This allows techniques such as
+    lookup tables, and alternate integer encoding methods.
     """
 
-    def __init__(self, name, children):
+    def __init__(self, name, children, value=None):
         bdec.entry.Entry.__init__(self, name)
         self.children = children
+        self.value = value
         assert len(children) > 0
         for child in children:
             assert isinstance(child, bdec.entry.Entry)
