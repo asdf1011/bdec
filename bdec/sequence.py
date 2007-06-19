@@ -14,8 +14,8 @@ class Sequence(bdec.entry.Entry):
     lookup tables, and alternate integer encoding methods.
     """
 
-    def __init__(self, name, children, value=None):
-        bdec.entry.Entry.__init__(self, name)
+    def __init__(self, name, children, value=None, length=None):
+        bdec.entry.Entry.__init__(self, name, length)
         self.children = children
         self.value = value
         assert len(children) > 0

@@ -26,12 +26,12 @@ class SequenceOf(bdec.entry.Entry):
     ITERATING = "iterating"
     STOPPING = "stopping"
 
-    def __init__(self, name, child, count):
+    def __init__(self, name, child, count, length=None):
         """
         A count of None will result in a 'greedy' sequence, which will
         keep on decoding items (until 'break' is called).
         """
-        bdec.entry.Entry.__init__(self, name)
+        bdec.entry.Entry.__init__(self, name, length)
         self.child = child
         self._count = count
         self._state = self.STOPPED

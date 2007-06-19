@@ -9,8 +9,8 @@ class Choice(bdec.entry.Entry):
     The first entry to decode correctly will be used.
     """
 
-    def __init__(self, name, children):
-        bdec.entry.Entry.__init__(self, name)
+    def __init__(self, name, children, length=None):
+        bdec.entry.Entry.__init__(self, name, length)
 
         assert len(children) > 0
         self.children = children

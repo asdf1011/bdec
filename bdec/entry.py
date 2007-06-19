@@ -21,7 +21,7 @@ class EntryDataError(bdec.DecodeError):
     def __str__(self):
         return "%s - %s" % (self.entry, self.ex)
 
-class BadDecodeLengthError(bdec.DecodeError):
+class DecodeLengthError(bdec.DecodeError):
     def __init__(self, entry, unused):
         bdec.DecodeError.__init__(self, entry)
         self.unused = unused
@@ -59,7 +59,7 @@ class Entry(object):
     must match.
     """
 
-    def __init__(self, name, length=None):
+    def __init__(self, name, length):
         self.name = name
         self._listeners = []
         self.length = length
@@ -115,7 +115,7 @@ class Entry(object):
             yield is_starting, entry
 
         if self.length is not None and len(data) != 0:
-            raise BadDecodeLengthError(self, data)
+            raise DecodeLengthError(self, data)
 
         for listener in self._listeners:
             listener(self, length)
