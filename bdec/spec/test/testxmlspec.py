@@ -3,6 +3,7 @@
 import unittest
 
 import bdec.data as dt
+import bdec.entry as ent
 import bdec.field as fld
 import bdec.spec.xmlspec as xml
 
@@ -341,6 +342,18 @@ class TestXml(unittest.TestCase):
                 result = entry.get_value()
         self.assertEqual("chicken", result)
 
+    def test_length_validation(self):
+        text = """
+            <protocol>
+                <sequence name="bob" length="15">
+                    <field name="a" length="8" type="text" />
+                    <field name="b" length="8" type="text" />
+                </sequence>
+            </protocol>
+            """
+        protocol = xml.loads(text)[0]
+        result = ""
+        self.assertRaises(ent.EntryDataError, list, protocol.decode(dt.Data('ab')))
 
 if __name__ == "__main__":
     unittest.main()
