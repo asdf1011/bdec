@@ -5,58 +5,60 @@
     -->
 <protocol>
     <common>
-        <sequence name="syncsafe integer:" value="((${1:} * 128 + ${2:}) * 128 + ${3:}) * 128 + ${4:}">
+        <sequence name="syncsafe integer:" value="((${byte 1:} * 128 + ${byte 2:}) * 128 + ${byte 3:}) * 128 + ${byte 4:}">
             <field name="null:" length="1" value="0x0" />
-            <field name="1:" length="7" type="integer" />
+            <field name="byte 1:" length="7" type="integer" />
             <field name="null:" length="1" value="0x0" />
-            <field name="2:" length="7" type="integer" />
+            <field name="byte 2:" length="7" type="integer" />
             <field name="null:" length="1" value="0x0" />
-            <field name="3:" length="7" type="integer" />
+            <field name="byte 3:" length="7" type="integer" />
             <field name="null:" length="1" value="0x0" />
-            <field name="4:" length="7" type="integer" />
+            <field name="byte 4:" length="7" type="integer" />
         </sequence>
 
         <sequence name="id3v2:frame">
             <field name="id" length="32" type="text" />
             <sequence name="syncsafe integer:" />
-            <sequence name="status flags">
-                <choice name="tag alter preservation" >
-                    <field name="preserve" length="1" value="0x0" />
-                    <field name="discard" length="1" value="0x0" />
-                </choice>
-                <choice name="file alter preservation">
-                    <field name="preserve" length="1" value="0x0" />
-                    <field name="discard" length="1" value="0x0" />
-                </choice>
-                <field name="read only" length="1" />
-                <field name="unused" length="5" />
-            </sequence>
-            <sequence name="format flags">
-                <field name="has group information" length="1" />
-                <field name="has zlib compression" length="1" />
-                <field name="encrypted" length="1" />
-                <field name="unsynchronisation" length="1" />
-                <field name="has data length indicator" length="1" />
-                <field name="unused" length="3" />
-            </sequence>
-            <choice name="contents">
-                <sequence name="iso-8859-1:">
-                    <field name="id:" length="8" value="0x0" />
-                    <field name="text" length="${syncsafe integer:} * 8 - 8" type="text" encoding="iso-8859-1" />
-                </sequence>
-                <sequence name="utf16-bom:">
-                    <choice name="utf id:">
-                        <field name="id:" length="8" value="0x1" />
-                        <field name="id:" length="8" value="0x2" />
+            <sequence name="contents:" length="${syncsafe integer:} * 8 + 16">
+                <sequence name="status flags">
+                    <choice name="tag alter preservation" >
+                        <field name="preserve" length="1" value="0x0" />
+                        <field name="discard" length="1" value="0x0" />
                     </choice>
-                    <field name="text" length="${syncsafe integer:} * 8 - 8" type="text" encoding="utf-16-be" />
+                    <choice name="file alter preservation">
+                        <field name="preserve" length="1" value="0x0" />
+                        <field name="discard" length="1" value="0x0" />
+                    </choice>
+                    <field name="read only" length="1" />
+                    <field name="unused" length="5" />
                 </sequence>
-                <sequence name="utf8:">
-                    <field name="id:" length="8" value="0x3" />
-                    <field name="text" length="${syncsafe integer:} * 8 - 8" type="text" encoding="utf-8" />
+                <sequence name="format flags">
+                    <field name="has group information" length="1" />
+                    <field name="has zlib compression" length="1" />
+                    <field name="encrypted" length="1" />
+                    <field name="unsynchronisation" length="1" />
+                    <field name="has data length indicator" length="1" />
+                    <field name="unused" length="3" />
                 </sequence>
-                <field name="data" length="${syncsafe integer:} * 8" type="hex" />
-            </choice>
+                <choice name="contents">
+                    <sequence name="iso-8859-1:">
+                        <field name="id:" length="8" value="0x0" />
+                        <field name="text" length="${syncsafe integer:} * 8 - 8" type="text" encoding="iso-8859-1" />
+                    </sequence>
+                    <sequence name="utf16-bom:">
+                        <choice name="utf id:">
+                            <field name="id:" length="8" value="0x1" />
+                            <field name="id:" length="8" value="0x2" />
+                        </choice>
+                        <field name="text" length="${syncsafe integer:} * 8 - 8" type="text" encoding="utf-16-be" />
+                    </sequence>
+                    <sequence name="utf8:">
+                        <field name="id:" length="8" value="0x3" />
+                        <field name="text" length="${syncsafe integer:} * 8 - 8" type="text" encoding="utf-8" />
+                    </sequence>
+                    <field name="data" length="${syncsafe integer:} * 8" type="hex" />
+                </choice>
+            </sequence>
         </sequence>
 
         <sequence name="id3">
@@ -70,19 +72,23 @@
                 <field name="footer present" length="1" />
                 <field name="buffer" length="4" />
             </sequence>
-            <sequence name="syncsafe integer:" />
-            <sequenceof name="frames">
-                <choice name="frame:">
-                    <sequence name="end">
-                        <field name="id" length="32" type="text" />
-                        <field name="flags" length="16" />
-                        <field name="zero size:" length="32" value="0x0" />
-                        <end-sequenceof />
-                    </sequence>
-                    <sequence name="id3v2:frame" />
-                </choice>
-            </sequenceof>
-            <field name="padding" length="${syncsafe integer:} * 8 - len{frames}" type="hex" />
+            <sequence name="total frames length:">
+                <sequence name="syncsafe integer:" />
+            </sequence>
+            <sequence name="contents:" length="${total frames length:.syncsafe integer:} * 8">
+                <sequenceof name="frames">
+                    <choice name="frame:">
+                        <sequence name="end">
+                            <field name="id" length="32" type="text" />
+                            <field name="flags" length="16" />
+                            <field name="zero size:" length="32" value="0x0" />
+                            <end-sequenceof />
+                        </sequence>
+                        <sequence name="id3v2:frame" />
+                    </choice>
+                </sequenceof>
+                <field name="padding" length="${total frames length:.syncsafe integer:} * 8 - len{frames}" type="hex" />
+            </sequence>
         </sequence>
 
         <!-- Create a set of 'lookup' tables to map the binary value to bitrate -->
