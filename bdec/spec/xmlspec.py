@@ -180,6 +180,26 @@ class _Handler(xml.sax.handler.ContentHandler):
         self._stack.append((name, attrs, []))
         self._children.append([])
 
+    def _walk(self, entry):
+        yield entry
+        for embedded in entry.children:
+            for child in self._walk(embedded):
+                yield child
+
+    def _get_common_entry(self, name):
+        # There is a problem where listeners to common entries will be  called
+        # for all common decodes (see the 
+        # test_common_elements_are_independent testcase). We attempt to work
+        # around this problem be copying common elements.
+        entry = self._common_entries[name]
+        result = pickle.loads(pickle.dumps(entry))
+
+        # For all of the copied elements, we need to update the lookup table
+        # so that the copied elements can be found.
+        for original, copy in zip(self._walk(entry), self._walk(result)):
+            self.lookup[copy] = self.lookup[original]
+        return result
+
     def endElement(self, name):
         assert self._stack[-1][0] == name
         (name, attrs, breaks) = self._stack.pop()
@@ -193,12 +213,7 @@ class _Handler(xml.sax.handler.ContentHandler):
                 raise self._error("Referenced element '%s' cannot have other attributes!" % attrs['name'])
             if len(children) != 0:
                 raise self._error("Referenced element '%s' cannot have sub-entries!" % attrs['name'])
-
-            # There is a problem where listeners to common entries will be
-            # called for all common deocdes (see the 
-            # test_common_elements_are_independent testcase). We attempt to
-            # work around this problem be copying common elements.
-            child = pickle.loads(pickle.dumps(self._common_entries[attrs['name']]))
+            child = self._get_common_entry(attrs['name'])
         else:
             length = None
             if attrs.has_key('length'):

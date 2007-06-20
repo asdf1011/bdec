@@ -390,5 +390,35 @@ class TestXml(unittest.TestCase):
         self.assertEqual("cat", a)
         self.assertEqual("rabbit", b)
 
+    def test_all_entries_in_lookup_tree(self):
+        text = """
+            <protocol>
+                <common>
+                    <choice name="dog">
+                        <sequenceof name="rabbit" length="1">
+                            <field name="hole" length="8" />
+                        </sequenceof>
+                    </choice>
+                    <sequence name="length a">
+                        <field name="length:" length="8" type="integer" />
+                        <choice name="dog" />
+                    </sequence>
+                </common>
+                <sequence name="bob">
+                    <sequence name="length a" />
+                    <field name="data a" length="${length a.length:} * 8" type="text" />
+                </sequence>
+            </protocol>
+            """
+        protocol, lookup = xml.loads(text)
+        entries = [protocol]
+        names = set()
+        while entries:
+            entry = entries.pop()
+            names.add(entry.name)
+            self.assertTrue(entry in lookup, "%s isn't in the lookup tree!" % entry)
+            entries.extend(entry.children)
+        self.assertEqual(set(['dog', 'rabbit', 'hole', 'length a', 'length:', 'bob', 'data a']), names)
+
 if __name__ == "__main__":
     unittest.main()
