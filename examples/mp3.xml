@@ -61,7 +61,7 @@
             </sequence>
         </sequence>
 
-        <sequence name="id3">
+        <sequence name="id3 v2">
             <field name="id:" length="24" value="0x494433" />
             <field name="major version" length="8" type="integer" />
             <field name="minor version" length="8" type="integer" />
@@ -165,11 +165,28 @@
             </sequence>
             <field name="data" length="(144 * ${header.bitrate} * 1000 / ${header.sample rate} + ${header.padding}) * 8 - len{header}" type="hex" />
         </sequence>
+
+        <sequence name="id3 v1">
+            <field name="tag:" length="24" value="0x544147" />
+            <field name="title" length="240" type="text" />
+            <field name="artist" length="240" type="text" />
+            <field name="album" length="240" type="text" />
+            <field name="year" length="32" type="text" />
+            <field name="comment" length="240" type="text" />
+            <field name="genre" length="8" type="integer" />
+        </sequence>
     </common>
+
     <sequence name="mp3">
-        <sequence name="id3" />
+        <sequence name="id3 v2" />
         <sequenceof name="frames">
-            <sequence name="frame" />
+            <choice name="frame:">
+                <sequence name="frame" />
+                <sequence name="id3 v1:">
+                    <sequence name="id3 v1" />
+                    <end-sequenceof />
+                </sequence>
+            </choice>
         </sequenceof>
     </sequence>
 </protocol>
