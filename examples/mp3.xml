@@ -111,13 +111,13 @@
         </choice>
 
         <choice name="mpeg 1 sampling frequency lookup:">
-            <sequence name="sample rate" value="44110"><field name="44110 Hz" length="2" value="0x0" /></sequence>
+            <sequence name="sample rate" value="44100"><field name="44110 Hz" length="2" value="0x0" /></sequence>
             <sequence name="sample rate" value="48000"><field name="48000 Hz" length="2" value="0x1" /></sequence>
             <sequence name="sample rate" value="32000"><field name="32000 Hz" length="2" value="0x2" /></sequence>
         </choice>
         <choice name="mpeg 1 padding lookup:">
-            <sequence name="padding" value="4"><field name="4 bytes" length="2" value="0x1" /></sequence>
-            <sequence name="padding" value="0"><field name="None" length="2" value="0x0" /></sequence>
+            <sequence name="padding" value="4"><field name="4 bytes" length="1" value="0x1" /></sequence>
+            <sequence name="padding" value="0"><field name="None" length="1" value="0x0" /></sequence>
         </choice>
 
         <sequence name="frame">
@@ -132,38 +132,38 @@
                 <field name="layer 2" length="2" value="0x2" />
                 <field name="layer 1" length="2" value="0x3" />
             </choice>-->
-            <field name="frame sync:" length="11" value="0x7FF" />
-            <field name="mpeg 1" length="2" value="0x3" />
-            <field name="layer 3" length="2" value="0x1" />
-            <field name="protection bit" length="1" type="integer" />
-            <choice name="mpeg 1 layer 3 bitrate lookup:" />
-            <choice name="mpeg 1 sampling frequency lookup:" />
-            <choice name="mpeg 1 padding lookup:" />
-            <field name="private bit" length="1" />
-            <choice name="channel mode">
-                <field name="stereo" length="2" value="0x0" />
-                <field name="joint stereo" length="2" value="0x1" />
-                <field name="dual channel" length="2" value="0x2" />
-                <field name="single channel" length="2" value="0x3" />
-            </choice>
-            <field name="mode extension" length="2" />
-            <choice name="copyright">
-                <field name="Not copyrighted" length="1" value="0x0" />
-                <field name="Copyrighted" length="1" value="0x1" />
-            </choice>
-            <choice name="original">
-                <field name="Copy of original media" length="1" value="0x0" />
-                <field name="Original media" length="1" value="0x1" />
-            </choice>
-            <choice name="emphasis">
-                <field name="none" length="2" value="0x0" />
-                <field name="50/15 ms" length="2" value="0x1" />
-                <field name="reserved" length="2" value="0x2" />
-                <field name="CCIT J.17" length="2" value="0x3" />
-            </choice>
-            <!-- Now we get to the data... but the length is dependant upon a 
-                lookup based on earlier field values (which we can't do yet...) -->
-            <field name="data" length="(12 * ${bitrate} / ${sample rate} + ${padding}) * 32" type="hex" />
+            <sequence name="header">
+                <field name="frame sync:" length="11" value="0x7FF" />
+                <field name="mpeg 1" length="2" value="0x3" />
+                <field name="layer 3" length="2" value="0x1" />
+                <field name="protection bit" length="1" type="integer" />
+                <choice name="mpeg 1 layer 3 bitrate lookup:" />
+                <choice name="mpeg 1 sampling frequency lookup:" />
+                <choice name="mpeg 1 padding lookup:" />
+                <field name="private bit" length="1" />
+                <choice name="channel mode">
+                    <field name="stereo" length="2" value="0x0" />
+                    <field name="joint stereo" length="2" value="0x1" />
+                    <field name="dual channel" length="2" value="0x2" />
+                    <field name="single channel" length="2" value="0x3" />
+                </choice>
+                <field name="mode extension" length="2" />
+                <choice name="copyright">
+                    <field name="Not copyrighted" length="1" value="0x0" />
+                    <field name="Copyrighted" length="1" value="0x1" />
+                </choice>
+                <choice name="original">
+                    <field name="Copy of original media" length="1" value="0x0" />
+                    <field name="Original media" length="1" value="0x1" />
+                </choice>
+                <choice name="emphasis">
+                    <field name="none" length="2" value="0x0" />
+                    <field name="50/15 ms" length="2" value="0x1" />
+                    <field name="reserved" length="2" value="0x2" />
+                    <field name="CCIT J.17" length="2" value="0x3" />
+                </choice>
+            </sequence>
+            <field name="data" length="(144 * ${header.bitrate} * 1000 / ${header.sample rate} + ${header.padding}) * 8 - len{header}" type="hex" />
         </sequence>
     </common>
     <sequence name="mp3">
