@@ -15,8 +15,7 @@ class Sequence(bdec.entry.Entry):
     """
 
     def __init__(self, name, children, value=None, length=None):
-        bdec.entry.Entry.__init__(self, name, length)
-        self.children = children
+        bdec.entry.Entry.__init__(self, name, length, children)
         self.value = value
         assert len(children) > 0
         for child in children:

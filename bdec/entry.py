@@ -59,10 +59,11 @@ class Entry(object):
     must match.
     """
 
-    def __init__(self, name, length):
+    def __init__(self, name, length, embedded):
         self.name = name
         self._listeners = []
         self.length = length
+        self.children = embedded
 
     def add_listener(self, listener):
         """

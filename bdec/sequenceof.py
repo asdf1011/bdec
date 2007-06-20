@@ -31,8 +31,7 @@ class SequenceOf(bdec.entry.Entry):
         A count of None will result in a 'greedy' sequence, which will
         keep on decoding items (until 'break' is called).
         """
-        bdec.entry.Entry.__init__(self, name, length)
-        self.child = child
+        bdec.entry.Entry.__init__(self, name, length, [child])
         self._count = count
         self._state = self.STOPPED
         assert isinstance(child, bdec.entry.Entry)
@@ -59,7 +58,7 @@ class SequenceOf(bdec.entry.Entry):
     def _decode(self, data):
         self._state = self.ITERATING
         for i in self._loop():
-            for item in self.child.decode(data):
+            for item in self.children[0].decode(data):
                 yield item
 
             if self._state is self.STOPPING:
@@ -72,5 +71,5 @@ class SequenceOf(bdec.entry.Entry):
             raise InvalidSequenceOfCount(self, self._count, sequenceof)
 
         for child in sequenceof:
-            for data in self.child.encode(query, child):
+            for data in self.children[0].encode(query, child):
                 yield data

@@ -10,10 +10,9 @@ class Choice(bdec.entry.Entry):
     """
 
     def __init__(self, name, children, length=None):
-        bdec.entry.Entry.__init__(self, name, length)
+        bdec.entry.Entry.__init__(self, name, length, children)
 
         assert len(children) > 0
-        self.children = children
         for child in children:
             assert isinstance(child, bdec.entry.Entry)
 

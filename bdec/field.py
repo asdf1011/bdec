@@ -91,7 +91,7 @@ class Field(bdec.entry.Entry):
     BIG_ENDIAN = "big endian"
 
     def __init__(self, name, length, format=BINARY, encoding=None, expected=None, min=None, max=None):
-        bdec.entry.Entry.__init__(self, name, length)
+        bdec.entry.Entry.__init__(self, name, length, [])
         assert format in self._formats
         assert expected is None or isinstance(expected, dt.Data)
 

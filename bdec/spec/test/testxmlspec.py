@@ -5,6 +5,7 @@ import unittest
 import bdec.data as dt
 import bdec.entry as ent
 import bdec.field as fld
+import bdec.sequence as seq
 import bdec.spec.xmlspec as xml
 
 class TestXml(unittest.TestCase):
@@ -74,11 +75,11 @@ class TestXml(unittest.TestCase):
 </protocol>"""
         decoder = xml.loads(text)[0]
         self.assertEqual("bob", decoder.name)
-        self.assertEqual("cat", decoder.child.name)
+        self.assertEqual("cat", decoder.children[0].name)
         items = list(decoder.decode(dt.Data.from_hex("7fac")))
         self.assertEqual(6, len(items))
         # We're being lazy; we're only checking the last decode value.
-        self.assertEqual("ac", decoder.child.get_value())
+        self.assertEqual("ac", decoder.children[0].get_value())
 
     def test_non_whole_byte_expected_value(self):
         text = """<protocol><field name="bob" length="1" value="0x0" /></protocol>"""
