@@ -44,11 +44,11 @@ class TestXml(unittest.TestCase):
         expected = """<bob>
     <cat_>
         109
-        <!-- hex: 6d -->
+        <!-- hex (1 bytes): 6d -->
     </cat_>
     <dog>
         zip
-        <!-- hex: 7a6970 -->
+        <!-- hex (3 bytes): 7a6970 -->
     </dog>
 </bob>
 """
