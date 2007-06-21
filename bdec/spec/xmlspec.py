@@ -1,3 +1,4 @@
+import pickle
 import StringIO
 import xml.sax
 
@@ -38,12 +39,12 @@ class EmptySequenceError(XmlSpecError):
     def __str__(self):
         return self._src() + "Sequence '%s' must have children!" % self.name
 
-class NonFieldError(exp.ExpressionError):
+class EntryHasNoValueError(exp.ExpressionError):
     def __init__(self, entry):
         self.entry = entry
 
     def __str__(self):
-        return "Expression can only reference fields (%s)" % self.entry
+        return "Expressions can only reference entries with a value (%s)" % self.entry
 
 class NonSequenceError(exp.ExpressionError):
     """
@@ -79,18 +80,23 @@ class XmlExpressionError(XmlSpecError):
     def __str__(self):
         return self._src() + "Expression error - " + str(self.ex)
 
-class _FieldResult:
+class _ValueResult:
     """
-    Object returning the result of a field when cast to an integer.
+    Object returning the result of a entry when cast to an integer.
     """
     def __init__(self):
         self.length = None
 
-    def add_field(self, field):
-        field.add_listener(self)
+    def add_entry(self, entry):
+        entry.add_listener(self)
 
-    def __call__(self, field, length):
-        self.length = int(field)
+    def __call__(self, entry, length):
+        if isinstance(entry, fld.Field):
+            self.length = int(entry)
+        elif isinstance(entry, seq.Sequence):
+            self.length = int(entry.value)
+        else:
+            raise Exception("Don't know how to get the result of %s" % entry)
 
     def __int__(self):
         assert self.length is not None
@@ -157,7 +163,7 @@ class _Handler(xml.sax.handler.ContentHandler):
     def setDocumentLocator(self, locator):
         self.locator = locator
 
-    def _break(self, attrs, children):
+    def _break(self, attrs, children, length):
         if len(attrs) != 0 or len(children) != 0:
             raise self._error("end-sequenceof cannot have attributes or sub-elements")
 
@@ -174,20 +180,46 @@ class _Handler(xml.sax.handler.ContentHandler):
         self._stack.append((name, attrs, []))
         self._children.append([])
 
+    def _walk(self, entry):
+        yield entry
+        for embedded in entry.children:
+            for child in self._walk(embedded):
+                yield child
+
+    def _get_common_entry(self, name):
+        # There is a problem where listeners to common entries will be  called
+        # for all common decodes (see the 
+        # test_common_elements_are_independent testcase). We attempt to work
+        # around this problem be copying common elements.
+        entry = self._common_entries[name]
+        result = pickle.loads(pickle.dumps(entry))
+
+        # For all of the copied elements, we need to update the lookup table
+        # so that the copied elements can be found.
+        for original, copy in zip(self._walk(entry), self._walk(result)):
+            self.lookup[copy] = self.lookup[original]
+        return result
+
     def endElement(self, name):
         assert self._stack[-1][0] == name
         (name, attrs, breaks) = self._stack.pop()
 
-        children = self._children.pop()
+        # We don't pop the children item until after we have called the
+        # handler, as it may be used when creating a value reference.
+        children = self._children[-1]
         if attrs.has_key('name') and attrs.getValue('name') in self._common_entries:
             # We are referencing to a common element...
             if len(attrs) != 1:
                 raise self._error("Referenced element '%s' cannot have other attributes!" % attrs['name'])
             if len(children) != 0:
                 raise self._error("Referenced element '%s' cannot have sub-entries!" % attrs['name'])
-            child = self._common_entries[attrs['name']]
+            child = self._get_common_entry(attrs['name'])
         else:
-            child = self._handlers[name](attrs, children)
+            length = None
+            if attrs.has_key('length'):
+                length = self._parse_expression(attrs['length'])
+            child = self._handlers[name](attrs, children, length)
+        self._children.pop()
 
         if child is not None:
             for break_notifier in breaks:
@@ -216,19 +248,19 @@ class _Handler(xml.sax.handler.ContentHandler):
             assert child is not None
             self._common_entries[child.name] = child
 
-    def _common(self, attributes, children):
+    def _common(self, attributes, children, length):
         pass
 
-    def _protocol(self, attributes, children):
+    def _protocol(self, attributes, children, length):
         if len(children) != 1:
             raise self._error("Protocol should have a single entry to be decoded!")
         if self._break_listener is not None:
             raise self._error("end-sequenceof is not surrounded by a sequenceof")
         self.decoder = children[0]
 
-    def _decode_length(self, text):
+    def _parse_expression(self, text):
         try:
-            return exp.compile(text, self._query_field, self._query_length)
+            return exp.compile(text, self._query_entry_value, self._query_length)
         except exp.ExpressionError, ex:
             raise XmlExpressionError(ex, self._filename, self.locator)
 
@@ -244,7 +276,7 @@ class _Handler(xml.sax.handler.ContentHandler):
             found_name = None
             for option in entry.children:
                 option_matches = False
-                for child in self._get_entry_children(option, name):
+                for child in self._get_children([option], name):
                     option_matches = True
                     yield child
 
@@ -289,18 +321,24 @@ class _Handler(xml.sax.handler.ContentHandler):
         """
         return _LengthResult(self._get_entries(fullname))
 
-    def _query_field(self, fullname):
+    def _query_entry_value(self, fullname):
         """
-        Get an object that returns the decoded value of a field.
+        Get an object that returns the decoded value of a protocol entry.
 
         The fullname is the qualified name of the entry with respect to
         the current entry. 'Hidden' entries may or may not be included.
+
+        Typically only fields have a value, but sequences may also be assigned
+        values.
         """
-        result = _FieldResult()
+        result = _ValueResult()
         for entry in self._get_entries(fullname):
-            if not isinstance(entry, fld.Field):
-                raise NonFieldError(entry)
-            result.add_field(entry)
+            if isinstance(entry, fld.Field):
+                result.add_entry(entry)
+            elif isinstance(entry, seq.Sequence) and entry.value is not None:
+                result.add_entry(entry)
+            else:
+                raise EntryHasNoValueError(entry)
         return result
 
     def _get_entries(self, fullname):
@@ -326,10 +364,12 @@ class _Handler(xml.sax.handler.ContentHandler):
                 return matches
         raise MissingReferenceError(fullname)
 
-    def _field(self, attributes, children):
+    def _field(self, attributes, children, length):
         name = attributes['name']
-        length = self._decode_length(attributes['length'])
         format = fld.Field.BINARY
+        if length is None:
+            raise self._error("Field entries required a 'length' attribute")
+
         if attributes.has_key('type'):
             lookup = {
                 "binary" : fld.Field.BINARY,
@@ -348,29 +388,33 @@ class _Handler(xml.sax.handler.ContentHandler):
             expected = dt.Data.from_hex(hex[2:])
         min = None
         if attributes.has_key('min'):
-            min = self._decode_length(attributes['min'])
+            min = self._parse_expression(attributes['min'])
         max = None
         if attributes.has_key('max'):
-            max = self._decode_length(attributes['max'])
+            max = self._parse_expression(attributes['max'])
         return fld.Field(name, length, format, encoding, expected, min, max)
 
-    def _sequence(self, attributes, children):
+    def _sequence(self, attributes, children, length):
         if len(children) == 0:
             raise EmptySequenceError(attributes['name'], self._filename, self.locator)
-        return seq.Sequence(attributes['name'], children)
+        value = None
+        if attributes.has_key('value'):
+            # A sequence can have a value derived from its children...
+            value = self._parse_expression(attributes['value'])
+        return seq.Sequence(attributes['name'], children, value, length)
 
-    def _choice(self, attributes, children):
-        return chc.Choice(attributes['name'], children)
+    def _choice(self, attributes, children, length):
+        return chc.Choice(attributes['name'], children, length)
 
-    def _sequenceof(self, attributes, children):
+    def _sequenceof(self, attributes, children, length):
         if len(children) != 1:
             raise self._error("Sequence of entries can only have a single child! (got %i)" % len(children))
 
         # Default to being a greedy sequenceof, unless we have a length specified
-        length = None
-        if attributes.has_key('length'):
-            length = self._decode_length(attributes['length'])
-        result = sof.SequenceOf(attributes['name'], children[0], length)
+        count = None
+        if attributes.has_key('count'):
+            count = self._parse_expression(attributes['count'])
+        result = sof.SequenceOf(attributes['name'], children[0], count, length)
 
         if self._break_listener is not None:
             self._break_listener.set_sequenceof(result)

@@ -1,0 +1,192 @@
+<!-- MP3 file format.
+
+    See http://www.id3.org/id3v2.4.0-structure for information on the ID3 structure.
+    See http://www.mpgedit.org/mpgedit/mpeg_format/mpeghdr.htm for information on the frame structure.
+    -->
+<protocol>
+    <common>
+        <sequence name="syncsafe integer:" value="((${byte 1:} * 128 + ${byte 2:}) * 128 + ${byte 3:}) * 128 + ${byte 4:}">
+            <field name="null:" length="1" value="0x0" />
+            <field name="byte 1:" length="7" type="integer" />
+            <field name="null:" length="1" value="0x0" />
+            <field name="byte 2:" length="7" type="integer" />
+            <field name="null:" length="1" value="0x0" />
+            <field name="byte 3:" length="7" type="integer" />
+            <field name="null:" length="1" value="0x0" />
+            <field name="byte 4:" length="7" type="integer" />
+        </sequence>
+
+        <sequence name="id3v2:frame">
+            <field name="id" length="32" type="text" />
+            <sequence name="syncsafe integer:" />
+            <sequence name="contents:" length="${syncsafe integer:} * 8 + 16">
+                <sequence name="status flags">
+                    <choice name="tag alter preservation" >
+                        <field name="preserve" length="1" value="0x0" />
+                        <field name="discard" length="1" value="0x0" />
+                    </choice>
+                    <choice name="file alter preservation">
+                        <field name="preserve" length="1" value="0x0" />
+                        <field name="discard" length="1" value="0x0" />
+                    </choice>
+                    <field name="read only" length="1" />
+                    <field name="unused" length="5" />
+                </sequence>
+                <sequence name="format flags">
+                    <field name="has group information" length="1" />
+                    <field name="has zlib compression" length="1" />
+                    <field name="encrypted" length="1" />
+                    <field name="unsynchronisation" length="1" />
+                    <field name="has data length indicator" length="1" />
+                    <field name="unused" length="3" />
+                </sequence>
+                <choice name="contents">
+                    <sequence name="iso-8859-1:">
+                        <field name="id:" length="8" value="0x0" />
+                        <field name="text" length="${syncsafe integer:} * 8 - 8" type="text" encoding="iso-8859-1" />
+                    </sequence>
+                    <sequence name="utf16-bom:">
+                        <choice name="utf id:">
+                            <field name="id:" length="8" value="0x1" />
+                            <field name="id:" length="8" value="0x2" />
+                        </choice>
+                        <field name="text" length="${syncsafe integer:} * 8 - 8" type="text" encoding="utf-16-be" />
+                    </sequence>
+                    <sequence name="utf8:">
+                        <field name="id:" length="8" value="0x3" />
+                        <field name="text" length="${syncsafe integer:} * 8 - 8" type="text" encoding="utf-8" />
+                    </sequence>
+                    <field name="data" length="${syncsafe integer:} * 8" type="hex" />
+                </choice>
+            </sequence>
+        </sequence>
+
+        <sequence name="id3 v2">
+            <field name="id:" length="24" value="0x494433" />
+            <field name="major version" length="8" type="integer" />
+            <field name="minor version" length="8" type="integer" />
+            <sequence name="flags">
+                <field name="unsynchronisation" length="1" />
+                <field name="extended header" length="1" />
+                <field name="experimental" length="1" />
+                <field name="footer present" length="1" />
+                <field name="buffer" length="4" />
+            </sequence>
+            <sequence name="total frames length:">
+                <sequence name="syncsafe integer:" />
+            </sequence>
+            <sequence name="contents:" length="${total frames length:.syncsafe integer:} * 8">
+                <sequenceof name="frames">
+                    <choice name="frame:">
+                        <sequence name="end">
+                            <field name="id" length="32" type="text" />
+                            <field name="flags" length="16" />
+                            <field name="zero size:" length="32" value="0x0" />
+                            <end-sequenceof />
+                        </sequence>
+                        <sequence name="id3v2:frame" />
+                    </choice>
+                </sequenceof>
+                <field name="padding" length="${total frames length:.syncsafe integer:} * 8 - len{frames}" type="hex" />
+            </sequence>
+        </sequence>
+
+        <!-- Create a set of 'lookup' tables to map the binary value to bitrate -->
+        <choice name="mpeg 1 layer 3 bitrate lookup:">
+            <sequence name="bitrate" value="0"> <field name="free" length="4" value="0x0" /></sequence>
+            <sequence name="bitrate" value="32"><field name="32 kbs" length="4" value="0x1" /></sequence>
+            <sequence name="bitrate" value="40"><field name="40 kbs" length="4" value="0x2" /></sequence>
+            <sequence name="bitrate" value="48"><field name="48 kbs" length="4" value="0x3" /></sequence>
+            <sequence name="bitrate" value="56"><field name="56 kbs" length="4" value="0x4" /></sequence>
+            <sequence name="bitrate" value="64"><field name="64 kbs" length="4" value="0x5" /></sequence>
+            <sequence name="bitrate" value="80"><field name="80 kbs" length="4" value="0x6" /></sequence>
+            <sequence name="bitrate" value="96"><field name="96 kbs" length="4" value="0x7" /></sequence>
+            <sequence name="bitrate" value="112"><field name="112 kbs" length="4" value="0x8" /></sequence>
+            <sequence name="bitrate" value="128"><field name="128 kbs" length="4" value="0x9" /></sequence>
+            <sequence name="bitrate" value="160"><field name="160 kbs" length="4" value="0xa" /></sequence>
+            <sequence name="bitrate" value="192"><field name="192 kbs" length="4" value="0xb" /></sequence>
+            <sequence name="bitrate" value="224"><field name="224 kbs" length="4" value="0xc" /></sequence>
+            <sequence name="bitrate" value="256"><field name="256 kbs" length="4" value="0xd" /></sequence>
+            <sequence name="bitrate" value="320"><field name="320 kbs" length="4" value="0xe" /></sequence>
+        </choice>
+
+        <choice name="mpeg 1 sampling frequency lookup:">
+            <sequence name="sample rate" value="44100"><field name="44110 Hz" length="2" value="0x0" /></sequence>
+            <sequence name="sample rate" value="48000"><field name="48000 Hz" length="2" value="0x1" /></sequence>
+            <sequence name="sample rate" value="32000"><field name="32000 Hz" length="2" value="0x2" /></sequence>
+        </choice>
+        <choice name="mpeg 1 padding lookup:">
+            <sequence name="padding" value="4"><field name="4 bytes" length="1" value="0x1" /></sequence>
+            <sequence name="padding" value="0"><field name="None" length="1" value="0x0" /></sequence>
+        </choice>
+
+        <sequence name="frame">
+            <!--<choice name="version">
+                <field name="mpeg 2.5" length="2" value="0x0" />
+                <field name="reserved" length="2" value="0x1" />
+                <field name="mpeg 2" length="2" value="0x2" />
+            </choice>
+            <choice name="layer description">
+                <field name="reserved" length="2" value="0x0" />
+                <field name="layer 3" length="2" value="0x1" />
+                <field name="layer 2" length="2" value="0x2" />
+                <field name="layer 1" length="2" value="0x3" />
+            </choice>-->
+            <sequence name="header">
+                <field name="frame sync:" length="11" value="0x7FF" />
+                <field name="mpeg 1" length="2" value="0x3" />
+                <field name="layer 3" length="2" value="0x1" />
+                <field name="protection bit" length="1" type="integer" />
+                <choice name="mpeg 1 layer 3 bitrate lookup:" />
+                <choice name="mpeg 1 sampling frequency lookup:" />
+                <choice name="mpeg 1 padding lookup:" />
+                <field name="private bit" length="1" />
+                <choice name="channel mode">
+                    <field name="stereo" length="2" value="0x0" />
+                    <field name="joint stereo" length="2" value="0x1" />
+                    <field name="dual channel" length="2" value="0x2" />
+                    <field name="single channel" length="2" value="0x3" />
+                </choice>
+                <field name="mode extension" length="2" />
+                <choice name="copyright">
+                    <field name="Not copyrighted" length="1" value="0x0" />
+                    <field name="Copyrighted" length="1" value="0x1" />
+                </choice>
+                <choice name="original">
+                    <field name="Copy of original media" length="1" value="0x0" />
+                    <field name="Original media" length="1" value="0x1" />
+                </choice>
+                <choice name="emphasis">
+                    <field name="none" length="2" value="0x0" />
+                    <field name="50/15 ms" length="2" value="0x1" />
+                    <field name="reserved" length="2" value="0x2" />
+                    <field name="CCIT J.17" length="2" value="0x3" />
+                </choice>
+            </sequence>
+            <field name="data" length="(144 * ${header.bitrate} * 1000 / ${header.sample rate} + ${header.padding}) * 8 - len{header}" type="hex" />
+        </sequence>
+
+        <sequence name="id3 v1">
+            <field name="tag:" length="24" value="0x544147" />
+            <field name="title" length="240" type="text" />
+            <field name="artist" length="240" type="text" />
+            <field name="album" length="240" type="text" />
+            <field name="year" length="32" type="text" />
+            <field name="comment" length="240" type="text" />
+            <field name="genre" length="8" type="integer" />
+        </sequence>
+    </common>
+
+    <sequence name="mp3">
+        <sequence name="id3 v2" />
+        <sequenceof name="frames">
+            <choice name="frame:">
+                <sequence name="frame" />
+                <sequence name="id3 v1:">
+                    <sequence name="id3 v1" />
+                    <end-sequenceof />
+                </sequence>
+            </choice>
+        </sequenceof>
+    </sequence>
+</protocol>

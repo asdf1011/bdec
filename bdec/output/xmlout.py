@@ -39,9 +39,9 @@ def to_file(decoder, binary, output, encoding="utf-8", verbose=False):
                 if verbose:
                     handler.ignorableWhitespace(' ' * offset)
                     if len(entry.data) % 8 == 0:
-                        handler.comment('hex: %s' % entry.data.get_hex())
+                        handler.comment('hex (%i bytes): %s' % (len(entry.data) / 8, entry.data.get_hex()))
                     else:
-                        handler.comment('bin: %s' % entry.data.get_binary_text())
+                        handler.comment('bin (%i bits): %s' % (len(entry.data), entry.data.get_binary_text()))
                     handler.ignorableWhitespace('\n')
                     
             offset = offset - 4

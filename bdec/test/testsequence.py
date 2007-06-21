@@ -2,6 +2,7 @@
 
 import unittest
 import bdec.data as dt
+import bdec.entry as ent
 import bdec.field as fld
 import bdec.sequence as seq
 
@@ -41,6 +42,13 @@ class TestSequence(unittest.TestCase):
         self.assertEqual(1, len(callbacks))
         self.assertEqual(sequence, callbacks[0][0])
         self.assertEqual(16, callbacks[0][1])
+
+    def test_bad_length(self):
+        embedded = [fld.Field("bob", 8, format=fld.Field.INTEGER), fld.Field("cat", 8, format=fld.Field.INTEGER)]
+        sequence = seq.Sequence("blah", embedded, length=17)
+        self.assertRaises(ent.DecodeLengthError, list, sequence.decode(dt.Data('abc')))
+        sequence = seq.Sequence("blah", embedded, length=15)
+        self.assertRaises(ent.EntryDataError, list, sequence.decode(dt.Data('abc')))
 
 if __name__ == "__main__":
     unittest.main()

@@ -3,7 +3,9 @@
 import unittest
 
 import bdec.data as dt
+import bdec.entry as ent
 import bdec.field as fld
+import bdec.sequence as seq
 import bdec.spec.xmlspec as xml
 
 class TestXml(unittest.TestCase):
@@ -67,17 +69,17 @@ class TestXml(unittest.TestCase):
     def test_sequence_of(self):
         text = """
 <protocol>
-    <sequenceof name="bob" length="2">
+    <sequenceof name="bob" count="2">
         <field name="cat" length="8" type="hex" />
     </sequenceof>
 </protocol>"""
         decoder = xml.loads(text)[0]
         self.assertEqual("bob", decoder.name)
-        self.assertEqual("cat", decoder.child.name)
+        self.assertEqual("cat", decoder.children[0].name)
         items = list(decoder.decode(dt.Data.from_hex("7fac")))
         self.assertEqual(6, len(items))
         # We're being lazy; we're only checking the last decode value.
-        self.assertEqual("ac", decoder.child.get_value())
+        self.assertEqual("ac", decoder.children[0].get_value())
 
     def test_non_whole_byte_expected_value(self):
         text = """<protocol><field name="bob" length="1" value="0x0" /></protocol>"""
@@ -273,7 +275,7 @@ class TestXml(unittest.TestCase):
                 <sequenceof name="bob">
                     <choice name="char:">
                         <field name="null:" length="8" value="0x0"> <end-sequenceof /></field>
-                        <sequenceof name="dont get me" length="1">
+                        <sequenceof name="dont get me" count="1">
                             <field name="char" length="8" type="text" />
                         </sequenceof>
                     </choice>
@@ -298,6 +300,125 @@ class TestXml(unittest.TestCase):
             self.fail("Exception not thrown!")
         except xml.XmlExpressionError, ex:
             self.assertTrue(isinstance(ex.ex, xml.MissingReferenceError))
+
+    def test_sequence_value(self):
+        text = """
+            <protocol>
+                <sequence name="buffer">
+                    <sequence name="middle endian" value="${byte 1:} * 16777216 + ${byte 2:} * 65536 + ${byte 3:} * 256 + ${byte 4:}" >
+                        <field name="byte 2:" length="8" />
+                        <field name="byte 1:" length="8" />
+                        <field name="byte 4:" length="8" />
+                        <field name="byte 3:" length="8" />
+                    </sequence>
+                    <field name="data" length="${middle endian} * 8" type="text" />
+                </sequence>
+            </protocol> """
+        protocol = xml.loads(text)[0]
+        result = ""
+        data = dt.Data("\x00\x00\x13\x00run for your lives!boo")
+        for is_starting, entry in protocol.decode(data):
+            if not is_starting and entry.name == "data":
+                result = entry.get_value()
+        self.assertEqual("run for your lives!", result)
+        self.assertEqual("boo", str(data))
+
+    def test_match_choice_entry(self):
+        text = """
+            <protocol>
+                <sequence name="bob">
+                    <choice name="valid items:">
+                        <field name="length:" length="8" value="0x5" />
+                        <field name="length:" length="8" value="0x7" />
+                    </choice>
+                    <field name="data" length="${length:} * 8" type="text" />
+                </sequence>
+            </protocol>
+            """
+        protocol = xml.loads(text)[0]
+        result = ""
+        data = dt.Data("\x07chicken")
+        for is_starting, entry in protocol.decode(data):
+            if not is_starting and entry.name == "data":
+                result = entry.get_value()
+        self.assertEqual("chicken", result)
+
+    def test_length_validation(self):
+        text = """
+            <protocol>
+                <sequence name="bob" length="15">
+                    <field name="a" length="8" type="text" />
+                    <field name="b" length="8" type="text" />
+                </sequence>
+            </protocol>
+            """
+        protocol = xml.loads(text)[0]
+        result = ""
+        self.assertRaises(ent.EntryDataError, list, protocol.decode(dt.Data('ab')))
+
+    def test_common_elements_are_independant(self):
+        """
+        Test that decode references to common fields are used out of context.
+        """
+        # In this case, we want 'data a' to use the length item embedded in
+        # 'length a', and not the item in 'length b'.
+        text = """
+            <protocol>
+                <common>
+                    <field name="length:" length="8" type="integer" />
+                </common>
+                <sequence name="bob">
+                    <sequence name="length a">
+                        <field name="length:" />
+                    </sequence>
+                    <sequence name="length b">
+                        <field name="length:" />
+                    </sequence>
+                    <field name="data a" length="${length a.length:} * 8" type="text" />
+                    <field name="data b" length="${length b.length:} * 8" type="text" />
+                </sequence>
+            </protocol>
+            """
+        protocol = xml.loads(text)[0]
+        a = b = ""
+        for is_starting, entry in protocol.decode(dt.Data("\x03\x06catrabbit")):
+            if not is_starting:
+                if entry.name == "data a":
+                    a = entry.get_value()
+                elif entry.name == "data b":
+                    b = entry.get_value()
+        self.assertEqual("cat", a)
+        self.assertEqual("rabbit", b)
+
+    def test_all_entries_in_lookup_tree(self):
+        text = """
+            <protocol>
+                <common>
+                    <choice name="dog">
+                        <sequenceof name="rabbit" length="1">
+                            <field name="hole" length="8" />
+                        </sequenceof>
+                    </choice>
+                    <sequence name="length a">
+                        <field name="length:" length="8" type="integer" />
+                        <choice name="dog" />
+                    </sequence>
+                </common>
+                <sequence name="bob">
+                    <sequence name="length a" />
+                    <field name="data a" length="${length a.length:} * 8" type="text" />
+                </sequence>
+            </protocol>
+            """
+        protocol, lookup = xml.loads(text)
+        entries = [protocol]
+        names = set()
+        while entries:
+            entry = entries.pop()
+            names.add(entry.name)
+            self.assertTrue(entry in lookup, "%s isn't in the lookup tree!" % entry)
+            entries.extend(entry.children)
+        self.assertEqual(set(['dog', 'rabbit', 'hole', 'length a', 'length:', 'bob', 'data a']), names)
 
 if __name__ == "__main__":
     unittest.main()

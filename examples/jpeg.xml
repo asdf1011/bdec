@@ -31,7 +31,7 @@
                     <field name="type:" length="8" value="0xda" />
                     <field name="length" length="16" type="integer" encoding="big endian" />
                     <field name="number of components:" length="8" type="integer" />
-                    <sequenceof name="components" length="${number of components:}">
+                    <sequenceof name="components" count="${number of components:}">
                         <sequence name="component">
                             <choice name="component:type" />
                             <field name="huffman dc table" length="4" type="integer" />
@@ -51,7 +51,7 @@
                     <field name="image height" length="16" type="integer" encoding="big endian" />
                     <field name="image width" length="16" type="integer" encoding="big endian" />
                     <field name="number of components:" length="8" type="integer" />
-                    <sequenceof name="components" length="${number of components:}">
+                    <sequenceof name="components" count="${number of components:}">
                         <sequence name="component">
                             <sequence name="sampling factors">
                                 <choice name="component:type" />
@@ -80,8 +80,8 @@
                     <sequence name="thumbnail">
                         <field name="width" length="8" type="integer" />
                         <field name="height" length="8" type="integer" />
-                        <sequenceof name="rows" length="${height}">
-                            <sequenceof name="row" length="${width}">
+                        <sequenceof name="rows" count="${height}">
+                            <sequenceof name="row" count="${width}">
                                 <sequence name="colour">
                                     <field name="red" length="8" type="integer" />
                                     <field name="green" length="8" type="integer" />

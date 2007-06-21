@@ -1,22 +1,22 @@
 import bdec.entry
 
-class InvalidSequenceOfLength(bdec.DecodeError):
-    def __init__(self, seq, length, data):
+class InvalidSequenceOfCount(bdec.DecodeError):
+    def __init__(self, seq, count, data):
         bdec.DecodeError.__init__(self, seq)
         self.sequenceof = seq
-        self.length = length
+        self.count = count
         self.data = data
 
     def __str__(self):
-        return "%s expected length of %i, got %i (%s)" % (self.sequenceof, self.length, len(self.data), self.data)
+        return "%s expected count of %i, got %i (%s)" % (self.sequenceof, self.count, len(self.data), self.data)
 
 class NegativeSequenceofLoop(bdec.DecodeError):
-    def __init__(self, seq, length):
+    def __init__(self, seq, count):
         bdec.DecodeError.__init__(self, seq)
-        self.length = length
+        self.count = count
 
     def __str__(self):
-        return "%s asked to loop %i times!" % (self.entry, self.length)
+        return "%s asked to loop %i times!" % (self.entry, self.count)
 
 class SequenceOf(bdec.entry.Entry):
     """
@@ -26,14 +26,13 @@ class SequenceOf(bdec.entry.Entry):
     ITERATING = "iterating"
     STOPPING = "stopping"
 
-    def __init__(self, name, child, length):
+    def __init__(self, name, child, count, length=None):
         """
-        A length of None will result in a 'greedy' sequence, which will
+        A count of None will result in a 'greedy' sequence, which will
         keep on decoding items (until 'break' is called).
         """
-        bdec.entry.Entry.__init__(self, name)
-        self.child = child
-        self._length = length
+        bdec.entry.Entry.__init__(self, name, length, [child])
+        self._count = count
         self._state = self.STOPPED
         assert isinstance(child, bdec.entry.Entry)
 
@@ -45,12 +44,12 @@ class SequenceOf(bdec.entry.Entry):
         self._state = self.STOPPING
 
     def _loop(self):
-        if self._length is not None:
-            length = int(self._length)
-            if length < 0:
-                raise NegativeSequenceofLoop(self, length)
+        if self._count is not None:
+            count = int(self._count)
+            if count < 0:
+                raise NegativeSequenceofLoop(self, count)
 
-            for i in range(length):
+            for i in range(count):
                 yield i
         else:
             while 1:
@@ -59,17 +58,18 @@ class SequenceOf(bdec.entry.Entry):
     def _decode(self, data):
         self._state = self.ITERATING
         for i in self._loop():
-            for item in self.child.decode(data):
+            for item in self.children[0].decode(data):
                 yield item
 
             if self._state is self.STOPPING:
                 break
         self._state = self.STOPPED
 
-    def _encode(self, query, sequenceof):
-        if self._length is not None and int(self._length) != len(sequenceof):
-            raise InvalidSequenceOfLength(self, self._length, sequenceof)
+    def _encode(self, query, parent):
+        sequenceof = self._get_context(query, parent)
+        if self._count is not None and int(self._count) != len(sequenceof):
+            raise InvalidSequenceOfCount(self, self._count, sequenceof)
 
         for child in sequenceof:
-            for data in self.child.encode(query, child):
+            for data in self.children[0].encode(query, child):
                 yield data
