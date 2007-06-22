@@ -1,0 +1,49 @@
+<protocol>
+    <common>
+        <choice name="end of line:">
+            <sequence name="lf cr:">
+                <field name="cr:" length="8" value="0xd" />
+                <field name="lf:" length="8" value="0xa" />
+            </sequence>
+            <field name="cr:" length="8" value="0xd" />
+            <field name="lf:" length="8" value="0xa" />
+        </choice>
+
+        <sequence name="header">
+            <field name="id:" length="40" value="0x255044462d" />
+            <field name="version" length="24" type="text" value="0x312e33" />
+            <choice name="end of line:" />
+        </sequence>
+
+        <sequence name="line:">
+            <field name="char" length="8" type="text" />
+            <sequenceof name="line">
+                <choice name="entry:">
+                    <choice name="end of line:"><end-sequenceof /></choice>
+                    <field name="char" length="8" type="hex" />
+                </choice>
+            </sequenceof>
+        </sequence>
+
+        <sequence name="comment">
+            <field name="id:" length="8" value="0x25" />
+            <sequenceof name="text">
+                <choice name="entry:">
+                    <choice name="end of line:"><end-sequenceof /></choice>
+                    <field name="char" length="8" type="text" />
+                </choice>
+            </sequenceof>
+        </sequence>
+
+        <sequence name="body">
+            <sequenceof name="lines">
+                <sequence name="line:" />
+            </sequenceof>
+        </sequence>
+    </common>
+
+    <sequence name="pdf">
+        <sequence name="header" />
+        <sequence name="body" />
+    </sequence>
+</protocol>
