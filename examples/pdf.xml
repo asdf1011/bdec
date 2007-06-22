@@ -1,3 +1,8 @@
+<!-- A bdec specification of the pdf file format.
+
+    See http://www.adobe.com/devnet/pdf/pdf_reference.html for information from
+    Adobe on the file format.
+    -->
 <protocol>
     <common>
         <choice name="end of line:">
