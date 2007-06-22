@@ -20,9 +20,9 @@
             <choice name="end of line:" />
         </sequence>
 
-        <sequence name="line:">
-            <field name="char" length="8" type="text" />
-            <sequenceof name="line">
+        <sequence name="unknown line">
+            <field name="first char" length="8" type="text" />
+            <sequenceof name="line:">
                 <choice name="entry:">
                     <choice name="end of line:"><end-sequenceof /></choice>
                     <field name="char" length="8" type="hex" />
@@ -35,14 +35,17 @@
             <sequenceof name="text">
                 <choice name="entry:">
                     <choice name="end of line:"><end-sequenceof /></choice>
-                    <field name="char" length="8" type="text" />
+                    <field name="char" length="8" type="hex" />
                 </choice>
             </sequenceof>
         </sequence>
 
         <sequence name="body">
             <sequenceof name="lines">
-                <sequence name="line:" />
+                <choice name="entry:">
+                    <sequence name="comment" />
+                    <sequence name="unknown line" />
+                </choice>
             </sequenceof>
         </sequence>
     </common>
