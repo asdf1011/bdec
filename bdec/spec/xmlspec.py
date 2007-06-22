@@ -405,6 +405,8 @@ class _Handler(xml.sax.handler.ContentHandler):
         return seq.Sequence(attributes['name'], children, value, length)
 
     def _choice(self, attributes, children, length):
+        if len(children) == 0:
+            raise self._error("Choice entries must have children")
         return chc.Choice(attributes['name'], children, length)
 
     def _sequenceof(self, attributes, children, length):
