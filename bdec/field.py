@@ -218,11 +218,14 @@ class Field(bdec.entry.Entry):
         return self._decode_int(self.data)
 
     def _decode_int(self, data):
-        assert self._encoding in [self.BIG_ENDIAN, self.LITTLE_ENDIAN]
-        if self._encoding == self.BIG_ENDIAN:
-            result = int(data)
-        else:
+        if self._encoding == self.LITTLE_ENDIAN:
             result = data.get_little_endian_integer()
+        else:
+            # If we aren't explicitly little endian, we become big endian.
+            # This is because we can sometimes convert a non-integer to
+            # an integer (eg: we may want to treat a string character as an
+            # integer, to ensure we are in a given character range).
+            result = int(data)
         return result
 
     def get_value(self):
