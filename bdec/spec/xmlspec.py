@@ -384,7 +384,8 @@ class _Handler(xml.sax.handler.ContentHandler):
         expected = None
         if attributes.has_key('value'):
             hex = attributes['value'].upper()
-            assert hex[:2] == "0X"
+            if hex[:2] != "0X":
+                raise self._error("Value fields must be hex (eg: 0xef)")
             expected = dt.Data.from_hex(hex[2:])
         min = None
         if attributes.has_key('min'):
