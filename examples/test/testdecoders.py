@@ -11,7 +11,7 @@ import unittest
 import bdec.data as dt
 import bdec.spec.xmlspec as spec
 
-class BaseTest:
+class _BaseTest:
     def _load_spec(self):
         if not hasattr(self, '_spec'):
             type(self)._spec = spec.load(self.filename)[0]
@@ -48,7 +48,7 @@ def _create_tests():
                 method = lambda self:self._decode(datafile)
                 method.__name__ = testname
                 members[testname] = method
-        result[testcasename] = type(testcasename, (unittest.TestCase, BaseTest), members)
+        result[testcasename] = type(testcasename, (unittest.TestCase, _BaseTest), members)
     assert result, "No example specifications found!"
     return result
 
