@@ -5,7 +5,7 @@
     -->
 <protocol>
     <common>
-        <choice name="end of line:">
+        <choice name="end of line">
             <sequence name="lf cr:">
                 <field name="cr:" length="8" value="0xd" />
                 <field name="lf:" length="8" value="0xa" />
@@ -14,39 +14,135 @@
             <field name="lf:" length="8" value="0xa" />
         </choice>
 
+        <choice name="non breaking whitespace:">
+            <field name="tab" length="8" value="0x09" />
+            <field name="space" length="8" value="0x20" />
+        </choice>
+
+        <choice name="other whitespace:">
+            <field name="null" length="8" value="0x00" />
+            <field name="form feed" length="8" value="0x0c" />
+        </choice>
+
+        <choice name="whitespace entry:">
+            <choice name="end of line" />
+            <choice name="non breaking whitespace:" />
+            <choice name="other whitespace:" />
+        </choice>
+
+        <sequence name="whitespace">
+            <choice name="whitespace entry:" />
+            <sequenceof name="subsequent entries:">
+                <choice name="entry:">
+                    <choice name="whitespace entry:" />
+                    <field name="end:" length="0"><end-sequenceof /> </field>
+                </choice>
+            </sequenceof>
+        </sequence>
+
         <sequence name="header">
             <field name="id:" length="40" value="0x255044462d" />
             <field name="version" length="24" type="text" value="0x312e33" />
-            <choice name="end of line:" />
-        </sequence>
-
-        <sequence name="unknown line">
-            <field name="first char" length="8" type="text" />
-            <sequenceof name="line:">
-                <choice name="entry:">
-                    <choice name="end of line:"><end-sequenceof /></choice>
-                    <field name="char" length="8" type="hex" />
-                </choice>
-            </sequenceof>
+            <choice name="end of line" />
         </sequence>
 
         <sequence name="comment">
             <field name="id:" length="8" value="0x25" />
             <sequenceof name="text">
                 <choice name="entry:">
-                    <choice name="end of line:"><end-sequenceof /></choice>
+                    <choice name="end of line"><end-sequenceof /></choice>
                     <field name="char" length="8" type="hex" />
                 </choice>
             </sequenceof>
         </sequence>
 
-        <sequence name="body">
-            <sequenceof name="lines">
+        <sequence name="name">
+            <sequenceof name="chars">
                 <choice name="entry:">
-                    <sequence name="comment" />
-                    <sequence name="unknown line" />
+                    <field name="char" length="8" type="text" min="33" />
+                    <field name="empty:" length="0"><end-sequenceof /></field>
                 </choice>
             </sequenceof>
+        </sequence>
+
+        <sequence name="name object">
+            <field name="id:" length="8" value="0x2f" />
+            <sequence name="name" />
+        </sequence>
+
+        <sequence name="integer">
+            <choice name="sign:">
+                <field name="positive" length="8" value="0x2b" />
+                <field name="negative" length="8" value="0x2d" />
+                <field name="none:" length="0" />
+            </choice>
+            <field name="number" length="8" type="text" min="48" max="57" />
+            <sequenceof name="number:">
+                <choice name="char:">
+                    <field name="number" length="8" type="text" min="48" max="57" />
+                    <field name="none" length="0"><end-sequenceof /></field>
+                </choice>
+            </sequenceof>
+        </sequence>
+
+        <sequence name="object reference">
+            <sequence name="object number">
+                <sequence name="integer" />
+            </sequence>
+            <choice name="non breaking whitespace:" />
+            <sequence name="generation number">
+                <sequence name="integer" />
+            </sequence>
+            <choice name="non breaking whitespace:" />
+            <field name="id:" length="8" value="0x52" />
+        </sequence>
+
+        <sequence name="dictionary object">
+            <field name="opener:" length="16" value="0x3c3c" />
+            <sequenceof name="entries:">
+                <choice name="entry:">
+                    <field name="closer:" length="16" value="0x3e3e" ><end-sequenceof /></field>
+                    <sequence name="entry">
+                        <sequence name="name object" />
+                        <choice name="whitespace" />
+                        <!--<choice name="object:" />-->
+                        <sequence name="whitespace" />
+                    </sequence>
+                </choice>
+            </sequenceof>
+        </sequence>
+
+        <choice name="object:">
+            <sequence name="comment" />
+            <sequence name="object reference" />
+            <sequence name="name object" />
+            <sequence name="integer" />
+            <sequence name="dictionary object" />
+            <!--<sequence name="indirect object" />-->
+        </choice>
+
+        <sequence name="indirect object">
+            <sequence name="object number">
+                <sequence name="integer" />
+            </sequence>
+            <sequenceof name="whitespace" />
+            <sequence name="generation number">
+                <sequence name="integer" />
+            </sequence>
+            <sequenceof name="whitespace" />
+            <sequence name="name" />
+            <sequenceof name="whitespace" />
+            <choice name="object:" />
+            <sequenceof name="whitespace" />
+            <field name="endobj:" length="48" value="0x656e646f626a" />
+        </sequence>
+
+        <sequence name="body">
+            <!--<sequenceof name="objects">
+                <choice name="object:" />
+            </sequenceof>-->
+            <sequence name="comment" />
+            <sequence name="indirect object" />
         </sequence>
     </common>
 
