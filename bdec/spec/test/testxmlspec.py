@@ -90,7 +90,7 @@ class TestXml(unittest.TestCase):
         self.assertEqual(0, int(result[1][1]))
 
     def test_common(self):
-        text = """<protocol> <common> <field name="bob" length="8" /> </common> <field name="bob" /> </protocol>"""
+        text = """<protocol> <common> <field name="bob" length="8" /> </common> <reference name="bob" /> </protocol>"""
         decoder = xml.loads(text)[0]
         self.assertEqual("bob", decoder.name)
         self.assertEqual(8, decoder.length)
@@ -104,10 +104,10 @@ class TestXml(unittest.TestCase):
                 <common>
                     <field name="bob" length="8" />
                     <sequence name="rabbit">
-                        <field name="bob" />
+                        <reference name="bob" />
                     </sequence>
                 </common>
-                <sequence name="rabbit" />
+                <reference name="rabbit" />
             </protocol>"""
 
         decoder = xml.loads(text)[0]
@@ -369,10 +369,10 @@ class TestXml(unittest.TestCase):
                 </common>
                 <sequence name="bob">
                     <sequence name="length a">
-                        <field name="length:" />
+                        <reference name="length:" />
                     </sequence>
                     <sequence name="length b">
-                        <field name="length:" />
+                        <reference name="length:" />
                     </sequence>
                     <field name="data a" length="${length a.length:} * 8" type="text" />
                     <field name="data b" length="${length b.length:} * 8" type="text" />
@@ -401,11 +401,11 @@ class TestXml(unittest.TestCase):
                     </choice>
                     <sequence name="length a">
                         <field name="length:" length="8" type="integer" />
-                        <choice name="dog" />
+                        <reference name="dog" />
                     </sequence>
                 </common>
                 <sequence name="bob">
-                    <sequence name="length a" />
+                    <reference name="length a" />
                     <field name="data a" length="${length a.length:} * 8" type="text" />
                 </sequence>
             </protocol>

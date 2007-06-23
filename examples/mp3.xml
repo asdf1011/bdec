@@ -18,7 +18,7 @@
 
         <sequence name="id3v2:frame">
             <field name="id" length="32" type="text" />
-            <sequence name="syncsafe integer:" />
+            <reference name="syncsafe integer:" />
             <sequence name="contents:" length="${syncsafe integer:} * 8 + 16">
                 <sequence name="status flags">
                     <choice name="tag alter preservation" >
@@ -73,7 +73,7 @@
                 <field name="buffer" length="4" />
             </sequence>
             <sequence name="total frames length:">
-                <sequence name="syncsafe integer:" />
+                <reference name="syncsafe integer:" />
             </sequence>
             <sequence name="contents:" length="${total frames length:.syncsafe integer:} * 8">
                 <sequenceof name="frames">
@@ -84,7 +84,7 @@
                             <field name="zero size:" length="32" value="0x0" />
                             <end-sequenceof />
                         </sequence>
-                        <sequence name="id3v2:frame" />
+                        <reference name="id3v2:frame" />
                     </choice>
                 </sequenceof>
                 <field name="padding" length="${total frames length:.syncsafe integer:} * 8 - len{frames}" type="hex" />
@@ -137,9 +137,9 @@
                 <field name="mpeg 1" length="2" value="0x3" />
                 <field name="layer 3" length="2" value="0x1" />
                 <field name="protection bit" length="1" type="integer" />
-                <choice name="mpeg 1 layer 3 bitrate lookup:" />
-                <choice name="mpeg 1 sampling frequency lookup:" />
-                <choice name="mpeg 1 padding lookup:" />
+                <reference name="mpeg 1 layer 3 bitrate lookup:" />
+                <reference name="mpeg 1 sampling frequency lookup:" />
+                <reference name="mpeg 1 padding lookup:" />
                 <field name="private bit" length="1" />
                 <choice name="channel mode">
                     <field name="stereo" length="2" value="0x0" />
@@ -178,12 +178,12 @@
     </common>
 
     <sequence name="mp3">
-        <sequence name="id3 v2" />
+        <reference name="id3 v2" />
         <sequenceof name="frames">
             <choice name="frame:">
-                <sequence name="frame" />
+                <reference name="frame" />
                 <sequence name="id3 v1:">
-                    <sequence name="id3 v1" />
+                    <reference name="id3 v1" />
                     <end-sequenceof />
                 </sequence>
             </choice>

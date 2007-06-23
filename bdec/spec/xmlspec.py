@@ -149,6 +149,7 @@ class _Handler(xml.sax.handler.ContentHandler):
             "end-sequenceof" : self._break,
             "field" : self._field,
             "protocol" : self._protocol,
+            "reference" : self._reference,
             "sequence" : self._sequence,
             "sequenceof" : self._sequenceof,
             }
@@ -187,6 +188,9 @@ class _Handler(xml.sax.handler.ContentHandler):
                 yield child
 
     def _get_common_entry(self, name):
+        if name not in self._common_entries:
+            raise self._error("Referenced element '%s' cannot have sub-entries!" % name)
+
         # There is a problem where listeners to common entries will be  called
         # for all common decodes (see the 
         # test_common_elements_are_independent testcase). We attempt to work
@@ -207,18 +211,10 @@ class _Handler(xml.sax.handler.ContentHandler):
         # We don't pop the children item until after we have called the
         # handler, as it may be used when creating a value reference.
         children = self._children[-1]
-        if attrs.has_key('name') and attrs.getValue('name') in self._common_entries:
-            # We are referencing to a common element...
-            if len(attrs) != 1:
-                raise self._error("Referenced element '%s' cannot have other attributes!" % attrs['name'])
-            if len(children) != 0:
-                raise self._error("Referenced element '%s' cannot have sub-entries!" % attrs['name'])
-            child = self._get_common_entry(attrs['name'])
-        else:
-            length = None
-            if attrs.has_key('length'):
-                length = self._parse_expression(attrs['length'])
-            child = self._handlers[name](attrs, children, length)
+        length = None
+        if attrs.has_key('length'):
+            length = self._parse_expression(attrs['length'])
+        child = self._handlers[name](attrs, children, length)
         self._children.pop()
 
         if child is not None:
@@ -363,6 +359,12 @@ class _Handler(xml.sax.handler.ContentHandler):
 
                 return matches
         raise MissingReferenceError(fullname)
+
+    def _reference(self, attributes, children, length):
+        if attributes.getNames() != ["name"]:
+            raise self._error("Reference entries must have a single 'name' attribute!")
+        name = attributes.getValue('name')
+        return self._get_common_entry(name)
 
     def _field(self, attributes, children, length):
         name = attributes['name']
