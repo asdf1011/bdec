@@ -130,11 +130,30 @@
             <field name="endobj:" length="48" value="0x656e646f626a" />
         </sequence>
 
+        <sequence name="stream object">
+            <reference name="dictionary object" />
+            <reference name="whitespace" />
+            <field name="stream:" length="48" value="0x73747265616d" />
+            <reference name="end of line" />
+            <!-- A programmatic decoder would look in the previous dictionary
+                object for the 'length' entry; that option isn't avaiable to 
+                us. We'll just decode until we get 'endstream' (and hope that
+                text isn't in the binary data)...
+                 -->
+             <sequenceof name="data">
+                 <choice name="entry:">
+                     <field name="endstream" length="72" value="0x656e6473747265616d" ><end-sequenceof/></field>
+                     <field name="byte" length="8" type="hex" />
+                 </choice>
+             </sequenceof>
+        </sequence>
+
         <choice name="object:">
             <reference name="comment" />
             <reference name="object reference" />
             <reference name="indirect object" />
             <reference name="name object" />
+            <reference name="stream object" />
             <reference name="dictionary object" />
         </choice>
 
