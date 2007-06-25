@@ -32,7 +32,7 @@
 
         <sequence name="whitespace">
             <reference name="whitespace entry:" />
-            <sequenceof name="subsequent entries:">
+            <sequenceof name="optional whitespace:">
                 <choice name="entry:">
                     <reference name="whitespace entry:" />
                     <field name="end:" length="0"><end-sequenceof /> </field>
@@ -59,7 +59,10 @@
         <sequence name="name">
             <sequenceof name="chars">
                 <choice name="entry:">
-                    <field name="char" length="8" type="text" min="33" />
+                    <!-- We don't include the '<' or '>' characters -->
+                    <field name="char" length="8" type="text" min="33" max="60" />
+                    <field name="char" length="8" type="text" min="61" max="61" />
+                    <field name="char" length="8" type="text" min="63" />
                     <field name="empty:" length="0"><end-sequenceof /></field>
                 </choice>
             </sequenceof>
@@ -105,21 +108,11 @@
                     <sequence name="entry">
                         <reference name="name object" />
                         <reference name="whitespace" />
-                        <!--<choice name="object:" />-->
-                        <reference name="whitespace" />
+                        <reference name="object:" />
                     </sequence>
                 </choice>
             </sequenceof>
         </sequence>
-
-        <choice name="object:">
-            <reference name="comment" />
-            <reference name="object reference" />
-            <reference name="name object" />
-            <reference name="integer" />
-            <reference name="dictionary object" />
-            <!--<sequence name="indirect object" />-->
-        </choice>
 
         <sequence name="indirect object">
             <sequence name="object number">
@@ -137,12 +130,18 @@
             <field name="endobj:" length="48" value="0x656e646f626a" />
         </sequence>
 
-        <sequence name="body">
-            <!--<sequenceof name="objects">
-                <choice name="object:" />
-            </sequenceof>-->
+        <choice name="object:">
             <reference name="comment" />
+            <reference name="object reference" />
             <reference name="indirect object" />
+            <reference name="name object" />
+            <reference name="dictionary object" />
+        </choice>
+
+        <sequence name="body">
+            <sequenceof name="objects">
+                <reference name="object:" />
+            </sequenceof>
         </sequence>
     </common>
 
