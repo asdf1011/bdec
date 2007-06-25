@@ -425,6 +425,10 @@ class TestXml(unittest.TestCase):
             <protocol>
                 <common>
                     <sequence name="dog">
+                        <reference name="foo" />
+                    </sequence>
+
+                    <sequence name="foo">
                         <reference name="cat" />
                     </sequence>
 

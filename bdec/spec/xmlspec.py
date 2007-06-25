@@ -227,6 +227,8 @@ class _Handler(xml.sax.handler.ContentHandler):
         # For all of the copied elements, we need to update the lookup table
         # so that the copied elements can be found.
         for original, copy in zip(self._walk(entry), self._walk(result)):
+            if isinstance(original, _ReferencedEntry):
+                self._unresolved_references.append(copy)
             self.lookup[copy] = self.lookup[original]
         return result
 
@@ -271,6 +273,14 @@ class _Handler(xml.sax.handler.ContentHandler):
             self._common_entries[child.name] = child
 
     def _common(self, attributes, children, length):
+        pass
+
+    def _protocol(self, attributes, children, length):
+        if len(children) != 1:
+            raise self._error("Protocol should have a single entry to be decoded!")
+        if self._break_listener is not None:
+            raise self._error("end-sequenceof is not surrounded by a sequenceof")
+
         for entry in self._unresolved_references:
             try:
                 entry.resolve(self._common_entries[entry.name])
@@ -278,11 +288,6 @@ class _Handler(xml.sax.handler.ContentHandler):
                 raise self._error("Referenced element '%s' is not found!" % entry.name)
         self._unresolved_references = []
 
-    def _protocol(self, attributes, children, length):
-        if len(children) != 1:
-            raise self._error("Protocol should have a single entry to be decoded!")
-        if self._break_listener is not None:
-            raise self._error("end-sequenceof is not surrounded by a sequenceof")
         self.decoder = children[0]
 
     def _parse_expression(self, text):
