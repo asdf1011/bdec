@@ -37,7 +37,7 @@ class EmptySequenceError(XmlSpecError):
         self.name = name
 
     def __str__(self):
-        return self._src() + "Sequence '%s' must have children!" % self.name
+        return self._src() + "Sequence '%s' must have children! Should this be a 'reference' entry?" % self.name
 
 class EntryHasNoValueError(exp.ExpressionError):
     def __init__(self, entry):
@@ -134,6 +134,29 @@ class _BreakListener:
         assert self._seqof is not None
         self._seqof.stop()
 
+class _ReferencedEntry(ent.Entry):
+    """
+    A mock decoder entry to forward all decoder calls onto another entry.
+
+    Used to 'delay' referencing of decoder entries, for the case where a
+    decoder entry has been referenced (but has not yet been defined).
+    """
+    def __init__(self, name):
+        ent.Entry.__init__(self, name, None, [])
+        self._reference = None
+
+    def resolve(self, entry):
+        assert self._reference is None
+        self._reference = entry
+
+    def _decode(self, data):
+        assert self._reference is not None, "Asked to decode unresolved entry '%s'!" % self.name
+        return self._reference.decode(data)
+
+    def _encode(self, query, context):
+        assert self._reference is not None, "Asked to encode unresolved entry '%s'!" % self.name
+        return self._reference.encode(data)
+
 class _Handler(xml.sax.handler.ContentHandler):
     """
     A sax style xml handler for building a decoder from an xml specification
@@ -160,6 +183,7 @@ class _Handler(xml.sax.handler.ContentHandler):
         self.locator = None
         self._end_sequenceof = False
         self._break_listener = None
+        self._unresolved_references = []
 
     def setDocumentLocator(self, locator):
         self.locator = locator
@@ -189,7 +213,9 @@ class _Handler(xml.sax.handler.ContentHandler):
 
     def _get_common_entry(self, name):
         if name not in self._common_entries:
-            raise self._error("Referenced element '%s' is not found!" % name)
+            result = _ReferencedEntry(name)
+            self._unresolved_references.append(result)
+            return result
 
         # There is a problem where listeners to common entries will be  called
         # for all common decodes (see the 
@@ -245,7 +271,12 @@ class _Handler(xml.sax.handler.ContentHandler):
             self._common_entries[child.name] = child
 
     def _common(self, attributes, children, length):
-        pass
+        for entry in self._unresolved_references:
+            try:
+                entry.resolve(self._common_entries[entry.name])
+            except KeyError:
+                raise self._error("Referenced element '%s' is not found!" % entry.name)
+        self._unresolved_references = []
 
     def _protocol(self, attributes, children, length):
         if len(children) != 1:
@@ -408,7 +439,7 @@ class _Handler(xml.sax.handler.ContentHandler):
 
     def _choice(self, attributes, children, length):
         if len(children) == 0:
-            raise self._error("Choice entries must have children")
+            raise self._error("Choice '%s' must have children! Should this be a 'reference' entry?" % attributes['name'])
         return chc.Choice(attributes['name'], children, length)
 
     def _sequenceof(self, attributes, children, length):

@@ -420,5 +420,50 @@ class TestXml(unittest.TestCase):
             entries.extend(entry.children)
         self.assertEqual(set(['dog', 'rabbit', 'hole', 'length a', 'length:', 'bob', 'data a']), names)
 
+    def test_out_of_order_references(self):
+        text = """
+            <protocol>
+                <common>
+                    <sequence name="dog">
+                        <reference name="cat" />
+                    </sequence>
+
+                    <sequence name="cat" >
+                        <field name="length" length="8" type="integer" />
+                    </sequence>
+                </common>
+                <reference name="dog" />
+            </protocol>
+            """
+        protocol, lookup = xml.loads(text)
+        for is_starting, entry in protocol.decode(dt.Data('a')):
+            if not is_starting and entry.name == "length":
+                result = entry.get_value()
+        self.assertEqual(ord('a'), result)
+
+    def test_recursive_entry(self):
+        text = """
+            <protocol>
+                <common>
+                    <choice name="null terminating string:">
+                        <field name="null:" length="8" value="0x0" />
+                        <sequence name="non null:">
+                            <field name="char" length="8" type="text" />
+                            <reference name="null terminating string:" />
+                        </sequence>
+                    </choice>
+                </common>
+                <reference name="null terminating string:" />
+            </protocol>
+            """
+        protocol, lookup = xml.loads(text)
+        data = dt.Data('rabbit\0legs')
+        result = ""
+        for is_starting, entry in protocol.decode(data):
+            if not is_starting and entry.name == "char":
+                result += entry.get_value()
+        self.assertEqual("rabbit", result)
+        self.assertEqual("legs", str(data))
+
 if __name__ == "__main__":
     unittest.main()
