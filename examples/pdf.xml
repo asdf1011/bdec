@@ -30,14 +30,16 @@
             <reference name="other whitespace:" />
         </choice>
 
+        <sequenceof name="optional whitespace:">
+            <choice name="entry:">
+                <reference name="whitespace entry:" />
+                <field name="end:" length="0"><end-sequenceof /> </field>
+            </choice>
+        </sequenceof>
+
         <sequence name="whitespace">
             <reference name="whitespace entry:" />
-            <sequenceof name="optional whitespace:">
-                <choice name="entry:">
-                    <reference name="whitespace entry:" />
-                    <field name="end:" length="0"><end-sequenceof /> </field>
-                </choice>
-            </sequenceof>
+            <reference name="optional whitespace:" />
         </sequence>
 
         <sequence name="header">
@@ -148,14 +150,18 @@
              </sequenceof>
         </sequence>
 
-        <choice name="object:">
-            <reference name="comment" />
-            <reference name="object reference" />
-            <reference name="indirect object" />
-            <reference name="name object" />
-            <reference name="stream object" />
-            <reference name="dictionary object" />
-        </choice>
+        <sequence name="object:">
+            <reference name="optional whitespace:" />
+            <choice name="object entry:">
+                <reference name="comment" />
+                <reference name="object reference" />
+                <reference name="indirect object" />
+                <reference name="name object" />
+                <reference name="stream object" />
+                <reference name="dictionary object" />
+                <reference name="integer" />
+            </choice>
+        </sequence>
 
         <sequence name="body">
             <sequenceof name="objects">
