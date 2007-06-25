@@ -150,6 +150,16 @@
              </sequenceof>
         </sequence>
 
+        <sequence name="array object">
+            <field name="open square bracket:" length="8" value="0x5b" />
+            <sequenceof name="objects:">
+                <choice name="array entry:">
+                    <field name="close square bracket:" length="8" value="0x5d" ><end-sequenceof /></field>
+                    <reference name="object:" />
+                </choice>
+            </sequenceof>
+        </sequence>
+
         <sequence name="object:">
             <reference name="optional whitespace:" />
             <choice name="object entry:">
@@ -159,6 +169,7 @@
                 <reference name="name object" />
                 <reference name="stream object" />
                 <reference name="dictionary object" />
+                <reference name="array object" />
                 <reference name="integer" />
             </choice>
         </sequence>
