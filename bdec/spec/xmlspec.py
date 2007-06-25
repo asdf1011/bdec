@@ -189,7 +189,7 @@ class _Handler(xml.sax.handler.ContentHandler):
 
     def _get_common_entry(self, name):
         if name not in self._common_entries:
-            raise self._error("Referenced element '%s' cannot have sub-entries!" % name)
+            raise self._error("Referenced element '%s' is not found!" % name)
 
         # There is a problem where listeners to common entries will be  called
         # for all common decodes (see the 
