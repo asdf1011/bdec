@@ -448,6 +448,8 @@ class _Handler(xml.sax.handler.ContentHandler):
         return chc.Choice(attributes['name'], children, length)
 
     def _sequenceof(self, attributes, children, length):
+        if len(children) == 0:
+            raise self._error("SequenceOf '%s' must have a single child! Should this be a 'reference' entry?" % attributes['name'])
         if len(children) != 1:
             raise self._error("Sequence of entries can only have a single child! (got %i)" % len(children))
 
