@@ -101,41 +101,6 @@ def GetDocCallback(filepath):
         doc = None            
         aglogging.reportException(e, stacktrace=True)
             
-    if doc and doc.GetDocumentTemplate().GetDocumentType() == WsdlAgEditor.WsdlAgDocument:
-        # get referenced wsdl doc instead
-        if doc.GetModel().filePath:
-            if os.path.isabs(doc.GetModel().filePath):  # if absolute path, leave it alone
-                filepath = doc.GetModel().filePath
-            else:
-                filepath = doc.GetAppDocMgr().fullPath(doc.GetModel().filePath)  # check relative to project homeDir
-        
-                if not os.path.isfile(filepath):
-                    filepath = os.path.normpath(os.path.join(os.path.dirname(doc.GetFilename()), doc.GetModel().filePath))  # check relative to wsdlag file
-                    
-                    if not os.path.isfile(filepath):
-                        filename = os.sep + os.path.basename(doc.GetModel().filePath)  # check to see if in project file
-                        filePaths = findDocumentMgr(doc).filePaths
-                        for fp in filePaths:
-                            if fp.endswith(filename):
-                                filepath = fp
-                                break
-        
-            try:
-                doc = docMgr.CreateDocument(filepath, docMgr.GetFlags()|wx.lib.docview.DOC_SILENT|wx.lib.docview.DOC_OPEN_ONCE|wx.lib.docview.DOC_NO_VIEW)
-            except Exception,e:
-                doc = None
-                aglogging.reportException(e, stacktrace=True)
-                
-            if doc: 
-                AddProjectMapping(doc)
-            else:  # already open
-                for d in docMgr.GetDocuments():
-                    if os.path.normcase(d.GetFilename()) == os.path.normcase(filepath):
-                        doc = d
-                        break
-        else:
-            doc = None
-
     if doc:
         docModel = doc.GetModel()
     else:
@@ -208,8 +173,6 @@ class ProjectDocument(wx.lib.docview.Document):
         else:
             self.SetModel(projectlib.Project())  # initial model used by "File | New... | Project"
         self.GetModel().SetDocCallback(GetDocCallback)
-
-        self._stageProjectFile = False 
 
 
     def __copy__(self):
@@ -477,10 +440,6 @@ class ProjectDocument(wx.lib.docview.Document):
         return [fileRef.filePath for fileRef in invalidFileRefs]
 
 
-    def SetStageProjectFile(self):
-        self._stageProjectFile = True
-
-
     def ArchiveProject(self, zipdest, stagedir):
         """Zips stagedir, creates a zipfile that has as name the projectname, in zipdest. Returns path to zipfile."""
         if os.path.exists(zipdest):
@@ -488,121 +447,6 @@ class ProjectDocument(wx.lib.docview.Document):
         fileutils.zip(zipdest, stagedir)
 
         return zipdest
-
-
-    def StageProject(self, tmpdir, targetDataSourceMapping={}):
-        """ Copies all files this project knows about into staging location. Files that live outside of the project dir are copied into the root of the stage dir, and their recorded file path is updated. Files that live inside of the project dir keep their relative path. Generates .dpl file into staging dir. Returns path to staging dir."""
-
-        projname = self.GetProjectName()
-        stagedir = os.path.join(tmpdir, projname)
-        fileutils.remove(stagedir)
-        os.makedirs(stagedir)        
-
-        # remove invalid files from project
-        self.RemoveInvalidPaths()        
-
-        # required so relative paths are written correctly when .dpl file is
-        # generated below.
-        self.SetFilename(os.path.join(stagedir,
-                                      os.path.basename(self.GetFilename())))
-        projectdir = self.GetModel().homeDir
-
-        # Validate paths before actually copying, and populate a dict
-        # with src->dest so copying is easy.
-        # (fileDict: ProjectFile instance -> dest path (string))
-        fileDict = self._ValidateFilePaths(projectdir, stagedir)
-        
-        # copy files to staging dir
-        self._StageFiles(fileDict)
-
-        # set target data source for schemas
-        self._SetSchemaTargetDataSource(fileDict, targetDataSourceMapping)
-
-        # it is unfortunate we require this. it would be nice if filepaths
-        # were only in the project
-        self._FixWsdlAgFiles(stagedir)
-            
-        # generate .dpl file
-        dplfilename = projname + deploymentlib.DEPLOYMENT_EXTENSION
-        dplfilepath = os.path.join(stagedir, dplfilename)
-        self.GenerateDeployment(dplfilepath)
-
-        if self._stageProjectFile:
-            # save project so we get the .agp file. not required for deployment
-            # but convenient if user wants to open the deployment in the IDE
-            agpfilename = projname + PROJECT_EXTENSION
-            agpfilepath = os.path.join(stagedir, agpfilename)
-
-            # if this project has deployment data sources configured, remove
-            # them. changing the project is fine, since this is a clone of
-            # the project the IDE has.
-            self.GetModel().GetAppInfo().ResetDeploymentDataSources()
-            
-            f = None
-            try:
-                f = open(agpfilepath, "w")
-                
-                # setting homeDir correctly is required for the "figuring out
-                # relative paths" logic when saving the project
-                self.GetModel().homeDir = stagedir
-                
-                projectlib.save(f, self.GetModel(), productionDeployment=True)
-            finally:
-                try:
-                    f.close()
-                except: pass
-
-        return stagedir
-
-    def _FixWsdlAgFiles(self, stagedir):
-        """For each wsdlag file in the stagedir: if referenced artifact (wsdl or code file) is a known product file (such as securityservice.wsdl), make sure patch to it is parameterized with special env var. We do not want to copy those files. For user artifacts, ensure the file lives in root of stagedir. This should be the case if it is part of project (since staging has run). If it is not at root of stagedir, copy it. Then update path in wsdlag."""
-        files = os.listdir(stagedir)
-        for f in files:
-            if (f.endswith(WsdlAgEditor.WsdlAgDocument.WSDL_AG_EXT)):
-                wsdlagpath = os.path.join(stagedir, f)
-                fileObject = None
-                modified = False
-                try:
-                    fileObject = open(wsdlagpath)
-                    serviceref = WsdlAgEditor.load(fileObject)
-
-                    # referenced wsdl
-                    if (hasattr(serviceref, WsdlAgModel.WSDL_FILE_ATTR)):
-                        modified = (modified |
-                                    self._UpdateServiceRefPathAttr(
-                                        stagedir, serviceref,
-                                        WsdlAgModel.WSDL_FILE_ATTR))
-
-                    # referenced code file
-                    if (hasattr(serviceref, WsdlAgModel.LOCAL_SERVICE_ELEMENT)):
-                        lse = getattr(serviceref,
-                                      WsdlAgModel.LOCAL_SERVICE_ELEMENT)
-                        if (hasattr(lse, WsdlAgModel.LOCAL_SERVICE_FILE_ATTR)):
-                            modified = (modified |
-                                        self._UpdateServiceRefPathAttr(
-                                            stagedir, lse,
-                                            WsdlAgModel.LOCAL_SERVICE_FILE_ATTR))
-
-                    
-                finally:
-                    try:
-                        fileObject.close()
-                    except:
-                        pass
-
-                # no need to save the file if we did not change anything
-                if not modified: continue
-
-                # write the wsdlag file
-                fileObject = open(wsdlagpath)
-                try:
-                    serviceref = WsdlAgEditor.save(fileObject, serviceref)
-                finally:
-                    try:
-                        fileObject.close()
-                    except:
-                        pass
-                    
 
     def _UpdateServiceRefPathAttr(self, stagedir, serviceref, attrName):
         """Returns True if serviceref path has been updated, False otherwise."""
