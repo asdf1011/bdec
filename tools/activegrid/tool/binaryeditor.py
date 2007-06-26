@@ -84,13 +84,13 @@ class DecodeView(wx.lib.docview.View):
 
     def OnCreate(self, doc, flags):
         self._frame = wx.GetApp().CreateDocumentFrame(self, doc, flags, style = wx.DEFAULT_FRAME_STYLE | wx.NO_FULL_REPAINT_ON_RESIZE)
-        self._tree = wx.TreeCtrl(self._frame, -1, style=wx.NO_BORDER)
+        self._tree = wx.TreeCtrl(self._frame, -1, style=wx.NO_BORDER|wx.TR_HAS_BUTTONS)
 
         isz = (16,16)
         self.il = wx.ImageList(isz[0], isz[1])
-        fldridx     = self.il.Add(wx.ArtProvider_GetBitmap(wx.ART_FOLDER,      wx.ART_OTHER, isz))
-        fldropenidx = self.il.Add(wx.ArtProvider_GetBitmap(wx.ART_FILE_OPEN,   wx.ART_OTHER, isz))
-        fileidx     = self.il.Add(wx.ArtProvider_GetBitmap(wx.ART_NORMAL_FILE, wx.ART_OTHER, isz))
+        self._fldridx     = self.il.Add(wx.ArtProvider_GetBitmap(wx.ART_FOLDER,      wx.ART_OTHER, isz))
+        self._fldropenidx = self.il.Add(wx.ArtProvider_GetBitmap(wx.ART_FILE_OPEN,   wx.ART_OTHER, isz))
+        self._fileidx     = self.il.Add(wx.ArtProvider_GetBitmap(wx.ART_NORMAL_FILE, wx.ART_OTHER, isz))
         self._tree.SetImageList(self.il)
 
         self._frame.Bind(wx.EVT_CLOSE, self._on_close)
@@ -121,6 +121,14 @@ class DecodeView(wx.lib.docview.View):
                 item = self._tree.AddRoot(text)
             else:
                 item = self._tree.AppendItem(self._decode_stack[-1], text)
+
+            # Set the icon of the entry
+            if isinstance(evt.entry, bdec.field.Field):
+                self._tree.SetItemImage(item, self._fileidx, wx.TreeItemIcon_Normal)
+            else:
+                self._tree.SetItemImage(item, self._fldridx, wx.TreeItemIcon_Normal)
+                self._tree.SetItemImage(item, self._fldropenidx, wx.TreeItemIcon_Expanded)
+
             self._decode_stack.append(item)
         else:
             item = self._decode_stack.pop()
@@ -128,6 +136,7 @@ class DecodeView(wx.lib.docview.View):
                 text = evt.entry.name
             else:
                 text = "%s = %s" % (evt.entry.name, evt.value)
+
             self._tree.SetItemText(item, text)
 
     def OnClose(self, deleteWindow = True):
