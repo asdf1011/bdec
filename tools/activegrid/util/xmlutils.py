@@ -102,3 +102,8 @@ def getAgVersion(fileName):
             version = xml[i+1:j]
     return version
 
+AG_NS_URL = "http://www.activegrid.com/ag.xsd"
+
+KNOWN_NAMESPACES = { AG_NS_URL          :  "ag",
+                   }
+
