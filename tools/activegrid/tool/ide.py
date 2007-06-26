@@ -102,16 +102,14 @@ class IDEApplication(wx.lib.pydocview.DocApp):
         if not wx.lib.pydocview.DocApp.OnInit(self):
             return False
 
-        import STCTextEditor
-        import MarkerService
-        import project as projectlib
-        import ProjectEditor
-        import OutlineService
-        import XmlEditor
-        import TabbedView
-        import MessageService
-        import Service
-        import AboutDialog
+        import activegrid.tool.texteditor
+        import activegrid.tool.markerservice
+        import activegrid.tool.project as projectlib
+        import activegrid.tool.projecteditor
+        import activegrid.tool.outlineservice
+        import activegrid.tool.xmleditor
+        import activegrid.tool.messageservice
+        import activegrid.tool.aboutdialog
 ##        import UpdateLogIniService
                             
         _EDIT_LAYOUTS = True
@@ -134,23 +132,23 @@ class IDEApplication(wx.lib.pydocview.DocApp):
                 _(".txt"),
                 _("Text Document"),
                 _("Text View"),
-                STCTextEditor.TextDocument,
-                STCTextEditor.TextView,
+                activegrid.tool.texteditor.TextDocument,
+                activegrid.tool.texteditor.TextView,
                 wx.lib.docview.TEMPLATE_INVISIBLE,
-                icon = STCTextEditor.getTextIcon())
+                icon = activegrid.tool.texteditor.getTextIcon())
         docManager.AssociateTemplate(defaultTemplate)
 
-        projectTemplate = ProjectEditor.ProjectTemplate(docManager,
+        projectTemplate = activegrid.tool.projecteditor.ProjectTemplate(docManager,
                 _("Project"),
                 "*.agp",
                 _("Project"),
                 _(".agp"),
                 _("Project Document"),
                 _("Project View"),
-                ProjectEditor.ProjectDocument,
-                ProjectEditor.ProjectView,
+                activegrid.tool.projecteditor.ProjectDocument,
+                activegrid.tool.projecteditor.ProjectView,
                 wx.lib.docview.TEMPLATE_NO_CREATE,
-                icon = ProjectEditor.getProjectIcon())
+                icon = activegrid.tool.projecteditor.getProjectIcon())
         docManager.AssociateTemplate(projectTemplate)
 
         xmlTemplate = wx.lib.docview.DocTemplate(docManager,
@@ -160,34 +158,34 @@ class IDEApplication(wx.lib.pydocview.DocApp):
                 _(".xml"),
                 _("XML Document"),
                 _("XML View"),
-                XmlEditor.XmlDocument,
-                XmlEditor.XmlView,
-                icon = XmlEditor.getXMLIcon())
+                activegrid.tool.xmleditor.XmlDocument,
+                activegrid.tool.xmleditor.XmlView,
+                icon = activegrid.tool.xmleditor.getXMLIcon())
         docManager.AssociateTemplate(xmlTemplate)
 
         
         # Note:  Child document types aren't displayed in "Files of type" dropdown
         
-        textService             = self.InstallService(STCTextEditor.TextService())
-        projectService          = self.InstallService(ProjectEditor.ProjectService("Projects", embeddedWindowLocation = wx.lib.pydocview.EMBEDDED_WINDOW_TOPLEFT))
-        outlineService          = self.InstallService(OutlineService.OutlineService("Outline", embeddedWindowLocation = wx.lib.pydocview.EMBEDDED_WINDOW_BOTTOMLEFT))
+        textService             = self.InstallService(activegrid.tool.texteditor.TextService())
+        projectService          = self.InstallService(activegrid.tool.projecteditor.ProjectService("Projects", embeddedWindowLocation = wx.lib.pydocview.EMBEDDED_WINDOW_TOPLEFT))
+        outlineService          = self.InstallService(activegrid.tool.outlineservice.OutlineService("Outline", embeddedWindowLocation = wx.lib.pydocview.EMBEDDED_WINDOW_BOTTOMLEFT))
         filePropertiesService   = self.InstallService(wx.lib.pydocview.FilePropertiesService())
-        markerService           = self.InstallService(MarkerService.MarkerService())
-        messageService          = self.InstallService(MessageService.MessageService("Messages", embeddedWindowLocation = wx.lib.pydocview.EMBEDDED_WINDOW_BOTTOM))
+        markerService           = self.InstallService(activegrid.tool.markerservice.MarkerService())
+        messageService          = self.InstallService(activegrid.tool.messageservice.MessageService("Messages", embeddedWindowLocation = wx.lib.pydocview.EMBEDDED_WINDOW_BOTTOM))
         optionsService          = self.InstallService(wx.lib.pydocview.DocOptionsService(supportedModes=wx.lib.docview.DOC_MDI))
-        aboutService            = self.InstallService(wx.lib.pydocview.AboutService(AboutDialog.AboutDialog))
+        aboutService            = self.InstallService(wx.lib.pydocview.AboutService(activegrid.tool.aboutdialog.AboutDialog))
         if self.GetUseTabbedMDI():
             windowService       = self.InstallService(wx.lib.pydocview.WindowMenuService())
         
         # order of these added determines display order of Options Panels
-        optionsService.AddOptionsPanel(ProjectEditor.ProjectOptionsPanel)
-        optionsService.AddOptionsPanel(XmlEditor.XmlOptionsPanel)
-        optionsService.AddOptionsPanel(STCTextEditor.TextOptionsPanel)
+        optionsService.AddOptionsPanel(activegrid.tool.projecteditor.ProjectOptionsPanel)
+        optionsService.AddOptionsPanel(activegrid.tool.xmleditor.XmlOptionsPanel)
+        optionsService.AddOptionsPanel(activegrid.tool.texteditor.TextOptionsPanel)
 
         filePropertiesService.AddCustomEventHandler(projectService)
 
-        outlineService.AddViewTypeForBackgroundHandler(ProjectEditor.ProjectView) # special case, don't clear outline if in project
-        outlineService.AddViewTypeForBackgroundHandler(MessageService.MessageView) # special case, don't clear outline if in message window
+        outlineService.AddViewTypeForBackgroundHandler(activegrid.tool.projecteditor.ProjectView) # special case, don't clear outline if in project
+        outlineService.AddViewTypeForBackgroundHandler(activegrid.tool.messageservice.MessageView) # special case, don't clear outline if in message window
         outlineService.StartBackgroundTimer()
         
         projectService.AddLogicalViewFolderDefault(".xml", _("Code"))
@@ -234,9 +232,9 @@ class IDEDocManager(wx.lib.docview.DocManager):
         #    isTemplate, object = newDialog.GetSelection()
         #    if isTemplate:
         #        object.CreateDocument('', wx.lib.docview.DOC_NEW)
-        import ProjectEditor
+        import activegrid.tool.projecteditor
         for temp in self.GetTemplates():
-            if isinstance(temp,ProjectEditor.ProjectTemplate):
+            if isinstance(temp,activegrid.tool.projecteditor.ProjectTemplate):
                 temp.CreateDocument('', wx.lib.docview.DOC_NEW)
                 break
     

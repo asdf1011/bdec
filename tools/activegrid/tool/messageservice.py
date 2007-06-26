@@ -11,8 +11,8 @@
 #----------------------------------------------------------------------------
 
 import wx
-import Service
-import STCTextEditor
+import activegrid.tool.service
+import activegrid.tool.texteditor
 
 #----------------------------------------------------------------------------
 # Utility
@@ -43,7 +43,7 @@ def ShowMessages(messages, clear=False):
 #----------------------------------------------------------------------------
 
 
-class MessageView(Service.ServiceView):
+class MessageView(activegrid.tool.service.ServiceView):
     """ Reusable Message View for any document.
         When an item is selected, the document view is called back (with DoSelectCallback) to highlight and display the corresponding item in the document view.
     """
@@ -53,7 +53,7 @@ class MessageView(Service.ServiceView):
     #----------------------------------------------------------------------------
 
     def _CreateControl(self, parent, id):
-        txtCtrl = STCTextEditor.TextCtrl(parent, id)
+        txtCtrl = activegrid.tool.texteditor.TextCtrl(parent, id)
         txtCtrl.SetMarginWidth(1, 0)  # hide line numbers
         txtCtrl.SetReadOnly(True)
 
@@ -154,7 +154,7 @@ class MessageView(Service.ServiceView):
 
 
 
-class MessageService(Service.Service):
+class MessageService(activegrid.tool.service.Service):
 
 
     #----------------------------------------------------------------------------

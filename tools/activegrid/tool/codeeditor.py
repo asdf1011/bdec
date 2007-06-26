@@ -11,16 +11,15 @@
 #----------------------------------------------------------------------------
 
 
-import STCTextEditor
+import activegrid.tool.texteditor
 import wx
 import wx.lib.docview
-import OutlineService
+import activegrid.tool.outlineservice
 import os
 import re
 import string
 import sys
-import MarkerService
-from UICommon import CaseInsensitiveCompare
+from activegrid.tool.uicommon import CaseInsensitiveCompare
 _ = wx.GetTranslation
 if wx.Platform == '__WXMSW__':
     _WINDOWS = True
@@ -46,11 +45,11 @@ SET_INDENT_WIDTH_ID = wx.NewId()
 FOLDING_ID = wx.NewId()
 
 
-class CodeDocument(STCTextEditor.TextDocument):
+class CodeDocument(activegrid.tool.texteditor.TextDocument):
     pass    
 
 
-class CodeView(STCTextEditor.TextView):
+class CodeView(activegrid.tool.texteditor.TextView):
 
 
     #----------------------------------------------------------------------------
@@ -111,7 +110,7 @@ class CodeView(STCTextEditor.TextView):
             self.OnUncommentLines()
             return True
         else:
-            return STCTextEditor.TextView.ProcessEvent(self, event)
+            return activegrid.tool.texteditor.TextView.ProcessEvent(self, event)
 
 
     def ProcessUpdateUIEvent(self, event):
@@ -161,7 +160,7 @@ class CodeView(STCTextEditor.TextView):
             event.Check(self.GetCtrl().GetUseTabs())
             return True
         else:
-            return STCTextEditor.TextView.ProcessUpdateUIEvent(self, event)
+            return activegrid.tool.texteditor.TextView.ProcessUpdateUIEvent(self, event)
 
 
     #----------------------------------------------------------------------------
@@ -174,7 +173,7 @@ class CodeView(STCTextEditor.TextView):
         
 
     def ClearOutline(self):
-        outlineService = wx.GetApp().GetService(OutlineService.OutlineService)
+        outlineService = wx.GetApp().GetService(activegrid.tool.outlineservice.OutlineService)
         if not outlineService:
             return
 
@@ -186,14 +185,14 @@ class CodeView(STCTextEditor.TextView):
 
 
     def LoadOutline(self, force=False):
-        outlineService = wx.GetApp().GetService(OutlineService.OutlineService)
+        outlineService = wx.GetApp().GetService(activegrid.tool.outlineservice.OutlineService)
         if not outlineService:
             return
         outlineService.LoadOutline(self, force=force)
 
 
     def DoLoadOutlineCallback(self, force=False):
-        outlineService = wx.GetApp().GetService(OutlineService.OutlineService)
+        outlineService = wx.GetApp().GetService(activegrid.tool.outlineservice.OutlineService)
         if not outlineService:
             return False
 
@@ -492,11 +491,11 @@ class CodeView(STCTextEditor.TextView):
             self.GetCtrl().SetFontColor(color)
 
 
-class CodeService(STCTextEditor.TextService):
+class CodeService(activegrid.tool.texteditor.TextService):
 
 
     def __init__(self):
-        STCTextEditor.TextService.__init__(self)
+        activegrid.tool.texteditor.TextService.__init__(self)
 
 
     def InstallControls(self, frame, menuBar = None, toolBar = None, statusBar = None, document = None):
@@ -626,10 +625,10 @@ class CodeService(STCTextEditor.TextService):
             event.Enable(False)
             return True
         else:
-            return STCTextEditor.TextService.ProcessUpdateUIEvent(self, event)
+            return activegrid.tool.texteditor.TextService.ProcessUpdateUIEvent(self, event)
 
 
-class CodeCtrl(STCTextEditor.TextCtrl):
+class CodeCtrl(activegrid.tool.texteditor.TextCtrl):
     CURRENT_LINE_MARKER_NUM = 2
     BREAKPOINT_MARKER_NUM = 1
     CURRENT_LINE_MARKER_MASK = 0x4
@@ -637,7 +636,7 @@ class CodeCtrl(STCTextEditor.TextCtrl):
     
             
     def __init__(self, parent, id=-1, style = wx.NO_FULL_REPAINT_ON_RESIZE, clearTab=True):
-        STCTextEditor.TextCtrl.__init__(self, parent, id, style)
+        activegrid.tool.texteditor.TextCtrl.__init__(self, parent, id, style)
         
         self.UsePopUp(False)
         self.Bind(wx.EVT_RIGHT_UP, self.OnRightUp)
@@ -736,7 +735,7 @@ class CodeCtrl(STCTextEditor.TextCtrl):
 
 
     def OnPopSyncOutline(self, event):
-        wx.GetApp().GetService(OutlineService.OutlineService).LoadOutline(wx.GetApp().GetDocumentManager().GetCurrentView(), position=self._rightClickPosition)
+        wx.GetApp().GetService(activegrid.tool.outlineservice.OutlineService).LoadOutline(wx.GetApp().GetDocumentManager().GetCurrentView(), position=self._rightClickPosition)
           
 
     def HasSelection(self):
@@ -830,7 +829,7 @@ class CodeCtrl(STCTextEditor.TextCtrl):
         elif key == wx.WXK_RETURN:
             self.DoIndent()
         else:
-            STCTextEditor.TextCtrl.OnKeyPressed(self, event)
+            activegrid.tool.texteditor.TextCtrl.OnKeyPressed(self, event)
 
 
     def DoIndent(self):

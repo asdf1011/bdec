@@ -13,16 +13,15 @@
 
 import wx
 import string
-import STCTextEditor
-import CodeEditor
+import activegrid.tool.codeeditor
 
 
-class XmlDocument(CodeEditor.CodeDocument):
+class XmlDocument(activegrid.tool.codeeditor.CodeDocument):
 
     pass
 
 
-class XmlView(CodeEditor.CodeView):
+class XmlView(activegrid.tool.codeeditor.CodeView):
 
 
     def GetCtrlClass(self):
@@ -53,18 +52,18 @@ class XmlView(CodeEditor.CodeView):
         return XMLKEYWORDS
 
 
-class XmlService(CodeEditor.CodeService):
+class XmlService(activegrid.tool.codeeditor.CodeService):
 
 
     def __init__(self):
-        CodeEditor.CodeService.__init__(self)
+        activegrid.tool.codeeditor.CodeService.__init__(self)
 
 
-class XmlCtrl(CodeEditor.CodeCtrl):
+class XmlCtrl(activegrid.tool.codeeditor.CodeCtrl):
 
 
     def __init__(self, parent, id=-1, style=wx.NO_FULL_REPAINT_ON_RESIZE):
-        CodeEditor.CodeCtrl.__init__(self, parent, id, style)
+        activegrid.tool.codeeditor.CodeCtrl.__init__(self, parent, id, style)
         self.SetLexer(wx.stc.STC_LEX_XML)
         self.SetProperty("fold.html", "1")
 
@@ -78,15 +77,15 @@ class XmlCtrl(CodeEditor.CodeCtrl):
 
 
     def SetViewDefaults(self):
-        CodeEditor.CodeCtrl.SetViewDefaults(self, configPrefix = "Xml", hasWordWrap = True, hasTabs = True, hasFolding=True)
+        activegrid.tool.codeeditor.CodeCtrl.SetViewDefaults(self, configPrefix = "Xml", hasWordWrap = True, hasTabs = True, hasFolding=True)
 
 
     def GetFontAndColorFromConfig(self):
-        return CodeEditor.CodeCtrl.GetFontAndColorFromConfig(self, configPrefix = "Xml")
+        return activegrid.tool.codeeditor.CodeCtrl.GetFontAndColorFromConfig(self, configPrefix = "Xml")
 
 
     def UpdateStyles(self):
-        CodeEditor.CodeCtrl.UpdateStyles(self)
+        activegrid.tool.codeeditor.CodeCtrl.UpdateStyles(self)
         
         if not self.GetFont():
             return
@@ -112,10 +111,10 @@ class XmlCtrl(CodeEditor.CodeCtrl):
         self.StyleSetSpec(wx.stc.STC_H_ATTRIBUTE, "face:%(font)s,fore:#007F7F,bold,size:%(size)d" % faces)
 
 
-class XmlOptionsPanel(STCTextEditor.TextOptionsPanel):
+class XmlOptionsPanel(activegrid.tool.texteditor.TextOptionsPanel):
 
     def __init__(self, parent, id):
-        STCTextEditor.TextOptionsPanel.__init__(self, parent, id, configPrefix = "Xml", label = "XML", hasWordWrap = True, hasTabs = True, hasFolding=True)
+        activegrid.tool.texteditor.TextOptionsPanel.__init__(self, parent, id, configPrefix = "Xml", label = "XML", hasWordWrap = True, hasTabs = True, hasFolding=True)
 
 
     def GetIcon(self):
