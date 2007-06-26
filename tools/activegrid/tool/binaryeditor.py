@@ -15,6 +15,8 @@ import bdec.data
 import bdec.field
 import bdec.spec.xmlspec
 
+import activegrid.tool.projecteditor
+
 class BinaryDocument(wx.lib.docview.Document):
     def __init__(self):
         wx.lib.docview.Document.__init__(self)
@@ -103,7 +105,18 @@ class DecodeView(wx.lib.docview.View):
 
         assert self._decoder is None
         assert self._frame is not None
-        protocol = open('/home/henry/programming/bdec.ide/examples/pdf.xml', 'r').read()
+
+        projectService = wx.GetApp().GetService(activegrid.tool.projecteditor.ProjectService)
+        for filename in projectService.GetFilesFromCurrentProject():
+            if filename.endswith('.xml'):
+                break
+        else:
+            wx.MessageBox("Could not find protocol spec in project.", "Decode errror",
+                          wx.OK | wx.ICON_EXCLAMATION,
+                          self._frame)
+            return
+
+        protocol = open(filename, 'r').read()
         self._decoder = _DecodeThread(self._frame, protocol, self.GetDocument().data)
         self._frame.Bind(self._decoder.EVT_DECODE, self._on_decode)
         self._decoder.start()
