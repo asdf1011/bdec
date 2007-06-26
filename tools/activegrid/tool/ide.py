@@ -103,7 +103,6 @@ class IDEApplication(wx.lib.pydocview.DocApp):
             return False
 
         import STCTextEditor
-        import FindInDirService
         import MarkerService
         import project as projectlib
         import ProjectEditor
@@ -171,7 +170,6 @@ class IDEApplication(wx.lib.pydocview.DocApp):
         
         textService             = self.InstallService(STCTextEditor.TextService())
         projectService          = self.InstallService(ProjectEditor.ProjectService("Projects", embeddedWindowLocation = wx.lib.pydocview.EMBEDDED_WINDOW_TOPLEFT))
-        findService             = self.InstallService(FindInDirService.FindInDirService())
         outlineService          = self.InstallService(OutlineService.OutlineService("Outline", embeddedWindowLocation = wx.lib.pydocview.EMBEDDED_WINDOW_BOTTOMLEFT))
         filePropertiesService   = self.InstallService(wx.lib.pydocview.FilePropertiesService())
         markerService           = self.InstallService(MarkerService.MarkerService())

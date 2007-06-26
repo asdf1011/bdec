@@ -273,7 +273,6 @@ class ProjectDocument(wx.lib.docview.Document):
         view = projectService.GetView()
 
         if not os.path.exists(filePath):
-            wx.GetApp().CloseSplash()
             msgTitle = wx.GetApp().GetAppName()
             if not msgTitle:
                 msgTitle = _("File Error")
@@ -287,7 +286,6 @@ class ProjectDocument(wx.lib.docview.Document):
         try:
             self.LoadObject(fileObject)
         except:
-            wx.GetApp().CloseSplash()
             msgTitle = wx.GetApp().GetAppName()
             if not msgTitle:
                 msgTitle = _("File Error")
