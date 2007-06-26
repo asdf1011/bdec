@@ -235,20 +235,6 @@ class BaseProject(object):
                 fileList.append(file)
         return fileList
 
-
-    def GenerateServiceRefPath(self, wsdlFilePath):
-        # HACK: temporary solution to getting wsdlag path from wsdl path.
-        import wx
-        from WsdlAgEditor import WsdlAgDocument
-        ext = WsdlAgDocument.WSDL_AG_EXT
-        for template in wx.GetApp().GetDocumentManager().GetTemplates():
-            if template.GetDocumentType() == WsdlAgDocument:
-                ext = template.GetDefaultExtension()
-                break;
-        wsdlAgFilePath = os.path.splitext(wsdlFilePath)[0] + ext
-        return wsdlAgFilePath
-
-
     def SetDocCallback(self, getDocCallback):
         self._getDocCallback = getDocCallback
         for file in self._files:
