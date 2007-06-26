@@ -102,6 +102,7 @@ class IDEApplication(wx.lib.pydocview.DocApp):
         if not wx.lib.pydocview.DocApp.OnInit(self):
             return False
 
+        import activegrid.tool.binaryeditor
         import activegrid.tool.texteditor
         import activegrid.tool.markerservice
         import activegrid.tool.project as projectlib
@@ -110,7 +111,6 @@ class IDEApplication(wx.lib.pydocview.DocApp):
         import activegrid.tool.xmleditor
         import activegrid.tool.messageservice
         import activegrid.tool.aboutdialog
-##        import UpdateLogIniService
                             
         _EDIT_LAYOUTS = True
 
@@ -163,9 +163,18 @@ class IDEApplication(wx.lib.pydocview.DocApp):
                 icon = activegrid.tool.xmleditor.getXMLIcon())
         docManager.AssociateTemplate(xmlTemplate)
 
+        binaryTemplate = wx.lib.docview.DocTemplate(docManager,
+                _("Binary"),
+                "*.pdf",
+                _("Binary"),
+                _(".pdf"),
+                _("Binary Document"),
+                _("Binary View"),
+                activegrid.tool.binaryeditor.BinaryDocument,
+                activegrid.tool.binaryeditor.DecodeView)
+        docManager.AssociateTemplate(binaryTemplate)
         
         # Note:  Child document types aren't displayed in "Files of type" dropdown
-        
         textService             = self.InstallService(activegrid.tool.texteditor.TextService())
         projectService          = self.InstallService(activegrid.tool.projecteditor.ProjectService("Projects", embeddedWindowLocation = wx.lib.pydocview.EMBEDDED_WINDOW_TOPLEFT))
         outlineService          = self.InstallService(activegrid.tool.outlineservice.OutlineService("Outline", embeddedWindowLocation = wx.lib.pydocview.EMBEDDED_WINDOW_BOTTOMLEFT))
