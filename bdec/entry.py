@@ -168,3 +168,6 @@ class Entry(object):
         Is this a 'hidden' entry.
         """
         return is_hidden(self.name)
+
+    def __str__(self):
+        return "%s '%s'" % (self.__class__, self.name)

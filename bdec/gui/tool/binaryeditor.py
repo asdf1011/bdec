@@ -11,6 +11,7 @@ import threading
 import wx
 import wx.lib.newevent
 
+import bdec.choice
 import bdec.data
 import bdec.field
 import bdec.spec.xmlspec
@@ -84,8 +85,10 @@ class DecodeView(wx.lib.docview.View):
         wx.lib.docview.View.__init__(self)
         self._decoder = None
         self._decode_stack = []
+        self._item_stack = []
         self._doc = None
         self._frame = None
+        self._parent_lookup = {}
 
     def OnCreate(self, doc, flags):
         self._frame = wx.GetApp().CreateDocumentFrame(self, doc, flags, style = wx.DEFAULT_FRAME_STYLE | wx.NO_FULL_REPAINT_ON_RESIZE)
@@ -98,6 +101,7 @@ class DecodeView(wx.lib.docview.View):
         self._fileidx     = self.il.Add(wx.ArtProvider_GetBitmap(wx.ART_NORMAL_FILE, wx.ART_OTHER, isz))
         self._tree.SetImageList(self.il)
 
+        self._tree.Bind(wx.EVT_RIGHT_UP, self._on_right_click)
         self._frame.Bind(wx.EVT_SIZE, self.OnSize)
         return True
 
@@ -127,32 +131,72 @@ class DecodeView(wx.lib.docview.View):
         wx.lib.docview.View.Destroy(self)
 
     def _on_decode(self, evt):
+        # Update the parent list
+        if evt.is_starting:
+            parent = None
+            if self._decode_stack:
+                parent = self._decode_stack[-1]
+            self._parent_lookup[evt.entry] = parent
+            self._decode_stack.append(evt.entry)
+        else:
+            self._decode_stack.pop()
+
+        # Ignore hidden entries (except to update the decode stack)
         if evt.entry.is_hidden():
             return
 
+        # Add the entry to the tree view
         if evt.is_starting:
             text = "%s (decoding)" % evt.entry.name
-            if not self._decode_stack:
+            if not self._item_stack:
                 item = self._tree.AddRoot(text)
             else:
-                item = self._tree.AppendItem(self._decode_stack[-1], text)
+                item = self._tree.AppendItem(self._item_stack[-1], text)
 
-            # Set the icon of the entry
             if isinstance(evt.entry, bdec.field.Field):
                 self._tree.SetItemImage(item, self._fileidx, wx.TreeItemIcon_Normal)
             else:
                 self._tree.SetItemImage(item, self._fldridx, wx.TreeItemIcon_Normal)
                 self._tree.SetItemImage(item, self._fldropenidx, wx.TreeItemIcon_Expanded)
 
-            self._decode_stack.append(item)
+            self._tree.SetPyData(item, evt.entry)
+            self._item_stack.append(item)
         else:
-            item = self._decode_stack.pop()
+            item = self._item_stack.pop()
             if evt.value is None:
                 text = evt.entry.name
             else:
                 text = "%s = %s" % (evt.entry.name, evt.value)
 
             self._tree.SetItemText(item, text)
+
+    def _on_right_click(self, evt):
+        pt = evt.GetPosition();
+        item, flags = self._tree.HitTest(pt)
+
+        entry = self._tree.GetPyData(item)
+        parent = self._parent_lookup[entry]
+        while parent is not None:
+            if isinstance(parent, bdec.choice.Choice):
+                # The selected item is an option from a choice; give the user
+                # the option of changing to another option.
+                menu = wx.Menu()
+                options = wx.Menu()
+                for option in parent.children:
+                    menuoption = wx.MenuItem(options, 0, option.name)
+                    options.AppendItem(menuoption)
+                    if option.name == entry.name:
+                        menuoption.Enable(False)
+                menu.AppendMenu(0, "Change option", options)
+                self._frame.PopupMenu(menu)
+                menu.Destroy()
+                break
+
+            if not parent.is_hidden():
+                # The visible parent isn't a choice (and so the current entry
+                # isn't an option).
+                break
+            parent = self._parent_lookup[parent]
 
     def OnClose(self, deleteWindow = True):
         if not wx.lib.docview.View.OnClose(self, deleteWindow):
