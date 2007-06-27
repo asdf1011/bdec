@@ -15,6 +15,7 @@ import bdec.data
 import bdec.field
 import bdec.spec.xmlspec
 
+import bdec.gui.tool.messageservice
 import bdec.gui.tool.projecteditor
 
 class BinaryDocument(wx.lib.docview.Document):
@@ -56,7 +57,15 @@ class _DecodeThread:
         self._thread = False
 
     def _run(self):
-        protocol, lookup = bdec.spec.xmlspec.loads(self._protocol)
+        protocol, lookup = bdec.spec.xmlspec.load(self._protocol)
+        try:
+            self._decode(protocol)
+        except bdec.DecodeError, ex:
+            filename, line, column = lookup[ex.entry]
+            error = "%s[%i]: %s" % (filename, line, ex)
+            bdec.gui.tool.messageservice.ShowMessages([error])
+
+    def _decode(self, protocol):
         data = bdec.data.Data(self._data)
         for is_starting, entry in protocol.decode(data):
             value = None
@@ -89,7 +98,6 @@ class DecodeView(wx.lib.docview.View):
         self._fileidx     = self.il.Add(wx.ArtProvider_GetBitmap(wx.ART_NORMAL_FILE, wx.ART_OTHER, isz))
         self._tree.SetImageList(self.il)
 
-        self._frame.Bind(wx.EVT_CLOSE, self._on_close)
         self._frame.Bind(wx.EVT_SIZE, self.OnSize)
         return True
 
@@ -110,13 +118,13 @@ class DecodeView(wx.lib.docview.View):
                           self._frame)
             return
 
-        protocol = open(filename, 'r').read()
-        self._decoder = _DecodeThread(self._frame, protocol, self.GetDocument().data)
+        self._decoder = _DecodeThread(self._frame, filename, self.GetDocument().data)
         self._frame.Bind(self._decoder.EVT_DECODE, self._on_decode)
         self._decoder.start()
 
-    def _on_close(self, evt):
+    def Destroy(self):
         self._decoder.stop()
+        wx.lib.docview.View.Destroy(self)
 
     def _on_decode(self, evt):
         if evt.entry.is_hidden():
