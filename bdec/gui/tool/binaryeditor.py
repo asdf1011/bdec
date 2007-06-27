@@ -58,13 +58,7 @@ class _DecodeThread:
     def _run(self):
         protocol, lookup = bdec.spec.xmlspec.loads(self._protocol)
         data = bdec.data.Data(self._data)
-        iter = protocol.decode(data)
-        while not self._stop:
-            try:
-                is_starting, entry = iter.next()
-            except StopIteration:
-                break
-
+        for is_starting, entry in protocol.decode(data):
             value = None
             if not is_starting and isinstance(entry, bdec.field.Field):
                 value = entry.get_value()
