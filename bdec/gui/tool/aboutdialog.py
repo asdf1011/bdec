@@ -12,7 +12,7 @@
 
 import wx
 import os.path
-import activegrid.util.sysutils as sysutilslib
+import bdec.gui.util.sysutils as sysutilslib
 _ = wx.GetTranslation
 
 #----------------------------------------------------------------------------

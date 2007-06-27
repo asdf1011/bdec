@@ -9,7 +9,7 @@
 # Copyright:    (c) 2004-2005 ActiveGrid, Inc.
 # License:      wxWindows License
 #----------------------------------------------------------------------------
-from activegrid.util.lang import *
+from bdec.gui.util.lang import *
 ifDefPy()
 import xml.sax
 endIfDef()

@@ -10,11 +10,11 @@
 # License:      wxWindows License
 #----------------------------------------------------------------------------
 
-from activegrid.util.lang import *
+from bdec.gui.util.lang import *
 import sys
 import os
 import string
-import activegrid.util.sysutils as sysutils
+import bdec.gui.util.sysutils as sysutils
 
 def _getSystemDir(kind):
     if (kind == AG_LOGS_DIR):

@@ -16,10 +16,10 @@ import re
 import traceback
 import logging
 import logging.config
-from activegrid.util.lang import *
-import activegrid.util.objutils as objutils
-import activegrid.util.sysutils as sysutils
-import activegrid.util.appdirs as appdirs
+from bdec.gui.util.lang import *
+import bdec.gui.util.objutils as objutils
+import bdec.gui.util.sysutils as sysutils
+import bdec.gui.util.appdirs as appdirs
 
 LEVEL_FATAL = logging.FATAL
 LEVEL_ERROR = logging.ERROR
@@ -65,11 +65,11 @@ def initLogging(mode, force=False):
             handler.setFormatter(logging.Formatter("%(asctime)s %(name)s %(levelname)s: %(message)s"))
             logging.getLogger().addHandler(handler)
             logging.getLogger().setLevel(logging.WARN)
-        ag_debugLogger = logging.getLogger("activegrid.debug")
+        ag_debugLogger = logging.getLogger("bdec.gui.debug")
         ag_debugLogger.setLevel(logging.DEBUG)
         return configFile
     
-ag_debugLogger = logging.getLogger("activegrid.debug")
+ag_debugLogger = logging.getLogger("bdec.gui.debug")
 
 def log(logger, level, msg, *params):
     if (logger == None):

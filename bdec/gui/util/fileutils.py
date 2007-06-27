@@ -17,13 +17,13 @@ import shutil
 import sys
 import zipfile
 
-import activegrid.util.aglogging as aglogging
-import activegrid.util.sysutils as sysutils
-import activegrid.util.utillang as utillang
-from activegrid.util.lang import *
+import bdec.gui.util.aglogging as aglogging
+import bdec.gui.util.sysutils as sysutils
+import bdec.gui.util.utillang as utillang
+from bdec.gui.util.lang import *
 
 global fileutilsLogger
-fileutilsLogger = logging.getLogger("activegrid.util.fileutils")
+fileutilsLogger = logging.getLogger("bdec.gui.util.fileutils")
 # FATAL : No logging
 # ERROR : No logging
 # WARN  : No logging
@@ -149,7 +149,7 @@ def expandKnownAGVars(value):
 
 def expandVars(value, includeEnv=True):
     """Syntax: ${myvar,default="default value"}"""
-    import activegrid.runtime as runtime
+    import bdec.gui.runtime as runtime
     sx = value.find("${")
     if (sx >= 0):
         result = asString(value[:sx])

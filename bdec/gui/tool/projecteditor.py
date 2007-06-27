@@ -14,7 +14,7 @@ import wx
 import wx.lib.docview
 import wx.lib.pydocview
 import wx.lib.buttons
-import activegrid.tool.service
+import bdec.gui.tool.service
 import copy
 import os
 import os.path
@@ -22,13 +22,13 @@ import sets
 import sys
 import time
 import types
-import activegrid.util.appdirs as appdirs
-import activegrid.util.fileutils as fileutils
-import activegrid.util.aglogging as aglogging
-import activegrid.util.sysutils as sysutilslib
-import activegrid.tool.uicommon
-import activegrid.tool.wizard
-import activegrid.tool.project as projectlib
+import bdec.gui.util.appdirs as appdirs
+import bdec.gui.util.fileutils as fileutils
+import bdec.gui.util.aglogging as aglogging
+import bdec.gui.util.sysutils as sysutilslib
+import bdec.gui.tool.uicommon
+import bdec.gui.tool.wizard
+import bdec.gui.tool.project as projectlib
 
 
 _ = wx.GetTranslation
@@ -585,7 +585,7 @@ class ProjectDocument(wx.lib.docview.Document):
         return True
 
     def GetSchemas(self):
-        """Returns list of schema models (activegrid.model.schema.schema) for all schemas in this project."""
+        """Returns list of schema models (bdec.gui.model.schema.schema) for all schemas in this project."""
         
         rtn = []
         resourceFactory = self._GetResourceFactory()
@@ -649,7 +649,7 @@ class ProjectDocument(wx.lib.docview.Document):
         """ Add any new schema namespaces to wsdl files """
         return
 
-class NewProjectWizard(activegrid.tool.wizard.BaseWizard):
+class NewProjectWizard(bdec.gui.tool.wizard.BaseWizard):
 
     WIZTITLE = _("New Project Wizard")
 
@@ -657,16 +657,16 @@ class NewProjectWizard(activegrid.tool.wizard.BaseWizard):
     def __init__(self, parent):
         self._parent = parent
         self._fullProjectPath = None
-        activegrid.tool.wizard.BaseWizard.__init__(self, parent, self.WIZTITLE)
+        bdec.gui.tool.wizard.BaseWizard.__init__(self, parent, self.WIZTITLE)
         self._projectLocationPage = self.CreateProjectLocation(self)
         wx.wizard.EVT_WIZARD_PAGE_CHANGING(self, self.GetId(), self.OnWizPageChanging)
 
 
     def CreateProjectLocation(self,wizard):
-        page = activegrid.tool.wizard.TitledWizardPage(wizard, _("Name and Location"))
+        page = bdec.gui.tool.wizard.TitledWizardPage(wizard, _("Name and Location"))
 
         page.GetSizer().Add(wx.StaticText(page, -1, _("\nEnter the name and location for the project.\n")))
-        self._projectName, self._dirCtrl, sizer, self._fileValidation = activegrid.tool.uicommon.CreateDirectoryControl(page, fileExtension="agp", appDirDefaultStartDir=True, fileLabel=_("Name:"), dirLabel=_("Location:"))
+        self._projectName, self._dirCtrl, sizer, self._fileValidation = bdec.gui.tool.uicommon.CreateDirectoryControl(page, fileExtension="agp", appDirDefaultStartDir=True, fileLabel=_("Name:"), dirLabel=_("Location:"))
         page.GetSizer().Add(sizer, 1, flag=wx.EXPAND)
 
         wizard.Layout()
@@ -675,7 +675,7 @@ class NewProjectWizard(activegrid.tool.wizard.BaseWizard):
 
 
     def RunWizard(self, existingTables = None, existingRelationships = None):
-        status = activegrid.tool.wizard.BaseWizard.RunWizard(self, self._projectLocationPage)
+        status = bdec.gui.tool.wizard.BaseWizard.RunWizard(self, self._projectLocationPage)
         if status:
             wx.ConfigBase_Get().Write(PROJECT_DIRECTORY_KEY, self._dirCtrl.GetValue())
             docManager = wx.GetApp().GetTopWindow().GetDocumentManager()
@@ -707,7 +707,7 @@ class NewProjectWizard(activegrid.tool.wizard.BaseWizard):
                 if not self._fileValidation(validClassName=True):
                     event.Veto()
                     return
-                self._fullProjectPath = os.path.join(self._dirCtrl.GetValue(),activegrid.tool.uicommon.MakeNameEndInExtension(self._projectName.GetValue(), PROJECT_EXTENSION))
+                self._fullProjectPath = os.path.join(self._dirCtrl.GetValue(),bdec.gui.tool.uicommon.MakeNameEndInExtension(self._projectName.GetValue(), PROJECT_EXTENSION))
 
 
     def OnShowCreatePages(self):
@@ -2447,7 +2447,7 @@ class ProjectView(wx.lib.docview.View):
             deploymentFilePath = self.GetDocument().GetDeploymentFilepath()
             if deploymentFilePath:
                 filesInProject.append(deploymentFilePath)  # remove deployment file also.
-                import activegrid.server.secutils as secutils
+                import bdec.gui.server.secutils as secutils
                 keystoreFilePath = os.path.join(os.path.dirname(deploymentFilePath), secutils.AGKEYSTORE_FILENAME)
                 filesInProject.append(keystoreFilePath)  # remove keystore file also.
                 
@@ -2877,7 +2877,7 @@ class ProjectOptionsPanel(wx.Panel):
         return getProjectIcon()
 
 
-class ProjectService(activegrid.tool.service.Service):
+class ProjectService(bdec.gui.tool.service.Service):
 
     #----------------------------------------------------------------------------
     # Constants
@@ -2907,7 +2907,7 @@ class ProjectService(activegrid.tool.service.Service):
     #----------------------------------------------------------------------------
 
     def __init__(self, serviceName, embeddedWindowLocation = wx.lib.pydocview.EMBEDDED_WINDOW_LEFT):
-        activegrid.tool.service.Service.__init__(self, serviceName, embeddedWindowLocation)
+        bdec.gui.tool.service.Service.__init__(self, serviceName, embeddedWindowLocation)
         self._runHandlers = []
         self._suppressOpenProjectMessages = False
         self._logicalViewDefaults = []
@@ -2923,7 +2923,7 @@ class ProjectService(activegrid.tool.service.Service):
 
     def ShowWindow(self, show = True):
         """ Force showing of saved projects on opening, otherwise empty Project Window is disconcerting for user """
-        activegrid.tool.service.Service.ShowWindow(self, show)
+        bdec.gui.tool.service.Service.ShowWindow(self, show)
 
         if show:
             project = self.GetView().GetDocument()
@@ -2956,7 +2956,7 @@ class ProjectService(activegrid.tool.service.Service):
 
 
     def InstallControls(self, frame, menuBar = None, toolBar = None, statusBar = None, document = None):
-        activegrid.tool.service.Service.InstallControls(self, frame, menuBar, toolBar, statusBar, document)
+        bdec.gui.tool.service.Service.InstallControls(self, frame, menuBar, toolBar, statusBar, document)
 
         projectMenu = wx.Menu()
 
@@ -3166,7 +3166,7 @@ class ProjectService(activegrid.tool.service.Service):
 
 
     def ProcessEvent(self, event):
-        if activegrid.tool.service.Service.ProcessEvent(self, event):
+        if bdec.gui.tool.service.Service.ProcessEvent(self, event):
             return True
 
         id = event.GetId()
@@ -3205,7 +3205,7 @@ class ProjectService(activegrid.tool.service.Service):
 
 
     def ProcessUpdateUIEvent(self, event):
-        if activegrid.tool.service.Service.ProcessUpdateUIEvent(self, event):
+        if bdec.gui.tool.service.Service.ProcessUpdateUIEvent(self, event):
             return True
 
         id = event.GetId()
@@ -3505,7 +3505,7 @@ from wx import ImageFromStream, BitmapFromImage
 import cStringIO
 
 def _get_image_path(filename):
-    return os.path.join(sysutilslib.mainModuleDir, "activegrid", "tool", "data", filename)
+    return os.path.join(sysutilslib.mainModuleDir, "gui", "tool", "data", filename)
 
 def getProjectBitmap():
     return BitmapFromImage(getProjectImage())

@@ -14,12 +14,12 @@ import os
 import os.path
 import wx
 import string
-import activegrid.tool.projecteditor
-import activegrid.util.appdirs as appdirs
-import activegrid.util.fileutils as fileutils
-import activegrid.util.strutils as strutils
-import activegrid.util.sysutils as sysutils
-import activegrid.util.xmlutils as xmlutils
+import bdec.gui.tool.projecteditor
+import bdec.gui.util.appdirs as appdirs
+import bdec.gui.util.fileutils as fileutils
+import bdec.gui.util.strutils as strutils
+import bdec.gui.util.sysutils as sysutils
+import bdec.gui.util.xmlutils as xmlutils
 _ = wx.GetTranslation
 
 def CreateDirectoryControl( parent, fileLabel=_("File Name:"), dirLabel=_("Directory:"), fileExtension="*", startingName="", startingDirectory=None, choiceDirs=None, appDirDefaultStartDir=False, returnAll=False, useDirDialog=False):
@@ -29,15 +29,15 @@ def CreateDirectoryControl( parent, fileLabel=_("File Name:"), dirLabel=_("Direc
         projectDirs = []
 
         if appDirDefaultStartDir:
-            appDirectory = wx.ConfigBase_Get().Read(activegrid.tool.projecteditor.PROJECT_DIRECTORY_KEY, activegrid.tool.projecteditor.NEW_PROJECT_DIRECTORY_DEFAULT)
+            appDirectory = wx.ConfigBase_Get().Read(bdec.gui.tool.projecteditor.PROJECT_DIRECTORY_KEY, bdec.gui.tool.projecteditor.NEW_PROJECT_DIRECTORY_DEFAULT)
         else:
-            appDirectory = wx.ConfigBase_Get().Read(activegrid.tool.projecteditor.PROJECT_DIRECTORY_KEY)
+            appDirectory = wx.ConfigBase_Get().Read(bdec.gui.tool.projecteditor.PROJECT_DIRECTORY_KEY)
         if appDirectory:
             choiceDirs.append(appDirectory)
             if appDirDefaultStartDir and not startingDirectory:
                 startingDirectory = appDirectory
 
-        projectService = wx.GetApp().GetService(activegrid.tool.projecteditor.ProjectService)
+        projectService = wx.GetApp().GetService(bdec.gui.tool.projecteditor.ProjectService)
         if projectService:
             curProjectDoc = projectService.GetCurrentProject()
             if curProjectDoc:
@@ -191,15 +191,15 @@ def CreateDirectoryOnlyControl( parent, dirLabel=_("Location:"), startingDirecto
         projectDirs = []
 
         if appDirDefaultStartDir:
-            appDirectory = wx.ConfigBase_Get().Read(activegrid.tool.projecteditor.PROJECT_DIRECTORY_KEY, activegrid.tool.projecteditorProjectEditor.NEW_PROJECT_DIRECTORY_DEFAULT)
+            appDirectory = wx.ConfigBase_Get().Read(bdec.gui.tool.projecteditor.PROJECT_DIRECTORY_KEY, bdec.gui.tool.projecteditorProjectEditor.NEW_PROJECT_DIRECTORY_DEFAULT)
         else:
-            appDirectory = wx.ConfigBase_Get().Read(activegrid.tool.projecteditor.PROJECT_DIRECTORY_KEY)
+            appDirectory = wx.ConfigBase_Get().Read(bdec.gui.tool.projecteditor.PROJECT_DIRECTORY_KEY)
         if appDirectory:
             choiceDirs.append(appDirectory)
             if appDirDefaultStartDir and not startingDirectory:
                 startingDirectory = appDirectory
 
-        projectService = wx.GetApp().GetService(activegrid.tool.projecteditor.ProjectService)
+        projectService = wx.GetApp().GetService(bdec.gui.tool.projecteditor.ProjectService)
         if projectService:
             curProjectDoc = projectService.GetCurrentProject()
             if curProjectDoc:
@@ -353,13 +353,13 @@ def ValidateName(name, ext=None, hint="name"):
 
 def GetCurrentProject():
     projectDocument = None
-    projectService = wx.GetApp().GetService(activegrid.tool.projecteditor.ProjectService)
+    projectService = wx.GetApp().GetService(bdec.gui.tool.projecteditor.ProjectService)
     if projectService:
         projectDocument = projectService.GetCurrentProject()
     return projectDocument
 
 def AddFilesToCurrentProject(paths, folderPath=None, types=None, names=None, save=False):
-    projectService = wx.GetApp().GetService(activegrid.tool.projecteditor.ProjectService)
+    projectService = wx.GetApp().GetService(bdec.gui.tool.projecteditor.ProjectService)
     if projectService:
         projectDocument = projectService.GetCurrentProject()
         if projectDocument:
@@ -368,7 +368,7 @@ def AddFilesToCurrentProject(paths, folderPath=None, types=None, names=None, sav
                 if path in files:
                     paths.remove(path)
             if paths:
-                projectDocument.GetCommandProcessor().Submit(activegrid.tool.projecteditor.ProjectAddFilesCommand(projectDocument, paths, folderPath=folderPath, types=types, names=names))
+                projectDocument.GetCommandProcessor().Submit(bdec.gui.tool.projecteditor.ProjectAddFilesCommand(projectDocument, paths, folderPath=folderPath, types=types, names=names))
                 if save:
                     projectDocument.OnSaveDocument(projectDocument.GetFilename())
 
@@ -379,7 +379,7 @@ def AddFilesToProject(projectDocument, paths, types=None, names=None, save=False
             if path in files:
                 paths.remove(path)
         if paths:
-            projectDocument.GetCommandProcessor().Submit(activegrid.tool.projecteditor.ProjectAddFilesCommand(projectDocument, paths, types=types, names=names))
+            projectDocument.GetCommandProcessor().Submit(bdec.gui.tool.projecteditor.ProjectAddFilesCommand(projectDocument, paths, types=types, names=names))
             if save:
                 projectDocument.OnSaveDocument(projectDocument.GetFilename())
 
@@ -472,7 +472,7 @@ def GetDisplayName(doc, name):
                         break                    
     
         if name:
-            import activegrid.model.schema as schemalib
+            import bdec.gui.model.schema as schemalib
             baseTypeName = schemalib.mapXsdType(name)
             if baseTypeName:
                 name = baseTypeName
@@ -493,7 +493,7 @@ def GetInternalName(doc, name):
                         name = "%s:%s" % (xmlval, name)
                         break  
                                           
-        import activegrid.model.schema as schemalib
+        import bdec.gui.model.schema as schemalib
         name = schemalib.mapAGType(name)
 
     return name
@@ -507,7 +507,7 @@ def GetProjectForDoc(doc):
     """ Given a document find which project it belongs to.
         Tries to intelligently resolve conflicts if it is in more than one open project.
     """
-    projectService = wx.GetApp().GetService(activegrid.tool.projecteditor.ProjectService)
+    projectService = wx.GetApp().GetService(bdec.gui.tool.projecteditor.ProjectService)
 
     projectDoc = projectService.FindProjectFromMapping(doc)
     if projectDoc:
@@ -524,7 +524,7 @@ def GetProjectForDoc(doc):
     for openDoc in openDocs:
         if openDoc == projectDoc:
             continue
-        if(isinstance(openDoc, activegrid.tool.projecteditor.ProjectDocument)):
+        if(isinstance(openDoc, bdec.gui.tool.projecteditor.ProjectDocument)):
             if openDoc.IsFileInProject(doc.GetFilename()):
                 projects.append(openDoc)
                 
@@ -562,7 +562,7 @@ def GetAppDocMgrForDoc(doc):
 
 
 def GetAppInfoLanguage(doc=None):
-    from activegrid.server.projectmodel import LANGUAGE_DEFAULT
+    from bdec.gui.server.projectmodel import LANGUAGE_DEFAULT
     
     if doc:
         language = doc.GetAppInfo().language
@@ -571,7 +571,7 @@ def GetAppInfoLanguage(doc=None):
         
     if not language:
         config = wx.ConfigBase_Get()
-        language = config.Read(activegrid.tool.projecteditor.APP_LAST_LANGUAGE, LANGUAGE_DEFAULT)
+        language = config.Read(bdec.gui.tool.projecteditor.APP_LAST_LANGUAGE, LANGUAGE_DEFAULT)
         
         if doc:
             doc.GetAppInfo().language = language  # once it is selected, it must be set.
@@ -594,7 +594,7 @@ def AddWsdlAgToProjectFromWsdlRegistration(wsdlRegistration):
     
     serviceRef.serviceType = wsdlRegistration.type
 
-    import activegrid.server.deployment as deployment
+    import bdec.gui.server.deployment as deployment
 
     if (serviceRef.serviceType == deployment.SERVICE_LOCAL):
         serviceRef.localService = deployment.LocalService(
@@ -635,8 +635,8 @@ def AddWsdlAgToProject(wsdlPath, rootPath=fileutils.AG_SYSTEM_STATIC_VAR_REF,
     """
     import WsdlAgEditor
     import XFormWizard
-    import activegrid.model.basedocmgr as basedocmgr
-    import activegrid.server.deployment as deployment
+    import bdec.gui.model.basedocmgr as basedocmgr
+    import bdec.gui.server.deployment as deployment
 
     if (serviceType == None):
         serviceType = deployment.SERVICE_LOCAL
@@ -660,7 +660,7 @@ def AddWsdlAgToProject(wsdlPath, rootPath=fileutils.AG_SYSTEM_STATIC_VAR_REF,
         
 
 def _AddToProject(agwsDoc, addWsdl=False):
-    import activegrid.model.basedocmgr as basedocmgr    
+    import bdec.gui.model.basedocmgr as basedocmgr    
     projectDoc = GetCurrentProject()
     agwsDoc.OnSaveDocument(agwsDoc.GetFilename())
 
@@ -677,7 +677,7 @@ def _AddToProject(agwsDoc, addWsdl=False):
             types.append(None)
             names.append(wsdlName)
     
-    activegrid.tool.projecteditor.ProjectAddFilesCommand(projectDoc, files, types=types,
+    bdec.gui.tool.projecteditor.ProjectAddFilesCommand(projectDoc, files, types=types,
                                          names=names).Do()
     
 
@@ -695,7 +695,7 @@ def _InitWsdlAg(wsdlPath, rootPath=fileutils.AG_SYSTEM_STATIC_VAR_REF,
 
     import WsdlAgEditor
     import XFormWizard
-    import activegrid.server.deployment as deployment
+    import bdec.gui.server.deployment as deployment
 
     template = XFormWizard.GetTemplate(WsdlAgEditor.WsdlAgDocument)
     ext = template.GetDefaultExtension()

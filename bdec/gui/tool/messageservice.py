@@ -11,8 +11,8 @@
 #----------------------------------------------------------------------------
 
 import wx
-import activegrid.tool.service
-import activegrid.tool.texteditor
+import bdec.gui.tool.service
+import bdec.gui.tool.texteditor
 
 #----------------------------------------------------------------------------
 # Utility
@@ -43,7 +43,7 @@ def ShowMessages(messages, clear=False):
 #----------------------------------------------------------------------------
 
 
-class MessageView(activegrid.tool.service.ServiceView):
+class MessageView(bdec.gui.tool.service.ServiceView):
     """ Reusable Message View for any document.
         When an item is selected, the document view is called back (with DoSelectCallback) to highlight and display the corresponding item in the document view.
     """
@@ -53,7 +53,7 @@ class MessageView(activegrid.tool.service.ServiceView):
     #----------------------------------------------------------------------------
 
     def _CreateControl(self, parent, id):
-        txtCtrl = activegrid.tool.texteditor.TextCtrl(parent, id)
+        txtCtrl = bdec.gui.tool.texteditor.TextCtrl(parent, id)
         txtCtrl.SetMarginWidth(1, 0)  # hide line numbers
         txtCtrl.SetReadOnly(True)
 
@@ -154,7 +154,7 @@ class MessageView(activegrid.tool.service.ServiceView):
 
 
 
-class MessageService(activegrid.tool.service.Service):
+class MessageService(bdec.gui.tool.service.Service):
 
 
     #----------------------------------------------------------------------------

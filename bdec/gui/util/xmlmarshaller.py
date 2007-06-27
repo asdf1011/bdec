@@ -11,7 +11,7 @@
 #----------------------------------------------------------------------------
 import sys
 from types import *
-from activegrid.util.lang import *
+from bdec.gui.util.lang import *
 import logging
 ifDefPy()
 import xml.sax
@@ -19,10 +19,10 @@ import xml.sax.handler
 import xml.sax.saxutils
 import datetime
 endIfDef()
-import activegrid.util.utillang as utillang
-import activegrid.util.objutils as objutils
-import activegrid.util.sysutils as sysutils
-import activegrid.util.aglogging as aglogging
+import bdec.gui.util.utillang as utillang
+import bdec.gui.util.objutils as objutils
+import bdec.gui.util.sysutils as sysutils
+import bdec.gui.util.aglogging as aglogging
 
 MODULE_PATH = "__main__"
 
@@ -112,7 +112,7 @@ __xmlcdatacontent__ = "messyContent"
 """
 
 global xmlMarshallerLogger
-xmlMarshallerLogger = logging.getLogger("activegrid.util.xmlmarshaller.marshal")
+xmlMarshallerLogger = logging.getLogger("bdec.gui.util.xmlmarshaller.marshal")
 # INFO  : low-level info
 # DEBUG : debugging info
 
@@ -166,7 +166,7 @@ XMLNS_PREFIX_LENGTH = len(XMLNS_PREFIX)
 DEFAULT_NAMESPACE_KEY = "__DEFAULTNS__"
 TYPE_QNAME = "QName"
 XMLSCHEMA_XSD_URL = "http://www.w3.org/2001/XMLSchema"
-AG_URL = "http://www.activegrid.com/ag.xsd"
+AG_URL = "http://www.bdec.gui.com/ag.xsd"
 
 BASETYPE_ELEMENT_NAME = "item"
 DICT_ITEM_NAME = "qqDictItem"

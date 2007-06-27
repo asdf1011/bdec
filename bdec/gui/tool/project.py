@@ -13,8 +13,8 @@
 import copy
 import os
 import os.path
-import activegrid.util.xmlutils as xmlutils
-import activegrid.util.aglogging as aglogging
+import bdec.gui.util.xmlutils as xmlutils
+import bdec.gui.util.aglogging as aglogging
 
 #----------------------------------------------------------------------------
 # Constants
@@ -473,7 +473,7 @@ class ProjectFile(object):
 
     def getExternalPackage(self):
         # HACK: temporary solution to getting custom code filename from wsdlag file.
-        import activegrid.model.projectmodel as projectmodel
+        import bdec.gui.model.projectmodel as projectmodel
         import wx
         import ProjectEditor
 

@@ -11,7 +11,7 @@
 #----------------------------------------------------------------------------
 
 import re
-from activegrid.util.lang import *
+from bdec.gui.util.lang import *
 ifDefPy()
 import string
 import array
@@ -205,7 +205,7 @@ def xpathToCode(xpaths, convertBracket=True):
                 elif (t.tokenVal == "not"):
                     expr.append(" not ")
                 elif (t.tokenVal == "like"):
-                    # REVIEW stoens@activegrid.com 02-Nov-05 --
+                    # REVIEW stoens@bdec.gui.com 02-Nov-05 --
                     # This is very limited support for like:
                     # typically like queries look like this: "foo like 'blah%'".
                     # So translate this into "foo.startswith(blah)".
@@ -324,8 +324,8 @@ def _parseConstantFunction(t, outputValue):
     return outputValue
 
 def parseDSPredicate(ctx, str, vars, valueList=None):
-    from activegrid.util.utillang import evalCode
-    from activegrid.util.utillang import ObjAsDict
+    from bdec.gui.util.utillang import evalCode
+    from bdec.gui.util.utillang import ObjAsDict
 
     if valueList == None:
         valueList = []

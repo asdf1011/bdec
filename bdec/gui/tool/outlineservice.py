@@ -13,7 +13,7 @@
 import wx
 import wx.lib.docview
 import wx.lib.pydocview
-import activegrid.tool.service
+import bdec.gui.tool.service
 _ = wx.GetTranslation
 
 
@@ -24,7 +24,7 @@ SORT_NONE = 0
 SORT_ASC = 1
 SORT_DESC = 2
 
-class OutlineView(activegrid.tool.service.ServiceView):
+class OutlineView(bdec.gui.tool.service.ServiceView):
     """ Reusable Outline View for any document.
         As a default, it uses a modified tree control (OutlineTreeCtrl) that allows sorting.
         Subclass OutlineTreeCtrl to customize the tree control and call SetTreeCtrl to install a customized tree control.
@@ -36,7 +36,7 @@ class OutlineView(activegrid.tool.service.ServiceView):
     #----------------------------------------------------------------------------
 
     def __init__(self, service):
-        activegrid.tool.service.ServiceView.__init__(self, service)
+        bdec.gui.tool.service.ServiceView.__init__(self, service)
         self._actionOnSelect = True
 
 
@@ -305,7 +305,7 @@ class OutlineTreeCtrl(wx.TreeCtrl):
             return None
 
 
-class OutlineService(activegrid.tool.service.Service):
+class OutlineService(bdec.gui.tool.service.Service):
 
 
     #----------------------------------------------------------------------------
@@ -323,7 +323,7 @@ class OutlineService(activegrid.tool.service.Service):
     #----------------------------------------------------------------------------
 
     def __init__(self, serviceName, embeddedWindowLocation = wx.lib.pydocview.EMBEDDED_WINDOW_BOTTOM):
-        activegrid.tool.service.Service.__init__(self, serviceName, embeddedWindowLocation)
+        bdec.gui.tool.service.Service.__init__(self, serviceName, embeddedWindowLocation)
         self._validViewTypes = []
 
 
@@ -332,7 +332,7 @@ class OutlineService(activegrid.tool.service.Service):
 
 
     def InstallControls(self, frame, menuBar = None, toolBar = None, statusBar = None, document = None):
-        activegrid.tool.service.Service.InstallControls(self, frame, menuBar, toolBar, statusBar, document)
+        bdec.gui.tool.service.Service.InstallControls(self, frame, menuBar, toolBar, statusBar, document)
 
         wx.EVT_MENU(frame, OutlineService.SORT_ASC, frame.ProcessEvent)
         wx.EVT_UPDATE_UI(frame, OutlineService.SORT_ASC, frame.ProcessUpdateUIEvent)
@@ -360,7 +360,7 @@ class OutlineService(activegrid.tool.service.Service):
     #----------------------------------------------------------------------------
 
     def ProcessEvent(self, event):
-        if activegrid.tool.service.Service.ProcessEvent(self, event):
+        if bdec.gui.tool.service.Service.ProcessEvent(self, event):
             return True
 
         id = event.GetId()
@@ -378,7 +378,7 @@ class OutlineService(activegrid.tool.service.Service):
 
 
     def ProcessUpdateUIEvent(self, event):
-        if activegrid.tool.service.Service.ProcessUpdateUIEvent(self, event):
+        if bdec.gui.tool.service.Service.ProcessUpdateUIEvent(self, event):
             return True
 
         id = event.GetId()
@@ -459,7 +459,7 @@ class OutlineService(activegrid.tool.service.Service):
 
 
     def OnCloseFrame(self, event):
-        activegrid.tool.service.Service.OnCloseFrame(self, event)
+        bdec.gui.tool.service.Service.OnCloseFrame(self, event)
         self.SaveExpansionState(clear = True)
 
         return True

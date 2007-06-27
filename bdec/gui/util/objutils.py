@@ -16,10 +16,10 @@ import sys
 import os
 import __builtin__
 import types
-import activegrid.util.utillang as utillang
-import activegrid.util.datetimeparser as datetimeparser
+import bdec.gui.util.utillang as utillang
+import bdec.gui.util.datetimeparser as datetimeparser
 from types import *
-from activegrid.util.lang import *
+from bdec.gui.util.lang import *
 
 FUNCTION_HAS_ATTR = '_hasAttr'
 FUNCTION_GET_ATTR = '_getAttr'
@@ -291,8 +291,8 @@ def typeToString(obj, options=0):
     else:
         ds = str(type(obj))
     if (options == 0):
-        import activegrid.util.aglogging
-        options = activegrid.util.aglogging.testMode(0, PRINT_OBJ_DIFFABLE)
+        import bdec.gui.util.aglogging
+        options = bdec.gui.util.aglogging.testMode(0, PRINT_OBJ_DIFFABLE)
     if ((options & PRINT_OBJ_DIFFABLE) > 0):
         if (ds.startswith("<class ")):
             ix = ds.rfind(".")

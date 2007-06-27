@@ -14,7 +14,7 @@ import wx
 import wx.stc
 import wx.lib.docview
 import wx.lib.pydocview
-import activegrid.tool.texteditor
+import bdec.gui.tool.texteditor
 _ = wx.GetTranslation
 
 
@@ -29,7 +29,7 @@ class MarkerService(wx.lib.pydocview.DocService):
         pass
 
     def InstallControls(self, frame, menuBar = None, toolBar = None, statusBar = None, document = None):
-        if document and document.GetDocumentTemplate().GetDocumentType() != activegrid.tool.texteditor.TextDocument:
+        if document and document.GetDocumentTemplate().GetDocumentType() != bdec.gui.tool.texteditor.TextDocument:
             return
         if not document and wx.GetApp().GetDocumentManager().GetFlags() & wx.lib.docview.DOC_SDI:
             return

@@ -13,15 +13,15 @@
 
 import wx
 import string
-import activegrid.tool.codeeditor
+import bdec.gui.tool.codeeditor
 
 
-class XmlDocument(activegrid.tool.codeeditor.CodeDocument):
+class XmlDocument(bdec.gui.tool.codeeditor.CodeDocument):
 
     pass
 
 
-class XmlView(activegrid.tool.codeeditor.CodeView):
+class XmlView(bdec.gui.tool.codeeditor.CodeView):
 
 
     def GetCtrlClass(self):
@@ -52,18 +52,18 @@ class XmlView(activegrid.tool.codeeditor.CodeView):
         return XMLKEYWORDS
 
 
-class XmlService(activegrid.tool.codeeditor.CodeService):
+class XmlService(bdec.gui.tool.codeeditor.CodeService):
 
 
     def __init__(self):
-        activegrid.tool.codeeditor.CodeService.__init__(self)
+        bdec.gui.tool.codeeditor.CodeService.__init__(self)
 
 
-class XmlCtrl(activegrid.tool.codeeditor.CodeCtrl):
+class XmlCtrl(bdec.gui.tool.codeeditor.CodeCtrl):
 
 
     def __init__(self, parent, id=-1, style=wx.NO_FULL_REPAINT_ON_RESIZE):
-        activegrid.tool.codeeditor.CodeCtrl.__init__(self, parent, id, style)
+        bdec.gui.tool.codeeditor.CodeCtrl.__init__(self, parent, id, style)
         self.SetLexer(wx.stc.STC_LEX_XML)
         self.SetProperty("fold.html", "1")
 
@@ -77,15 +77,15 @@ class XmlCtrl(activegrid.tool.codeeditor.CodeCtrl):
 
 
     def SetViewDefaults(self):
-        activegrid.tool.codeeditor.CodeCtrl.SetViewDefaults(self, configPrefix = "Xml", hasWordWrap = True, hasTabs = True, hasFolding=True)
+        bdec.gui.tool.codeeditor.CodeCtrl.SetViewDefaults(self, configPrefix = "Xml", hasWordWrap = True, hasTabs = True, hasFolding=True)
 
 
     def GetFontAndColorFromConfig(self):
-        return activegrid.tool.codeeditor.CodeCtrl.GetFontAndColorFromConfig(self, configPrefix = "Xml")
+        return bdec.gui.tool.codeeditor.CodeCtrl.GetFontAndColorFromConfig(self, configPrefix = "Xml")
 
 
     def UpdateStyles(self):
-        activegrid.tool.codeeditor.CodeCtrl.UpdateStyles(self)
+        bdec.gui.tool.codeeditor.CodeCtrl.UpdateStyles(self)
         
         if not self.GetFont():
             return
@@ -111,10 +111,10 @@ class XmlCtrl(activegrid.tool.codeeditor.CodeCtrl):
         self.StyleSetSpec(wx.stc.STC_H_ATTRIBUTE, "face:%(font)s,fore:#007F7F,bold,size:%(size)d" % faces)
 
 
-class XmlOptionsPanel(activegrid.tool.texteditor.TextOptionsPanel):
+class XmlOptionsPanel(bdec.gui.tool.texteditor.TextOptionsPanel):
 
     def __init__(self, parent, id):
-        activegrid.tool.texteditor.TextOptionsPanel.__init__(self, parent, id, configPrefix = "Xml", label = "XML", hasWordWrap = True, hasTabs = True, hasFolding=True)
+        bdec.gui.tool.texteditor.TextOptionsPanel.__init__(self, parent, id, configPrefix = "Xml", label = "XML", hasWordWrap = True, hasTabs = True, hasFolding=True)
 
 
     def GetIcon(self):

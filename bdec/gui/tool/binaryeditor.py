@@ -15,7 +15,7 @@ import bdec.data
 import bdec.field
 import bdec.spec.xmlspec
 
-import activegrid.tool.projecteditor
+import bdec.gui.tool.projecteditor
 
 class BinaryDocument(wx.lib.docview.Document):
     def __init__(self):
@@ -106,7 +106,7 @@ class DecodeView(wx.lib.docview.View):
         assert self._decoder is None
         assert self._frame is not None
 
-        projectService = wx.GetApp().GetService(activegrid.tool.projecteditor.ProjectService)
+        projectService = wx.GetApp().GetService(bdec.gui.tool.projecteditor.ProjectService)
         for filename in projectService.GetFilesFromCurrentProject():
             if filename.endswith('.xml'):
                 break
