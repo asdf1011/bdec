@@ -126,10 +126,6 @@ class DecodeView(wx.lib.docview.View):
         self._frame.Bind(self._decoder.EVT_DECODE, self._on_decode)
         self._decoder.start()
 
-    def Destroy(self):
-        self._decoder.stop()
-        wx.lib.docview.View.Destroy(self)
-
     def _on_decode(self, evt):
         # Update the parent list
         if evt.is_starting:
@@ -199,6 +195,9 @@ class DecodeView(wx.lib.docview.View):
             parent = self._parent_lookup[parent]
 
     def OnClose(self, deleteWindow = True):
+        # TODO: It can take a little while to stop the decoder; maybe we
+        # should show some status here?
+        self._decoder.stop()
         if not wx.lib.docview.View.OnClose(self, deleteWindow):
             return False
         self.Activate(False)
