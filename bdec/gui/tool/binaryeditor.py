@@ -90,6 +90,8 @@ class DecodeView(wx.lib.docview.View):
         self._frame = None
         self._parent_lookup = {}
 
+        self._options = {}
+
     def OnCreate(self, doc, flags):
         self._frame = wx.GetApp().CreateDocumentFrame(self, doc, flags, style = wx.DEFAULT_FRAME_STYLE | wx.NO_FULL_REPAINT_ON_RESIZE)
         self._tree = wx.TreeCtrl(self._frame, -1, style=wx.NO_BORDER|wx.TR_HAS_BUTTONS)
@@ -103,6 +105,7 @@ class DecodeView(wx.lib.docview.View):
 
         self._tree.Bind(wx.EVT_RIGHT_UP, self._on_right_click)
         self._frame.Bind(wx.EVT_SIZE, self.OnSize)
+        self._frame.Bind(wx.EVT_MENU, self._on_change_option)
         return True
 
     def OnUpdate(self, sender, hint):
@@ -166,6 +169,11 @@ class DecodeView(wx.lib.docview.View):
 
             self._tree.SetItemText(item, text)
 
+    def _on_change_option(self, evt):
+        # TODO: Change the decoder we're using for the specified entry...
+        item, option = self._options[evt.GetId()]
+        print item, option
+
     def _on_right_click(self, evt):
         pt = evt.GetPosition();
         item, flags = self._tree.HitTest(pt)
@@ -178,11 +186,15 @@ class DecodeView(wx.lib.docview.View):
                 # the option of changing to another option.
                 menu = wx.Menu()
                 options = wx.Menu()
-                for option in parent.children:
-                    menuoption = wx.MenuItem(options, 0, option.name)
+                self._options = {}
+                for index, option in enumerate(parent.children):
+                    # Some examples used ids starting from 100, so we'll just
+                    # ignorantly copy them.
+                    id = 100 + index
+                    menuoption = wx.MenuItem(options, id, option.name)
+                    self._options[id] = (item, option)
                     options.AppendItem(menuoption)
-                    if option.name == entry.name:
-                        menuoption.Enable(False)
+                    menuoption.Enable(option.name != entry.name)
                 menu.AppendMenu(0, "Change option", options)
                 self._frame.PopupMenu(menu)
                 menu.Destroy()
