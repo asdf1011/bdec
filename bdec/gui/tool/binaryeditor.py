@@ -38,8 +38,9 @@ class _DecodeThread:
     An event 'self.EVT_DECODE' is created that can be used to listen for decode
     events.
     """
-    def __init__(self, window, protocol, data):
+    def __init__(self, window, protocol, lookup, data):
         self._protocol = protocol
+        self._lookup = lookup
         self._data = data
         self._decode_event, self.EVT_DECODE = wx.lib.newevent.NewEvent()
         self._window = window
@@ -54,15 +55,15 @@ class _DecodeThread:
 
     def stop(self):
         self._stop = True
-        self._thread.join()
-        self._thread = False
+        if self._thread:
+            self._thread.join()
+            self._thread = None
 
     def _run(self):
-        protocol, lookup = bdec.spec.xmlspec.load(self._protocol)
         try:
-            self._decode(protocol)
+            self._decode(self._protocol)
         except bdec.DecodeError, ex:
-            filename, line, column = lookup[ex.entry]
+            filename, line, column = self._lookup[ex.entry]
             error = "%s[%i]: %s" % (filename, line, ex)
             bdec.gui.tool.messageservice.ShowMessages([error])
 
@@ -75,6 +76,9 @@ class _DecodeThread:
 
             event = self._decode_event(is_starting=is_starting, entry=entry, value=value)
             wx.PostEvent(self._window, event)
+
+            if self._stop:
+                break
 
 
 class DecodeView(wx.lib.docview.View):
@@ -125,7 +129,8 @@ class DecodeView(wx.lib.docview.View):
                           self._frame)
             return
 
-        self._decoder = _DecodeThread(self._frame, filename, self.GetDocument().data)
+        protocol, self._lookup = bdec.spec.xmlspec.load(filename)
+        self._decoder = _DecodeThread(self._frame, protocol, self._lookup, self.GetDocument().data)
         self._frame.Bind(self._decoder.EVT_DECODE, self._on_decode)
         self._decoder.start()
 
@@ -169,10 +174,30 @@ class DecodeView(wx.lib.docview.View):
 
             self._tree.SetItemText(item, text)
 
+    def _stop_decoder(self):
+        self._decoder.stop()
+        self._frame.Unbind(self._decoder.EVT_DECODE)
+        self._decode_stack = []
+        self._item_stack = []
+        self._decoder = None
+
     def _on_change_option(self, evt):
-        # TODO: Change the decoder we're using for the specified entry...
+        self._stop_decoder()
         item, option = self._options[evt.GetId()]
-        print item, option
+        original = self._tree.GetPyData(item)
+        # FIXME: We need to have access to the original undecoded data at this stage...
+        data = bdec.data.Data("")
+
+        # Restart the decoder, but such that only the currently selected item is
+        # decoded.
+        parent = self._tree.GetItemParent(item)
+        self._tree.Delete(item)
+        self._item_stack = [parent]
+        self._decode_stack = [self._parent_lookup[original]]
+
+        self._decoder = _DecodeThread(self._frame, option, self._lookup, data)
+        self._frame.Bind(self._decoder.EVT_DECODE, self._on_decode)
+        self._decoder.start()
 
     def _on_right_click(self, evt):
         pt = evt.GetPosition();
@@ -209,7 +234,7 @@ class DecodeView(wx.lib.docview.View):
     def OnClose(self, deleteWindow = True):
         # TODO: It can take a little while to stop the decoder; maybe we
         # should show some status here?
-        self._decoder.stop()
+        self._stop_decoder()
         if not wx.lib.docview.View.OnClose(self, deleteWindow):
             return False
         self.Activate(False)
