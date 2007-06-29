@@ -11,7 +11,7 @@ class TestField(unittest.TestCase):
         data = dt.Data.from_hex("017a")
 
         calls = []
-        for is_starting, entry in field.decode(data):
+        for is_starting, entry, entry_data in field.decode(data):
             calls.append(entry)
         self.assertEqual(2, len(calls))
         self.assertEqual(field, calls[0])
@@ -27,7 +27,7 @@ class TestField(unittest.TestCase):
         field = fld.Field("bob", length, format, encoding)
         data = dt.Data.from_hex(hex)
         calls = []
-        for is_starting, entry in field.decode(data):
+        for is_starting, entry, entry_data in field.decode(data):
             calls.append(entry)
         self.assertEqual(2, len(calls))
         return calls[1].get_value()

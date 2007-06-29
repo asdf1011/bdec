@@ -18,7 +18,7 @@ class _XMLGenerator(xml.sax.saxutils.XMLGenerator):
 def to_file(decoder, binary, output, encoding="utf-8", verbose=False):
     handler = _XMLGenerator(output, encoding)
     offset = 0
-    for is_starting, entry in decoder.decode(binary):
+    for is_starting, entry, data in decoder.decode(binary):
         if not verbose and entry.is_hidden():
             continue
 

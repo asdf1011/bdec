@@ -11,7 +11,7 @@ class TestSequenceOf(unittest.TestCase):
         sequenceof = sof.SequenceOf("blah", fld.Field("cat", 8), 3)
 
         actual = []
-        for is_starting, entry in sequenceof.decode(dt.Data.from_hex("fb028c")):
+        for is_starting, entry, entry_data in sequenceof.decode(dt.Data.from_hex("fb028c")):
             if not is_starting:
                 data = None
                 if isinstance(entry, fld.Field):
@@ -43,7 +43,7 @@ class TestSequenceOf(unittest.TestCase):
         data = dt.Data('1a2a3bb')
         # Lets decode until 'id' decodes twice...
         count = total = 0
-        for is_starting, entry in sequenceof.decode(data):
+        for is_starting, entry, entry_data in sequenceof.decode(data):
             total += 1 
             if not is_starting and entry.name == "id":
                 count += 1

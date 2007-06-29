@@ -69,7 +69,7 @@ class _DecodeThread:
 
     def _decode(self, protocol):
         data = bdec.data.Data(self._data)
-        for is_starting, entry in protocol.decode(data):
+        for is_starting, entry, entry_data in protocol.decode(data):
             value = None
             if not is_starting and isinstance(entry, bdec.field.Field):
                 value = entry.get_value()

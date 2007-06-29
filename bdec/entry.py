@@ -84,23 +84,20 @@ class Entry(object):
         """
         Decode the given protocol entry.
 
-        Should return an iterable object for all of the 'embedded'
-        protocol entries in the same form as Entry.decode.
+        Should return an iterable object for the entry (including all 'embedded'
+        entries) in the same form as Entry.decode.
         """
         raise NotImplementedError()
-
-    def _decode_entry(self, data):
-        yield (True, self)
-        for (is_starting, entry) in self._decode(data):
-            yield (is_starting, entry)
-        yield (False, self)
 
     def decode(self, data):
         """
         Decode this entry from input data.
 
         @param data The data to decode
-        @return An iterator that returns (is_starting, Entry) tuples.
+        @return An iterator that returns (is_starting, Entry, data) tuples. The
+            data when the decode is starting is the data available to be 
+            decoded, and the data when the decode is finished is the data from
+            this entry only (not embedded entries, and may be None).
         """
         if self.length is not None:
             try:
@@ -108,12 +105,11 @@ class Entry(object):
             except dt.DataError, ex:
                 raise EntryDataError(self, ex)
 
-        import bdec.field as fld
         length = 0
-        for is_starting, entry in self._decode_entry(data):
-            if not is_starting and isinstance(entry, fld.Field):
-                length += len(entry.data)
-            yield is_starting, entry
+        for is_starting, entry, entry_data in self._decode(data):
+            if not is_starting and entry_data is not None:
+                length += len(entry_data)
+            yield is_starting, entry, entry_data
 
         if self.length is not None and len(data) != 0:
             raise DecodeLengthError(self, data)

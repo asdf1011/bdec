@@ -1,6 +1,5 @@
 
 import bdec.entry
-import bdec.field as fld
 
 class Choice(bdec.entry.Entry):
     """
@@ -17,6 +16,8 @@ class Choice(bdec.entry.Entry):
             assert isinstance(child, bdec.entry.Entry)
 
     def _decode(self, data):
+        yield (True, self, data)
+
         # We attempt to decode all of the embedded items. If
         # one of them succeeds, we'll use its results (otherwise
         # we'll re-raise the exception of the 'best guess'.
@@ -25,9 +26,9 @@ class Choice(bdec.entry.Entry):
         for child in self.children:
             try:
                 bits_decoded = 0
-                for is_starting, entry in child.decode(data.copy()):
-                    if not is_starting and isinstance(entry, fld.Field):
-                        bits_decoded += len(entry.data)
+                for is_starting, entry, entry_data in child.decode(data.copy()):
+                    if not is_starting and entry_data is not None:
+                        bits_decoded += len(entry_data)
 
                 # We successfully decoded the entry!
                 best_guess = child
@@ -42,8 +43,10 @@ class Choice(bdec.entry.Entry):
         # re-use the existing decode results... This is not
         # trivial however, as the fields have state (the data
         # attribute) which we'd need to cache and reset.
-        for is_starting, entry in best_guess.decode(data):
-            yield is_starting, entry
+        for is_starting, entry, data in best_guess.decode(data):
+            yield is_starting, entry, data
+
+        yield (False, self, None)
 
     def _encode(self, query, parent):
         # We attempt to encode all of the embedded items, until we find

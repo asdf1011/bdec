@@ -38,7 +38,7 @@ def decode(decoder, binary):
     Create a python instance representing the decoded data.
     """
     stack = [_DecodedItem(None)]
-    for is_starting, entry in decoder.decode(binary):
+    for is_starting, entry, data in decoder.decode(binary):
         if is_starting:
             stack.append(_DecodedItem(entry))
         else:

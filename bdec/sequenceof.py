@@ -56,6 +56,7 @@ class SequenceOf(bdec.entry.Entry):
                 yield None
 
     def _decode(self, data):
+        yield (True, self, data)
         self._state = self.ITERATING
         for i in self._loop():
             for item in self.children[0].decode(data):
@@ -64,6 +65,7 @@ class SequenceOf(bdec.entry.Entry):
             if self._state is self.STOPPING:
                 break
         self._state = self.STOPPED
+        yield (False, self, None)
 
     def _encode(self, query, parent):
         sequenceof = self._get_context(query, parent)
