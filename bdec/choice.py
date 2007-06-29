@@ -1,4 +1,5 @@
 
+import bdec.data as dt
 import bdec.entry
 
 class Choice(bdec.entry.Entry):
@@ -27,7 +28,7 @@ class Choice(bdec.entry.Entry):
             try:
                 bits_decoded = 0
                 for is_starting, entry, entry_data in child.decode(data.copy()):
-                    if not is_starting and entry_data is not None:
+                    if not is_starting:
                         bits_decoded += len(entry_data)
 
                 # We successfully decoded the entry!
@@ -46,7 +47,7 @@ class Choice(bdec.entry.Entry):
         for is_starting, entry, data in best_guess.decode(data):
             yield is_starting, entry, data
 
-        yield (False, self, None)
+        yield (False, self, dt.Data())
 
     def _encode(self, query, parent):
         # We attempt to encode all of the embedded items, until we find

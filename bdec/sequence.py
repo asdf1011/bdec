@@ -1,3 +1,4 @@
+import bdec.data as dt
 import bdec.entry
 
 class Sequence(bdec.entry.Entry):
@@ -26,7 +27,7 @@ class Sequence(bdec.entry.Entry):
         for child in self.children:
             for embedded in child.decode(data):
                 yield embedded
-        yield (False, self, None)
+        yield (False, self, dt.Data())
 
     def _encode(self, query, parent):
         structure = self._get_context(query, parent)

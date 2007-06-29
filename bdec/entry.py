@@ -97,7 +97,7 @@ class Entry(object):
         @return An iterator that returns (is_starting, Entry, data) tuples. The
             data when the decode is starting is the data available to be 
             decoded, and the data when the decode is finished is the data from
-            this entry only (not embedded entries, and may be None).
+            this entry only (not including embedded entries).
         """
         if self.length is not None:
             try:
@@ -107,7 +107,7 @@ class Entry(object):
 
         length = 0
         for is_starting, entry, entry_data in self._decode(data):
-            if not is_starting and entry_data is not None:
+            if not is_starting:
                 length += len(entry_data)
             yield is_starting, entry, entry_data
 

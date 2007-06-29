@@ -73,7 +73,7 @@ class TestChoice(unittest.TestCase):
 
         decoded = []
         for is_starting, entry, entry_data in choice.decode(data):
-            if not is_starting and entry_data is not None:
+            if not is_starting and len(entry_data) > 0:
                 decoded.append(entry_data)
 
         self.assertEqual(2, len(decoded))

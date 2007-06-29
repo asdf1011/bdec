@@ -1,3 +1,4 @@
+import bdec.data as dt
 import bdec.entry
 
 class InvalidSequenceOfCount(bdec.DecodeError):
@@ -65,7 +66,7 @@ class SequenceOf(bdec.entry.Entry):
             if self._state is self.STOPPING:
                 break
         self._state = self.STOPPED
-        yield (False, self, None)
+        yield (False, self, dt.Data())
 
     def _encode(self, query, parent):
         sequenceof = self._get_context(query, parent)
