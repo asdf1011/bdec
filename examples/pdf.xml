@@ -61,10 +61,12 @@
         <sequence name="name">
             <sequenceof name="chars">
                 <choice name="entry:">
-                    <!-- We don't include the '<' or '>' characters -->
-                    <field name="char" length="8" type="text" min="33" max="60" />
+                    <!-- We don't include the '<', '>', '[' or ']' characters -->
+                    <field name="char" length="8" type="text" min="33" max="59" />
                     <field name="char" length="8" type="text" min="61" max="61" />
-                    <field name="char" length="8" type="text" min="63" />
+                    <field name="char" length="8" type="text" min="63" max="90" />
+                    <field name="char" length="8" type="text" min="92" max="92" />
+                    <field name="char" length="8" type="text" min="94" />
                     <field name="empty:" length="0"><end-sequenceof /></field>
                 </choice>
             </sequenceof>
@@ -106,10 +108,11 @@
             <field name="opener:" length="16" value="0x3c3c" />
             <sequenceof name="entries:">
                 <choice name="entry:">
+                    <reference name="whitespace" />
                     <field name="closer:" length="16" value="0x3e3e" ><end-sequenceof /></field>
                     <sequence name="entry">
                         <reference name="name object" />
-                        <reference name="whitespace" />
+                        <reference name="optional whitespace:" />
                         <reference name="object:" />
                     </sequence>
                 </choice>
