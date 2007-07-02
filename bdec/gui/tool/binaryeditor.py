@@ -68,13 +68,15 @@ class _DecodeThread:
             bdec.gui.tool.messageservice.ShowMessages([error])
 
     def _decode(self, protocol):
-        data = bdec.data.Data(self._data)
-        for is_starting, entry, entry_data in protocol.decode(data):
+        for is_starting, entry, entry_data in protocol.decode(self._data):
             value = None
             if not is_starting and isinstance(entry, bdec.field.Field):
                 value = entry.get_value()
 
-            event = self._decode_event(is_starting=is_starting, entry=entry, value=value)
+            # Note that we have to copy the entry data object, as it may
+            # be modified in this thread before the gui thread gets a
+            # chance to look at it.
+            event = self._decode_event(is_starting=is_starting, entry=entry, data=entry_data.copy(), value=value)
             wx.PostEvent(self._window, event)
 
             if self._stop:
@@ -130,7 +132,8 @@ class DecodeView(wx.lib.docview.View):
             return
 
         protocol, self._lookup = bdec.spec.xmlspec.load(filename)
-        self._decoder = _DecodeThread(self._frame, protocol, self._lookup, self.GetDocument().data)
+        data = bdec.data.Data(self.GetDocument().data)
+        self._decoder = _DecodeThread(self._frame, protocol, self._lookup, data)
         self._frame.Bind(self._decoder.EVT_DECODE, self._on_decode)
         self._decoder.start()
 
@@ -163,7 +166,7 @@ class DecodeView(wx.lib.docview.View):
                 self._tree.SetItemImage(item, self._fldridx, wx.TreeItemIcon_Normal)
                 self._tree.SetItemImage(item, self._fldropenidx, wx.TreeItemIcon_Expanded)
 
-            self._tree.SetPyData(item, evt.entry)
+            self._tree.SetPyData(item, (evt.entry, evt.data))
             self._item_stack.append(item)
         else:
             item = self._item_stack.pop()
@@ -171,7 +174,6 @@ class DecodeView(wx.lib.docview.View):
                 text = evt.entry.name
             else:
                 text = "%s = %s" % (evt.entry.name, evt.value)
-
             self._tree.SetItemText(item, text)
 
     def _stop_decoder(self):
@@ -184,16 +186,15 @@ class DecodeView(wx.lib.docview.View):
     def _on_change_option(self, evt):
         self._stop_decoder()
         item, option = self._options[evt.GetId()]
-        original = self._tree.GetPyData(item)
-        # FIXME: We need to have access to the original undecoded data at this stage...
-        data = bdec.data.Data("")
+        original, data = self._tree.GetPyData(item)
 
         # Restart the decoder, but such that only the currently selected item is
         # decoded.
         parent = self._tree.GetItemParent(item)
         self._tree.Delete(item)
         self._item_stack = [parent]
-        self._decode_stack = [self._parent_lookup[original]]
+        parent = self._parent_lookup[original]
+        self._decode_stack = [parent]
 
         self._decoder = _DecodeThread(self._frame, option, self._lookup, data)
         self._frame.Bind(self._decoder.EVT_DECODE, self._on_decode)
@@ -203,7 +204,7 @@ class DecodeView(wx.lib.docview.View):
         pt = evt.GetPosition();
         item, flags = self._tree.HitTest(pt)
 
-        entry = self._tree.GetPyData(item)
+        entry, data = self._tree.GetPyData(item)
         parent = self._parent_lookup[entry]
         while parent is not None:
             if isinstance(parent, bdec.choice.Choice):
@@ -213,13 +214,11 @@ class DecodeView(wx.lib.docview.View):
                 options = wx.Menu()
                 self._options = {}
                 for index, option in enumerate(parent.children):
-                    # Some examples used ids starting from 100, so we'll just
-                    # ignorantly copy them.
-                    id = 100 + index
-                    menuoption = wx.MenuItem(options, id, option.name)
-                    self._options[id] = (item, option)
-                    options.AppendItem(menuoption)
-                    menuoption.Enable(option.name != entry.name)
+                    # TODO: A better option would be to show all children, but
+                    # disable the current option.
+                    if option.name != entry.name:
+                        options.Append(index, option.name)
+                        self._options[index] = (item, option)
                 menu.AppendMenu(0, "Change option", options)
                 self._frame.PopupMenu(menu)
                 menu.Destroy()
