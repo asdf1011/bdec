@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import unittest
 
+import bdec.choice as chc
 import bdec.data as dt
 import bdec.field as fld
 import bdec.sequence as seq
@@ -37,22 +38,6 @@ class TestSequenceOf(unittest.TestCase):
         query = lambda context, child: context[child.name] 
         self.assertRaises(sof.InvalidSequenceOfCount, list, sequenceof.encode(query, data))
 
-    def test_decoding_greedy_sequenceof(self):
-        dog = seq.Sequence('dog', [fld.Field('bear', 8), fld.Field('id', 8, expected=dt.Data('a'))])
-        sequenceof = sof.SequenceOf("blah", dog, None)
-        data = dt.Data('1a2a3bb')
-        # Lets decode until 'id' decodes twice...
-        count = total = 0
-        for is_starting, entry, entry_data in sequenceof.decode(data):
-            total += 1 
-            if not is_starting and entry.name == "id":
-                count += 1
-                if count == 2:
-                    sequenceof.stop()
-
-        self.assertEqual(14, total)
-        self.assertEqual(24, len(data))
-
     def test_encoding_greedy_sequenceof(self):
         sequenceof = sof.SequenceOf("blah", fld.Field("cat", 8, format=fld.Field.INTEGER), None)
         data = {"blah" : [{"cat":5}, {"cat":9}, {"cat":0xf6}]}
@@ -63,6 +48,20 @@ class TestSequenceOf(unittest.TestCase):
     def test_negative_count(self):
         sequenceof = sof.SequenceOf("blah", fld.Field("cat", 8, format=fld.Field.INTEGER), -1)
         self.assertRaises(sof.NegativeSequenceofLoop, list, sequenceof.decode(dt.Data("")))
+
+    def test_end_entries(self):
+        null = fld.Field("null", 8, expected=dt.Data('\x00'))
+        char = fld.Field("char", 8)
+        sequenceof = sof.SequenceOf("null terminated string", chc.Choice('entry', [null, char]), None, end_entries=[null])
+        actual = []
+        data = dt.Data("hello\x00bob")
+        result = ""
+        for is_starting, entry, entry_data in sequenceof.decode(data):
+            if not is_starting and entry.name == "char":
+                result += str(entry_data)
+
+        self.assertEqual("hello", result)
+        self.assertEqual("bob", str(data))
 
 if __name__ == "__main__":
     unittest.main()

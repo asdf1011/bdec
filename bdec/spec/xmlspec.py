@@ -118,22 +118,6 @@ class _LengthResult:
         assert self.length is not None
         return self.length
 
-class _BreakListener:
-    """
-    Class to stop a sequenceof when another protocol entry decodes.
-    """
-    def __init__(self):
-        self._seqof = None
-
-    def set_sequenceof(self, sequenceof):
-        assert self._seqof is None
-        assert isinstance(sequenceof, sof.SequenceOf)
-        self._seqof = sequenceof
-
-    def __call__(self, entry, length):
-        assert self._seqof is not None
-        self._seqof.stop()
-
 class _ReferencedEntry(ent.Entry):
     """
     A mock decoder entry to forward all decoder calls onto another entry.
@@ -182,13 +166,12 @@ class _Handler(xml.sax.handler.ContentHandler):
         self.lookup = {}
         self.locator = None
         self._end_sequenceof = False
-        self._break_listener = None
         self._unresolved_references = []
 
     def setDocumentLocator(self, locator):
         self.locator = locator
 
-    def _break(self, attrs, children, length):
+    def _break(self, attrs, children, length, breaks):
         if len(attrs) != 0 or len(children) != 0:
             raise self._error("end-sequenceof cannot have attributes or sub-elements")
 
@@ -242,21 +225,16 @@ class _Handler(xml.sax.handler.ContentHandler):
         length = None
         if attrs.has_key('length'):
             length = self._parse_expression(attrs['length'])
-        child = self._handlers[name](attrs, children, length)
+        child = self._handlers[name](attrs, children, length, breaks)
         self._children.pop()
 
         if child is not None:
-            for break_notifier in breaks:
-                break_notifier.set_sequenceof(child)
-
             if self._end_sequenceof:
                 # There is a parent sequence of object that must stop when
                 # this entry decodes.
-                listener = _BreakListener()
-                child.add_listener(listener)
                 for name, attrs, breaks in reversed(self._stack):
                     if name == "sequenceof":
-                        breaks.append(listener)
+                        breaks.append(child)
                         break
                 else:
                     raise self._error("end-sequenceof is not surrounded by a sequenceof")
@@ -272,14 +250,12 @@ class _Handler(xml.sax.handler.ContentHandler):
             assert child is not None
             self._common_entries[child.name] = child
 
-    def _common(self, attributes, children, length):
+    def _common(self, attributes, children, length, breaks):
         pass
 
-    def _protocol(self, attributes, children, length):
+    def _protocol(self, attributes, children, length, breaks):
         if len(children) != 1:
             raise self._error("Protocol should have a single entry to be decoded!")
-        if self._break_listener is not None:
-            raise self._error("end-sequenceof is not surrounded by a sequenceof")
 
         for entry in self._unresolved_references:
             try:
@@ -396,13 +372,13 @@ class _Handler(xml.sax.handler.ContentHandler):
                 return matches
         raise MissingReferenceError(fullname)
 
-    def _reference(self, attributes, children, length):
+    def _reference(self, attributes, children, length, breaks):
         if attributes.getNames() != ["name"]:
             raise self._error("Reference entries must have a single 'name' attribute!")
         name = attributes.getValue('name')
         return self._get_common_entry(name)
 
-    def _field(self, attributes, children, length):
+    def _field(self, attributes, children, length, breaks):
         name = attributes['name']
         format = fld.Field.BINARY
         if length is None:
@@ -433,7 +409,7 @@ class _Handler(xml.sax.handler.ContentHandler):
             max = self._parse_expression(attributes['max'])
         return fld.Field(name, length, format, encoding, expected, min, max)
 
-    def _sequence(self, attributes, children, length):
+    def _sequence(self, attributes, children, length, breaks):
         if len(children) == 0:
             raise EmptySequenceError(attributes['name'], self._filename, self.locator)
         value = None
@@ -442,12 +418,12 @@ class _Handler(xml.sax.handler.ContentHandler):
             value = self._parse_expression(attributes['value'])
         return seq.Sequence(attributes['name'], children, value, length)
 
-    def _choice(self, attributes, children, length):
+    def _choice(self, attributes, children, length, breaks):
         if len(children) == 0:
             raise self._error("Choice '%s' must have children! Should this be a 'reference' entry?" % attributes['name'])
         return chc.Choice(attributes['name'], children, length)
 
-    def _sequenceof(self, attributes, children, length):
+    def _sequenceof(self, attributes, children, length, breaks):
         if len(children) == 0:
             raise self._error("SequenceOf '%s' must have a single child! Should this be a 'reference' entry?" % attributes['name'])
         if len(children) != 1:
@@ -457,11 +433,7 @@ class _Handler(xml.sax.handler.ContentHandler):
         count = None
         if attributes.has_key('count'):
             count = self._parse_expression(attributes['count'])
-        result = sof.SequenceOf(attributes['name'], children[0], count, length)
-
-        if self._break_listener is not None:
-            self._break_listener.set_sequenceof(result)
-            self._break_listener = None
+        result = sof.SequenceOf(attributes['name'], children[0], count, length, breaks)
         return result
 
 def _load_from_file(file, filename):
