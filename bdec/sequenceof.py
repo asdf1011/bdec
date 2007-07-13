@@ -38,6 +38,9 @@ class SequenceOf(bdec.entry.Entry):
         assert isinstance(child, bdec.entry.Entry)
 
     def _loop(self):
+        # At the moment this 'listener' is never removed, and it doesn't work
+        # for stack based notifications (eg: recursive sequenceof entries,
+        # where only the outer entry wants to be notified).
         stop = [False]
         def break_sequence(entry, length):
             stop[0] = True
