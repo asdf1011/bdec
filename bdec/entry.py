@@ -71,7 +71,7 @@ class Entry(object):
 
         The listener will be called with this entry, and the amount of data
         decoded as part of this entry (ie: this entry, and all of its
-        children).
+        children), and the context of this entry.
 
         Note that the listener will be called for every internal decode, not
         just the ones that are propageted to the user (for example, if an
@@ -80,7 +80,7 @@ class Entry(object):
         """
         self._listeners.append(listener)
 
-    def _decode(self, data):
+    def _decode(self, data, child_context):
         """
         Decode the given protocol entry.
 
@@ -89,11 +89,13 @@ class Entry(object):
         """
         raise NotImplementedError()
 
-    def decode(self, data):
+    def decode(self, data, context=0):
         """
         Decode this entry from input data.
 
         @param data The data to decode
+        @param context The depth of this protocol entry. Any child entries
+            will have a context of 'context + 1'.
         @return An iterator that returns (is_starting, Entry, data) tuples. The
             data when the decode is starting is the data available to be 
             decoded, and the data when the decode is finished is the data from
@@ -106,7 +108,7 @@ class Entry(object):
                 raise EntryDataError(self, ex)
 
         length = 0
-        for is_starting, entry, entry_data in self._decode(data):
+        for is_starting, entry, entry_data in self._decode(data, context + 1):
             if not is_starting:
                 length += len(entry_data)
             yield is_starting, entry, entry_data
@@ -115,7 +117,7 @@ class Entry(object):
             raise DecodeLengthError(self, data)
 
         for listener in self._listeners:
-            listener(self, length)
+            listener(self, length, context)
 
     def _get_context(self, query, parent):
         # This interface isn't too good; it requires us to load the _entire_ document

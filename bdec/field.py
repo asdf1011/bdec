@@ -110,7 +110,7 @@ class Field(bdec.entry.Entry):
         self.min = min
         self.max = max
 
-    def _decode(self, data):
+    def _decode(self, data, child_context):
         """ see bdec.entry.Entry._decode """
         yield (True, self, data)
 

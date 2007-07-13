@@ -42,7 +42,7 @@ class SequenceOf(bdec.entry.Entry):
         # for stack based notifications (eg: recursive sequenceof entries,
         # where only the outer entry wants to be notified).
         stop = [False]
-        def break_sequence(entry, length):
+        def break_sequence(entry, length, context):
             stop[0] = True
         for entry in self._end_entries:
             entry.add_listener(break_sequence)
@@ -61,10 +61,10 @@ class SequenceOf(bdec.entry.Entry):
                     break
                 yield None
 
-    def _decode(self, data):
+    def _decode(self, data, child_context):
         yield (True, self, data)
         for i in self._loop():
-            for item in self.children[0].decode(data):
+            for item in self.children[0].decode(data, child_context):
                 yield item
         yield (False, self, dt.Data())
 

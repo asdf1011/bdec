@@ -90,7 +90,7 @@ class _ValueResult:
     def add_entry(self, entry):
         entry.add_listener(self)
 
-    def __call__(self, entry, length):
+    def __call__(self, entry, length, context):
         if isinstance(entry, fld.Field):
             self.length = int(entry)
         elif isinstance(entry, seq.Sequence):
@@ -111,7 +111,7 @@ class _LengthResult:
             entry.add_listener(self)
         self.length = None
 
-    def __call__(self, entry, length):
+    def __call__(self, entry, length, context):
         self.length = length
 
     def __int__(self):
@@ -133,9 +133,9 @@ class _ReferencedEntry(ent.Entry):
         assert self._reference is None
         self._reference = entry
 
-    def _decode(self, data):
+    def _decode(self, data, child_context):
         assert self._reference is not None, "Asked to decode unresolved entry '%s'!" % self.name
-        return self._reference.decode(data)
+        return self._reference.decode(data, child_context - 1)
 
     def _encode(self, query, context):
         assert self._reference is not None, "Asked to encode unresolved entry '%s'!" % self.name

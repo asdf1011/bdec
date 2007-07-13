@@ -16,7 +16,7 @@ class Choice(bdec.entry.Entry):
         for child in children:
             assert isinstance(child, bdec.entry.Entry)
 
-    def _decode(self, data):
+    def _decode(self, data, child_context):
         yield (True, self, data)
 
         # We attempt to decode all of the embedded items. If
@@ -27,7 +27,7 @@ class Choice(bdec.entry.Entry):
         for child in self.children:
             try:
                 bits_decoded = 0
-                for is_starting, entry, entry_data in child.decode(data.copy()):
+                for is_starting, entry, entry_data in child.decode(data.copy(), child_context):
                     if not is_starting:
                         bits_decoded += len(entry_data)
 
@@ -44,7 +44,7 @@ class Choice(bdec.entry.Entry):
         # re-use the existing decode results... This is not
         # trivial however, as the fields have state (the data
         # attribute) which we'd need to cache and reset.
-        for is_starting, entry, data in best_guess.decode(data):
+        for is_starting, entry, data in best_guess.decode(data, child_context):
             yield is_starting, entry, data
 
         yield (False, self, dt.Data())

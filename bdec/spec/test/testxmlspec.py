@@ -5,6 +5,7 @@ import unittest
 import bdec.data as dt
 import bdec.entry as ent
 import bdec.field as fld
+import bdec.output.instance as inst
 import bdec.sequence as seq
 import bdec.spec.xmlspec as xml
 
@@ -389,6 +390,46 @@ class TestXml(unittest.TestCase):
                     b = entry.get_value()
         self.assertEqual("cat", a)
         self.assertEqual("rabbit", b)
+
+    def test_delayed_referenced_common_elements_are_independant(self):
+        # Here we test that so called 'delayed referenced' objects are
+        # independant (ie: that an embedded referenced object doesn't
+        # affect an outer object).
+        text = """
+            <protocol>
+                <common>
+                    <field name="integer" length="8" min="48" max="57" type="text" />
+
+                    <sequence name="array">
+                        <field name="opener" length="8" value="0x5b" />
+                        <sequenceof name="values">
+                            <choice name="entry:">
+                                <field name="closer" length="8" value="0x5d"><end-sequenceof /></field>
+                                <reference name="object" />
+                            </choice>
+                        </sequenceof>
+                    </sequence>
+
+                    <choice name="object">
+                        <reference name="integer" />
+                        <reference name="array" />
+                    </choice>
+                </common>
+                <reference name="object" />
+            </protocol>
+            """
+        protocol = xml.loads(text)[0]
+        data = dt.Data("[12[34[56]7]8]unused")
+        result = inst.decode(protocol, data)
+        self.assertEqual("1", result.object.array.values[0].integer)
+        self.assertEqual("2", result.object.array.values[1].integer)
+        self.assertEqual("3", result.object.array.values[2].array.values[0].integer)
+        self.assertEqual("4", result.object.array.values[2].array.values[1].integer)
+        self.assertEqual("5", result.object.array.values[2].array.values[2].array.values[0].integer)
+        self.assertEqual("6", result.object.array.values[2].array.values[2].array.values[1].integer)
+        self.assertEqual("7", result.object.array.values[2].array.values[3].integer)
+        self.assertEqual("8", result.object.array.values[3].integer)
+        self.assertEqual("unused", str(data))
 
     def test_all_entries_in_lookup_tree(self):
         text = """
