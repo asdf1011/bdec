@@ -37,14 +37,18 @@ class SequenceOf(bdec.entry.Entry):
         self._end_entries = end_entries
         assert isinstance(child, bdec.entry.Entry)
 
-    def _loop(self):
+    def _loop(self, child_context):
         # At the moment this 'listener' is never removed, and it doesn't work
         # for stack based notifications (eg: recursive sequenceof entries,
         # where only the outer entry wants to be notified).
         stop = [False]
-        def break_sequence(entry, length, context):
-            stop[0] = True
-        for entry in self._end_entries:
+        for entry, offset in self._end_entries:
+            def break_sequence(entry, length, context):
+                # The entry we have been waiting for has triggered. In the event
+                # that we are a recursive entry, we need to make sure that is
+                # the _correct_ instance of the entry that we are waiting on.
+                if context - child_context == offset:
+                    stop[0] = True
             entry.add_listener(break_sequence)
 
         self._stop = False
@@ -63,7 +67,7 @@ class SequenceOf(bdec.entry.Entry):
 
     def _decode(self, data, child_context):
         yield (True, self, data)
-        for i in self._loop():
+        for i in self._loop(child_context):
             for item in self.children[0].decode(data, child_context):
                 yield item
         yield (False, self, dt.Data())

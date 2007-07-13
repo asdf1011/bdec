@@ -232,9 +232,9 @@ class _Handler(xml.sax.handler.ContentHandler):
             if self._end_sequenceof:
                 # There is a parent sequence of object that must stop when
                 # this entry decodes.
-                for name, attrs, breaks in reversed(self._stack):
+                for offset, (name, attrs, breaks) in enumerate(reversed(self._stack)):
                     if name == "sequenceof":
-                        breaks.append(child)
+                        breaks.append((child, offset))
                         break
                 else:
                     raise self._error("end-sequenceof is not surrounded by a sequenceof")
