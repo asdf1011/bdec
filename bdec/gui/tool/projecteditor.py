@@ -3511,7 +3511,7 @@ def getProjectBitmap():
     return BitmapFromImage(getProjectImage())
 
 def getProjectImage():
-    stream = open(_get_image_path('project.data.png'))
+    stream = open(_get_image_path('project.data.png'), 'rb')
     return ImageFromStream(stream)
 
 def getProjectIcon():
@@ -3521,7 +3521,7 @@ def getBlankBitmap():
     return BitmapFromImage(getBlankImage())
 
 def getBlankImage():
-    stream = open(_get_image_path('project.blank.png'))
+    stream = open(_get_image_path('project.blank.png'), 'rb')
     return ImageFromStream(stream)
 
 def getBlankIcon():
@@ -3531,7 +3531,7 @@ def getFolderClosedBitmap():
     return BitmapFromImage(getFolderClosedImage())
 
 def getFolderClosedImage():
-    stream = open(_get_image_path('folder.closed.png'))
+    stream = open(_get_image_path('folder.closed.png'), 'rb')
     return ImageFromStream(stream)
 
 def getFolderClosedIcon():
@@ -3541,7 +3541,7 @@ def getFolderOpenBitmap():
     return BitmapFromImage(getFolderOpenImage())
 
 def getFolderOpenImage():
-    stream = open(_get_image_path('folder.open.png'))
+    stream = open(_get_image_path('folder.open.png'), 'rb')
     return ImageFromStream(stream)
 
 def getFolderOpenIcon():
@@ -3551,26 +3551,26 @@ def getLogicalModeOnBitmap():
     return BitmapFromImage(getLogicalModeOnImage())
 
 def getLogicalModeOnImage():
-    stream = open(_get_image_path('logicalmode.on.png'))
+    stream = open(_get_image_path('logicalmode.on.png'), 'rb')
     return ImageFromStream(stream)
 
 def getLogicalModeOffBitmap():
     return BitmapFromImage(getLogicalModeOffImage())
 
 def getLogicalModeOffImage():
-    stream = open(_get_image_path('logicalmode.off.png'))
+    stream = open(_get_image_path('logicalmode.off.png'), 'rb')
     return ImageFromStream(stream)
 
 def getPhysicalModeOnBitmap():
     return BitmapFromImage(getPhysicalModeOnImage())
 
 def getPhysicalModeOnImage():
-    stream = open(_get_image_path('physicalmode.on.png'))
+    stream = open(_get_image_path('physicalmode.on.png'), 'rb')
     return ImageFromStream(stream)
 
 def getPhysicalModeOffBitmap():
     return BitmapFromImage(getPhysicalModeOffImage())
 
 def getPhysicalModeOffImage():
-    stream = open(_get_image_path('physicalmode.off.png'))
+    stream = open(_get_image_path('physicalmode.off.png'), 'rb')
     return ImageFromStream(stream)
