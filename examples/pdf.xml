@@ -112,7 +112,6 @@
                     <field name="closer:" length="16" value="0x3e3e" ><end-sequenceof /></field>
                     <sequence name="entry">
                         <reference name="name object" />
-                        <reference name="optional whitespace:" />
                         <reference name="object:" />
                     </sequence>
                 </choice>
@@ -129,9 +128,7 @@
             </sequence>
             <reference name="whitespace" />
             <reference name="name" />
-            <reference name="whitespace" />
             <reference name="object:" />
-            <reference name="whitespace" />
             <field name="endobj:" length="48" value="0x656e646f626a" />
         </sequence>
 
@@ -175,6 +172,7 @@
                 <reference name="array object" />
                 <reference name="integer" />
             </choice>
+            <reference name="optional whitespace:" />
         </sequence>
 
         <sequence name="body">
