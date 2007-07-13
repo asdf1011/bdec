@@ -259,9 +259,13 @@ class _Handler(xml.sax.handler.ContentHandler):
 
         for entry in self._unresolved_references:
             try:
-                entry.resolve(self._common_entries[entry.name])
+                # TODO: Instead of a keeping a pseudo protocol entry in the final
+                # loaded protcol, when resolving we should simply substitute the
+                # loaded item.
+                item = self._common_entries[entry.name]
             except KeyError:
                 raise self._error("Referenced element '%s' is not found!" % entry.name)
+            entry.resolve(item)
         self._unresolved_references = []
 
         self.decoder = children[0]
