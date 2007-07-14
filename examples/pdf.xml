@@ -43,7 +43,7 @@
         </sequence>
 
         <sequence name="header">
-            <field name="id:" length="40" value="0x255044462d" />
+            <field name="id:" length="40" type="text" value="0x255044462d" />
             <field name="version" length="24" type="text" value="0x312e33" />
             <reference name="end of line" />
         </sequence>
@@ -58,15 +58,26 @@
             </sequenceof>
         </sequence>
 
+        <choice name="name character:">
+            <!-- Valid name characters are in the range [33, 126], except
+                 for %, (, ), <, >, [, ], {, }, /, and #. -->
+            <field name="char" length="8" type="text" min="33" max="36" />
+            <field name="char" length="8" type="text" min="38" max="39" />
+            <field name="char" length="8" type="text" min="42" max="46" />
+            <field name="char" length="8" type="text" min="48" max="59" />
+            <field name="char" length="8" type="text" min="61" max="61" />
+            <field name="char" length="8" type="text" min="63" max="90" />
+            <field name="char" length="8" type="text" min="92" max="92" />
+            <field name="char" length="8" type="text" min="94"  max="122" />
+            <field name="char" length="8" type="text" min="124"  max="124" />
+            <field name="char" length="8" type="text" min="126"  max="126" />
+        </choice>
+
         <sequence name="name">
-            <sequenceof name="chars">
+            <reference name="name character:" />
+            <sequenceof name="remaining chars:">
                 <choice name="entry:">
-                    <!-- We don't include the '<', '>', '[' or ']' characters -->
-                    <field name="char" length="8" type="text" min="33" max="59" />
-                    <field name="char" length="8" type="text" min="61" max="61" />
-                    <field name="char" length="8" type="text" min="63" max="90" />
-                    <field name="char" length="8" type="text" min="92" max="92" />
-                    <field name="char" length="8" type="text" min="94" />
+                    <reference name="name character:" />
                     <field name="empty:" length="0"><end-sequenceof /></field>
                 </choice>
             </sequenceof>
@@ -112,7 +123,7 @@
                     <field name="closer:" length="16" value="0x3e3e" ><end-sequenceof /></field>
                     <sequence name="entry">
                         <reference name="name object" />
-                        <reference name="object:" />
+                        <reference name="direct object:" />
                     </sequence>
                 </choice>
             </sequenceof>
@@ -127,15 +138,15 @@
                 <reference name="integer" />
             </sequence>
             <reference name="whitespace" />
-            <reference name="name" />
-            <reference name="object:" />
-            <field name="endobj:" length="48" value="0x656e646f626a" />
+            <field name="obj:" length="24" type="text" value="0x6f626a" />
+            <reference name="direct object:" />
+            <field name="endobj:" length="48" type="text" value="0x656e646f626a" />
         </sequence>
 
         <sequence name="stream object">
             <reference name="dictionary object" />
-            <reference name="whitespace" />
-            <field name="stream:" length="48" value="0x73747265616d" />
+            <reference name="optional whitespace:" />
+            <field name="stream:" length="48" type="text" value="0x73747265616d" />
             <reference name="end of line" />
             <!-- A programmatic decoder would look in the previous dictionary
                 object for the 'length' entry; that option isn't avaiable to 
@@ -144,7 +155,7 @@
                  -->
              <sequenceof name="data">
                  <choice name="entry:">
-                     <field name="endstream" length="72" value="0x656e6473747265616d" ><end-sequenceof/></field>
+                     <field name="endstream" length="72" type="text" value="0x656e6473747265616d" ><end-sequenceof/></field>
                      <field name="byte" length="8" type="hex" />
                  </choice>
              </sequenceof>
@@ -155,17 +166,16 @@
             <sequenceof name="objects:">
                 <choice name="array entry:">
                     <field name="close square bracket:" length="8" value="0x5d" ><end-sequenceof /></field>
-                    <reference name="object:" />
+                    <reference name="direct object:" />
                 </choice>
             </sequenceof>
         </sequence>
 
-        <sequence name="object:">
+        <sequence name="direct object:">
             <reference name="optional whitespace:" />
             <choice name="object entry:">
                 <reference name="comment" />
                 <reference name="object reference" />
-                <reference name="indirect object" />
                 <reference name="name object" />
                 <reference name="stream object" />
                 <reference name="dictionary object" />
@@ -175,11 +185,12 @@
             <reference name="optional whitespace:" />
         </sequence>
 
-        <sequence name="body">
-            <sequenceof name="objects">
-                <reference name="object:" />
-            </sequenceof>
-        </sequence>
+        <sequenceof name="body">
+            <choice name="entry:">
+                <reference name="indirect object" />
+                <reference name="direct object:" />
+            </choice>
+        </sequenceof>
     </common>
 
     <sequence name="pdf">
