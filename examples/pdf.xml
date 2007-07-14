@@ -186,10 +186,14 @@
         </sequence>
 
         <sequenceof name="body">
-            <choice name="entry:">
-                <reference name="indirect object" />
-                <reference name="direct object:" />
-            </choice>
+            <sequence name="entry:">
+                <reference name="optional whitespace:" />
+                <choice name="body entry:">
+                    <reference name="comment" />
+                    <reference name="indirect object" />
+                </choice>
+                <reference name="optional whitespace:" />
+            </sequence>
         </sequenceof>
     </common>
 
