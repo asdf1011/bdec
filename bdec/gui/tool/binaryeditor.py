@@ -138,7 +138,12 @@ class DecodeView(wx.lib.docview.View):
                           self._frame)
             return
 
-        protocol, self._lookup = bdec.spec.xmlspec.load(filename)
+        try:
+            protocol, self._lookup = bdec.spec.xmlspec.load(filename)
+        except bdec.spec.LoadError, ex:
+            bdec.gui.tool.messageservice.ShowMessages([str(ex)])
+            return
+
         data = bdec.data.Data(self.GetDocument().data)
         self._decoder = _DecodeThread(self._frame, protocol, self._lookup, data)
         self._frame.Bind(self._decoder.EVT_DECODE, self._on_decode)
@@ -184,6 +189,9 @@ class DecodeView(wx.lib.docview.View):
             self._tree.SetItemText(item, text)
 
     def _stop_decoder(self):
+        if self._decoder is None:
+            return
+
         self._decoder.stop()
         self._frame.Unbind(self._decoder.EVT_DECODE)
         self._decode_stack = []
