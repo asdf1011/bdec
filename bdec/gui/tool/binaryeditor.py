@@ -7,6 +7,7 @@
 # License:      wxWindows License
 #----------------------------------------------------------------------------
 
+import sys
 import threading
 import wx
 import wx.lib.newevent
@@ -28,6 +29,12 @@ class BinaryDocument(wx.lib.docview.Document):
         return False
 
     def LoadObject(self, file):
+        if sys.platform == "win32":
+            # wxpython opens the file in text mode, but we want to open
+            # binary files...
+            import os, msvcrt
+            msvcrt.setmode(file.fileno(), os.O_BINARY)
+
         self.data = file.read()
 
 
