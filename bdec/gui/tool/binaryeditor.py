@@ -217,33 +217,36 @@ class DecodeView(wx.lib.docview.View):
 
     def _on_right_click(self, evt):
         pt = evt.GetPosition();
-        item, flags = self._tree.HitTest(pt)
+        tree_item, flags = self._tree.HitTest(pt)
 
-        entry, data = self._tree.GetPyData(item)
+        entry, data = self._tree.GetPyData(tree_item)
         parent = self._parent_lookup[entry]
+        options = []
         while parent is not None:
             if isinstance(parent, bdec.choice.Choice):
-                # The selected item is an option from a choice; give the user
-                # the option of changing to another option.
-                menu = wx.Menu()
-                options = wx.Menu()
-                self._options = {}
-                for index, option in enumerate(parent.children):
-                    # TODO: A better option would be to show all children, but
-                    # disable the current option.
-                    if option.name != entry.name:
-                        options.Append(index, option.name)
-                        self._options[index] = (item, option)
-                menu.AppendMenu(0, "Change option", options)
-                self._frame.PopupMenu(menu)
-                menu.Destroy()
-                break
+                for option in parent.children:
+                    options.append(option)
 
             if not parent.is_hidden():
-                # The visible parent isn't a choice (and so the current entry
-                # isn't an option).
                 break
             parent = self._parent_lookup[parent]
+
+        if options:
+            # The selected item is an option from a choice; give the user
+            # the option of changing to another option.
+            menu = wx.Menu()
+            options_menu = wx.Menu()
+            self._options = {}
+            for index, option in enumerate(options):
+                # TODO: A better option would be to show all children, but
+                # disable the current option.
+                if option.name != entry.name:
+                    options_menu.Append(index, option.name)
+                    self._options[index] = (tree_item, option)
+
+            menu.AppendMenu(0, "Change option", options_menu)
+            self._frame.PopupMenu(menu)
+            menu.Destroy()
 
     def OnClose(self, deleteWindow = True):
         # TODO: It can take a little while to stop the decoder; maybe we
