@@ -73,7 +73,8 @@
             <field name="char" length="8" type="text" min="126"  max="126" />
         </choice>
 
-        <sequence name="name">
+        <sequence name="name object">
+            <field name="id:" length="8" value="0x2f" />
             <reference name="name character:" />
             <sequenceof name="remaining chars:">
                 <choice name="entry:">
@@ -81,11 +82,6 @@
                     <field name="empty:" length="0"><end-sequenceof /></field>
                 </choice>
             </sequenceof>
-        </sequence>
-
-        <sequence name="name object">
-            <field name="id:" length="8" value="0x2f" />
-            <reference name="name" />
         </sequence>
 
         <sequence name="integer">
