@@ -99,6 +99,33 @@
             </sequenceof>
         </sequence>
 
+        <sequence name="string">
+            <choice name="string type:">
+                <sequence name="text">
+                    <field name="opener:" length="8" type="text" value="0x28" />
+                    <sequenceof name="chars">
+                        <choice name="entry:">
+                            <sequence name="escaped char">
+                                <field name="escape:" length="8" type="text" value="0x5c" />
+                                <field name="char" length="8" type="text" />
+                            </sequence>
+                            <field name="closer:" length="8" type="text" value="0x29" ><end-sequenceof/></field>
+                            <field name="char" length="8" type="text" />
+                        </choice>
+                    </sequenceof>
+                </sequence>
+                <sequence name="hex">
+                    <field name="opener:" length="8" type="text" value="0x3c" />
+                    <sequenceof name="chars">
+                        <choice name="entry:">
+                            <field name="closer:" length="8" type="text" value="0x3e" ><end-sequenceof/></field>
+                            <field name="char" length="8" type="text" />
+                        </choice>
+                    </sequenceof>
+                </sequence>
+            </choice>
+        </sequence>
+
         <sequence name="object reference">
             <sequence name="object number">
                 <reference name="integer" />
@@ -177,6 +204,7 @@
                 <reference name="dictionary object" />
                 <reference name="array object" />
                 <reference name="integer" />
+                <reference name="string" />
             </choice>
             <reference name="optional whitespace:" />
         </sequence>
