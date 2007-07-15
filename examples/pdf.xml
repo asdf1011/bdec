@@ -90,10 +90,10 @@
                 <field name="negative" length="8" value="0x2d" />
                 <field name="none:" length="0" />
             </choice>
-            <field name="number" length="8" type="text" min="48" max="57" />
+            <field name="digit" length="8" type="text" min="48" max="57" />
             <sequenceof name="number:">
                 <choice name="char:">
-                    <field name="number" length="8" type="text" min="48" max="57" />
+                    <field name="digit" length="8" type="text" min="48" max="57" />
                     <field name="none" length="0"><end-sequenceof /></field>
                 </choice>
             </sequenceof>
@@ -271,7 +271,10 @@
         <sequence name="cross reference table">
             <field name="xref:" length="32" type="text" value="0x78726566" />
             <sequenceof name="cross reference sections">
-                <reference name="cross reference section" />
+                <choice name="section:">
+                    <reference name="cross reference section" />
+                    <field name="end:" length="0" ><end-sequenceof /></field>
+                </choice>
             </sequenceof>
         </sequence>
 
@@ -289,10 +292,27 @@
                 <reference name="optional whitespace:" />
             </sequence>
         </sequenceof>
+
+        <sequence name="trailer">
+            <reference name="optional whitespace:" />
+            <field name="trailer:" length="56" type="text" value="0x747261696c6572" />
+            <reference name="optional whitespace:" />
+            <reference name="dictionary object" />
+            <reference name="optional whitespace:" />
+            <field name="startxref:" length="72" type="text" value="0x737461727478726566" />
+            <reference name="optional whitespace:" />
+            <sequence name="cross reference table start address">
+                <reference name="integer" />
+            </sequence>
+            <reference name="optional whitespace:" />
+            <field name="eof:" length="40" type="text" value="0x2525454f46" />
+            <reference name="optional whitespace:" />
+        </sequence>
     </common>
 
     <sequence name="pdf">
         <reference name="header" />
         <reference name="body" />
+        <reference name="trailer" />
     </sequence>
 </protocol>
