@@ -210,12 +210,81 @@
             <reference name="optional whitespace:" />
         </sequence>
 
+        <choice name="cross reference end of line:">
+            <field name="space cr" length="16" type="text" value="0x200d" />
+            <field name="space lf" length="16" type="text" value="0x200a" />
+            <field name="cr lf" length="16" type="text" value="0x0d0a" />
+        </choice>
+
+        <choice name="cross reference entry">
+            <sequence name="in use entry">
+                <sequence name="byte offset">
+                    <reference name="integer" />
+                </sequence>
+                <reference name="whitespace" />
+                <sequence name="generation number">
+                    <reference name="integer" />
+                </sequence>
+                <reference name="optional whitespace:" />
+                <field name="n:" length="8" type="text" value="0x6e" />
+                <reference name="cross reference end of line:" />
+            </sequence>
+
+            <sequence name="free entry">
+                <sequence name="object number of next free object">
+                    <reference name="integer" />
+                </sequence>
+                <reference name="whitespace" />
+                <sequence name="generation number">
+                    <reference name="integer" />
+                </sequence>
+                <reference name="optional whitespace:" />
+                <field name="f:" length="8" type="text" value="0x66" />
+                <reference name="cross reference end of line:" />
+            </sequence>
+        </choice>
+
+        <sequence name="cross reference section">
+            <reference name="optional whitespace:" />
+            <sequence name="object number of first section">
+                <reference name="integer" />
+            </sequence>
+            <reference name="whitespace" />
+            <sequence name="number of entries">
+                <reference name="integer" />
+            </sequence>
+            <!-- We should use the value from 'number of entries', but it is
+                difficult to convert that text value to a numeric value we
+                can use. -->
+            <sequenceof name="cross reference entries">
+                <sequence name="entry with whitespace:">
+                    <reference name="optional whitespace:" />
+                    <choice name="entry:">
+                        <reference name="cross reference entry" />
+                        <field name="end:" length="0"><end-sequenceof/></field>
+                    </choice>
+                </sequence>
+            </sequenceof>
+        </sequence>
+
+
+        <sequence name="cross reference table">
+            <field name="xref:" length="32" type="text" value="0x78726566" />
+            <sequenceof name="cross reference sections">
+                <reference name="cross reference section" />
+            </sequenceof>
+        </sequence>
+
         <sequenceof name="body">
             <sequence name="entry:">
                 <reference name="optional whitespace:" />
                 <choice name="body entry:">
                     <reference name="comment" />
                     <reference name="indirect object" />
+                    <sequence name="cross reference:">
+                        <reference name="cross reference table" />
+                        <end-sequenceof />
+                    </sequence>
                 </choice>
                 <reference name="optional whitespace:" />
             </sequence>
