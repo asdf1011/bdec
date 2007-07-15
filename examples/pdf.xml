@@ -205,6 +205,7 @@
                 <reference name="array object" />
                 <reference name="integer" />
                 <reference name="string" />
+                <field name="null" length="32" type="text" value="0x6e756c6c" />
             </choice>
             <reference name="optional whitespace:" />
         </sequence>
