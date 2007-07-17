@@ -113,7 +113,7 @@ class Field(bdec.entry.Entry):
         self.format = format
         self._encoding = encoding
         self.data = None
-        self._expected = expected
+        self.expected = expected
         self.min = min
         self.max = max
 
@@ -122,9 +122,9 @@ class Field(bdec.entry.Entry):
         yield (True, self, data)
 
         self.data = data.pop(int(self.length))
-        if self._expected is not None:
-            if int(self._expected) != int(self.data):
-                raise BadDataError(self, self._expected, self.data)
+        if self.expected is not None:
+            if int(self.expected) != int(self.data):
+                raise BadDataError(self, self.expected, self.data)
         self._validate_range(self.data)
 
         yield (False, self, self.data)
@@ -136,11 +136,6 @@ class Field(bdec.entry.Entry):
             raise BadFormatError(self, data, expected_type)
 
     def _encode_data(self, data):
-        """
-        Convert an object to a dt.Data object.
-
-        Can raise dt.DataError errors.
-        """
         length = int(self.length)
         if self.format == self.BINARY:
             result = dt.Data.from_binary_text(self._convert_type(data, str))
@@ -162,23 +157,32 @@ class Field(bdec.entry.Entry):
         else:
             raise Exception("Unknown field format of '%s'!" % self.format)
 
-        if self._expected is not None and result != self._expected:
-            raise BadDataError(self, self._expected, result)
         return result
+
+    def encode_value(self, value):
+        """
+        Convert an object to a dt.Data object.
+
+        Can raise dt.DataError errors.
+        """
+        try:
+            return self._encode_data(value)
+        except dt.DataError, ex:
+            raise FieldDataError(self, ex)
 
     def _encode(self, query, context):
         """
         Note that we override 'encode', not '_encode', as we do not want to query
         for items with an expected value.
         """
-        if self._expected is not None:
+        if self.expected is not None:
             if self.is_hidden():
                 try:
                     data = query(context, self)
                 except bdec.entry.MissingInstanceError:
                     # The hidden variable wasn't included in the output, so just
                     # use the 'expected' value.
-                    yield self._expected
+                    yield self.expected
                     return
             else:
                 # We are an expected value, but not hidden (and so must be present
@@ -188,7 +192,7 @@ class Field(bdec.entry.Entry):
             if data is None or data == "":
                 # The expected value object was present, but didn't have any data (eg:
                 # the xml output may not include expected values).
-                yield self._expected
+                yield self.expected
                 return
         else:
             # We don't have any expected data, so we'll query it from the input.
@@ -201,10 +205,10 @@ class Field(bdec.entry.Entry):
                 data = context
 
         self._validate_range(data)
-        try:
-            result = self._encode_data(data)
-        except dt.DataError, ex:
-            raise FieldDataError(self, ex)
+
+        result = self.encode_value(data)
+        if self.expected is not None and result != self.expected:
+            raise BadDataError(self, self.expected, result)
         yield result
 
     def __str__(self):

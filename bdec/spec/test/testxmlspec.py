@@ -2,6 +2,7 @@
 
 import unittest
 
+import bdec
 import bdec.data as dt
 import bdec.entry as ent
 import bdec.field as fld
@@ -509,6 +510,19 @@ class TestXml(unittest.TestCase):
                 result += entry.get_value()
         self.assertEqual("rabbit", result)
         self.assertEqual("legs", str(data))
+
+    def test_string_constants(self):
+        text = """
+            <protocol>
+              <sequence name="cat">
+                <field name="bob" length="56" type="text" value="chicken" />
+                <field name="bob" length="8" type="integer" value="73" />
+              </sequence>
+            </protocol>"""
+        decoder = xml.loads(text)[0]
+        items = list(decoder.decode(dt.Data("chicken\x49")))
+        self.assertRaises(bdec.DecodeError, list, decoder.decode(dt.Data("chickan\x49")))
+        self.assertRaises(bdec.DecodeError, list, decoder.decode(dt.Data("chicken\x48")))
 
 if __name__ == "__main__":
     unittest.main()
