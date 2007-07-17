@@ -1,0 +1,318 @@
+<!-- A bdec specification of the pdf file format.
+
+    See http://www.adobe.com/devnet/pdf/pdf_reference.html for information from
+    Adobe on the file format.
+    -->
+<protocol>
+    <common>
+        <choice name="end of line">
+            <sequence name="lf cr:">
+                <field name="cr:" length="8" value="0xd" />
+                <field name="lf:" length="8" value="0xa" />
+            </sequence>
+            <field name="cr:" length="8" value="0xd" />
+            <field name="lf:" length="8" value="0xa" />
+        </choice>
+
+        <choice name="non breaking whitespace:">
+            <field name="tab" length="8" value="0x09" />
+            <field name="space" length="8" value="0x20" />
+        </choice>
+
+        <choice name="other whitespace:">
+            <field name="null" length="8" value="0x00" />
+            <field name="form feed" length="8" value="0x0c" />
+        </choice>
+
+        <choice name="whitespace entry:">
+            <reference name="end of line" />
+            <reference name="non breaking whitespace:" />
+            <reference name="other whitespace:" />
+        </choice>
+
+        <sequenceof name="optional whitespace:">
+            <choice name="entry:">
+                <reference name="whitespace entry:" />
+                <field name="end:" length="0"><end-sequenceof /> </field>
+            </choice>
+        </sequenceof>
+
+        <sequence name="whitespace">
+            <reference name="whitespace entry:" />
+            <reference name="optional whitespace:" />
+        </sequence>
+
+        <sequence name="header">
+            <field name="id:" length="40" type="text" value="0x255044462d" />
+            <field name="version" length="24" type="text" value="0x312e33" />
+            <reference name="end of line" />
+        </sequence>
+
+        <sequence name="comment">
+            <field name="id:" length="8" value="0x25" />
+            <sequenceof name="text">
+                <choice name="entry:">
+                    <reference name="end of line"><end-sequenceof /></reference>
+                    <field name="char" length="8" type="hex" />
+                </choice>
+            </sequenceof>
+        </sequence>
+
+        <choice name="name character:">
+            <!-- Valid name characters are in the range [33, 126], except
+                 for %, (, ), <, >, [, ], {, }, /, and #. -->
+            <field name="char" length="8" type="text" min="33" max="36" />
+            <field name="char" length="8" type="text" min="38" max="39" />
+            <field name="char" length="8" type="text" min="42" max="46" />
+            <field name="char" length="8" type="text" min="48" max="59" />
+            <field name="char" length="8" type="text" min="61" max="61" />
+            <field name="char" length="8" type="text" min="63" max="90" />
+            <field name="char" length="8" type="text" min="92" max="92" />
+            <field name="char" length="8" type="text" min="94"  max="122" />
+            <field name="char" length="8" type="text" min="124"  max="124" />
+            <field name="char" length="8" type="text" min="126"  max="126" />
+        </choice>
+
+        <sequence name="name object">
+            <field name="id:" length="8" value="0x2f" />
+            <reference name="name character:" />
+            <sequenceof name="remaining chars:">
+                <choice name="entry:">
+                    <reference name="name character:" />
+                    <field name="empty:" length="0"><end-sequenceof /></field>
+                </choice>
+            </sequenceof>
+        </sequence>
+
+        <sequence name="integer">
+            <choice name="sign:">
+                <field name="positive" length="8" value="0x2b" />
+                <field name="negative" length="8" value="0x2d" />
+                <field name="none:" length="0" />
+            </choice>
+            <field name="digit" length="8" type="text" min="48" max="57" />
+            <sequenceof name="number:">
+                <choice name="char:">
+                    <field name="digit" length="8" type="text" min="48" max="57" />
+                    <field name="none" length="0"><end-sequenceof /></field>
+                </choice>
+            </sequenceof>
+        </sequence>
+
+        <sequence name="string">
+            <choice name="string type:">
+                <sequence name="text">
+                    <field name="opener:" length="8" type="text" value="0x28" />
+                    <sequenceof name="chars">
+                        <choice name="entry:">
+                            <sequence name="escaped char">
+                                <field name="escape:" length="8" type="text" value="0x5c" />
+                                <field name="char" length="8" type="text" />
+                            </sequence>
+                            <field name="closer:" length="8" type="text" value="0x29" ><end-sequenceof/></field>
+                            <field name="char" length="8" type="text" />
+                        </choice>
+                    </sequenceof>
+                </sequence>
+                <sequence name="hex">
+                    <field name="opener:" length="8" type="text" value="0x3c" />
+                    <sequenceof name="chars">
+                        <choice name="entry:">
+                            <field name="closer:" length="8" type="text" value="0x3e" ><end-sequenceof/></field>
+                            <field name="char" length="8" type="text" />
+                        </choice>
+                    </sequenceof>
+                </sequence>
+            </choice>
+        </sequence>
+
+        <sequence name="object reference">
+            <sequence name="object number">
+                <reference name="integer" />
+            </sequence>
+            <reference name="non breaking whitespace:" />
+            <sequence name="generation number">
+                <reference name="integer" />
+            </sequence>
+            <reference name="non breaking whitespace:" />
+            <field name="id:" length="8" value="0x52" />
+        </sequence>
+
+        <sequence name="dictionary object">
+            <field name="opener:" length="16" value="0x3c3c" />
+            <sequenceof name="entries:">
+                <choice name="entry:">
+                    <reference name="whitespace" />
+                    <field name="closer:" length="16" value="0x3e3e" ><end-sequenceof /></field>
+                    <sequence name="entry">
+                        <reference name="name object" />
+                        <reference name="direct object:" />
+                    </sequence>
+                </choice>
+            </sequenceof>
+        </sequence>
+
+        <sequence name="indirect object">
+            <sequence name="object number">
+                <reference name="integer" />
+            </sequence>
+            <reference name="whitespace" />
+            <sequence name="generation number">
+                <reference name="integer" />
+            </sequence>
+            <reference name="whitespace" />
+            <field name="obj:" length="24" type="text" value="0x6f626a" />
+            <reference name="direct object:" />
+            <field name="endobj:" length="48" type="text" value="0x656e646f626a" />
+        </sequence>
+
+        <sequence name="stream object">
+            <reference name="dictionary object" />
+            <reference name="optional whitespace:" />
+            <field name="stream:" length="48" type="text" value="0x73747265616d" />
+            <reference name="end of line" />
+            <!-- A programmatic decoder would look in the previous dictionary
+                object for the 'length' entry; that option isn't avaiable to 
+                us. We'll just decode until we get 'endstream' (and hope that
+                text isn't in the binary data)...
+                 -->
+             <sequenceof name="data">
+                 <choice name="entry:">
+                     <field name="endstream" length="72" type="text" value="0x656e6473747265616d" ><end-sequenceof/></field>
+                     <field name="byte" length="8" type="hex" />
+                 </choice>
+             </sequenceof>
+        </sequence>
+
+        <sequence name="array object">
+            <field name="open square bracket:" length="8" value="0x5b" />
+            <sequenceof name="objects:">
+                <choice name="array entry:">
+                    <field name="close square bracket:" length="8" value="0x5d" ><end-sequenceof /></field>
+                    <reference name="direct object:" />
+                </choice>
+            </sequenceof>
+        </sequence>
+
+        <sequence name="direct object:">
+            <reference name="optional whitespace:" />
+            <choice name="object entry:">
+                <reference name="comment" />
+                <reference name="object reference" />
+                <reference name="name object" />
+                <reference name="stream object" />
+                <reference name="dictionary object" />
+                <reference name="array object" />
+                <reference name="integer" />
+                <reference name="string" />
+                <field name="null" length="32" type="text" value="0x6e756c6c" />
+            </choice>
+            <reference name="optional whitespace:" />
+        </sequence>
+
+        <choice name="cross reference end of line:">
+            <field name="space cr" length="16" type="text" value="0x200d" />
+            <field name="space lf" length="16" type="text" value="0x200a" />
+            <field name="cr lf" length="16" type="text" value="0x0d0a" />
+        </choice>
+
+        <choice name="cross reference entry">
+            <sequence name="in use entry">
+                <sequence name="byte offset">
+                    <reference name="integer" />
+                </sequence>
+                <reference name="whitespace" />
+                <sequence name="generation number">
+                    <reference name="integer" />
+                </sequence>
+                <reference name="optional whitespace:" />
+                <field name="n:" length="8" type="text" value="0x6e" />
+                <reference name="cross reference end of line:" />
+            </sequence>
+
+            <sequence name="free entry">
+                <sequence name="object number of next free object">
+                    <reference name="integer" />
+                </sequence>
+                <reference name="whitespace" />
+                <sequence name="generation number">
+                    <reference name="integer" />
+                </sequence>
+                <reference name="optional whitespace:" />
+                <field name="f:" length="8" type="text" value="0x66" />
+                <reference name="cross reference end of line:" />
+            </sequence>
+        </choice>
+
+        <sequence name="cross reference section">
+            <reference name="optional whitespace:" />
+            <sequence name="object number of first section">
+                <reference name="integer" />
+            </sequence>
+            <reference name="whitespace" />
+            <sequence name="number of entries">
+                <reference name="integer" />
+            </sequence>
+            <!-- We should use the value from 'number of entries', but it is
+                difficult to convert that text value to a numeric value we
+                can use. -->
+            <sequenceof name="cross reference entries">
+                <sequence name="entry with whitespace:">
+                    <reference name="optional whitespace:" />
+                    <choice name="entry:">
+                        <reference name="cross reference entry" />
+                        <field name="end:" length="0"><end-sequenceof/></field>
+                    </choice>
+                </sequence>
+            </sequenceof>
+        </sequence>
+
+
+        <sequence name="cross reference table">
+            <field name="xref:" length="32" type="text" value="0x78726566" />
+            <sequenceof name="cross reference sections">
+                <choice name="section:">
+                    <reference name="cross reference section" />
+                    <field name="end:" length="0" ><end-sequenceof /></field>
+                </choice>
+            </sequenceof>
+        </sequence>
+
+        <sequenceof name="body">
+            <sequence name="entry:">
+                <reference name="optional whitespace:" />
+                <choice name="body entry:">
+                    <reference name="comment" />
+                    <reference name="indirect object" />
+                    <sequence name="cross reference:">
+                        <reference name="cross reference table" />
+                        <end-sequenceof />
+                    </sequence>
+                </choice>
+                <reference name="optional whitespace:" />
+            </sequence>
+        </sequenceof>
+
+        <sequence name="trailer">
+            <reference name="optional whitespace:" />
+            <field name="trailer:" length="56" type="text" value="0x747261696c6572" />
+            <reference name="optional whitespace:" />
+            <reference name="dictionary object" />
+            <reference name="optional whitespace:" />
+            <field name="startxref:" length="72" type="text" value="0x737461727478726566" />
+            <reference name="optional whitespace:" />
+            <sequence name="cross reference table start address">
+                <reference name="integer" />
+            </sequence>
+            <reference name="optional whitespace:" />
+            <field name="eof:" length="40" type="text" value="0x2525454f46" />
+            <reference name="optional whitespace:" />
+        </sequence>
+    </common>
+
+    <sequence name="pdf">
+        <reference name="header" />
+        <reference name="body" />
+        <reference name="trailer" />
+    </sequence>
+</protocol>

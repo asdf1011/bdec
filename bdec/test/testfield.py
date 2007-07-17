@@ -11,7 +11,7 @@ class TestField(unittest.TestCase):
         data = dt.Data.from_hex("017a")
 
         calls = []
-        for is_starting, entry in field.decode(data):
+        for is_starting, entry, entry_data in field.decode(data):
             calls.append(entry)
         self.assertEqual(2, len(calls))
         self.assertEqual(field, calls[0])
@@ -27,7 +27,7 @@ class TestField(unittest.TestCase):
         field = fld.Field("bob", length, format, encoding)
         data = dt.Data.from_hex(hex)
         calls = []
-        for is_starting, entry in field.decode(data):
+        for is_starting, entry, entry_data in field.decode(data):
             calls.append(entry)
         self.assertEqual(2, len(calls))
         return calls[1].get_value()
@@ -125,7 +125,7 @@ class TestField(unittest.TestCase):
     def test_listener(self):
         field = fld.Field("bob", 8)
         callbacks = []
-        field.add_listener(lambda entry, length: callbacks.append((entry, length)))
+        field.add_listener(lambda entry, length, context: callbacks.append((entry, length)))
         self.assertEqual(0, len(callbacks))
         list(field.decode(dt.Data('a')))
         self.assertEqual('a',  str(callbacks[0][0].data))

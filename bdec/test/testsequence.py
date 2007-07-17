@@ -13,7 +13,7 @@ class TestSequence(unittest.TestCase):
         data = dt.Data.from_hex("017a")
 
         calls = []
-        for is_starting, entry in sequence.decode(data):
+        for is_starting, entry, entry_data in sequence.decode(data):
             if not is_starting:
                 calls.append(entry)
 
@@ -36,7 +36,7 @@ class TestSequence(unittest.TestCase):
         embedded = [fld.Field("bob", 8, format=fld.Field.INTEGER), fld.Field("cat", 8, format=fld.Field.INTEGER)]
         sequence = seq.Sequence("blah", embedded)
         callbacks = []
-        sequence.add_listener(lambda entry, length: callbacks.append((entry, length)))
+        sequence.add_listener(lambda entry, length, context: callbacks.append((entry, length)))
         self.assertEqual(0, len(callbacks))
         list(sequence.decode(dt.Data.from_hex("017a")))
         self.assertEqual(1, len(callbacks))

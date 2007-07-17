@@ -5,6 +5,7 @@ import unittest
 import bdec.data as dt
 import bdec.entry as ent
 import bdec.field as fld
+import bdec.output.instance as inst
 import bdec.sequence as seq
 import bdec.spec.xmlspec as xml
 
@@ -90,7 +91,7 @@ class TestXml(unittest.TestCase):
         self.assertEqual(0, int(result[1][1]))
 
     def test_common(self):
-        text = """<protocol> <common> <field name="bob" length="8" /> </common> <field name="bob" /> </protocol>"""
+        text = """<protocol> <common> <field name="bob" length="8" /> </common> <reference name="bob" /> </protocol>"""
         decoder = xml.loads(text)[0]
         self.assertEqual("bob", decoder.name)
         self.assertEqual(8, decoder.length)
@@ -104,10 +105,10 @@ class TestXml(unittest.TestCase):
                 <common>
                     <field name="bob" length="8" />
                     <sequence name="rabbit">
-                        <field name="bob" />
+                        <reference name="bob" />
                     </sequence>
                 </common>
-                <sequence name="rabbit" />
+                <reference name="rabbit" />
             </protocol>"""
 
         decoder = xml.loads(text)[0]
@@ -152,7 +153,7 @@ class TestXml(unittest.TestCase):
         Return a dictionary of decoded fields.
         """
         result = {}
-        for is_starting, entry in protocol.decode(dt.Data(data)):
+        for is_starting, entry, entry_data in protocol.decode(dt.Data(data)):
             if not is_starting and isinstance(entry, fld.Field):
                 result[entry.name] = entry.get_value()
         return result
@@ -225,7 +226,7 @@ class TestXml(unittest.TestCase):
 
         protocol = xml.loads(text)[0]
         result = ""
-        for is_starting, entry in protocol.decode(dt.Data("hello world\x00")):
+        for is_starting, entry, entry_data in protocol.decode(dt.Data("hello world\x00")):
             if not is_starting and entry.name == "char":
                 result += entry.get_value()
         self.assertEqual("hello world", result)
@@ -248,7 +249,7 @@ class TestXml(unittest.TestCase):
         protocol = xml.loads(text)[0]
         result = ""
         unused = ""
-        for is_starting, entry in protocol.decode(dt.Data("\x0fhello world\x00afd")):
+        for is_starting, entry, entry_data in protocol.decode(dt.Data("\x0fhello world\x00afd")):
             if not is_starting:
                 if entry.name == "char":
                     result += entry.get_value()
@@ -284,7 +285,7 @@ class TestXml(unittest.TestCase):
         protocol = xml.loads(text)[0]
         result = ""
         data = dt.Data("hello world\x00boo")
-        for is_starting, entry in protocol.decode(data):
+        for is_starting, entry, entry_data in protocol.decode(data):
             if not is_starting and entry.name == "char":
                 result += entry.get_value()
         self.assertEqual("hello world", result)
@@ -317,7 +318,7 @@ class TestXml(unittest.TestCase):
         protocol = xml.loads(text)[0]
         result = ""
         data = dt.Data("\x00\x00\x13\x00run for your lives!boo")
-        for is_starting, entry in protocol.decode(data):
+        for is_starting, entry, entry_data in protocol.decode(data):
             if not is_starting and entry.name == "data":
                 result = entry.get_value()
         self.assertEqual("run for your lives!", result)
@@ -338,7 +339,7 @@ class TestXml(unittest.TestCase):
         protocol = xml.loads(text)[0]
         result = ""
         data = dt.Data("\x07chicken")
-        for is_starting, entry in protocol.decode(data):
+        for is_starting, entry, entry_data in protocol.decode(data):
             if not is_starting and entry.name == "data":
                 result = entry.get_value()
         self.assertEqual("chicken", result)
@@ -369,10 +370,10 @@ class TestXml(unittest.TestCase):
                 </common>
                 <sequence name="bob">
                     <sequence name="length a">
-                        <field name="length:" />
+                        <reference name="length:" />
                     </sequence>
                     <sequence name="length b">
-                        <field name="length:" />
+                        <reference name="length:" />
                     </sequence>
                     <field name="data a" length="${length a.length:} * 8" type="text" />
                     <field name="data b" length="${length b.length:} * 8" type="text" />
@@ -381,7 +382,7 @@ class TestXml(unittest.TestCase):
             """
         protocol = xml.loads(text)[0]
         a = b = ""
-        for is_starting, entry in protocol.decode(dt.Data("\x03\x06catrabbit")):
+        for is_starting, entry, entry_data in protocol.decode(dt.Data("\x03\x06catrabbit")):
             if not is_starting:
                 if entry.name == "data a":
                     a = entry.get_value()
@@ -389,6 +390,46 @@ class TestXml(unittest.TestCase):
                     b = entry.get_value()
         self.assertEqual("cat", a)
         self.assertEqual("rabbit", b)
+
+    def test_delayed_referenced_common_elements_are_independant(self):
+        # Here we test that so called 'delayed referenced' objects are
+        # independant (ie: that an embedded referenced object doesn't
+        # affect an outer object).
+        text = """
+            <protocol>
+                <common>
+                    <field name="integer" length="8" min="48" max="57" type="text" />
+
+                    <sequence name="array">
+                        <field name="opener" length="8" value="0x5b" />
+                        <sequenceof name="values">
+                            <choice name="entry:">
+                                <field name="closer" length="8" value="0x5d"><end-sequenceof /></field>
+                                <reference name="object" />
+                            </choice>
+                        </sequenceof>
+                    </sequence>
+
+                    <choice name="object">
+                        <reference name="integer" />
+                        <reference name="array" />
+                    </choice>
+                </common>
+                <reference name="object" />
+            </protocol>
+            """
+        protocol = xml.loads(text)[0]
+        data = dt.Data("[12[34[56]7]8]unused")
+        result = inst.decode(protocol, data)
+        self.assertEqual("1", result.object.array.values[0].integer)
+        self.assertEqual("2", result.object.array.values[1].integer)
+        self.assertEqual("3", result.object.array.values[2].array.values[0].integer)
+        self.assertEqual("4", result.object.array.values[2].array.values[1].integer)
+        self.assertEqual("5", result.object.array.values[2].array.values[2].array.values[0].integer)
+        self.assertEqual("6", result.object.array.values[2].array.values[2].array.values[1].integer)
+        self.assertEqual("7", result.object.array.values[2].array.values[3].integer)
+        self.assertEqual("8", result.object.array.values[3].integer)
+        self.assertEqual("unused", str(data))
 
     def test_all_entries_in_lookup_tree(self):
         text = """
@@ -401,11 +442,11 @@ class TestXml(unittest.TestCase):
                     </choice>
                     <sequence name="length a">
                         <field name="length:" length="8" type="integer" />
-                        <choice name="dog" />
+                        <reference name="dog" />
                     </sequence>
                 </common>
                 <sequence name="bob">
-                    <sequence name="length a" />
+                    <reference name="length a" />
                     <field name="data a" length="${length a.length:} * 8" type="text" />
                 </sequence>
             </protocol>
@@ -419,6 +460,55 @@ class TestXml(unittest.TestCase):
             self.assertTrue(entry in lookup, "%s isn't in the lookup tree!" % entry)
             entries.extend(entry.children)
         self.assertEqual(set(['dog', 'rabbit', 'hole', 'length a', 'length:', 'bob', 'data a']), names)
+
+    def test_out_of_order_references(self):
+        text = """
+            <protocol>
+                <common>
+                    <sequence name="dog">
+                        <reference name="foo" />
+                    </sequence>
+
+                    <sequence name="foo">
+                        <reference name="cat" />
+                    </sequence>
+
+                    <sequence name="cat" >
+                        <field name="length" length="8" type="integer" />
+                    </sequence>
+                </common>
+                <reference name="dog" />
+            </protocol>
+            """
+        protocol, lookup = xml.loads(text)
+        for is_starting, entry, entry_data in protocol.decode(dt.Data('a')):
+            if not is_starting and entry.name == "length":
+                result = entry.get_value()
+        self.assertEqual(ord('a'), result)
+
+    def test_recursive_entry(self):
+        text = """
+            <protocol>
+                <common>
+                    <choice name="null terminating string:">
+                        <field name="null:" length="8" value="0x0" />
+                        <sequence name="non null:">
+                            <field name="char" length="8" type="text" />
+                            <reference name="null terminating string:" />
+                        </sequence>
+                    </choice>
+                </common>
+                <reference name="null terminating string:" />
+            </protocol>
+            """
+        protocol, lookup = xml.loads(text)
+        data = dt.Data('rabbit\0legs')
+        result = ""
+        for is_starting, entry, entry_data in protocol.decode(data):
+            if not is_starting and entry.name == "char":
+                result += entry.get_value()
+        self.assertEqual("rabbit", result)
+        self.assertEqual("legs", str(data))
 
 if __name__ == "__main__":
     unittest.main()

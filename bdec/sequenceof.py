@@ -1,3 +1,4 @@
+import bdec.data as dt
 import bdec.entry
 
 class InvalidSequenceOfCount(bdec.DecodeError):
@@ -26,24 +27,31 @@ class SequenceOf(bdec.entry.Entry):
     ITERATING = "iterating"
     STOPPING = "stopping"
 
-    def __init__(self, name, child, count, length=None):
+    def __init__(self, name, child, count, length=None, end_entries=[]):
         """
         A count of None will result in a 'greedy' sequence, which will
-        keep on decoding items (until 'break' is called).
+        keep on decoding items (until an entry in end_entries is decoded).
         """
         bdec.entry.Entry.__init__(self, name, length, [child])
         self._count = count
-        self._state = self.STOPPED
+        self._end_entries = end_entries
         assert isinstance(child, bdec.entry.Entry)
 
-    def stop(self):
-        """
-        Stop a currently iterating sequence of.
-        """
-        assert self._state is not self.STOPPED
-        self._state = self.STOPPING
+    def _loop(self, child_context):
+        # At the moment this 'listener' is never removed, and it doesn't work
+        # for stack based notifications (eg: recursive sequenceof entries,
+        # where only the outer entry wants to be notified).
+        stop = [False]
+        for entry, offset in self._end_entries:
+            def break_sequence(entry, length, context):
+                # The entry we have been waiting for has triggered. In the event
+                # that we are a recursive entry, we need to make sure that is
+                # the _correct_ instance of the entry that we are waiting on.
+                if context - child_context == offset:
+                    stop[0] = True
+            entry.add_listener(break_sequence)
 
-    def _loop(self):
+        self._stop = False
         if self._count is not None:
             count = int(self._count)
             if count < 0:
@@ -53,17 +61,16 @@ class SequenceOf(bdec.entry.Entry):
                 yield i
         else:
             while 1:
+                if stop[0]:
+                    break
                 yield None
 
-    def _decode(self, data):
-        self._state = self.ITERATING
-        for i in self._loop():
-            for item in self.children[0].decode(data):
+    def _decode(self, data, child_context):
+        yield (True, self, data)
+        for i in self._loop(child_context):
+            for item in self.children[0].decode(data, child_context):
                 yield item
-
-            if self._state is self.STOPPING:
-                break
-        self._state = self.STOPPED
+        yield (False, self, dt.Data())
 
     def _encode(self, query, parent):
         sequenceof = self._get_context(query, parent)

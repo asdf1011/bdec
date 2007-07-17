@@ -71,7 +71,7 @@ class Entry(object):
 
         The listener will be called with this entry, and the amount of data
         decoded as part of this entry (ie: this entry, and all of its
-        children).
+        children), and the context of this entry.
 
         Note that the listener will be called for every internal decode, not
         just the ones that are propageted to the user (for example, if an
@@ -80,27 +80,26 @@ class Entry(object):
         """
         self._listeners.append(listener)
 
-    def _decode(self, data):
+    def _decode(self, data, child_context):
         """
         Decode the given protocol entry.
 
-        Should return an iterable object for all of the 'embedded'
-        protocol entries in the same form as Entry.decode.
+        Should return an iterable object for the entry (including all 'embedded'
+        entries) in the same form as Entry.decode.
         """
         raise NotImplementedError()
 
-    def _decode_entry(self, data):
-        yield (True, self)
-        for (is_starting, entry) in self._decode(data):
-            yield (is_starting, entry)
-        yield (False, self)
-
-    def decode(self, data):
+    def decode(self, data, context=0):
         """
         Decode this entry from input data.
 
         @param data The data to decode
-        @return An iterator that returns (is_starting, Entry) tuples.
+        @param context The depth of this protocol entry. Any child entries
+            will have a context of 'context + 1'.
+        @return An iterator that returns (is_starting, Entry, data) tuples. The
+            data when the decode is starting is the data available to be 
+            decoded, and the data when the decode is finished is the data from
+            this entry only (not including embedded entries).
         """
         if self.length is not None:
             try:
@@ -108,18 +107,17 @@ class Entry(object):
             except dt.DataError, ex:
                 raise EntryDataError(self, ex)
 
-        import bdec.field as fld
         length = 0
-        for is_starting, entry in self._decode_entry(data):
-            if not is_starting and isinstance(entry, fld.Field):
-                length += len(entry.data)
-            yield is_starting, entry
+        for is_starting, entry, entry_data in self._decode(data, context + 1):
+            if not is_starting:
+                length += len(entry_data)
+            yield is_starting, entry, entry_data
 
         if self.length is not None and len(data) != 0:
             raise DecodeLengthError(self, data)
 
         for listener in self._listeners:
-            listener(self, length)
+            listener(self, length, context)
 
     def _get_context(self, query, parent):
         # This interface isn't too good; it requires us to load the _entire_ document
@@ -168,3 +166,6 @@ class Entry(object):
         Is this a 'hidden' entry.
         """
         return is_hidden(self.name)
+
+    def __str__(self):
+        return "%s '%s'" % (self.__class__, self.name)

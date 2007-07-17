@@ -12,7 +12,7 @@ class TestChoice(unittest.TestCase):
         embedded = [fld.Field("bob", 8), fld.Field("cat", 8)]
         choice = chc.Choice("blah", embedded)
         data = dt.Data.from_hex("017a")
-        results = list(entry for is_starting, entry in choice.decode(data) if not is_starting)
+        results = list(entry for is_starting, entry, entry_data in choice.decode(data) if not is_starting)
 
         self.assertEqual(2, len(results))
         self.assertEqual("bob", results[0].name)
@@ -24,7 +24,7 @@ class TestChoice(unittest.TestCase):
         embedded = [fld.Field("bob", 24), fld.Field("cat", 8)]
         choice = chc.Choice("blah", embedded)
         data = dt.Data.from_hex("7a")
-        results = list(entry for is_starting, entry in choice.decode(data) if not is_starting)
+        results = list(entry for is_starting, entry, entry_data in choice.decode(data) if not is_starting)
 
         self.assertEqual(2, len(results))
         self.assertEqual("cat", results[0].name)
@@ -47,7 +47,7 @@ class TestChoice(unittest.TestCase):
         ex = None
         results = []
         try:
-            for is_starting, entry in choice.decode(data):
+            for is_starting, entry, entry_data in choice.decode(data):
                 results.append((is_starting, entry))
         except fld.BadDataError, ex:
             pass
@@ -72,9 +72,9 @@ class TestChoice(unittest.TestCase):
         data = dt.Data.from_hex("0102")
 
         decoded = []
-        for is_starting, entry in choice.decode(data):
-            if not is_starting and isinstance(entry, fld.Field):
-                decoded.append(entry.data)
+        for is_starting, entry, entry_data in choice.decode(data):
+            if not is_starting and len(entry_data) > 0:
+                decoded.append(entry_data)
 
         self.assertEqual(2, len(decoded))
         self.assertEqual(1, int(decoded[0]))

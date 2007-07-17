@@ -26,7 +26,7 @@ BUGS: The allocation table decoding uses the 16bit sector counter (so
 
         <!-- Fields that are common between FAT12 and FAT16 -->
         <sequence name="bootsector:fat 12 and 16 common fields:">
-            <sequence name="bootsector:initial fields:" />
+            <reference name="bootsector:initial fields:" />
             <field name="sectors per fat" length="16" type="integer" encoding="little endian" />
             <field name="sectors per track" length="16" type="integer" encoding="little endian" />
             <field name="number of heads" length="16" type="integer" encoding="little endian" />
@@ -41,7 +41,7 @@ BUGS: The allocation table decoding uses the 16bit sector counter (so
 
         <!-- The FAT12 bootsector -->
         <sequence name="bootsector:fat 12:">
-            <sequence name="bootsector:fat 12 and 16 common fields:" />
+            <reference name="bootsector:fat 12 and 16 common fields:" />
             <field name="fat" length="64" type="text" encoding="ascii" value="0x4641543132202020" /><!-- FAT 12 -->
             <field name="operating system boot code" length="3584" type="hex" />
             <field name="end of sector marker:" length="16" value="0x55aa" />
@@ -49,7 +49,7 @@ BUGS: The allocation table decoding uses the 16bit sector counter (so
 
         <!-- The FAT16 bootsector -->
         <sequence name="bootsector:fat 16:">
-            <sequence name="bootsector:fat 12 and 16 common fields:" />
+            <reference name="bootsector:fat 12 and 16 common fields:" />
             <field name="fat" length="64" type="text" encoding="ascii" value="0x4641543136202020" /><!-- FAT 16 -->
             <field name="operating system boot code" length="3584" type="hex" />
             <field name="end of sector marker:" length="16" value="0x55aa" />
@@ -57,7 +57,7 @@ BUGS: The allocation table decoding uses the 16bit sector counter (so
 
         <!-- The FAT32 bootsector -->
         <sequence name="bootsector:fat 32:">
-            <sequence name="bootsector:initial fields:" />
+            <reference name="bootsector:initial fields:" />
             <field name="unused" length="16" type="integer" encoding="little endian" />
             <field name="sectors per track" length="16" type="integer" encoding="little endian" />
             <field name="number of heads" length="16" type="integer" encoding="little endian" />
@@ -83,9 +83,9 @@ BUGS: The allocation table decoding uses the 16bit sector counter (so
 
         <!-- An entry capable of decoding all FAT bootsectors (this entry is used by the fatfuse filesystem) -->
         <choice name="bootsector">
-            <sequence name="bootsector:fat 12:" />
-            <sequence name="bootsector:fat 16:" />
-            <sequence name="bootsector:fat 32:" />
+            <reference name="bootsector:fat 12:" />
+            <reference name="bootsector:fat 16:" />
+            <reference name="bootsector:fat 32:" />
         </choice>
 
         <!-- A specification for the contents of a directory cluster chain --> 
@@ -203,7 +203,7 @@ BUGS: The allocation table decoding uses the 16bit sector counter (so
 
         <!-- A specification for a complete fat 12 filesystem. -->
         <sequence name="filesystem:fat 12:">
-            <sequence name="bootsector:fat 12:" />
+            <reference name="bootsector:fat 12:" />
             <field name="reserved" length="(${bootsector.reserved sector count} * ${bootsector.bytes per sector} - 512) * 8" type="hex" />
             <sequenceof name="file allocation tables" count="${bootsector.number of file allocation tables}">
                 <sequence name="file allocation table">
@@ -211,12 +211,12 @@ BUGS: The allocation table decoding uses the 16bit sector counter (so
                     <field name="expected:" length="4" value="0xf" />
                     <field name="end of file marker" length="12" type="hex" />
                     <sequenceof name="clusters" count="(${bootsector.total sectors 16 bit} + ${bootsector.total sectors 32 bit} - ${bootsector.reserved sector count} - ${bootsector.sectors per fat} * ${bootsector.number of file allocation tables}) / ${bootsector.sectors per cluster}">
-                        <choice name="allocation table:fat 12:entry" />
+                        <reference name="allocation table:fat 12:entry" />
                     </sequenceof>
                     <field name="unused" length="${bootsector.sectors per fat} * ${bootsector.bytes per sector} * 8 - len{clusters} - 24" type="hex" />
                 </sequence>
             </sequenceof>
-            <sequence name="directory" />
+            <reference name="directory" />
             <field name="unused" length="(${bootsector.sectors per cluster} * ${bootsector.bytes per sector}) * 8 - len{directory}" type="hex" />
 
             <sequenceof name="clusters" count="(${bootsector.total sectors 16 bit} + ${bootsector.total sectors 32 bit} - ${bootsector.reserved sector count} - ${bootsector.sectors per fat} * ${bootsector.number of file allocation tables}) / ${bootsector.sectors per cluster} - 1">
@@ -226,7 +226,7 @@ BUGS: The allocation table decoding uses the 16bit sector counter (so
         
         <!-- A specification for a complete fat 16 filesystem. -->
         <sequence name="filesystem:fat 16:">
-            <sequence name="bootsector:fat 16:" />
+            <reference name="bootsector:fat 16:" />
             <field name="reserved" length="(${bootsector.reserved sector count} * ${bootsector.bytes per sector} - 512) * 8" type="hex" />
             <sequenceof name="file allocation tables" count="${bootsector.number of file allocation tables}">
                 <sequence name="file allocation table">
@@ -234,12 +234,12 @@ BUGS: The allocation table decoding uses the 16bit sector counter (so
                     <field name="expected:" length="8" value="0xff" />
                     <field name="end of file marker" length="16" type="hex" />
                     <sequenceof name="clusters" count="(${bootsector.total sectors 16 bit} + ${bootsector.total sectors 32 bit} - ${bootsector.reserved sector count} - ${bootsector.sectors per fat} * ${bootsector.number of file allocation tables}) / ${bootsector.sectors per cluster}">
-                        <choice name="allocation table:fat 16:entry" />
+                        <reference name="allocation table:fat 16:entry" />
                     </sequenceof>
                     <field name="unused" length="${bootsector.sectors per fat} * ${bootsector.bytes per sector} * 8 - len{clusters} - 32" type="hex" />
                 </sequence>
             </sequenceof>
-            <sequence name="directory" />
+            <reference name="directory" />
             <field name="unused" length="(${bootsector.sectors per cluster} * ${bootsector.bytes per sector}) * 8 - len{directory}" type="hex" />
 
             <sequenceof name="clusters" count="(${bootsector.total sectors 16 bit} + ${bootsector.total sectors 32 bit} - ${bootsector.reserved sector count} - ${bootsector.sectors per fat} * ${bootsector.number of file allocation tables}) / ${bootsector.sectors per cluster} - 1">
@@ -249,7 +249,7 @@ BUGS: The allocation table decoding uses the 16bit sector counter (so
 
         <!-- A specification for a complete fat 32 filesystem. -->
         <sequence name="filesystem:fat 32:">
-            <sequence name="bootsector:fat 32:" />
+            <reference name="bootsector:fat 32:" />
             <field name="reserved" length="(${bootsector.reserved sector count} * ${bootsector.bytes per sector} - 512) * 8" type="hex" />
             <sequenceof name="file allocation tables" count="${bootsector.number of file allocation tables}">
                 <sequence name="file allocation table">
@@ -274,9 +274,9 @@ BUGS: The allocation table decoding uses the 16bit sector counter (so
     </common>
     <sequence name="fat filesystem">
         <choice name="filesystem type:">
-            <sequence name="filesystem:fat 12:" />
-            <sequence name="filesystem:fat 16:" />
-            <sequence name="filesystem:fat 32:" />
+            <reference name="filesystem:fat 12:" />
+            <reference name="filesystem:fat 16:" />
+            <reference name="filesystem:fat 32:" />
         </choice>
     </sequence>
 </protocol>

@@ -33,7 +33,7 @@
                     <field name="number of components:" length="8" type="integer" />
                     <sequenceof name="components" count="${number of components:}">
                         <sequence name="component">
-                            <choice name="component:type" />
+                            <reference name="component:type" />
                             <field name="huffman dc table" length="4" type="integer" />
                             <field name="huffman ac table" length="4" type="integer" />
                         </sequence>
@@ -54,7 +54,7 @@
                     <sequenceof name="components" count="${number of components:}">
                         <sequence name="component">
                             <sequence name="sampling factors">
-                                <choice name="component:type" />
+                                <reference name="component:type" />
                                 <field name="horizontal" length="4" type="integer" />
                                 <field name="vertical" length="4" type="integer" />
                             </sequence>
@@ -160,7 +160,7 @@
     </common>
     <sequence name="jpeg">
         <field name="soi:" length="16" value="0xffd8" />
-        <sequenceof name="segments" />
-        <sequenceof name="data" />
+        <reference name="segments" />
+        <reference name="data" />
     </sequence>
 </protocol>

@@ -23,7 +23,14 @@ class BadDataError(FieldError):
         self.actual = actual
 
     def __str__(self):
-        return "'%s' expected %s, got %s" % (self.field.name, self.expected.get_binary_text(), self.actual.get_binary_text())
+        expected = self.field.decode_value(self.expected)
+        try:
+            actual = self.field.decode_value(self.actual)
+        except bdec.DecodeError:
+            # We couldn't convert the object to the expected format,
+            # so we'll display it as binary.
+            actual = self.actual.get_binary_text()
+        return "'%s' expected %s, got %s" % (self.field.name, repr(expected), repr(actual))
 
 class BadRangeError(FieldError):
     def __init__(self, field, actual):
@@ -103,22 +110,24 @@ class Field(bdec.entry.Entry):
                 # endian requires data with a length of a multiple of 8
                 encoding = self.BIG_ENDIAN
 
-        self._format = format
+        self.format = format
         self._encoding = encoding
         self.data = None
         self._expected = expected
         self.min = min
         self.max = max
 
-    def _decode(self, data):
+    def _decode(self, data, child_context):
         """ see bdec.entry.Entry._decode """
+        yield (True, self, data)
+
         self.data = data.pop(int(self.length))
         if self._expected is not None:
             if int(self._expected) != int(self.data):
                 raise BadDataError(self, self._expected, self.data)
         self._validate_range(self.data)
 
-        return []
+        yield (False, self, self.data)
 
     def _convert_type(self, data, expected_type):
         try:
@@ -133,17 +142,17 @@ class Field(bdec.entry.Entry):
         Can raise dt.DataError errors.
         """
         length = int(self.length)
-        if self._format == self.BINARY:
+        if self.format == self.BINARY:
             result = dt.Data.from_binary_text(self._convert_type(data, str))
-        elif self._format == self.HEX:
+        elif self.format == self.HEX:
             result = dt.Data.from_hex(self._convert_type(data, str))
-        elif self._format == self.TEXT:
+        elif self.format == self.TEXT:
             text = self._convert_type(data, str)
             try:
                 result = dt.Data(text.encode(self._encoding))
             except UnicodeDecodeError:
                 raise BadEncodingError(self, data)
-        elif self._format == self.INTEGER:
+        elif self.format == self.INTEGER:
             
             assert self._encoding in [self.BIG_ENDIAN, self.LITTLE_ENDIAN]
             if self._encoding == self.BIG_ENDIAN:
@@ -151,7 +160,7 @@ class Field(bdec.entry.Entry):
             else:
                 result = dt.Data.from_int_little_endian(self._convert_type(data, int), length)
         else:
-            raise Exception("Unknown field format of '%s'!" % self._format)
+            raise Exception("Unknown field format of '%s'!" % self.format)
 
         if self._expected is not None and result != self._expected:
             raise BadDataError(self, self._expected, result)
@@ -199,7 +208,7 @@ class Field(bdec.entry.Entry):
         yield result
 
     def __str__(self):
-        return "%s '%s' (%s)" % (self._format, self.name, self._encoding)
+        return "%s '%s' (%s)" % (self.format, self.name, self._encoding)
 
     def _validate_range(self, data):
         """
@@ -218,31 +227,37 @@ class Field(bdec.entry.Entry):
         return self._decode_int(self.data)
 
     def _decode_int(self, data):
-        assert self._encoding in [self.BIG_ENDIAN, self.LITTLE_ENDIAN]
-        if self._encoding == self.BIG_ENDIAN:
-            result = int(data)
-        else:
+        if self._encoding == self.LITTLE_ENDIAN:
             result = data.get_little_endian_integer()
+        else:
+            # If we aren't explicitly little endian, we become big endian.
+            # This is because we can sometimes convert a non-integer to
+            # an integer (eg: we may want to treat a string character as an
+            # integer, to ensure we are in a given character range).
+            result = int(data)
         return result
 
     def get_value(self):
         """ Get the decoded value """
         if self.data is None:
             raise FieldNotDecodedError(self)
-        return self._decode_value(self.data)
+        return self.decode_value(self.data)
 
-    def _decode_value(self, data):
-        if self._format == self.BINARY:
+    def decode_value(self, data):
+        """
+        Get a python instance from a data object.
+        """
+        if self.format == self.BINARY:
             result = data.get_binary_text()
-        elif self._format == self.HEX:
+        elif self.format == self.HEX:
             result = data.get_hex()
-        elif self._format == self.TEXT:
+        elif self.format == self.TEXT:
             try:
                 result = unicode(str(data), self._encoding)
             except UnicodeDecodeError:
                 raise BadEncodingError(self, str(data))
-        elif self._format == self.INTEGER:
+        elif self.format == self.INTEGER:
             result = self._decode_int(data)
         else:
-            raise Exception("Unknown field format of '%s'!" % self._format)
+            raise Exception("Unknown field format of '%s'!" % self.format)
         return result

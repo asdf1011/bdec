@@ -47,7 +47,7 @@ class InvalidHexTextError(DataError):
 
 class Data:
     """ A class to hold data to be decoded """
-    def __init__(self, buffer, start=None, end=None):
+    def __init__(self, buffer="", start=None, end=None):
         self._buffer = buffer
         if start is None:
             start = 0

@@ -37,7 +37,7 @@ class EmptySequenceError(XmlSpecError):
         self.name = name
 
     def __str__(self):
-        return self._src() + "Sequence '%s' must have children!" % self.name
+        return self._src() + "Sequence '%s' must have children! Should this be a 'reference' entry?" % self.name
 
 class EntryHasNoValueError(exp.ExpressionError):
     def __init__(self, entry):
@@ -90,7 +90,7 @@ class _ValueResult:
     def add_entry(self, entry):
         entry.add_listener(self)
 
-    def __call__(self, entry, length):
+    def __call__(self, entry, length, context):
         if isinstance(entry, fld.Field):
             self.length = int(entry)
         elif isinstance(entry, seq.Sequence):
@@ -111,28 +111,35 @@ class _LengthResult:
             entry.add_listener(self)
         self.length = None
 
-    def __call__(self, entry, length):
+    def __call__(self, entry, length, context):
         self.length = length
 
     def __int__(self):
         assert self.length is not None
         return self.length
 
-class _BreakListener:
+class _ReferencedEntry(ent.Entry):
     """
-    Class to stop a sequenceof when another protocol entry decodes.
+    A mock decoder entry to forward all decoder calls onto another entry.
+
+    Used to 'delay' referencing of decoder entries, for the case where a
+    decoder entry has been referenced (but has not yet been defined).
     """
-    def __init__(self):
-        self._seqof = None
+    def __init__(self, name):
+        ent.Entry.__init__(self, name, None, [])
+        self._reference = None
 
-    def set_sequenceof(self, sequenceof):
-        assert self._seqof is None
-        assert isinstance(sequenceof, sof.SequenceOf)
-        self._seqof = sequenceof
+    def resolve(self, entry):
+        assert self._reference is None
+        self._reference = entry
 
-    def __call__(self, entry, length):
-        assert self._seqof is not None
-        self._seqof.stop()
+    def _decode(self, data, child_context):
+        assert self._reference is not None, "Asked to decode unresolved entry '%s'!" % self.name
+        return self._reference.decode(data, child_context - 1)
+
+    def _encode(self, query, context):
+        assert self._reference is not None, "Asked to encode unresolved entry '%s'!" % self.name
+        return self._reference.encode(data)
 
 class _Handler(xml.sax.handler.ContentHandler):
     """
@@ -149,6 +156,7 @@ class _Handler(xml.sax.handler.ContentHandler):
             "end-sequenceof" : self._break,
             "field" : self._field,
             "protocol" : self._protocol,
+            "reference" : self._reference,
             "sequence" : self._sequence,
             "sequenceof" : self._sequenceof,
             }
@@ -158,12 +166,12 @@ class _Handler(xml.sax.handler.ContentHandler):
         self.lookup = {}
         self.locator = None
         self._end_sequenceof = False
-        self._break_listener = None
+        self._unresolved_references = []
 
     def setDocumentLocator(self, locator):
         self.locator = locator
 
-    def _break(self, attrs, children, length):
+    def _break(self, attrs, children, length, breaks):
         if len(attrs) != 0 or len(children) != 0:
             raise self._error("end-sequenceof cannot have attributes or sub-elements")
 
@@ -187,6 +195,11 @@ class _Handler(xml.sax.handler.ContentHandler):
                 yield child
 
     def _get_common_entry(self, name):
+        if name not in self._common_entries:
+            result = _ReferencedEntry(name)
+            self._unresolved_references.append(result)
+            return result
+
         # There is a problem where listeners to common entries will be  called
         # for all common decodes (see the 
         # test_common_elements_are_independent testcase). We attempt to work
@@ -197,6 +210,8 @@ class _Handler(xml.sax.handler.ContentHandler):
         # For all of the copied elements, we need to update the lookup table
         # so that the copied elements can be found.
         for original, copy in zip(self._walk(entry), self._walk(result)):
+            if isinstance(original, _ReferencedEntry):
+                self._unresolved_references.append(copy)
             self.lookup[copy] = self.lookup[original]
         return result
 
@@ -207,32 +222,19 @@ class _Handler(xml.sax.handler.ContentHandler):
         # We don't pop the children item until after we have called the
         # handler, as it may be used when creating a value reference.
         children = self._children[-1]
-        if attrs.has_key('name') and attrs.getValue('name') in self._common_entries:
-            # We are referencing to a common element...
-            if len(attrs) != 1:
-                raise self._error("Referenced element '%s' cannot have other attributes!" % attrs['name'])
-            if len(children) != 0:
-                raise self._error("Referenced element '%s' cannot have sub-entries!" % attrs['name'])
-            child = self._get_common_entry(attrs['name'])
-        else:
-            length = None
-            if attrs.has_key('length'):
-                length = self._parse_expression(attrs['length'])
-            child = self._handlers[name](attrs, children, length)
+        length = None
+        if attrs.has_key('length'):
+            length = self._parse_expression(attrs['length'])
+        child = self._handlers[name](attrs, children, length, breaks)
         self._children.pop()
 
         if child is not None:
-            for break_notifier in breaks:
-                break_notifier.set_sequenceof(child)
-
             if self._end_sequenceof:
                 # There is a parent sequence of object that must stop when
                 # this entry decodes.
-                listener = _BreakListener()
-                child.add_listener(listener)
-                for name, attrs, breaks in reversed(self._stack):
+                for offset, (name, attrs, breaks) in enumerate(reversed(self._stack)):
                     if name == "sequenceof":
-                        breaks.append(listener)
+                        breaks.append((child, offset))
                         break
                 else:
                     raise self._error("end-sequenceof is not surrounded by a sequenceof")
@@ -248,14 +250,24 @@ class _Handler(xml.sax.handler.ContentHandler):
             assert child is not None
             self._common_entries[child.name] = child
 
-    def _common(self, attributes, children, length):
+    def _common(self, attributes, children, length, breaks):
         pass
 
-    def _protocol(self, attributes, children, length):
+    def _protocol(self, attributes, children, length, breaks):
         if len(children) != 1:
             raise self._error("Protocol should have a single entry to be decoded!")
-        if self._break_listener is not None:
-            raise self._error("end-sequenceof is not surrounded by a sequenceof")
+
+        for entry in self._unresolved_references:
+            try:
+                # TODO: Instead of a keeping a pseudo protocol entry in the final
+                # loaded protcol, when resolving we should simply substitute the
+                # loaded item.
+                item = self._common_entries[entry.name]
+            except KeyError:
+                raise self._error("Referenced element '%s' is not found!" % entry.name)
+            entry.resolve(item)
+        self._unresolved_references = []
+
         self.decoder = children[0]
 
     def _parse_expression(self, text):
@@ -364,7 +376,13 @@ class _Handler(xml.sax.handler.ContentHandler):
                 return matches
         raise MissingReferenceError(fullname)
 
-    def _field(self, attributes, children, length):
+    def _reference(self, attributes, children, length, breaks):
+        if attributes.getNames() != ["name"]:
+            raise self._error("Reference entries must have a single 'name' attribute!")
+        name = attributes.getValue('name')
+        return self._get_common_entry(name)
+
+    def _field(self, attributes, children, length, breaks):
         name = attributes['name']
         format = fld.Field.BINARY
         if length is None:
@@ -384,7 +402,8 @@ class _Handler(xml.sax.handler.ContentHandler):
         expected = None
         if attributes.has_key('value'):
             hex = attributes['value'].upper()
-            assert hex[:2] == "0X"
+            if hex[:2] != "0X":
+                raise self._error("Value fields must be hex (eg: 0xef)")
             expected = dt.Data.from_hex(hex[2:])
         min = None
         if attributes.has_key('min'):
@@ -394,7 +413,7 @@ class _Handler(xml.sax.handler.ContentHandler):
             max = self._parse_expression(attributes['max'])
         return fld.Field(name, length, format, encoding, expected, min, max)
 
-    def _sequence(self, attributes, children, length):
+    def _sequence(self, attributes, children, length, breaks):
         if len(children) == 0:
             raise EmptySequenceError(attributes['name'], self._filename, self.locator)
         value = None
@@ -403,10 +422,14 @@ class _Handler(xml.sax.handler.ContentHandler):
             value = self._parse_expression(attributes['value'])
         return seq.Sequence(attributes['name'], children, value, length)
 
-    def _choice(self, attributes, children, length):
+    def _choice(self, attributes, children, length, breaks):
+        if len(children) == 0:
+            raise self._error("Choice '%s' must have children! Should this be a 'reference' entry?" % attributes['name'])
         return chc.Choice(attributes['name'], children, length)
 
-    def _sequenceof(self, attributes, children, length):
+    def _sequenceof(self, attributes, children, length, breaks):
+        if len(children) == 0:
+            raise self._error("SequenceOf '%s' must have a single child! Should this be a 'reference' entry?" % attributes['name'])
         if len(children) != 1:
             raise self._error("Sequence of entries can only have a single child! (got %i)" % len(children))
 
@@ -414,11 +437,7 @@ class _Handler(xml.sax.handler.ContentHandler):
         count = None
         if attributes.has_key('count'):
             count = self._parse_expression(attributes['count'])
-        result = sof.SequenceOf(attributes['name'], children[0], count, length)
-
-        if self._break_listener is not None:
-            self._break_listener.set_sequenceof(result)
-            self._break_listener = None
+        result = sof.SequenceOf(attributes['name'], children[0], count, length, breaks)
         return result
 
 def _load_from_file(file, filename):
