@@ -14,7 +14,7 @@ binary data into memory. For inputs that don't use seeking (eg: stdin),
 create a memory backed file source (whenever Data.copy() is called).
 
 
-Encode shouldn't hold the entire output in memory
+Decode shouldn't hold the entire input in memory
 -------------------------------------------------
 
 Currently the decode utility waits until all of the data has been
@@ -46,13 +46,6 @@ This would be a useful feature.
 Protocol specification
 ======================
 
-Recursive common elements
--------------------------
-
-It would be useful to be able to recursively reference common entries.
-Note that this used to be desirable for data such as null-terminated
-strings, but this is no longer needed (due to 'end-sequenceof' support).
-
 Changing 'default' encoding
 ---------------------------
 
@@ -82,32 +75,6 @@ eg::
           <sequence name="structure" />
       </sequence>
    </choice>
-
-
-Out of order decoding
----------------------
-
-For some protocols (eg: 'image file directory' of jpeg), the encoding of certain
-fields is defined at runtime, but such that the data to be decoded isn't aligned
-with the format specifier.
-
-eg::
-
-   <common>
-       <choice name="data type">
-           <field name="integer" length="8" value="0x0" />
-           <field name="string" length="8" value="0x0" />
-           <field name="float" length="8" value="0x0" />
-       </choice>
-   </common>
-   <sequence name="data">
-      <field name="num items:" length="8" type="integer" />
-      <sequenceof name="items" length="${num items:}">
-         <choice name="data type" />
-      </sequenceof>
-      <!-- And now the list of items, with the types just specified... -->
-      <!-- ???? -->
-   </sequence>
 
 
 Other areas
