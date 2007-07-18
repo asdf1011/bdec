@@ -18,6 +18,13 @@ specification.
 The bdec xml specification uses constructs based on the constructs found
 in ASN.1.
 
+Example specifications include:
+
+  * pdf files
+  * mp3 files
+  * jpg files
+  * fat filesystem
+
 
 Usage
 =====
@@ -77,4 +84,8 @@ Disadvantages
 * The specification is hand-written xml (xml is best for computer 
   reading/writing)
 * The speed isn't fantastic (the current design requires the entire file
-  be read into memory to be encoded / decoded).
+  be read into memory to be encoded / decoded). The decoding can take
+  O(N!) for certain (relatively common) constructs.
+* Some high level constructs cannot be represented (typically items
+  whose formats involve seeking). These file types will usually need a
+  secondary decode by high level logic.
