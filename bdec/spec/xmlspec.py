@@ -399,19 +399,22 @@ class _Handler(xml.sax.handler.ContentHandler):
         encoding = None
         if attributes.has_key('encoding'):
             encoding = attributes['encoding']
-        expected = None
-        if attributes.has_key('value'):
-            hex = attributes['value'].upper()
-            if hex[:2] != "0X":
-                raise self._error("Value fields must be hex (eg: 0xef)")
-            expected = dt.Data.from_hex(hex[2:])
         min = None
         if attributes.has_key('min'):
             min = self._parse_expression(attributes['min'])
         max = None
         if attributes.has_key('max'):
             max = self._parse_expression(attributes['max'])
-        return fld.Field(name, length, format, encoding, expected, min, max)
+
+        # We'll create the field, then use it to create the expected value.
+        result = fld.Field(name, length, format, encoding, None, min, max)
+        if attributes.has_key('value'):
+            expected = attributes['value']
+            if expected.upper()[:2] == "0X":
+                result.expected = dt.Data.from_hex(expected[2:])
+            else:
+                result.expected = result.encode_value(expected)
+        return result
 
     def _sequence(self, attributes, children, length, breaks):
         if len(children) == 0:

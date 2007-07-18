@@ -62,7 +62,7 @@
         </sequence>
 
         <sequence name="id3 v2">
-            <field name="id:" length="24" value="0x494433" />
+            <field name="id:" length="24" type="text" value="ID3" />
             <field name="major version" length="8" type="integer" />
             <field name="minor version" length="8" type="integer" />
             <sequence name="flags">
@@ -167,7 +167,7 @@
         </sequence>
 
         <sequence name="id3 v1">
-            <field name="tag:" length="24" value="0x544147" />
+            <field name="tag:" length="24" type="text" value="tag" />
             <field name="title" length="240" type="text" />
             <field name="artist" length="240" type="text" />
             <field name="album" length="240" type="text" />
