@@ -88,6 +88,29 @@ eg::
       </sequence>
    </choice>
 
+
+Optional protocol entries
+-------------------------
+
+Priority: Medium
+
+Some protocols only have a certain protocol entry if a flag is present (for example,
+a flag to state that a header is an extended header).
+
+eg::
+
+    <sequence name="header">
+       <field name="id:" length="16" value="0x0102" />
+       <field name="some flag" length="3" />
+       <field name="is extended header:" length="1" />
+       <field name="some other flags" length="4" />
+       <sequence name="extended header" if="${is extended header:}">
+           <field name="some optional field" length="8" />
+           <field name="another optional field" length="8" />
+       </sequence>
+    </sequence>
+
+
 Other areas
 ===========
 
