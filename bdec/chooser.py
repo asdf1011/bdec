@@ -1,4 +1,29 @@
 
+class _UnknownData:
+    """
+    A class representing data with an unknown value.
+    """
+    UNKNOWN_LENGTH = 100000000
+
+    def __init__(self, length=UNKNOWN_LENGTH):
+        assert isinstance(length, int)
+        self._length = length
+
+    def pop(self, length):
+        assert self._length >= length
+        self._length -= length
+        return _UnknownData(length)
+
+    def __len__(self):
+        return self._length
+
+def _data_iter(entry):
+    """
+    Return an iterator to data objects in this protocol entry.
+    """
+    # TODO: Implement me!
+    return [_UnknownData()]
+
 def _differentiate(entries):
     """
     Differentiate between protocol entries.
@@ -7,7 +32,34 @@ def _differentiate(entries):
     lookup is a dictionary mapping value -> entries, and undistinguished is a
     list of entries that don't distinguish themselves on this entry.
     """
-    return []
+    offset = 0
+    data_options = [(list(_data_iter(entry)), entry) for entry in entries]
+    while data_options:
+        # Calculate the length of the next section of 'differentiable' protocol
+        # section.
+        length = min(len(data_list[0]) for data_list, entry in data_options)
+        if length == _UnknownData.UNKNOWN_LENGTH:
+            # We cannot differeniate any more...
+            yield offset, 0, {}, [entry for data_list, entry in data_options]
+            return
+
+        # Get the values of all of the options for this data section
+        lookup = {}
+        undistinguished = []
+        for data_list, entry in data_options:
+            data = data_list[0].pop(length)
+            if len(data_list[0]) == 0:
+                del data_list[0]
+                if len(data_list) == 0:
+                    data_options.remove((data_list, entry))
+
+            if isinstance(data, _UnknownData):
+                undistinguished.append(entry)
+            else:
+                lookup.setdefault(int(data), []).append(entry)
+
+        yield offset, length, lookup, undistinguished
+
 
 class _Options:
     """
@@ -29,7 +81,7 @@ class _Options:
                     self._lookup[value] = _Options(entries + undistinguished, start_bit + length)
                 break
         else:
-            # We were unable to differenatiate between the protocol entries.
+            # We were unable to differentiate between the protocol entries.
             self._options = options
 
     def choose(self, data):
