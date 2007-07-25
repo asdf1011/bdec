@@ -1,4 +1,13 @@
 
+def _differentiate(entries):
+    """
+    Differentiate between protocol entries.
+
+    Returns a list of (offset, length, lookup, undistinguished) entries, where
+    lookup is a dictionary mapping value -> entries, and undistinguished is a
+    list of entries that don't distinguish themselves on this entry.
+    """
+    return []
 
 class _Options:
     """
@@ -7,12 +16,21 @@ class _Options:
     def __init__(self, options, start_bit):
         # Identify unique entries in the available options starting
         # at the bit offset.
-        self._lookup = {}
-        self._fallback = None
-        self._length = 0
-        self._start_bit = 0
-
-        self._options = options
+        self._options = None
+        for offset, length, lookup, undistinguished in _differentiate(options):
+            if offset >= start_bit and lookup:
+                # We found a range of bits that can be used to distinguish
+                # between the diffent options
+                self._start_bit = start_bit
+                self._length = length
+                self._lookup = {}
+                self._fallback = _Options(undistinguished, start_bit + length)
+                for value, entries in lookup:
+                    self._lookup[value] = _Options(entries + undistinguished, start_bit + length)
+                break
+        else:
+            # We were unable to differenatiate between the protocol entries.
+            self._options = options
 
     def choose(self, data):
         """
