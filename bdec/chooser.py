@@ -1,3 +1,4 @@
+import bdec.field as fld
 
 class _UnknownData:
     """
@@ -21,8 +22,13 @@ def _data_iter(entry):
     """
     Return an iterator to data objects in this protocol entry.
     """
-    # TODO: Implement me!
-    return [_UnknownData()]
+    if isinstance(entry, fld.Field):
+        if entry.expected is not None:
+            yield entry.expected.copy()
+        else:
+            yield _UnknownData(int(entry.length))
+    # TODO: Implement drilling down into other entry types!
+    yield _UnknownData()
 
 def _differentiate(entries):
     """
@@ -70,14 +76,14 @@ class _Options:
         # at the bit offset.
         self._options = None
         for offset, length, lookup, undistinguished in _differentiate(options):
-            if offset >= start_bit and lookup:
+            if offset >= start_bit and lookup and length:
                 # We found a range of bits that can be used to distinguish
                 # between the diffent options
                 self._start_bit = start_bit
                 self._length = length
                 self._lookup = {}
                 self._fallback = _Options(undistinguished, start_bit + length)
-                for value, entries in lookup:
+                for value, entries in lookup.iteritems():
                     self._lookup[value] = _Options(entries + undistinguished, start_bit + length)
                 break
         else:
@@ -88,7 +94,7 @@ class _Options:
         """
         Return a list of possible entries that matches the input data.
         """
-        if self._options:
+        if self._options is not None:
             # We are unable to narrow down the possibilities further.
             return self._options
 
@@ -100,7 +106,7 @@ class _Options:
         value = int(copy.pop(self._length))
 
         try:
-            options = self._options[value]
+            options = self._lookup[value]
         except KeyError:
             # The value present isn't one of the expected values; we'll
             # fallback to the options that could handle any value for
