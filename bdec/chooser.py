@@ -1,3 +1,4 @@
+import bdec.data as dt
 import bdec.field as fld
 import bdec.sequence as seq
 
@@ -119,16 +120,23 @@ class _Options:
         # on the input values.
         assert self._lookup
         copy = data.copy()
-        copy.pop(self._start_bit)
-        value = int(copy.pop(self._length))
-
         try:
-            options = self._lookup[value]
-        except KeyError:
-            # The value present isn't one of the expected values; we'll
-            # fallback to the options that could handle any value for
-            # this bit offset.
+            copy.pop(self._start_bit)
+            value = int(copy.pop(self._length))
+        except dt.NotEnoughDataError:
+            # We can't read this data to be keyed on, so we'll leave it
+            # to one of the fallbacks.
+            value = None
             options = self._fallback
+
+        if value is not None:
+            try:
+                options = self._lookup[value]
+            except KeyError:
+                # The value present isn't one of the expected values; we'll
+                # fallback to the options that could handle any value for
+                # this bit offset.
+                options = self._fallback
         return options.choose(data)
 
 class Chooser(_Options):

@@ -35,6 +35,7 @@ class TestChooser(unittest.TestCase):
         chooser = bdec.chooser.Chooser([a, b])
         self.assertEqual([b], chooser.choose(dt.Data("xa")))
         self.assertEqual([a, b], chooser.choose(dt.Data("yz")))
+        self.assertEqual([b], chooser.choose(dt.Data("y")))
 
 # Tests for selecting based on amount of data available (not implemented)
 #    def test_no_options_with_empty_data(self):
