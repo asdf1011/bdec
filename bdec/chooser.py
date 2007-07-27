@@ -89,7 +89,7 @@ class _Options:
     """
     A class to recursively drill down into data, identifying potential options.
     """
-    def __init__(self, options, start_bit):
+    def __init__(self, options, start_bit, order):
         # Identify unique entries in the available options starting
         # at the bit offset.
         self._options = None
@@ -100,17 +100,21 @@ class _Options:
                 self._start_bit = start_bit
                 self._length = length
                 self._lookup = {}
-                self._fallback = _Options(undistinguished, start_bit + length)
+                self._fallback = _Options(undistinguished, start_bit + length, order)
                 for value, entries in lookup.iteritems():
-                    self._lookup[value] = _Options(entries + undistinguished, start_bit + length)
+                    self._lookup[value] = _Options(entries + undistinguished, start_bit + length, order)
                 break
         else:
-            # We were unable to differentiate between the protocol entries.
-            self._options = options
+            # We were unable to differentiate between the protocol entries. Note
+            # that we want to maintain the same original order.
+            self._options = [option for option in order if option in set(options)]
 
     def choose(self, data):
         """
         Return a list of possible entries that matches the input data.
+
+        The possible entries will be in the same order as the entries passed
+        into the constructor.
         """
         if self._options is not None:
             # We are unable to narrow down the possibilities further.
@@ -147,4 +151,4 @@ class Chooser(_Options):
     decoded.
     """
     def __init__(self, entries):
-        _Options.__init__(self, entries, 0)
+        _Options.__init__(self, entries, 0, entries)

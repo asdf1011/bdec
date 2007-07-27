@@ -1,6 +1,7 @@
 
 import unittest
 
+import bdec.choice as chc
 import bdec.chooser
 import bdec.data as dt
 import bdec.field as fld
@@ -36,6 +37,13 @@ class TestChooser(unittest.TestCase):
         self.assertEqual([b], chooser.choose(dt.Data("xa")))
         self.assertEqual([a, b], chooser.choose(dt.Data("yz")))
         self.assertEqual([b], chooser.choose(dt.Data("y")))
+
+    def test_ordering_is_maintained(self):
+        a = fld.Field("a", 8)
+        b = fld.Field("b", 8, expected=dt.Data("y"))
+        chooser = bdec.chooser.Chooser([a, b])
+        self.assertEqual([a], chooser.choose(dt.Data("x")))
+        self.assertEqual([a, b], chooser.choose(dt.Data("y")))
 
 # Tests for selecting based on amount of data available (not implemented)
 #    def test_no_options_with_empty_data(self):
