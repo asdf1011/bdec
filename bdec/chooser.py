@@ -1,4 +1,5 @@
 import bdec.field as fld
+import bdec.sequence as seq
 
 class _UnknownData:
     """
@@ -6,16 +7,18 @@ class _UnknownData:
     """
     UNKNOWN_LENGTH = 100000000
 
-    def __init__(self, length=UNKNOWN_LENGTH):
-        assert isinstance(length, int)
+    def __init__(self, length=None):
         self._length = length
 
     def pop(self, length):
-        assert self._length >= length
-        self._length -= length
+        if self._length is not None:
+            assert self._length >= length
+            self._length -= length
         return _UnknownData(length)
 
     def __len__(self):
+        if self._length is None:
+            return self.UNKNOWN_LENGTH
         return self._length
 
 def _data_iter(entry):
@@ -26,9 +29,19 @@ def _data_iter(entry):
         if entry.expected is not None:
             yield entry.expected.copy()
         else:
-            yield _UnknownData(int(entry.length))
-    # TODO: Implement drilling down into other entry types!
-    yield _UnknownData()
+            try:
+                yield _UnknownData(int(entry.length))
+            except:
+                # Sometimes we are unable to determine the length of an item (for
+                # example, if it refers to the decode value of another field).
+                yield _UnknownData()
+    elif isinstance(entry, seq.Sequence):
+        for child in entry.children:
+            for child_entry in _data_iter(child):
+                yield child_entry
+    else:
+        # TODO: Implement drilling down into other entry types!
+        yield _UnknownData()
 
 def _differentiate(entries):
     """
@@ -45,19 +58,22 @@ def _differentiate(entries):
         # section.
         length = min(len(data_list[0]) for data_list, entry in data_options)
         if length == _UnknownData.UNKNOWN_LENGTH:
-            # We cannot differeniate any more...
+            # We cannot differentiate any more...
             yield offset, 0, {}, [entry for data_list, entry in data_options]
             return
 
         # Get the values of all of the options for this data section
         lookup = {}
         undistinguished = []
-        for data_list, entry in data_options:
+        for data_list, entry in data_options[:]:
             data = data_list[0].pop(length)
             if len(data_list[0]) == 0:
                 del data_list[0]
                 if len(data_list) == 0:
-                    data_options.remove((data_list, entry))
+                    # When an option has no more data to be matched, we use
+                    # an unknown data object so it will still fall into
+                    # the 'undistinguished' categories in later matches.
+                    data_list.append(_UnknownData())
 
             if isinstance(data, _UnknownData):
                 undistinguished.append(entry)
@@ -65,6 +81,7 @@ def _differentiate(entries):
                 lookup.setdefault(int(data), []).append(entry)
 
         yield offset, length, lookup, undistinguished
+        offset += length
 
 
 class _Options:
