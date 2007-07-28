@@ -80,6 +80,13 @@ class XmlExpressionError(XmlSpecError):
     def __str__(self):
         return self._src() + "Expression error - " + str(self.ex)
 
+class UndecodedReferenceError(Exception):
+    """
+    Raised when a decoded entry is referenced (but unused).
+
+    We don't derive this from DecodeError, as it is an internal program error.
+    """
+
 class _ValueResult:
     """
     Object returning the result of a entry when cast to an integer.
@@ -99,7 +106,8 @@ class _ValueResult:
             raise Exception("Don't know how to get the result of %s" % entry)
 
     def __int__(self):
-        assert self.length is not None
+        if self.length is None:
+            raise UndecodedReferenceError()
         return self.length
 
 class _LengthResult:
@@ -115,7 +123,8 @@ class _LengthResult:
         self.length = length
 
     def __int__(self):
-        assert self.length is not None
+        if self.length is None:
+            raise UndecodedReferenceError()
         return self.length
 
 class _ReferencedEntry(ent.Entry):
