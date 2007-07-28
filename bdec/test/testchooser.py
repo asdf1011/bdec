@@ -54,6 +54,20 @@ class TestChooser(unittest.TestCase):
         self.assertEqual([b], chooser.choose(dt.Data("b")))
         self.assertEqual([b], chooser.choose(dt.Data("B")))
 
+    def test_differentiate_after_choice(self):
+        # We need to differentiate after a choice option; for example, there
+        # may be a common enumerated header field, then the distinguishing
+        # message identifier.
+        initial = fld.Field('d', 8)
+        common_choice = chc.Choice('common', [fld.Field('c1', 8), fld.Field('c2', 8)])
+        a = seq.Sequence("a", [initial, common_choice, fld.Field('a', 8, expected=dt.Data('a'))])
+        b = seq.Sequence("b", [initial, common_choice, fld.Field('b', 8, expected=dt.Data('b'))])
+
+        chooser = bdec.chooser.Chooser([a, b])
+        self.assertEqual([a], chooser.choose(dt.Data("xya")))
+        self.assertEqual([b], chooser.choose(dt.Data("xyb")))
+        self.assertEqual([], chooser.choose(dt.Data("xyc")))
+
 # Tests for selecting based on amount of data available (not implemented)
 #    def test_no_options_with_empty_data(self):
 #        chooser = bdec.chooser.Chooser([fld.Field("blah", 8)])

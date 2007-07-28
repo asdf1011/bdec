@@ -23,10 +23,17 @@ class _UnknownData:
             return self.UNKNOWN_LENGTH
         return self._length
 
+    def copy(self):
+        return _UnknownData(self._length)
+
 class _ChoiceData:
     """A class representing a fork in the data stream. """
     def __init__(self, options):
         self.options = options
+
+    def copy(self):
+        return self
+
 
 def _data_iter(entry):
     """
@@ -52,22 +59,59 @@ def _data_iter(entry):
     elif isinstance(entry, chc.Choice):
         yield _ChoiceData(entry.children)
     else:
-        # TODO: Implement drilling down into other entry types!
+        # We don't attempt to use other entry types when differentiating, as
+        # earlier fields should have been enough.
         yield _UnknownData()
+
+class _IterCache:
+    """A class to cache results from an iterator."""
+    def __init__(self, iter):
+        self._iter = iter
+        self._cache = []
+
+    def __iter__(self):
+        i = 0
+        while 1:
+            if i == len(self._cache):
+                if self._iter is None:
+                    break
+                try:
+                    self._cache.append(self._iter.next())
+                except StopIteration:
+                    self._iter = None
+                    break
+
+            assert 0 <= i < len(self._cache)
+            yield self._cache[i].copy()
+            i = i + 1
+
+
+class _JoinIters:
+    """A class to join two iterator results into one."""
+    def __init__(self, a, b):
+        self._a = a
+        self._b = b
+
+    def __iter__(self):
+        for a in self._a:
+            yield a
+        for b in self._b:
+            yield b
+
 
 class _EntryData:
     """
     Class to walk over a protcol entry's expected data stream.
     """
     def __init__(self, entry, data_iter):
-        self._data_iter = data_iter
+        self._data_iter = iter(data_iter)
         self._data = self._data_iter.next()
         self.entry = entry
 
     def data_length(self):
         return len(self._data)
 
-    def pop(self, length):
+    def pop_data(self, length):
         result = self._data.pop(length)
         if len(self._data) == 0:
             try:
@@ -90,10 +134,10 @@ class _EntryData:
         possible paths in the data stream.
         """
         assert self.should_fork()
-        # TODO: Each forked object must not only return data from the given 
-        # option, but also on items _after_ the choice (ie: subsequence data
-        # items from the data_iter).
-        return (_EntryData(self.entry, _data_iter(option)) for option in self._data.options)
+        post_choice_iter = _IterCache(self._data_iter)
+        for option in self._data.options:
+            iter = _JoinIters(_data_iter(option), post_choice_iter)
+            yield _EntryData(self.entry, iter)
 
 def _differentiate(entries):
     """
@@ -116,23 +160,20 @@ def _differentiate(entries):
         length = min(entry.data_length() for entry in data_options)
         if length == _UnknownData.UNKNOWN_LENGTH:
             # We cannot differentiate any more...
-            yield offset, 0, {}, [entry.entry for entry in data_options]
-            return
+            break
 
         # Get the values of all of the options for this data section
         lookup = {}
         undistinguished = []
         for entry in data_options:
-            data = entry.pop(length)
+            data = entry.pop_data(length)
             if isinstance(data, _UnknownData):
                 undistinguished.append(entry.entry)
-            elif isinstance(data, _ChoiceData):
-                #data_options
-                pass
             else:
                 lookup.setdefault(int(data), []).append(entry.entry)
 
-        yield offset, length, lookup, undistinguished
+        if length:
+            yield offset, length, lookup, undistinguished
         offset += length
 
 
@@ -144,16 +185,18 @@ class _Options:
         # Identify unique entries in the available options starting
         # at the bit offset.
         self._options = None
+        self._lookup = None
+        self._fallback = None
         for offset, length, lookup, undistinguished in _differentiate(options):
             if offset >= start_bit and lookup and length:
                 # We found a range of bits that can be used to distinguish
                 # between the diffent options
-                self._start_bit = start_bit
+                self._start_bit = offset
                 self._length = length
                 self._lookup = {}
                 self._fallback = _Options(undistinguished, start_bit + length, order)
                 for value, entries in lookup.iteritems():
-                    self._lookup[value] = _Options(entries + undistinguished, start_bit + length, order)
+                    self._lookup[value] = _Options(entries + undistinguished, offset + length, order)
                 break
         else:
             # We were unable to differentiate between the protocol entries. Note
@@ -193,6 +236,13 @@ class _Options:
                 # this bit offset.
                 options = self._fallback
         return options.choose(data)
+
+    def __repr__(self):
+        # We have a representation option as it greatly simplifies debugging;
+        # just print the option object to look at the tree.
+        if self._options is not None:
+            return str(self._options)
+        return "bits [%i, %i) key=%s fallback=%s" % (self._start_bit, self._start_bit + self._length, repr(self._lookup), repr(self._fallback))
 
 class Chooser(_Options):
     """
