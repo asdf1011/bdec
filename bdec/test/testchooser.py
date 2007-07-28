@@ -68,6 +68,16 @@ class TestChooser(unittest.TestCase):
         self.assertEqual([b], chooser.choose(dt.Data("xyb")))
         self.assertEqual([], chooser.choose(dt.Data("xyc")))
 
+    def test_choice_in_choice(self):
+        alpha = chc.Choice('alpha', [fld.Field('a', 8, expected=dt.Data('a')), fld.Field('b', 8, expected=dt.Data('b'))])
+        num = chc.Choice('num', [fld.Field('1', 8, expected=dt.Data('1')), fld.Field('2', 8, expected=dt.Data('2'))])
+        alphanum = chc.Choice('alphanum', [alpha, num])
+        other = fld.Field('other', 8)
+        chooser = bdec.chooser.Chooser([alphanum, other])
+        self.assertEqual([alphanum, other], chooser.choose(dt.Data("1")))
+        self.assertEqual([alphanum, other], chooser.choose(dt.Data("a")))
+        self.assertEqual([other], chooser.choose(dt.Data("%")))
+
 # Tests for selecting based on amount of data available (not implemented)
 #    def test_no_options_with_empty_data(self):
 #        chooser = bdec.chooser.Chooser([fld.Field("blah", 8)])

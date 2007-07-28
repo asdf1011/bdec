@@ -150,10 +150,15 @@ def _differentiate(entries):
     offset = 0
     data_options = [_EntryData(entry, _data_iter(entry)) for entry in entries]
     while data_options:
-        for option in data_options[:]:
-            if option.should_fork():
-                data_options.remove(option)
-                data_options.extend(option.fork())
+        test_for_forks = True
+        while test_for_forks:
+            for option in data_options[:]:
+                if option.should_fork():
+                    data_options.remove(option)
+                    data_options.extend(option.fork())
+                    break
+            else:
+                test_for_forks = False
 
         # Calculate the length of the next section of 'differentiable' protocol
         # section.
