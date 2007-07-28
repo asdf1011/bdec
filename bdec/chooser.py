@@ -30,12 +30,15 @@ def _data_iter(entry):
         if entry.expected is not None:
             yield entry.expected.copy()
         else:
+            import bdec.spec.xmlspec
+            length = None
             try:
-                yield _UnknownData(int(entry.length))
-            except:
-                # Sometimes we are unable to determine the length of an item (for
-                # example, if it refers to the decode value of another field).
-                yield _UnknownData()
+                length = int(entry.length)
+            except bdec.spec.xmlspec.UndecodedReferenceError:
+                # If the length of a  field references the decoded value of
+                # another field, we will not be able to calculate the length.
+                pass
+            yield _UnknownData(length)
     elif isinstance(entry, seq.Sequence):
         for child in entry.children:
             for child_entry in _data_iter(child):
@@ -43,6 +46,27 @@ def _data_iter(entry):
     else:
         # TODO: Implement drilling down into other entry types!
         yield _UnknownData()
+
+class _EntryData:
+    def __init__(self, entry):
+        self._data_iter = _data_iter(entry)
+        self._data = self._data_iter.next()
+        self.entry = entry
+
+    def data_length(self):
+        return len(self._data)
+
+    def pop(self, length):
+        result = self._data.pop(length)
+        if len(self._data) == 0:
+            try:
+                self._data = self._data_iter.next()
+            except StopIteration:
+                # When an option has no more data to be matched, we use
+                # an unknown data object so it will still fall into
+                # the 'undistinguished' categories in later matches.
+                self._data = _UnknownData()
+        return result
 
 def _differentiate(entries):
     """
@@ -53,33 +77,25 @@ def _differentiate(entries):
     list of entries that don't distinguish themselves on this entry.
     """
     offset = 0
-    data_options = [(list(_data_iter(entry)), entry) for entry in entries]
+    data_options = [_EntryData(entry) for entry in entries]
     while data_options:
         # Calculate the length of the next section of 'differentiable' protocol
         # section.
-        length = min(len(data_list[0]) for data_list, entry in data_options)
+        length = min(entry.data_length() for entry in data_options)
         if length == _UnknownData.UNKNOWN_LENGTH:
             # We cannot differentiate any more...
-            yield offset, 0, {}, [entry for data_list, entry in data_options]
+            yield offset, 0, {}, [entry.entry for entry in data_options]
             return
 
         # Get the values of all of the options for this data section
         lookup = {}
         undistinguished = []
-        for data_list, entry in data_options[:]:
-            data = data_list[0].pop(length)
-            if len(data_list[0]) == 0:
-                del data_list[0]
-                if len(data_list) == 0:
-                    # When an option has no more data to be matched, we use
-                    # an unknown data object so it will still fall into
-                    # the 'undistinguished' categories in later matches.
-                    data_list.append(_UnknownData())
-
+        for entry in data_options:
+            data = entry.pop(length)
             if isinstance(data, _UnknownData):
-                undistinguished.append(entry)
+                undistinguished.append(entry.entry)
             else:
-                lookup.setdefault(int(data), []).append(entry)
+                lookup.setdefault(int(data), []).append(entry.entry)
 
         yield offset, length, lookup, undistinguished
         offset += length
