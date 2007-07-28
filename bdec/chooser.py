@@ -1,3 +1,4 @@
+import bdec.choice as chc
 import bdec.data as dt
 import bdec.field as fld
 import bdec.sequence as seq
@@ -22,6 +23,11 @@ class _UnknownData:
             return self.UNKNOWN_LENGTH
         return self._length
 
+class _ChoiceData:
+    """A class representing a fork in the data stream. """
+    def __init__(self, options):
+        self.options = options
+
 def _data_iter(entry):
     """
     Return an iterator to data objects in this protocol entry.
@@ -43,13 +49,18 @@ def _data_iter(entry):
         for child in entry.children:
             for child_entry in _data_iter(child):
                 yield child_entry
+    elif isinstance(entry, chc.Choice):
+        yield _ChoiceData(entry.children)
     else:
         # TODO: Implement drilling down into other entry types!
         yield _UnknownData()
 
 class _EntryData:
-    def __init__(self, entry):
-        self._data_iter = _data_iter(entry)
+    """
+    Class to walk over a protcol entry's expected data stream.
+    """
+    def __init__(self, entry, data_iter):
+        self._data_iter = data_iter
         self._data = self._data_iter.next()
         self.entry = entry
 
@@ -68,6 +79,22 @@ class _EntryData:
                 self._data = _UnknownData()
         return result
 
+    def should_fork(self):
+        return isinstance(self._data, _ChoiceData)
+
+    def fork(self):
+        """
+        Handle a fork in the data stream.
+
+        Returns a list of _EntryData objects representing the different
+        possible paths in the data stream.
+        """
+        assert self.should_fork()
+        # TODO: Each forked object must not only return data from the given 
+        # option, but also on items _after_ the choice (ie: subsequence data
+        # items from the data_iter).
+        return (_EntryData(self.entry, _data_iter(option)) for option in self._data.options)
+
 def _differentiate(entries):
     """
     Differentiate between protocol entries.
@@ -77,8 +104,13 @@ def _differentiate(entries):
     list of entries that don't distinguish themselves on this entry.
     """
     offset = 0
-    data_options = [_EntryData(entry) for entry in entries]
+    data_options = [_EntryData(entry, _data_iter(entry)) for entry in entries]
     while data_options:
+        for option in data_options[:]:
+            if option.should_fork():
+                data_options.remove(option)
+                data_options.extend(option.fork())
+
         # Calculate the length of the next section of 'differentiable' protocol
         # section.
         length = min(entry.data_length() for entry in data_options)
@@ -94,6 +126,9 @@ def _differentiate(entries):
             data = entry.pop(length)
             if isinstance(data, _UnknownData):
                 undistinguished.append(entry.entry)
+            elif isinstance(data, _ChoiceData):
+                #data_options
+                pass
             else:
                 lookup.setdefault(int(data), []).append(entry.entry)
 

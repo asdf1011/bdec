@@ -1,5 +1,4 @@
 
-import bdec.chooser
 import bdec.data as dt
 import bdec.entry
 
@@ -20,6 +19,7 @@ class Choice(bdec.entry.Entry):
 
     def _decode(self, data, child_context):
         if self._chooser is None:
+            import bdec.chooser
             self._chooser = bdec.chooser.Chooser(self.children)
         possibles = self._chooser.choose(data)
 
