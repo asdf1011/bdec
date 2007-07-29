@@ -1,3 +1,5 @@
+import logging
+
 import bdec.choice as chc
 import bdec.data as dt
 import bdec.field as fld
@@ -207,6 +209,8 @@ class _Options:
             # We were unable to differentiate between the protocol entries. Note
             # that we want to maintain the same original order.
             self._options = [option for option in order if option in set(options)]
+            if len(self._options) > 1:
+                logging.info("Failed to differentiate between %s", self._options)
 
     def choose(self, data):
         """
