@@ -47,13 +47,27 @@ def _data_iter(entry):
         else:
             import bdec.spec.xmlspec
             length = None
+            min = max = None
             try:
                 length = int(entry.length)
+                if entry.min is not None:
+                    min = int(entry.min)
+                if entry.max is not None:
+                    max = int(entry.max)
             except bdec.spec.xmlspec.UndecodedReferenceError:
                 # If the length of a  field references the decoded value of
                 # another field, we will not be able to calculate the length.
                 pass
-            yield _UnknownData(length)
+
+            MAX_RANGE_HANDLED = 100
+            if (length is not None and min is not None and 
+               max is not None and max - min < MAX_RANGE_HANDLED):
+                # This field has a bit range; instead of just treating it as
+                # unknown, create a list of fields for this data item.
+                options = [fld.Field("temp", length, expected=dt.Data.from_int_big_endian(value, length)) for value in xrange(min, max + 1)]
+                yield _ChoiceData(options)
+            else:
+                yield _UnknownData(length)
     elif isinstance(entry, seq.Sequence):
         for child in entry.children:
             for child_entry in _data_iter(child):

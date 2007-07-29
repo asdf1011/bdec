@@ -78,6 +78,20 @@ class TestChooser(unittest.TestCase):
         self.assertEqual([alphanum, other], chooser.choose(dt.Data("a")))
         self.assertEqual([other], chooser.choose(dt.Data("%")))
 
+    def test_min_max_differentiation(self):
+        # Some entries have a valid range of values, and so it is convenient
+        # to offer them as a choice of fields with a min and max value (eg:
+        # for pdf 'names' only certain characters are valid). It would be
+        # good to differentiate on these.
+        a = fld.Field("a", 8, min=0x10, max=0x20)
+        b = fld.Field("b", 8, min=0x25, max=0x35)
+        chooser = bdec.chooser.Chooser([a, b])
+        self.assertEqual([], chooser.choose(dt.Data("\x0f")))
+        self.assertEqual([a], chooser.choose(dt.Data("\x10")))
+        self.assertEqual([a], chooser.choose(dt.Data("\x20")))
+        self.assertEqual([], chooser.choose(dt.Data("\x21")))
+        self.assertEqual([b], chooser.choose(dt.Data("\x25")))
+
 # Tests for selecting based on amount of data available (not implemented)
 #    def test_no_options_with_empty_data(self):
 #        chooser = bdec.chooser.Chooser([fld.Field("blah", 8)])
