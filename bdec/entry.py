@@ -194,4 +194,4 @@ class Entry(object):
         return "%s '%s'" % (self.__class__, self.name)
 
     def range(self):
-        raise NotImplementedError()
+        return Range()
