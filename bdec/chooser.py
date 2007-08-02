@@ -18,7 +18,7 @@ class _UnknownData:
         if self._length is not None:
             assert self._length >= length
             self._length -= length
-        return _UnknownData(length)
+        return self.__class__(length)
 
     def __len__(self):
         if self._length is None:
@@ -27,6 +27,11 @@ class _UnknownData:
 
     def copy(self):
         return _UnknownData(self._length)
+
+class _AnyData(_UnknownData):
+    """A class representing a field that can take any data (with a specified length)."""
+    def __init__(self, length):
+        _UnknownData.__init__(self, length)
 
 class _ChoiceData:
     """A class representing a fork in the data stream. """
@@ -63,11 +68,19 @@ def _data_iter(entry):
             if (length is not None and min is not None and 
                max is not None and max - min < MAX_RANGE_HANDLED):
                 # This field has a bit range; instead of just treating it as
-                # unknown, create a list of fields for this data item.
+                # unknown, handle every value in the range individually. This
+                # allows us to lookup valid values for this field in a 
+                # dictionary.
                 options = [fld.Field("temp", length, expected=dt.Data.from_int_big_endian(value, length)) for value in xrange(min, max + 1)]
                 yield _ChoiceData(options)
             else:
-                yield _UnknownData(length)
+                if length is not None and min is None and max is None:
+                    # When we know a field can accept any type of data, we are
+                    # able to know that some entries _will_ decode (not just
+                    # possibly decode).
+                    yield _AnyData(length)
+                else:
+                    yield _UnknownData(length)
     elif isinstance(entry, seq.Sequence):
         for child in entry.children:
             for child_entry in _data_iter(child):
@@ -136,7 +149,8 @@ class _EntryData:
                 # When an option has no more data to be matched, we use
                 # an unknown data object so it will still fall into
                 # the 'undistinguished' categories in later matches.
-                self._data = _UnknownData()
+                #self._data = _UnknownData()
+                self._data = None
         return result
 
     def should_fork(self):
@@ -159,12 +173,18 @@ def _differentiate(entries):
     """
     Differentiate between protocol entries.
 
-    Returns a list of (offset, length, lookup, undistinguished) entries, where
-    lookup is a dictionary mapping value -> entries, and undistinguished is a
-    list of entries that don't distinguish themselves on this entry.
+    Returns a list of (offset, length, lookup, undistinguished, decoded, 
+    possibles) entries, where lookup is a dictionary mapping 
+    value -> entries, and undistinguished is a list of entries that don't
+    distinguish themselves on this entry.
     """
     offset = 0
     data_options = [_EntryData(entry, _data_iter(entry)) for entry in entries]
+
+    # We need to keep track of entries that have successfully decoded, and
+    # those that may have decoded.
+    successful = []
+    possible = []
     while data_options:
         test_for_forks = True
         while test_for_forks:
@@ -181,6 +201,7 @@ def _differentiate(entries):
         length = min(entry.data_length() for entry in data_options)
         if length == _UnknownData.UNKNOWN_LENGTH:
             # We cannot differentiate any more...
+            yield offset, 0, {}, [entry.entry for entry in data_options], successful, possible
             break
 
         # Get the values of all of the options for this data section
@@ -188,13 +209,26 @@ def _differentiate(entries):
         undistinguished = []
         for entry in data_options:
             data = entry.pop_data(length)
-            if isinstance(data, _UnknownData):
+
+            if isinstance(data, _AnyData):
                 undistinguished.append(entry.entry)
+            elif isinstance(data, _UnknownData):
+                # This entry _may_ have been successfuly...
+                undistinguished.append(entry.entry)
+                if entry.entry not in possible:
+                    possible.append(entry.entry)
             else:
                 lookup.setdefault(int(data), []).append(entry.entry)
 
-        if length:
-            yield offset, length, lookup, undistinguished
+        yield offset, length, lookup, undistinguished, successful, possible
+
+        for entry in data_options[:]:
+            if entry._data is None:
+                if entry.entry not in possible:
+                    # This entry has finished decoding. If we _know_ it has
+                    # finished decoding, blah blah blah
+                    successful.append(entry.entry)
+                data_options.remove(entry)
         offset += length
 
 
@@ -208,21 +242,36 @@ class _Options:
         self._options = None
         self._lookup = None
         self._fallback = None
-        for offset, length, lookup, undistinguished in _differentiate(options):
+
+        for offset, length, lookup, undistinguished, successful, possible in _differentiate(options):
             if offset >= start_bit and lookup and length:
                 # We found a range of bits that can be used to distinguish
                 # between the diffent options
                 self._start_bit = offset
                 self._length = length
                 self._lookup = {}
-                self._fallback = _Options(undistinguished, start_bit + length, order)
+                self._fallback = _Options(undistinguished + successful + possible, start_bit + length, order)
                 for value, entries in lookup.iteritems():
-                    self._lookup[value] = _Options(entries + undistinguished, offset + length, order)
+                    self._lookup[value] = _Options(entries + undistinguished + successful + possible, offset + length, order)
                 break
         else:
             # We were unable to differentiate between the protocol entries. Note
-            # that we want to maintain the same original order.
+            # that we want to maintain the original ordering.
             self._options = [option for option in order if option in set(options)]
+
+            for index, option in enumerate(self._options[:]):
+                if option in successful:
+                    # We know this option successfully decoded; should any 
+                    # subsequent options exist, they will never be chosen.
+                    #
+                    # The exception is when subsequent options are smaller
+                    # than this option (and so will decode when there isn't
+                    # as much data available).
+                    for entry in self._options[index + 1:]:
+                        if option.range().max <= entry.range().min:
+                            self._options.remove(entry)
+                    break
+
             if len(self._options) > 1:
                 logging.info("Failed to differentiate between %s", self._options)
 

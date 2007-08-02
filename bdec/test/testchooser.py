@@ -24,7 +24,8 @@ class TestChooser(unittest.TestCase):
         b = seq.Sequence("b", [fld.Field("blah", 8, expected=dt.Data('z')), fld.Field("unknown", 8)])
         chooser = bdec.chooser.Chooser([a, b])
         self.assertEqual([b], chooser.choose(dt.Data("za")))
-        self.assertEqual([a, b], chooser.choose(dt.Data("zy")))
+        # Note that 'b' shouldn't be possible, as 'a' must be successful
+        self.assertEqual([a], chooser.choose(dt.Data("zy")))
         self.assertEqual([a], chooser.choose(dt.Data("ky")))
         self.assertEqual([], chooser.choose(dt.Data("ab")))
 
@@ -37,13 +38,6 @@ class TestChooser(unittest.TestCase):
         self.assertEqual([b], chooser.choose(dt.Data("xa")))
         self.assertEqual([a, b], chooser.choose(dt.Data("yz")))
         self.assertEqual([b], chooser.choose(dt.Data("y")))
-
-    def test_ordering_is_maintained(self):
-        a = fld.Field("a", 8)
-        b = fld.Field("b", 8, expected=dt.Data("y"))
-        chooser = bdec.chooser.Chooser([a, b])
-        self.assertEqual([a], chooser.choose(dt.Data("x")))
-        self.assertEqual([a, b], chooser.choose(dt.Data("y")))
 
     def test_choose_within_choice(self):
         a = chc.Choice('a', [fld.Field('a1', 8, expected=dt.Data('a')), fld.Field('a2', 8, expected=dt.Data('A'))])
@@ -74,8 +68,8 @@ class TestChooser(unittest.TestCase):
         alphanum = chc.Choice('alphanum', [alpha, num])
         other = fld.Field('other', 8)
         chooser = bdec.chooser.Chooser([alphanum, other])
-        self.assertEqual([alphanum, other], chooser.choose(dt.Data("1")))
-        self.assertEqual([alphanum, other], chooser.choose(dt.Data("a")))
+        self.assertEqual([alphanum], chooser.choose(dt.Data("1")))
+        self.assertEqual([alphanum], chooser.choose(dt.Data("a")))
         self.assertEqual([other], chooser.choose(dt.Data("%")))
 
     def test_min_max_differentiation(self):
@@ -91,6 +85,15 @@ class TestChooser(unittest.TestCase):
         self.assertEqual([a], chooser.choose(dt.Data("\x20")))
         self.assertEqual([], chooser.choose(dt.Data("\x21")))
         self.assertEqual([b], chooser.choose(dt.Data("\x25")))
+
+    def test_ignores_later_options_when_option_fully_decodes(self):
+        # If we get an option that we believe fully decodes, don't list any items
+        # lower in the priority chain as potentials.
+        a = fld.Field("a", 8, expected=dt.Data('\x00'))
+        b = fld.Field("b", 8)
+        chooser = bdec.chooser.Chooser([a, b])
+        self.assertEqual([a], chooser.choose(dt.Data("\x00")))
+        self.assertEqual([b], chooser.choose(dt.Data("\x01")))
 
 # Tests for selecting based on amount of data available (not implemented)
 #    def test_no_options_with_empty_data(self):
