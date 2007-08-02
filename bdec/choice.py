@@ -89,3 +89,8 @@ class Choice(bdec.entry.Entry):
                     best_guess_bits = bits_encoded
 
         return best_guess.encode(query, choice)
+
+    def range(self):
+        minimum = min(child.range().min for child in self.children)
+        maximum = max(child.range().max for child in self.children)
+        return bdec.entry.Range(minimum, maximum)

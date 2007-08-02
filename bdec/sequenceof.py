@@ -80,3 +80,6 @@ class SequenceOf(bdec.entry.Entry):
         for child in sequenceof:
             for data in self.children[0].encode(query, child):
                 yield data
+
+    def range(self):
+        return bdec.entry.Range()

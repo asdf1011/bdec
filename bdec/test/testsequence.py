@@ -50,5 +50,11 @@ class TestSequence(unittest.TestCase):
         sequence = seq.Sequence("blah", embedded, length=15)
         self.assertRaises(ent.EntryDataError, list, sequence.decode(dt.Data('abc')))
 
+    def test_range(self):
+        children = [fld.Field("bob", 8), fld.Field("cat", 8)]
+        sequence = seq.Sequence("blah", children)
+        self.assertEqual(16, sequence.range().min)
+        self.assertEqual(16, sequence.range().max)
+
 if __name__ == "__main__":
     unittest.main()

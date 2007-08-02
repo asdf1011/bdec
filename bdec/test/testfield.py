@@ -145,5 +145,10 @@ class TestField(unittest.TestCase):
         except fld.BadRangeError, ex:
             text = str(ex)
 
+    def test_range(self):
+        field = fld.Field("bob", 8)
+        self.assertEqual(8, field.range().min)
+        self.assertEqual(8, field.range().max)
+
 if __name__ == "__main__":
     unittest.main()
