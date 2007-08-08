@@ -100,5 +100,11 @@ class TestChoice(unittest.TestCase):
         data = reduce(lambda a,b:a+b, choice.encode(query, struct))
         self.assertEqual(9, len(data))
 
+    def test_range(self):
+        options = [fld.Field("bob", 4), fld.Field("cat", 8)]
+        choice = chc.Choice("blah", options)
+        self.assertEqual(4, choice.range().min)
+        self.assertEqual(8, choice.range().max)
+
 if __name__ == "__main__":
     unittest.main()

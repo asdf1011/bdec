@@ -265,3 +265,12 @@ class Field(bdec.entry.Entry):
         else:
             raise Exception("Unknown field format of '%s'!" % self.format)
         return result
+
+    def range(self):
+        import bdec.spec.xmlspec
+        try:
+            min = max = int(self.length)
+        except bdec.spec.xmlspec.UndecodedReferenceError:
+            min = 0
+            max = bdec.entry.Range.MAX
+        return bdec.entry.Range(min, max)

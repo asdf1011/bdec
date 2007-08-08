@@ -15,35 +15,54 @@ class Choice(bdec.entry.Entry):
         assert len(children) > 0
         for child in children:
             assert isinstance(child, bdec.entry.Entry)
+        self._chooser = None
 
     def _decode(self, data, child_context):
+        if self._chooser is None:
+            import bdec.chooser as chsr
+            self._chooser = chsr.Chooser(self.children)
+        possibles = self._chooser.choose(data)
+
         yield (True, self, data)
 
-        # We attempt to decode all of the embedded items. If
-        # one of them succeeds, we'll use its results (otherwise
-        # we'll re-raise the exception of the 'best guess'.
-        best_guess = None
-        best_guess_bits = 0
-        for child in self.children:
-            try:
-                bits_decoded = 0
-                for is_starting, entry, entry_data in child.decode(data.copy(), child_context):
-                    if not is_starting:
-                        bits_decoded += len(entry_data)
+        if len(possibles) == 0:
+            # None of the items match. In this case we want to choose
+            # the 'best' failing option, so we'll examine all of the
+            # children.
+            possibles = self.children
 
-                # We successfully decoded the entry!
-                best_guess = child
-                break
-            except bdec.DecodeError:
-                if best_guess is None or bits_decoded > best_guess_bits:
+        if len(possibles) == 1:
+            best_guess = possibles[0]
+        else:
+            # We have multiple possibilitise. We'll decode them one
+            # at a time until one of them succeeds; if none decode,
+            # we'll re-raise the exception of the 'best guess'.
+            #
+            # Note: If we get in here, at best we'll decode the successfully
+            # decoding item twice. This can have severe performance
+            # implications if choices are embedded within choices (as
+            # we get O(N^2) runtime cost).
+            #
+            # We should possibly emit a warning if we get in here (as it
+            # indicates that the specification could be better written).
+            best_guess = None
+            best_guess_bits = 0
+            for child in possibles:
+                try:
+                    bits_decoded = 0
+                    for is_starting, entry, entry_data in child.decode(data.copy(), child_context):
+                        if not is_starting:
+                            bits_decoded += len(entry_data)
+
+                    # We successfully decoded the entry!
                     best_guess = child
-                    best_guess_bits = bits_decoded
+                    break
+                except bdec.DecodeError:
+                    if best_guess is None or bits_decoded > best_guess_bits:
+                        best_guess = child
+                        best_guess_bits = bits_decoded
 
-        # Re-run the decode with the best guess
-        # TODO: This algorithm has N^2 complexity! We should
-        # re-use the existing decode results... This is not
-        # trivial however, as the fields have state (the data
-        # attribute) which we'd need to cache and reset.
+        # Decode the best option.
         for is_starting, entry, data in best_guess.decode(data, child_context):
             yield is_starting, entry, data
 
@@ -70,3 +89,8 @@ class Choice(bdec.entry.Entry):
                     best_guess_bits = bits_encoded
 
         return best_guess.encode(query, choice)
+
+    def range(self):
+        minimum = min(child.range().min for child in self.children)
+        maximum = max(child.range().max for child in self.children)
+        return bdec.entry.Range(minimum, maximum)

@@ -51,6 +51,26 @@ def is_hidden(name):
     """
     return name.endswith(':')
 
+class Range:
+    """
+    Class representing the possible length of a protocol entry.
+    
+    The possible in range is inclusive of min and max.
+    """
+    MAX = 100000000
+    def __init__(self, min=0, max=MAX):
+        assert min <= max
+        self.min = min
+        self.max = max
+
+    def __add__(self, other):
+        min = self.min + other.min
+        if self.max is self.MAX or other.max is self.MAX:
+            max = self.MAX
+        else:
+            max = self.max + other.max
+        return Range(min, max)
+
 class Entry(object):
     """
     A decoder entry is an item in a protocol that can be decoded.
@@ -169,3 +189,9 @@ class Entry(object):
 
     def __str__(self):
         return "%s '%s'" % (self.__class__, self.name)
+
+    def __repr__(self):
+        return "%s '%s'" % (self.__class__, self.name)
+
+    def range(self):
+        return Range()

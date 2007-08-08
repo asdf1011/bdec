@@ -35,3 +35,5 @@ class Sequence(bdec.entry.Entry):
             for data in child.encode(query, structure):
                 yield data
             
+    def range(self):
+        return sum((child.range() for child in self.children), bdec.entry.Range(0, 0))
