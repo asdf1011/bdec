@@ -9,7 +9,7 @@ it currently supports decoding to xml or python objects.
 """
 
 setup(name='bdec',
-      version='0.1.0',
+      version='0.1.1',
       description='bdec binary decoder',
       long_description=long_description,
       author='Henry Ludemann',
