@@ -69,6 +69,8 @@ Some other projects that perform 'generic' binary decoding include;
 Download
 ========
 
+The bdec library is available under the revised BSD license (no advertising).
+
 * `Version 0.1.0`_
   8 August 2007
 
