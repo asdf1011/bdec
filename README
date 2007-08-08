@@ -18,18 +18,11 @@ specification.
 The bdec xml specification uses constructs based on the constructs found
 in ASN.1.
 
-Example specifications include:
-
-  * pdf files
-  * mp3 files
-  * jpg files
-  * fat filesystem
-
 
 Usage
 =====
 
-The bdec library consists of a decoding / encoding library and a command
+The bdec library consists of a decoding / encoding library and command
 line decoding and encoding applications. Given a specification, the 
 command line application will create an xml representation of the data
 contained in the binary file, and can (for some representations) convert
@@ -45,16 +38,23 @@ running::
 
 .. _xml representation of a FAT bootsector: doc/files/fatbootsector.xml
 
-Alternatively, the volume label of a fat drive could be changed to ``SOME_LABEL``
-by running::
-  
-  dd if=/dev/sda1 bs=512 count=1 | decode bootsector.xml | sed 's/<volume-label>.*<\/volume-label>/<volume-label>SOME_LABEL<\/volume-label>/g' | encode bootsector.xml | dd of=/dev/sda1 conv=notrunc
+
+Features
+========
+
+* It is easy to quickly write (and read) a specification
+* No need to write a custom decoder (all error conditions are handled 
+  internally; decoding either passes or fails).
+* The command line application allows visual inspection of problematic
+  files.
+* Unicode aware, little-endian / big-endian aware
+* Specify fields down to the bit (eg: single bit flags)
 
 
 Similar projects
 ================
 
-There other project to perform 'generic' binary decoding;
+Some other projects that perform 'generic' binary decoding include;
 
 * Hachoir (http://hachoir.org/) - Very powerful decoding
   library, where binary formats are specified in python
@@ -66,26 +66,23 @@ There other project to perform 'generic' binary decoding;
   much high-level intelligence. Not many formats available.
 
 
-Advantages
-==========
+Download
+========
 
-* It is easy to write (and read) a specification
-* No need to write a custom decoder (all error conditions are handled 
-  internally; decoding either passes or fails).
-* The command line application allows visual inspection of problematic
-  files.
-* Unicode aware, little-endian / big-endian aware
-* Specify fields down to the bit (eg: single bit flags)
+* `Version 0.1.0`_
+  8 August 2007
 
+  Changes:
+    Initial standalone release of bdec library. Allows complex specifications
+    to be written that can be automatically decoded. The included example 
+    specifications include;
 
-Disadvantages
-=============
+     * pdf documents
+     * mp3 and jpg media files
+     * fat12/fat16/fat32 filesystems
 
-* The specification is hand-written xml (xml is best for computer 
-  reading/writing)
-* The speed isn't fantastic (the current design requires the entire file
-  be read into memory to be encoded / decoded). The decoding can take
-  O(N!) for certain (relatively common) constructs.
-* Some high level constructs cannot be represented (typically items
-  whose formats involve seeking). These file types will usually need a
-  secondary decode by high level logic.
+    Encoding is supported only for very basic specifications (no use of 
+    expressions).
+
+.. _Version 0.1.0: files/bdec-0.1.0.tar.gz
+
