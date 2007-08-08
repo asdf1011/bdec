@@ -71,7 +71,7 @@ Download
 
 The bdec library is available under the revised BSD license (no advertising).
 
-* `Version 0.1.0`_
+* `Version 0.1.1`_
   8 August 2007
 
   Changes:
@@ -86,5 +86,5 @@ The bdec library is available under the revised BSD license (no advertising).
     Encoding is supported only for very basic specifications (no use of 
     expressions).
 
-.. _Version 0.1.0: files/bdec-0.1.0.tar.gz
+.. _Version 0.1.1: files/bdec-0.1.1.tar.gz
 
