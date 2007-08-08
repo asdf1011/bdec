@@ -25,16 +25,6 @@ Currently the decode utility waits until all of the data has been
 read; instead it should write out data as it becomes available.
 
 
-Choice should be smart about choosing best guess
-------------------------------------------------
-
-Priority: High
-
-Instead of attempting to fully decode one field at a time, the choice
-entry should attempt to figure out what entries it couldn't be, then
-decode just that one entry.
-
-
 Generate an xml specification from an in memory protocol
 --------------------------------------------------------
 
@@ -51,6 +41,18 @@ Priority: Medium
 
 Currently encoding protocols that have complex expressions isn't supported.
 This would be a useful feature.
+
+
+Improve method of 'copying' protocol entries
+--------------------------------------------
+
+Priority: Medium
+
+The xml specification code currently creates a copy of referenced common
+entries to avoid state being shared between them (see the 'pickle' usage in
+bdec.spec.xmlspec). This is an ugly solution, and creates an overhead with
+the bdec.chooser (as each instance of a shared object must create its own
+bdec.choooser.Chooser object).
 
 
 Protocol specification
