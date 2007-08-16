@@ -154,7 +154,7 @@ class Entry(object):
                 raise
             # The instance wasn't included in the input, but as it is hidden, we'll
             # keep using the current context.
-            context = parent_context
+            context = parent
         return context
 
     def _encode(self, query, context):

@@ -112,5 +112,13 @@ class TestInstance(unittest.TestCase):
             pass
         self.assertEqual("c", self._encode(field, Blah()))
 
+    def test_hidden_entries_arent_required_for_encode(self):
+        data = fld.Field("data", 8, format=fld.Field.INTEGER)
+        hidden_seq = seq.Sequence("hidden:", [data])
+        class Blah():
+            def __init__(self):
+                self.data = 0x5f
+        self.assertEqual("\x5f", self._encode(hidden_seq, Blah()))
+
 if __name__ == "__main__":
     unittest.main()
