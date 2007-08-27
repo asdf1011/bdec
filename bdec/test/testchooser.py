@@ -103,7 +103,6 @@ class TestChooser(unittest.TestCase):
         # cannot be used to differentiate between the options)
         self.assertEqual(8, chooser._start_bit)
         self.assertEqual(8, chooser._length)
-        self.assertEqual([], chooser._fallback._options)
         self.assertTrue(ord('y') in chooser._lookup)
         self.assertTrue(ord('z') in chooser._lookup)
 
@@ -119,7 +118,6 @@ class TestChooser(unittest.TestCase):
         # cannot be used to differentiate between the options)
         self.assertEqual(8, chooser._start_bit)
         self.assertEqual(8, chooser._length)
-        self.assertEqual([], chooser._fallback._options)
         self.assertTrue(ord('y') in chooser._lookup)
         self.assertTrue(ord('z') in chooser._lookup)
 

@@ -262,8 +262,11 @@ class _Options:
         self._options = None
         self._lookup = None
         self._fallback = None
-        options = list(set(options))
 
+        unique_options = list(set(options))
+        self._initialise = lambda: self._generate(unique_options, start_bit, order)
+
+    def _generate(self, options, start_bit, order):
         for offset, length, lookup, undistinguished, successful, possible in _differentiate(options):
             if offset >= start_bit and lookup and length:
                 # We found a range of bits that can be used to distinguish
@@ -305,6 +308,10 @@ class _Options:
         The possible entries will be in the same order as the entries passed
         into the constructor.
         """
+        if self._initialise is not None:
+            self._initialise()
+            self._initialise = None
+
         if self._options is not None:
             # We are unable to narrow down the possibilities further.
             return self._options
