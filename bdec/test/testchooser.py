@@ -13,12 +13,6 @@ class TestChooser(unittest.TestCase):
         result = chooser.choose(dt.Data("a"))
         self.assertEqual(1, len(result))
 
-    def test_expected_data(self):
-        a = fld.Field("blah", 8, expected=dt.Data('y'))
-        chooser = bdec.chooser.Chooser([a])
-        self.assertEqual([], chooser.choose(dt.Data("x")))
-        self.assertEqual([a], chooser.choose(dt.Data("y")))
-
     def test_matching_sequence(self):
         a = seq.Sequence("a", [fld.Field("unknown", 8), fld.Field("blah", 8, expected=dt.Data('y'))])
         b = seq.Sequence("b", [fld.Field("blah", 8, expected=dt.Data('z')), fld.Field("unknown", 8)])
@@ -27,7 +21,6 @@ class TestChooser(unittest.TestCase):
         # Note that 'b' shouldn't be possible, as 'a' must be successful
         self.assertEqual([a], chooser.choose(dt.Data("zy")))
         self.assertEqual([a], chooser.choose(dt.Data("ky")))
-        self.assertEqual([], chooser.choose(dt.Data("ab")))
 
     def test_short_matches_work(self):
         # There was a bug with where an option wouldn't be matched if a longer
@@ -94,6 +87,41 @@ class TestChooser(unittest.TestCase):
         chooser = bdec.chooser.Chooser([a, b])
         self.assertEqual([a], chooser.choose(dt.Data("\x00")))
         self.assertEqual([b], chooser.choose(dt.Data("\x01")))
+
+    def test_ignores_undistinuished_fields(self):
+        # This tests an implementation issue that affects speed; we test that
+        # it doesn't key on fields that cannot be used to distinguish bewteen
+        # the different options.
+        a = seq.Sequence("a", [fld.Field("unknown", 8), fld.Field("a id", 8, expected=dt.Data('y'))])
+        b = seq.Sequence("b", [fld.Field("unknown", 8), fld.Field("b id", 8, expected=dt.Data('z'))])
+        chooser = bdec.chooser.Chooser([a, b])
+
+        self.assertEqual([a], chooser.choose(dt.Data("?y")))
+        self.assertEqual([b], chooser.choose(dt.Data("?z")))
+
+        # Now test that internally it isn't keying on the first 8 bits (as they
+        # cannot be used to differentiate between the options)
+        self.assertEqual(8, chooser._start_bit)
+        self.assertEqual(8, chooser._length)
+        self.assertEqual([], chooser._fallback._options)
+        self.assertTrue(ord('y') in chooser._lookup)
+        self.assertTrue(ord('z') in chooser._lookup)
+
+    def test_ignores_same_distinguished_field(self):
+        a = seq.Sequence("a", [fld.Field("common", 8, expected=dt.Data('c')), fld.Field("a id", 8, expected=dt.Data('y'))])
+        b = seq.Sequence("b", [fld.Field("common", 8, expected=dt.Data('c')), fld.Field("b id", 8, expected=dt.Data('z'))])
+        chooser = bdec.chooser.Chooser([a, b])
+
+        self.assertEqual([a], chooser.choose(dt.Data("cy")))
+        self.assertEqual([b], chooser.choose(dt.Data("cz")))
+
+        # Now test that internally it isn't keying on the first byte (as it
+        # cannot be used to differentiate between the options)
+        self.assertEqual(8, chooser._start_bit)
+        self.assertEqual(8, chooser._length)
+        self.assertEqual([], chooser._fallback._options)
+        self.assertTrue(ord('y') in chooser._lookup)
+        self.assertTrue(ord('z') in chooser._lookup)
 
 # Tests for selecting based on amount of data available (not implemented)
 #    def test_no_options_with_empty_data(self):

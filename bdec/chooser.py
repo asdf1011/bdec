@@ -169,6 +169,25 @@ class _EntryData:
             iter = _JoinIters(_data_iter(option), post_choice_iter)
             yield _EntryData(self.entry, iter)
 
+def _can_differentiate(lookup, fallback):
+    """Test to see if a lookup differentiates itself from other options."""
+    current_entries = None
+    for value, entries in lookup.iteritems():
+        entry_set = set(entries)
+        if current_entries is None:
+            current_entries = entry_set
+        elif current_entries != entry_set:
+            # This items entries differ from another items entries (and so can
+            # differentiate).
+            return True
+
+        if not set(fallback).issubset(entry_set):
+            return True
+
+    # This bit range cannot be used for differentiation, as all of
+    # the keyed options (and the fallback) have the same entries.
+    return False
+
 def _differentiate(entries):
     """
     Differentiate between protocol entries.
@@ -201,7 +220,6 @@ def _differentiate(entries):
         length = min(entry.data_length() for entry in data_options)
         if length == _UnknownData.UNKNOWN_LENGTH:
             # We cannot differentiate any more...
-            yield offset, 0, {}, [entry.entry for entry in data_options], successful, possible
             break
 
         # Get the values of all of the options for this data section
@@ -220,7 +238,8 @@ def _differentiate(entries):
             else:
                 lookup.setdefault(int(data), []).append(entry.entry)
 
-        yield offset, length, lookup, undistinguished, successful, possible
+        if _can_differentiate(lookup, undistinguished + successful + possible):
+            yield offset, length, lookup, undistinguished, successful, possible
 
         for entry in data_options[:]:
             if entry._data is None:
@@ -230,6 +249,7 @@ def _differentiate(entries):
                     successful.append(entry.entry)
                 data_options.remove(entry)
         offset += length
+    yield offset, 0, {}, [entry.entry for entry in data_options], successful, possible
 
 
 class _Options:
@@ -246,13 +266,15 @@ class _Options:
         for offset, length, lookup, undistinguished, successful, possible in _differentiate(options):
             if offset >= start_bit and lookup and length:
                 # We found a range of bits that can be used to distinguish
-                # between the diffent options
+                # between the diffent options.
+                fallback_entries = undistinguished + successful + possible
+
                 self._start_bit = offset
                 self._length = length
                 self._lookup = {}
-                self._fallback = _Options(undistinguished + successful + possible, start_bit + length, order)
+                self._fallback = _Options(fallback_entries, start_bit + length, order)
                 for value, entries in lookup.iteritems():
-                    self._lookup[value] = _Options(entries + undistinguished + successful + possible, offset + length, order)
+                    self._lookup[value] = _Options(entries + fallback_entries, offset + length, order)
                 break
         else:
             # We were unable to differentiate between the protocol entries. Note
