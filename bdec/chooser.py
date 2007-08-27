@@ -262,6 +262,7 @@ class _Options:
         self._options = None
         self._lookup = None
         self._fallback = None
+        options = list(set(options))
 
         for offset, length, lookup, undistinguished, successful, possible in _differentiate(options):
             if offset >= start_bit and lookup and length:
