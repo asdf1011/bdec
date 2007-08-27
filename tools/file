@@ -1,0 +1,47 @@
+#!/usr/bin/env python
+"""
+A program to identify the type of a binary files.
+"""
+
+import glob
+import logging
+import os
+import sys
+
+import bdec.data
+import bdec.chooser
+import bdec.sequenceof
+import bdec.spec.xmlspec
+
+def load_specs(spec_dir):
+    specs = []
+    for spec in glob.glob(os.path.join(spec_dir, '*.xml')):
+        try:
+            decoder, lookup = bdec.spec.xmlspec.load(spec)
+        except bdec.spec.LoadError, ex:
+            logging.error('failed to load: %s (%s)', spec, ex)
+        specs.append(decoder)
+    return specs
+
+if len(sys.argv) != 2:
+    sys.exit("Usage: %s <filename>" % sys.argv[0])
+
+# Load the specificiations
+filename = sys.argv[1]
+spec_dir = os.path.join(os.path.dirname(__file__), '..', 'examples')
+specs = load_specs(spec_dir)
+
+# Load the data to choose from
+binary = file(filename, 'rb').read()
+data = bdec.data.Data(binary)
+
+# Identify the file type from the specifications we have loaded.
+unknown = bdec.sequenceof.SequenceOf('unknown', bdec.field.Field('byte', 8), None)
+chooser = bdec.chooser.Chooser(specs + [unknown])
+result = chooser.choose(data)
+if result == [unknown]:
+    print unknown.name
+else:
+    for option in chooser.choose(data):
+        if option is not unknown:
+            print option.name
