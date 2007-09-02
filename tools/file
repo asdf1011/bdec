@@ -38,10 +38,10 @@ data = bdec.data.Data(binary)
 # Identify the file type from the specifications we have loaded.
 unknown = bdec.sequenceof.SequenceOf('unknown', bdec.field.Field('byte', 8), None)
 chooser = bdec.chooser.Chooser(specs + [unknown])
-result = chooser.choose(data)
-if result == [unknown]:
-    print unknown.name
-else:
-    for option in chooser.choose(data):
-        if option is not unknown:
-            print option.name
+options = chooser.choose(data)
+if options != [unknown]:
+    # We don't want to include 'unknown' if we successfully identified the file
+    options = [option for option in options if option is not unknown]
+
+for option in options:
+    print option.name
