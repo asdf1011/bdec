@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from distutils.core import setup
+from setuptools import setup, find_packages
 
 long_description = """\
 Write specifications for existing binary formats in a flexible xml based
@@ -17,8 +17,10 @@ setup(name='bdec',
       author='Henry Ludemann',
       author_email='misc@hl.id.au',
       url='http://www.hl.id.au/Projects/bdec/',
-      download_url='http://www.hl.id.au/Projects/bdec/files/bdec-0.1.1.tar.gz',
-      packages=['bdec'],
+      download_url='http://www.hl.id.au/Projects/bdec/files/bdec-%s.tar.gz' % version,
+      packages=find_packages(exclude=["examples", "examples.*"]),
+      install_requires=['pyparsing'],
+      license="BSD",
       classifiers=[
           'Development Status :: 3 - Alpha',
           'Environment :: Console',
