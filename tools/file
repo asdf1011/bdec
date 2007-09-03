@@ -23,6 +23,24 @@ def load_specs(spec_dir):
         specs.append(decoder)
     return specs
 
+def detect_specs(protocols, data):
+    """
+    Given all of the available specifications, detect the type of file.
+
+    Returns a list of protocols that appear to match the file type.
+    """
+    # We have to include an 'unknown' protocol entry, as the chooser will stop
+    # differentiating when only one is left (but we want to know if we don't
+    # get a match).
+    unknown = bdec.sequenceof.SequenceOf('unknown', bdec.field.Field('byte', 8), None)
+    chooser = bdec.chooser.Chooser(specs + [unknown])
+    options = chooser.choose(data)
+
+    # We don't want to include 'unknown'
+    options = [option for option in options if option is not unknown]
+    return options
+
+
 if len(sys.argv) != 2:
     sys.exit("Usage: %s <filename>" % sys.argv[0])
 
@@ -35,13 +53,9 @@ specs = load_specs(spec_dir)
 binary = file(filename, 'rb').read()
 data = bdec.data.Data(binary)
 
-# Identify the file type from the specifications we have loaded.
-unknown = bdec.sequenceof.SequenceOf('unknown', bdec.field.Field('byte', 8), None)
-chooser = bdec.chooser.Chooser(specs + [unknown])
-options = chooser.choose(data)
-if options != [unknown]:
-    # We don't want to include 'unknown' if we successfully identified the file
-    options = [option for option in options if option is not unknown]
-
-for option in options:
-    print option.name
+options = detect_specs(specs, data)
+if not options:
+    print "Unknown file type."
+else:
+    for option in options:
+        print option.name
