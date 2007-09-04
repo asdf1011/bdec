@@ -3,7 +3,7 @@ import bdec.field as fld
 import bdec.output
 import bdec.sequenceof as sof
 
-def _escape(name):
+def escape(name):
     return name.replace(' ', '_')
 
 class _Item:
@@ -30,7 +30,7 @@ class _DecodedItem:
         else:
             result = _Item()
             for name, value in self.children:
-                setattr(result, _escape(name), value)
+                setattr(result, escape(name), value)
         return result
 
 def decode(decoder, binary):
@@ -63,7 +63,7 @@ def _get_data(obj,child):
     if name.endswith(':'):
         raise ent.MissingInstanceError(obj, child)
 
-    name = _escape(name)
+    name = escape(name)
 
     try: 
         return getattr(obj, name)

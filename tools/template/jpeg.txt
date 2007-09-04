@@ -1,0 +1,3 @@
+Jpeg image file <image/jpeg>.
+Width = ${image_width}
+Height = ${image_height}
