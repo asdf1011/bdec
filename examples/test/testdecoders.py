@@ -28,9 +28,15 @@ class _BaseTest:
         entries = list(self._spec.decode(data))
         self.assertTrue(len(entries) > 0)
 
+def _create_decode_function(name, filename):
+    """Create a decode function to decode a given file."""
+    result = lambda self: self._decode(filename)
+    result.__name__ = name
+    return result
+
 def _create_tests():
     """
-    Return a list of testcase objects for each of the example specification files.
+    Return a dictionary of testcase objects for each of the example specification files.
     """
     testdir = os.path.dirname(__file__)
     path = os.path.join(testdir, '..')
@@ -45,8 +51,7 @@ def _create_tests():
             for datafile in os.listdir(datadir):
                 testname = "test_%s" % os.path.splitext(datafile)[0]
                 datafile = os.path.join(datadir, datafile)
-                method = lambda self:self._decode(datafile)
-                method.__name__ = testname
+                method = _create_decode_function(name, datafile)
                 members[testname] = method
         result[testcasename] = type(testcasename, (unittest.TestCase, _BaseTest), members)
     assert result, "No example specifications found!"
