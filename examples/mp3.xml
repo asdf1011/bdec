@@ -70,25 +70,14 @@
                 <field name="extended header" length="1" />
                 <field name="experimental" length="1" />
                 <field name="footer present" length="1" />
-                <field name="buffer" length="4" />
+                <field name="unused" length="4" />
             </sequence>
             <sequence name="total frames length:">
                 <reference name="syncsafe integer:" />
             </sequence>
-            <sequence name="contents:" length="${total frames length:.syncsafe integer:} * 8">
-                <sequenceof name="frames">
-                    <choice name="frame:">
-                        <sequence name="end">
-                            <field name="id" length="32" type="text" />
-                            <field name="flags" length="16" />
-                            <field name="zero size:" length="32" value="0x0" />
-                            <end-sequenceof />
-                        </sequence>
-                        <reference name="id3v2:frame" />
-                    </choice>
-                </sequenceof>
-                <field name="padding" length="${total frames length:.syncsafe integer:} * 8 - len{frames}" type="hex" />
-            </sequence>
+            <sequenceof name="frames" length="${total frames length:.syncsafe integer:} * 8">
+                <reference name="id3v2:frame" />
+            </sequenceof>
         </sequence>
 
         <!-- Create a set of 'lookup' tables to map the binary value to bitrate -->
@@ -111,12 +100,12 @@
         </choice>
 
         <choice name="mpeg 1 sampling frequency lookup:">
-            <sequence name="sample rate" value="44100"><field name="44110 Hz" length="2" value="0x0" /></sequence>
+            <sequence name="sample rate" value="44100"><field name="44100 Hz" length="2" value="0x0" /></sequence>
             <sequence name="sample rate" value="48000"><field name="48000 Hz" length="2" value="0x1" /></sequence>
             <sequence name="sample rate" value="32000"><field name="32000 Hz" length="2" value="0x2" /></sequence>
         </choice>
         <choice name="mpeg 1 padding lookup:">
-            <sequence name="padding" value="4"><field name="4 bytes" length="1" value="0x1" /></sequence>
+            <sequence name="padding" value="1"><field name="1 byte" length="1" value="0x1" /></sequence>
             <sequence name="padding" value="0"><field name="None" length="1" value="0x0" /></sequence>
         </choice>
 
