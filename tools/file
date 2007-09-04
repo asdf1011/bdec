@@ -139,4 +139,7 @@ elif len(options) > 1:
         print "   ", option.name
 else:
     template = load_template(options[0].name)
-    print create_template_text(template, options[0], data)
+    if template is not None:
+        print create_template_text(template, options[0], data)
+    else:
+        print options[0].name
