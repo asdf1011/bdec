@@ -30,8 +30,8 @@ class SequenceOf(bdec.entry.Entry):
     def __init__(self, name, child, count, length=None, end_entries=[]):
         """
         A count of None will result in a 'greedy' sequence, which will keep on
-        decoding items (until an entry in end_entries is decoded), or if length
-        is not None, we have decode that much data.
+        decoding items until an entry in end_entries is decoded, or we run out
+        of data.
         """
         bdec.entry.Entry.__init__(self, name, length, [child])
         self._count = count
@@ -64,7 +64,10 @@ class SequenceOf(bdec.entry.Entry):
             while 1:
                 if stop[0]:
                     break
-                if self.length is not None and len(data) == 0:
+                try:
+                    data.copy().pop(1)
+                except dt.NotEnoughDataError:
+                    # We ran out of data on a greedy sequence...
                     break
                 yield None
 
