@@ -342,6 +342,10 @@ class _Options:
     def __repr__(self):
         # We have a representation option as it greatly simplifies debugging;
         # just print the option object to look at the tree.
+        if self._initialise is not None:
+            self._initialise()
+            self._initialise = None
+
         if self._options is not None:
             return str(self._options)
         return "bits [%i, %i) key=%s fallback=%s" % (self._start_bit, self._start_bit + self._length, repr(self._lookup), repr(self._fallback))
