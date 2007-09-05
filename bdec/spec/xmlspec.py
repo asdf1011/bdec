@@ -421,11 +421,28 @@ class _Handler(xml.sax.handler.ContentHandler):
         # We'll create the field, then use it to create the expected value.
         result = fld.Field(name, length, format, encoding, None, min, max)
         if attributes.has_key('value'):
-            expected = attributes['value']
-            if expected.upper()[:2] == "0X":
-                result.expected = dt.Data.from_hex(expected[2:])
+            expected_text = attributes['value']
+            if expected_text.upper()[:2] == "0X":
+                expected = dt.Data.from_hex(expected_text[2:])
             else:
-                result.expected = result.encode_value(expected)
+                expected = result.encode_value(expected_text)
+
+            expected_length = len(expected)
+            if result.length is not None:
+                try:
+                    expected_length = int(result.length)
+                except UndecodedReferenceError:
+                    pass
+
+            if len(expected) < expected_length:
+                # When we get shorter expected values, we'll lead with zeros.
+                zeros = dt.Data.from_int_big_endian(0, expected_length - len(expected))
+                expected = zeros + expected
+            else:
+                unused = expected.pop(len(expected) - expected_length)
+                if len(unused) and int(unused) != 0:
+                    raise self._error('Field is %i bits long, but expected data is longer!' % expected_length)
+            result.expected = expected
         return result
 
     def _sequence(self, attributes, children, length, breaks):

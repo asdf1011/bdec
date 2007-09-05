@@ -100,7 +100,6 @@ class Field(bdec.entry.Entry):
     def __init__(self, name, length, format=BINARY, encoding=None, expected=None, min=None, max=None):
         bdec.entry.Entry.__init__(self, name, length, [])
         assert format in self._formats
-        assert expected is None or isinstance(expected, dt.Data)
 
         if encoding is None:
             if format == self.TEXT:
@@ -116,6 +115,19 @@ class Field(bdec.entry.Entry):
         self.expected = expected
         self.min = min
         self.max = max
+
+    def _set_expected(self, expected):
+        assert expected is None or isinstance(expected, dt.Data)
+        if expected is not None and self.length is not None:
+            import bdec.spec.xmlspec
+            try:
+                length = int(self.length)
+                if length != len(expected):
+                    raise FieldDataError(self, 'Expected data should have a length of %i, got %i' % (length, len(expected)))
+            except bdec.spec.xmlspec.UndecodedReferenceError:
+                pass
+        self._expected = expected
+    expected = property(lambda self: self._expected, _set_expected)
 
     def _decode(self, data, child_context):
         """ see bdec.entry.Entry._decode """
