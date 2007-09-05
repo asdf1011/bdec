@@ -301,7 +301,7 @@ class TestXml(unittest.TestCase):
             xml.loads(text)
             self.fail("Exception not thrown!")
         except xml.XmlExpressionError, ex:
-            self.assertTrue(isinstance(ex.ex, xml.MissingReferenceError))
+            self.assertEqual(xml.MissingReferenceError, type(ex.ex))
 
     def test_sequence_value(self):
         text = """
@@ -530,6 +530,19 @@ class TestXml(unittest.TestCase):
               <field name="bob" length="8" value="0xFFFF" />
             </protocol>"""
         self.assertRaises(xml.XmlError, xml.loads, text)
+
+    def test_expression_cannot_reference_common_entry(self):
+        text = """
+            <protocol>
+              <common>
+                  <field name="bob" length="8" />
+                  <sequence name="hey">
+                     <field name="cat" length="${bob}" />
+                  </sequence>
+              </common>
+              <reference name="hey" />
+            </protocol>"""
+        self.assertRaises(xml.XmlExpressionError, xml.loads, text)
 
 if __name__ == "__main__":
     unittest.main()

@@ -372,7 +372,11 @@ class _Handler(xml.sax.handler.ContentHandler):
         names = fullname.split('.')
 
         # Find the first name by walking up the stack
-        for children in reversed(self._children):
+        for i, children in enumerate(reversed(self._children)):
+            if i + 2 == len(self._children) and len(self._stack) > 1 and self._stack[1][0] == 'common':
+                # Note that we don't want to select the 'common' children
+                continue
+
             matches = list(self._get_children(children, names[0]))
             if matches:
                 for name in names[1:]:
