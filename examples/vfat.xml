@@ -203,7 +203,9 @@ BUGS: The allocation table decoding uses the 16bit sector counter (so
 
         <!-- A specification for a complete fat 12 filesystem. -->
         <sequence name="filesystem:fat 12:">
-            <reference name="bootsector:fat 12:" />
+            <sequence name="bootsector">
+                <reference name="bootsector:fat 12:" />
+            </sequence>
             <field name="reserved" length="(${bootsector.reserved sector count} * ${bootsector.bytes per sector} - 512) * 8" type="hex" />
             <sequenceof name="file allocation tables" count="${bootsector.number of file allocation tables}">
                 <sequence name="file allocation table">
@@ -226,7 +228,9 @@ BUGS: The allocation table decoding uses the 16bit sector counter (so
         
         <!-- A specification for a complete fat 16 filesystem. -->
         <sequence name="filesystem:fat 16:">
-            <reference name="bootsector:fat 16:" />
+            <sequence name="bootsector">
+                <reference name="bootsector:fat 16:" />
+            </sequence>
             <field name="reserved" length="(${bootsector.reserved sector count} * ${bootsector.bytes per sector} - 512) * 8" type="hex" />
             <sequenceof name="file allocation tables" count="${bootsector.number of file allocation tables}">
                 <sequence name="file allocation table">
@@ -249,7 +253,9 @@ BUGS: The allocation table decoding uses the 16bit sector counter (so
 
         <!-- A specification for a complete fat 32 filesystem. -->
         <sequence name="filesystem:fat 32:">
-            <reference name="bootsector:fat 32:" />
+            <sequence name="bootsector">
+                <reference name="bootsector:fat 32:" />
+            </sequence>
             <field name="reserved" length="(${bootsector.reserved sector count} * ${bootsector.bytes per sector} - 512) * 8" type="hex" />
             <sequenceof name="file allocation tables" count="${bootsector.number of file allocation tables}">
                 <sequence name="file allocation table">
