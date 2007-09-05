@@ -25,11 +25,13 @@ class Choice(bdec.entry.Entry):
 
         yield (True, self, data)
 
+        failure_expected = False
         if len(possibles) == 0:
             # None of the items match. In this case we want to choose
             # the 'best' failing option, so we'll examine all of the
             # children.
             possibles = self.children
+            failure_expected = True
 
         if len(possibles) == 1:
             best_guess = possibles[0]
@@ -66,6 +68,7 @@ class Choice(bdec.entry.Entry):
         for is_starting, entry, data in best_guess.decode(data, child_context):
             yield is_starting, entry, data
 
+        assert not failure_expected
         yield (False, self, dt.Data())
 
     def _encode(self, query, parent):
