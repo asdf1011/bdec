@@ -44,7 +44,7 @@
 
         <sequence name="header">
             <field name="id:" length="40" type="text" value="%PDF-" />
-            <field name="version" length="24" type="text" value="1.3" />
+            <field name="version" length="24" type="text" />
             <reference name="end of line" />
         </sequence>
 
