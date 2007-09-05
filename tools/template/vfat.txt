@@ -1,0 +1,4 @@
+Vfat filesystem
+Format ${fat}
+Label '${volume_label}'
+Total size = ${(total_sectors_16_bit + total_sectors_32_bit) * bytes_per_sector} bytes
