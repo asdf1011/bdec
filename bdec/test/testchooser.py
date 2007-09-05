@@ -103,7 +103,6 @@ class TestChooser(unittest.TestCase):
         # cannot be used to differentiate between the options)
         self.assertEqual(8, chooser._start_bit)
         self.assertEqual(8, chooser._length)
-        self.assertEqual([], chooser._fallback._options)
         self.assertTrue(ord('y') in chooser._lookup)
         self.assertTrue(ord('z') in chooser._lookup)
 
@@ -119,9 +118,14 @@ class TestChooser(unittest.TestCase):
         # cannot be used to differentiate between the options)
         self.assertEqual(8, chooser._start_bit)
         self.assertEqual(8, chooser._length)
-        self.assertEqual([], chooser._fallback._options)
         self.assertTrue(ord('y') in chooser._lookup)
         self.assertTrue(ord('z') in chooser._lookup)
+
+    def test_string_representation(self):
+        a = seq.Sequence("a", [fld.Field("common", 8, expected=dt.Data('c')), fld.Field("a id", 8, expected=dt.Data('y'))])
+        b = seq.Sequence("b", [fld.Field("common", 8, expected=dt.Data('c')), fld.Field("b id", 8, expected=dt.Data('z'))])
+        chooser = bdec.chooser.Chooser([a, b])
+        self.assertEqual("bits [8, 16) key={121: [<class 'bdec.sequence.Sequence'> 'a'], 122: [<class 'bdec.sequence.Sequence'> 'b']} fallback=[]", str(chooser))
 
 # Tests for selecting based on amount of data available (not implemented)
 #    def test_no_options_with_empty_data(self):

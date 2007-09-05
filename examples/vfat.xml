@@ -42,7 +42,7 @@ BUGS: The allocation table decoding uses the 16bit sector counter (so
         <!-- The FAT12 bootsector -->
         <sequence name="bootsector:fat 12:">
             <reference name="bootsector:fat 12 and 16 common fields:" />
-            <field name="fat" length="64" type="text" encoding="ascii" value="FAT 12  " />
+            <field name="fat" length="64" type="text" encoding="ascii" value="FAT12   " />
             <field name="operating system boot code" length="3584" type="hex" />
             <field name="end of sector marker:" length="16" value="0x55aa" />
         </sequence>
@@ -50,7 +50,7 @@ BUGS: The allocation table decoding uses the 16bit sector counter (so
         <!-- The FAT16 bootsector -->
         <sequence name="bootsector:fat 16:">
             <reference name="bootsector:fat 12 and 16 common fields:" />
-            <field name="fat" length="64" type="text" encoding="ascii" value="FAT 16  " />
+            <field name="fat" length="64" type="text" encoding="ascii" value="FAT16   " />
             <field name="operating system boot code" length="3584" type="hex" />
             <field name="end of sector marker:" length="16" value="0x55aa" />
         </sequence>
@@ -76,7 +76,7 @@ BUGS: The allocation table decoding uses the 16bit sector counter (so
             <field name="signature" length="8" type="integer" encoding="little endian" />
             <field name="id (serial number)" length="32" type="integer" encoding="little endian" />
             <field name="volume label" length="88" type="text" encoding="ascii" />
-            <field name="fat" length="64" type="text" encoding="ascii" value="FAT 32  " />
+            <field name="fat" length="64" type="text" encoding="ascii" value="FAT32   " />
             <field name="operating system boot code" length="3360" type="integer" encoding="little endian" />
             <field name="end of sector marker" length="16" value="0x55aa" />
         </sequence>
@@ -272,7 +272,7 @@ BUGS: The allocation table decoding uses the 16bit sector counter (so
             </sequenceof>
         </sequence>
     </common>
-    <sequence name="fat filesystem">
+    <sequence name="vfat">
         <choice name="filesystem type:">
             <reference name="filesystem:fat 12:" />
             <reference name="filesystem:fat 16:" />

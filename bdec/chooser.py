@@ -263,6 +263,10 @@ class _Options:
         self._lookup = None
         self._fallback = None
 
+        unique_options = list(set(options))
+        self._initialise = lambda: self._generate(unique_options, start_bit, order)
+
+    def _generate(self, options, start_bit, order):
         for offset, length, lookup, undistinguished, successful, possible in _differentiate(options):
             if offset >= start_bit and lookup and length:
                 # We found a range of bits that can be used to distinguish
@@ -304,6 +308,10 @@ class _Options:
         The possible entries will be in the same order as the entries passed
         into the constructor.
         """
+        if self._initialise is not None:
+            self._initialise()
+            self._initialise = None
+
         if self._options is not None:
             # We are unable to narrow down the possibilities further.
             return self._options
@@ -334,6 +342,10 @@ class _Options:
     def __repr__(self):
         # We have a representation option as it greatly simplifies debugging;
         # just print the option object to look at the tree.
+        if self._initialise is not None:
+            self._initialise()
+            self._initialise = None
+
         if self._options is not None:
             return str(self._options)
         return "bits [%i, %i) key=%s fallback=%s" % (self._start_bit, self._start_bit + self._length, repr(self._lookup), repr(self._fallback))

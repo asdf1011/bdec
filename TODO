@@ -16,15 +16,6 @@ binary data into memory. For inputs that don't use seeking (eg: stdin),
 create a memory backed file source (whenever Data.copy() is called).
 
 
-Decode shouldn't hold the entire input in memory
--------------------------------------------------
-
-Priority: High
-
-Currently the decode utility waits until all of the data has been
-read; instead it should write out data as it becomes available.
-
-
 Generate an xml specification from an in memory protocol
 --------------------------------------------------------
 

@@ -524,5 +524,12 @@ class TestXml(unittest.TestCase):
         self.assertRaises(bdec.DecodeError, list, decoder.decode(dt.Data("chickan\x49")))
         self.assertRaises(bdec.DecodeError, list, decoder.decode(dt.Data("chicken\x48")))
 
+    def test_expected_data_is_too_big(self):
+        text = """
+            <protocol>
+              <field name="bob" length="8" value="0xFFFF" />
+            </protocol>"""
+        self.assertRaises(xml.XmlError, xml.loads, text)
+
 if __name__ == "__main__":
     unittest.main()

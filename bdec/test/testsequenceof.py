@@ -38,6 +38,22 @@ class TestSequenceOf(unittest.TestCase):
         query = lambda context, child: context[child.name] 
         self.assertRaises(sof.InvalidSequenceOfCount, list, sequenceof.encode(query, data))
 
+    def test_greedy_decode(self):
+        sequenceof = sof.SequenceOf("blah", fld.Field("cat", 8, format=fld.Field.TEXT), None, length=32)
+        rawdata = dt.Data("dateunused")
+        items = [entry.decode_value(data) for is_starting, entry, data in sequenceof.decode(rawdata) if isinstance(entry, fld.Field) and not is_starting]
+        self.assertEqual(4, len(items))
+        self.assertEqual('date', ''.join(items))
+        self.assertEqual('unused', str(rawdata))
+
+    def test_run_out_of_data_greedy(self):
+        sequenceof = sof.SequenceOf("blah", fld.Field("cat", 8, format=fld.Field.TEXT), None)
+        rawdata = dt.Data("date")
+        items = [entry.decode_value(data) for is_starting, entry, data in sequenceof.decode(rawdata) if isinstance(entry, fld.Field) and not is_starting]
+        self.assertEqual(4, len(items))
+        self.assertEqual('date', ''.join(items))
+        self.assertEqual('', str(rawdata))
+
     def test_encoding_greedy_sequenceof(self):
         sequenceof = sof.SequenceOf("blah", fld.Field("cat", 8, format=fld.Field.INTEGER), None)
         data = {"blah" : [{"cat":5}, {"cat":9}, {"cat":0xf6}]}

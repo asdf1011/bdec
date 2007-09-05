@@ -1,0 +1,2 @@
+Pdf document file
+Version ${version}

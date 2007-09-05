@@ -29,15 +29,16 @@ class SequenceOf(bdec.entry.Entry):
 
     def __init__(self, name, child, count, length=None, end_entries=[]):
         """
-        A count of None will result in a 'greedy' sequence, which will
-        keep on decoding items (until an entry in end_entries is decoded).
+        A count of None will result in a 'greedy' sequence, which will keep on
+        decoding items until an entry in end_entries is decoded, or we run out
+        of data.
         """
         bdec.entry.Entry.__init__(self, name, length, [child])
         self._count = count
         self._end_entries = end_entries
         assert isinstance(child, bdec.entry.Entry)
 
-    def _loop(self, child_context):
+    def _loop(self, child_context, data):
         # At the moment this 'listener' is never removed, and it doesn't work
         # for stack based notifications (eg: recursive sequenceof entries,
         # where only the outer entry wants to be notified).
@@ -63,11 +64,16 @@ class SequenceOf(bdec.entry.Entry):
             while 1:
                 if stop[0]:
                     break
+                try:
+                    data.copy().pop(1)
+                except dt.NotEnoughDataError:
+                    # We ran out of data on a greedy sequence...
+                    break
                 yield None
 
     def _decode(self, data, child_context):
         yield (True, self, data)
-        for i in self._loop(child_context):
+        for i in self._loop(child_context, data):
             for item in self.children[0].decode(data, child_context):
                 yield item
         yield (False, self, dt.Data())
