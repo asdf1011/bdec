@@ -45,20 +45,23 @@ class InvalidBinaryTextError(DataError):
 class InvalidHexTextError(DataError):
     pass
 
+class _OutOfDataError(Exception):
+    """Not derived from DataError as this is an internal error."""
+
+# Note that we don't include 'x' in the hex characters...
+_HEX_CHARACTERS = [chr(num) for num in range(ord('A'), ord('F') + 1) + range(ord('0'), ord('9') + 1) + range(ord('a'), ord('f') + 1)]
+
 class Data:
     """ A class to hold data to be decoded """
     def __init__(self, buffer="", start=None, end=None):
-        self._buffer = buffer
         if start is None:
             start = 0
         if end is None:
-            end = len(self._buffer) * 8
-
+            end = len(buffer) * 8
+        assert start <= end
         self._start = start
         self._end = end
-        assert isinstance(self._start, int)
-        assert isinstance(self._end, int)
-        assert self._start <= self._end
+        self._buffer = buffer
 
     def pop(self, length):
         """
@@ -76,20 +79,52 @@ class Data:
     def copy(self):
         return Data(self._buffer, self._start, self._end)
 
+    def _read_byte(self, offset):
+        """Read a byte at a given offset"""
+        if offset >= len(self._buffer):
+            raise _OutOfDataError()
+        return ord(self._buffer[offset])
+
     def __str__(self):
         return "".join(chr(byte) for byte in self._get_bytes())
+
+    def _get_bits(self):
+        """Get an iterator to the bits contained in this buffer"""
+        # Start at the start, and keep going until
+        i = self._start
+        while self._end is None or i < self._end:
+            try:
+                yield self._get_bit(i)
+            except _OutOfDataError:
+                break
+            i += 1
 
     def __eq__(self, other):
         if not isinstance(other, Data):
             return NotImplemented
 
-        if (self._end - self._start) != (other._end - other._start):
-            return False
+        a = self._get_bits()
+        b = other._get_bits()
+        while 1:
+            try:
+                a_bit = a.next()
+            except StopIteration:
+                try:
+                    b.next()
+                    # Not equal, as 'other' is longer then we are
+                    return False
+                except StopIteration:
+                    # Equal, as same size, same values
+                    return True
 
-        for i in range(self._end - self._start):
-            if self._get_bit(i + self._start) != other._get_bit(i + other._start):
+            try:
+                b_bit = b.next()
+            except StopIteration:
+                # Not equal, as we are longer than 'other'
                 return False
-        return True
+
+            if a_bit != b_bit:
+                return False
 
     def __ne__(self, other):
         if not isinstance(other, Data):
@@ -98,12 +133,18 @@ class Data:
         return not self == other
 
     def __len__(self):
-        return self._end - self._start
+        if self._end is not None:
+            return self._end - self._start
+        # We don't know the end, so we'll have to iterate over the whole lot to find it.
+        return len(self._get_bits())
 
     def _get_bit(self, i):
+        assert i >= self._start
+        if self._end is not None and i >= self._end:
+            raise _OutOfDataError()
         byte = i / 8
         i = i % 8
-        return (ord(self._buffer[byte]) >> (7 - i)) & 1
+        return (self._read_byte(byte) >> (7 - i)) & 1
         
     def __int__(self):
         """
@@ -112,8 +153,8 @@ class Data:
         Conversion is big endian.
         """
         result = 0
-        for bit in range(self._start, self._end):
-            result = (result << 1) | self._get_bit(bit)
+        for bit in self._get_bits():
+            result = (result << 1) | bit
         return result
 
     def __add__(self, other):
@@ -126,20 +167,20 @@ class Data:
         """
         Return an iterator to a series of byte values in the data.
         """
-        if (self._end - self._start) % 8 != 0:
-            raise ConversionNeedsBytesError(self)
-        if self._start % 8 == 0:
-            # We don't need to do this on a bit by bit, as we
-            # are reading aligned bytes...
-            for byte in xrange(self._start / 8, self._end / 8):
-                yield ord(self._buffer[byte])
-        else:
-            # We have to read bit by bit
-            for i in xrange(self._start, self._end, 8):
-                value = 0
+        # TODO: Optimise reading when we are byte aligned...
+        # Read bit by bit
+        i = self._start
+        while self._end is None or i < self._end:
+            value = 0
+            try:
                 for bit in xrange(8):
                     value = (value << 1) | self._get_bit(i + bit)
-                yield value
+            except _OutOfDataError:
+                if bit != 0:
+                    raise ConversionNeedsBytesError()
+                break
+            yield value
+            i += 8
 
     def get_little_endian_integer(self):
         """
@@ -156,7 +197,7 @@ class Data:
 
         eg: 001 10100000
         """
-        bits = [self._get_bit(bit) for bit in range(self._start, self._end)]
+        bits = list(self._get_bits())
         bytes = []
         if len(bits) % 8 != 0:
             bytes.append(bits[0:len(bits) % 8])
@@ -170,7 +211,7 @@ class Data:
         """
         Get a string representing the data in hex format.
         """
-        bits = [self._get_bit(bit) for bit in range(self._start, self._end)]
+        bits = list(self._get_bits())
         if len(bits) % 4 != 0:
             raise HexNeedsFourBitsError(self)
 
@@ -237,10 +278,10 @@ class Data:
             for i in range(len(entry) / 2):
                 offset = i * 2
                 value = entry[offset:offset + 2]
-                try:
-                    buffer.append(int(value, 16))
-                except ValueError:
-                    raise InvalidHexTextError(hex)
+                for char in value:
+                    if char not in _HEX_CHARACTERS:
+                        raise InvalidHexTextError(hex)
+                buffer.append(int(value, 16))
         return Data("".join(chr(value) for value in buffer))
 
     @staticmethod
@@ -267,3 +308,5 @@ class Data:
                     value = 0
         buffer.append(chr(value << (8 - length)))
         return Data("".join(buffer), 0, len(buffer) * 8 - (8 - length))
+
+

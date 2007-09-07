@@ -135,7 +135,7 @@ class Field(bdec.entry.Entry):
 
         self.data = data.pop(int(self.length))
         if self.expected is not None:
-            if int(self.expected) != int(self.data):
+            if self.expected != self.data:
                 raise BadDataError(self, self.expected, self.data)
         self._validate_range(self.data)
 

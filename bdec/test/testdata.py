@@ -80,11 +80,17 @@ class TestData(unittest.TestCase):
     def test_adding_data(self):
         self.assertEqual("chicken little", str(dt.Data("chicken ") + dt.Data("little")))
 
+    def test_equality(self):
+        self.assertEqual(dt.Data.from_binary_text('1110'), dt.Data.from_hex('e0').pop(4))
+
     def test_unaligned_bits(self):
         self.assertEqual(0x2d, int(dt.Data.from_binary_text("010") + dt.Data.from_binary_text("1101")))
 
     def test_hex_conversion(self):
         self.assertEqual("\x23\x45\x67", str(dt.Data.from_hex("23 45 67")))
+
+    def test_conversion_needs_bytes(self):
+        self.assertRaises(dt.ConversionNeedsBytesError, str, dt.Data("00", 0, 4))
 
 if __name__ == "__main__":
     unittest.main()
