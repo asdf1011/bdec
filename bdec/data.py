@@ -49,7 +49,7 @@ class _OutOfDataError(Exception):
     """Not derived from DataError as this is an internal error."""
 
 # Note that we don't include 'x' in the hex characters...
-_HEX_CHARACTERS = [chr(num) for num in range(ord('A'), ord('F') + 1) + range(ord('0'), ord('9') + 1) + range(ord('a'), ord('f') + 1)]
+_HEX_CHARACTERS = ['a', 'b', 'c', 'd', 'e', 'f', 'A', 'B', 'C', 'D', 'E', 'F', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
 
 class Data:
     """ A class to hold data to be decoded """
