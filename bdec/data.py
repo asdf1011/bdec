@@ -71,7 +71,7 @@ class Data:
         if end is None:
             end = len(buffer) * 8
 
-        assert start <= end
+        assert end is None or start <= end
         self._start = start
         self._end = end
 
@@ -87,7 +87,7 @@ class Data:
         """
         if length < 0:
             raise PoppedNegativeBitsError(length)
-        if length > self._end - self._start:
+        if self._end is not None and length > self._end - self._start:
             raise NotEnoughDataError(length, self._end - self._start)
 
         result = Data(self._buffer, self._start, self._start + length)
@@ -105,10 +105,13 @@ class Data:
         Get an iterator to the bits contained in this buffer.
         """
         i = 0
-        while 1:
+        while self._end is None or i < self._end - self._start:
             try:
-                yield self._get_bit(i + self._start)
+                yield self._get_bit(i)
             except _OutOfDataError:
+                if self._end is not None:
+                    # We don't have the data available for this data object.
+                    raise NotEnoughDataError(self._end - self._start, i)
                 break
             i += 1
 
@@ -160,7 +163,7 @@ class Data:
         If the backend doesn't have the data available, or we are querying
         outside of our bounds, an _OutOfDataError is raised.
         """
-        assert i >= self._start
+        i += self._start
         if self._end is not None and i >= self._end:
             raise _OutOfDataError()
         byte = i / 8
