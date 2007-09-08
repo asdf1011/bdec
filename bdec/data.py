@@ -137,8 +137,9 @@ class Data:
     def __len__(self):
         if self._end is not None:
             return self._end - self._start
+        # TODO: We don't need to create a list of the bits; we only need to count them.
         # We don't know the end, so we'll have to iterate over the whole lot to find it.
-        return len(self._get_bits())
+        return len(list(self._get_bits()))
 
     def _get_bit(self, i):
         """
