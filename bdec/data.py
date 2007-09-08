@@ -51,6 +51,18 @@ class _OutOfDataError(Exception):
 # Note that we don't include 'x' in the hex characters...
 _HEX_CHARACTERS = ['a', 'b', 'c', 'd', 'e', 'f', 'A', 'B', 'C', 'D', 'E', 'F', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
 
+
+class _MemoryBuffer:
+    def __init__(self, buffer):
+        self._buffer = buffer
+
+    def read_byte(self, offset):
+        """Read a byte at a given offset"""
+        if offset >= len(self._buffer):
+            raise _OutOfDataError()
+        return ord(self._buffer[offset])
+
+
 class Data:
     """ A class to hold data to be decoded """
     def __init__(self, buffer="", start=None, end=None):
@@ -58,10 +70,16 @@ class Data:
             start = 0
         if end is None:
             end = len(buffer) * 8
+
         assert start <= end
         self._start = start
         self._end = end
-        self._buffer = buffer
+
+        if isinstance(buffer, str):
+            self._buffer = _MemoryBuffer(buffer)
+        else:
+            assert isinstance(buffer, _MemoryBuffer)
+            self._buffer = buffer
 
     def pop(self, length):
         """
@@ -78,12 +96,6 @@ class Data:
 
     def copy(self):
         return Data(self._buffer, self._start, self._end)
-
-    def _read_byte(self, offset):
-        """Read a byte at a given offset"""
-        if offset >= len(self._buffer):
-            raise _OutOfDataError()
-        return ord(self._buffer[offset])
 
     def __str__(self):
         return "".join(chr(byte) for byte in self._get_bytes())
@@ -153,7 +165,7 @@ class Data:
             raise _OutOfDataError()
         byte = i / 8
         i = i % 8
-        return (self._read_byte(byte) >> (7 - i)) & 1
+        return (self._buffer.read_byte(byte) >> (7 - i)) & 1
         
     def __int__(self):
         """
