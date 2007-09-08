@@ -21,6 +21,7 @@ class TestData(unittest.TestCase):
 
     def test_string(self):
         self.assertEqual("Some text", str(dt.Data("Some text")))
+        self.assertEqual("", str(dt.Data()))
 
     def test_unaligned_string(self):
         # The first 4 bits (the 'a') will be popped, then the 5 byte
@@ -91,6 +92,8 @@ class TestData(unittest.TestCase):
 
     def test_conversion_needs_bytes(self):
         self.assertRaises(dt.ConversionNeedsBytesError, str, dt.Data("00", 0, 4))
+        data = dt.Data.from_hex('ab')
+        self.assertRaises(dt.ConversionNeedsBytesError, str, data.pop(4))
 
 if __name__ == "__main__":
     unittest.main()

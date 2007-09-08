@@ -65,7 +65,7 @@ class Data:
 
     def pop(self, length):
         """
-        Pop data from this data object
+        Pop data from this data object.
         """
         if length < 0:
             raise PoppedNegativeBitsError(length)
@@ -89,12 +89,13 @@ class Data:
         return "".join(chr(byte) for byte in self._get_bytes())
 
     def _get_bits(self):
-        """Get an iterator to the bits contained in this buffer"""
-        # Start at the start, and keep going until
-        i = self._start
-        while self._end is None or i < self._end:
+        """
+        Get an iterator to the bits contained in this buffer.
+        """
+        i = 0
+        while 1:
             try:
-                yield self._get_bit(i)
+                yield self._get_bit(i + self._start)
             except _OutOfDataError:
                 break
             i += 1
@@ -103,6 +104,7 @@ class Data:
         if not isinstance(other, Data):
             return NotImplemented
 
+        # TODO: This bit by bit comparison is slow...
         a = self._get_bits()
         b = other._get_bits()
         while 1:
@@ -139,6 +141,12 @@ class Data:
         return len(self._get_bits())
 
     def _get_bit(self, i):
+        """
+        Query the backend byte source for a given bit.
+
+        If the backend doesn't have the data available, or we are querying
+        outside of our bounds, an _OutOfDataError is raised.
+        """
         assert i >= self._start
         if self._end is not None and i >= self._end:
             raise _OutOfDataError()
@@ -168,19 +176,18 @@ class Data:
         Return an iterator to a series of byte values in the data.
         """
         # TODO: Optimise reading when we are byte aligned...
-        # Read bit by bit
-        i = self._start
-        while self._end is None or i < self._end:
-            value = 0
-            try:
-                for bit in xrange(8):
-                    value = (value << 1) | self._get_bit(i + bit)
-            except _OutOfDataError:
-                if bit != 0:
-                    raise ConversionNeedsBytesError()
-                break
-            yield value
-            i += 8
+
+        # Read as many of the bits as possible, yielding the results.
+        value = 0
+        i = None
+        for i, bit in enumerate(self._get_bits()):
+            value = (value << 1) | bit
+            if (i + 1) % 8 == 0:
+                # We have a new byte!
+                yield value
+                value = 0
+        if i is not None and i % 8 != 7:
+            raise ConversionNeedsBytesError()
 
     def get_little_endian_integer(self):
         """
