@@ -1,6 +1,8 @@
 import bdec
 import string
 
+import weakref
+
 class DataError(Exception):
     """
     Base class for all data errors.
@@ -51,8 +53,29 @@ class _OutOfDataError(Exception):
 # Note that we don't include 'x' in the hex characters...
 _HEX_CHARACTERS = ['a', 'b', 'c', 'd', 'e', 'f', 'A', 'B', 'C', 'D', 'E', 'F', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
 
+class _ByteBuffer:
+    def read_byte(self, offset):
+        raise NotImplementedError()
 
-class _MemoryBuffer:
+
+class _FileBuffer(_ByteBuffer):
+    """Byte buffer that reads from a seekable file."""
+    def __init__(self, file):
+        self._file = file
+        self._offset = None
+
+    def read_byte(self, offset):
+        if offset != self._offset:
+            self._file.seek(offset)
+        result = self._file.read(1)
+        if len(result) == 0:
+            raise _OutOfDataError()
+        self._offset = offset + 1
+        return ord(result)
+
+
+class _MemoryBuffer(_ByteBuffer):
+    """Byte buffer that reads directly from in memory data."""
     def __init__(self, buffer):
         self._buffer = buffer
 
@@ -85,9 +108,11 @@ class Data:
         # at pop time, as opposed to read time).
         if isinstance(buffer, str):
             self._buffer = _MemoryBuffer(buffer)
-        else:
-            assert isinstance(buffer, _MemoryBuffer)
+        elif isinstance(buffer, _ByteBuffer):
             self._buffer = buffer
+        else:
+            # Treat the buffer as a file object.
+            self._buffer = _FileBuffer(buffer)
 
     def pop(self, length):
         """

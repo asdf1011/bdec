@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import StringIO
 import unittest
 
 import bdec
@@ -110,6 +111,13 @@ class TestData(unittest.TestCase):
         self.assertTrue(not data.empty())
         data.pop(8)
         self.assertTrue(data.empty())
+
+    def test_file_buffer(self):
+        buffer = StringIO.StringIO()
+        buffer.write('\x04abcd')
+        data = dt.Data(buffer)
+        self.assertEqual(4, int(data.pop(8)))
+        self.assertEqual('abcd', str(data))
 
 if __name__ == "__main__":
     unittest.main()
