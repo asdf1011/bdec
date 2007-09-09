@@ -133,14 +133,16 @@ class Field(bdec.entry.Entry):
         """ see bdec.entry.Entry._decode """
         yield (True, self, data, None)
 
-        self.data = data.pop(int(self.length))
+        field_data = data.pop(int(self.length))
         if self.expected is not None:
-            if self.expected != self.data:
-                raise BadDataError(self, self.expected, self.data)
-        self._validate_range(self.data)
-        value = self.decode_value(self.data)
+            if self.expected != field_data:
+                raise BadDataError(self, self.expected, field_data)
+        self._validate_range(field_data)
+        value = self.decode_value(field_data)
 
-        yield (False, self, self.data, value)
+        self.data = field_data
+
+        yield (False, self, field_data, value)
 
     def _convert_type(self, data, expected_type):
         try:
