@@ -75,10 +75,10 @@ class _DecodeThread:
             bdec.gui.tool.messageservice.ShowMessages([error])
 
     def _decode(self, protocol):
-        for is_starting, entry, entry_data in protocol.decode(self._data):
+        for is_starting, entry, entry_data, value in protocol.decode(self._data):
             value = None
             if not is_starting and isinstance(entry, bdec.field.Field):
-                value = entry.get_value()
+                value = value
 
             # Note that we have to copy the entry data object, as it may
             # be modified in this thread before the gui thread gets a
