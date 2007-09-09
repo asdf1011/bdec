@@ -116,10 +116,10 @@ class Entry(object):
         @param data The data to decode
         @param context The depth of this protocol entry. Any child entries
             will have a context of 'context + 1'.
-        @return An iterator that returns (is_starting, Entry, data) tuples. The
-            data when the decode is starting is the data available to be 
-            decoded, and the data when the decode is finished is the data from
-            this entry only (not including embedded entries).
+        @return An iterator that returns (is_starting, Entry, data, value) 
+            tuples. The data when the decode is starting is the data available
+            to be decoded, and the data when the decode is finished is the
+            data from this entry only (no embedded entries).
         """
         if self.length is not None:
             try:
@@ -128,10 +128,10 @@ class Entry(object):
                 raise EntryDataError(self, ex)
 
         length = 0
-        for is_starting, entry, entry_data in self._decode(data, context + 1):
+        for is_starting, entry, entry_data, value in self._decode(data, context + 1):
             if not is_starting:
                 length += len(entry_data)
-            yield is_starting, entry, entry_data
+            yield is_starting, entry, entry_data, value
 
         if self.length is not None and len(data) != 0:
             raise DecodeLengthError(self, data)

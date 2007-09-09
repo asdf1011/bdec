@@ -72,11 +72,11 @@ class SequenceOf(bdec.entry.Entry):
                 yield None
 
     def _decode(self, data, child_context):
-        yield (True, self, data)
+        yield (True, self, data, None)
         for i in self._loop(child_context, data):
             for item in self.children[0].decode(data, child_context):
                 yield item
-        yield (False, self, dt.Data())
+        yield (False, self, dt.Data(), None)
 
     def _encode(self, query, parent):
         sequenceof = self._get_context(query, parent)

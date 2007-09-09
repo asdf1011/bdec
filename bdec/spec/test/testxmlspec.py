@@ -154,7 +154,7 @@ class TestXml(unittest.TestCase):
         Return a dictionary of decoded fields.
         """
         result = {}
-        for is_starting, entry, entry_data in protocol.decode(dt.Data(data)):
+        for is_starting, entry, entry_data, value in protocol.decode(dt.Data(data)):
             if not is_starting and isinstance(entry, fld.Field):
                 result[entry.name] = entry.get_value()
         return result
@@ -227,9 +227,9 @@ class TestXml(unittest.TestCase):
 
         protocol = xml.loads(text)[0]
         result = ""
-        for is_starting, entry, entry_data in protocol.decode(dt.Data("hello world\x00")):
+        for is_starting, entry, entry_data, value in protocol.decode(dt.Data("hello world\x00")):
             if not is_starting and entry.name == "char":
-                result += entry.get_value()
+                result += value
         self.assertEqual("hello world", result)
 
     def test_length_reference(self):
@@ -250,10 +250,10 @@ class TestXml(unittest.TestCase):
         protocol = xml.loads(text)[0]
         result = ""
         unused = ""
-        for is_starting, entry, entry_data in protocol.decode(dt.Data("\x0fhello world\x00afd")):
+        for is_starting, entry, entry_data, value in protocol.decode(dt.Data("\x0fhello world\x00afd")):
             if not is_starting:
                 if entry.name == "char":
-                    result += entry.get_value()
+                    result += value
                 elif entry.name == "unused":
                     unused = entry.get_value()
         self.assertEqual("hello world", result)
@@ -286,9 +286,9 @@ class TestXml(unittest.TestCase):
         protocol = xml.loads(text)[0]
         result = ""
         data = dt.Data("hello world\x00boo")
-        for is_starting, entry, entry_data in protocol.decode(data):
+        for is_starting, entry, entry_data, value in protocol.decode(data):
             if not is_starting and entry.name == "char":
-                result += entry.get_value()
+                result += value
         self.assertEqual("hello world", result)
         self.assertEqual("boo", str(data))
         
@@ -319,9 +319,9 @@ class TestXml(unittest.TestCase):
         protocol = xml.loads(text)[0]
         result = ""
         data = dt.Data("\x00\x00\x13\x00run for your lives!boo")
-        for is_starting, entry, entry_data in protocol.decode(data):
+        for is_starting, entry, entry_data, value in protocol.decode(data):
             if not is_starting and entry.name == "data":
-                result = entry.get_value()
+                result = value
         self.assertEqual("run for your lives!", result)
         self.assertEqual("boo", str(data))
 
@@ -340,9 +340,9 @@ class TestXml(unittest.TestCase):
         protocol = xml.loads(text)[0]
         result = ""
         data = dt.Data("\x07chicken")
-        for is_starting, entry, entry_data in protocol.decode(data):
+        for is_starting, entry, entry_data, value in protocol.decode(data):
             if not is_starting and entry.name == "data":
-                result = entry.get_value()
+                result = value
         self.assertEqual("chicken", result)
 
     def test_length_validation(self):
@@ -383,12 +383,12 @@ class TestXml(unittest.TestCase):
             """
         protocol = xml.loads(text)[0]
         a = b = ""
-        for is_starting, entry, entry_data in protocol.decode(dt.Data("\x03\x06catrabbit")):
+        for is_starting, entry, entry_data, value in protocol.decode(dt.Data("\x03\x06catrabbit")):
             if not is_starting:
                 if entry.name == "data a":
-                    a = entry.get_value()
+                    a = value
                 elif entry.name == "data b":
-                    b = entry.get_value()
+                    b = value
         self.assertEqual("cat", a)
         self.assertEqual("rabbit", b)
 
@@ -482,9 +482,9 @@ class TestXml(unittest.TestCase):
             </protocol>
             """
         protocol, lookup = xml.loads(text)
-        for is_starting, entry, entry_data in protocol.decode(dt.Data('a')):
+        for is_starting, entry, entry_data, value in protocol.decode(dt.Data('a')):
             if not is_starting and entry.name == "length":
-                result = entry.get_value()
+                result = value
         self.assertEqual(ord('a'), result)
 
     def test_recursive_entry(self):
@@ -505,9 +505,9 @@ class TestXml(unittest.TestCase):
         protocol, lookup = xml.loads(text)
         data = dt.Data('rabbit\0legs')
         result = ""
-        for is_starting, entry, entry_data in protocol.decode(data):
+        for is_starting, entry, entry_data, value in protocol.decode(data):
             if not is_starting and entry.name == "char":
-                result += entry.get_value()
+                result += value
         self.assertEqual("rabbit", result)
         self.assertEqual("legs", str(data))
 
