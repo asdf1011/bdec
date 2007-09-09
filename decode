@@ -20,7 +20,7 @@ for arg in sys.argv[1:]:
     elif spec is None:
         spec = arg
     elif binary is None:
-        binary = file(arg, 'rb').read()
+        binary = file(arg, 'rb')
     else:
         sys.exit('Too many arguments!')
 
