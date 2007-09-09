@@ -46,6 +46,15 @@ the bdec.chooser (as each instance of a shared object must create its own
 bdec.choooser.Chooser object).
 
 
+Remove data instance from field
+-------------------------------
+
+Priority: Medium
+
+The storage of the data as an instance of the field object shouldn't be
+required; it's hacky that it is in there.
+
+
 Protocol specification
 ======================
 
