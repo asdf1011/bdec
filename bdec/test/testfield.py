@@ -26,11 +26,8 @@ class TestField(unittest.TestCase):
     def _get_decode_value(self, hex, length, format, encoding=""):
         field = fld.Field("bob", length, format, encoding)
         data = dt.Data.from_hex(hex)
-        calls = []
-        for is_starting, entry, entry_data, value in field.decode(data):
-            calls.append(entry)
-        self.assertEqual(2, len(calls))
-        return calls[1].get_value()
+        calls = list(field.decode(data))
+        return calls[1][3]
 
     def test_binary_type(self):
         actual = self._get_decode_value("017a", 12, fld.Field.BINARY)

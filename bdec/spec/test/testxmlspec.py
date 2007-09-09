@@ -18,7 +18,7 @@ class TestXml(unittest.TestCase):
         self.assertEqual("bob", decoder.name)
         items = list(decoder.decode(dt.Data.from_hex("7a")))
         self.assertEqual(2, len(items))
-        self.assertEqual("01111010", decoder.get_value())
+        self.assertEqual("01111010", items[1][3])
 
     def test_simple_text_field(self):
         text = """<protocol><field name="bob" length="8" type="text" /></protocol>"""
@@ -27,7 +27,7 @@ class TestXml(unittest.TestCase):
         self.assertEqual("bob", decoder.name)
         items = list(decoder.decode(dt.Data.from_hex(hex(ord('?'))[2:])))
         self.assertEqual(2, len(items))
-        self.assertEqual("?", decoder.get_value())
+        self.assertEqual("?", items[1][3])
 
     def test_sequence(self):
         text = """
@@ -41,10 +41,10 @@ class TestXml(unittest.TestCase):
         self.assertEqual("bob", decoder.name)
         self.assertEqual("cat", decoder.children[0].name)
         self.assertEqual("dog", decoder.children[1].name)
-        items = list(decoder.decode(dt.Data.from_hex("7fac")))
-        self.assertEqual(6, len(items))
-        self.assertEqual("7f", decoder.children[0].get_value())
-        self.assertEqual(172, decoder.children[1].get_value())
+        items = list(value for is_starting, entry, data, value in decoder.decode(dt.Data.from_hex("7fac")) if not is_starting)
+        self.assertEqual(3, len(items))
+        self.assertEqual("7f", items[0])
+        self.assertEqual(172, items[1])
 
     def test_bad_expected_value(self):
         text = """<protocol><field name="bob" length="8" value="0xa0" /></protocol>"""
@@ -64,9 +64,9 @@ class TestXml(unittest.TestCase):
         self.assertEqual("bob", decoder.name)
         self.assertEqual("cat", decoder.children[0].name)
         self.assertEqual("dog", decoder.children[1].name)
-        items = list(decoder.decode(dt.Data.from_hex("7fac")))
-        self.assertEqual(4, len(items))
-        self.assertEqual("7f", decoder.children[0].get_value())
+        items = list(value for is_starting, entry, data, value in decoder.decode(dt.Data.from_hex("7fac")) if not is_starting)
+        self.assertEqual(2, len(items))
+        self.assertEqual("7f", items[0])
 
     def test_sequence_of(self):
         text = """
@@ -78,10 +78,10 @@ class TestXml(unittest.TestCase):
         decoder = xml.loads(text)[0]
         self.assertEqual("bob", decoder.name)
         self.assertEqual("cat", decoder.children[0].name)
-        items = list(decoder.decode(dt.Data.from_hex("7fac")))
-        self.assertEqual(6, len(items))
-        # We're being lazy; we're only checking the last decode value.
-        self.assertEqual("ac", decoder.children[0].get_value())
+        items = list(value for is_starting, entry, data, value in decoder.decode(dt.Data.from_hex("7fac")) if not is_starting)
+        self.assertEqual(3, len(items))
+        self.assertEqual("7f", items[0])
+        self.assertEqual("ac", items[1])
 
     def test_non_whole_byte_expected_value(self):
         text = """<protocol><field name="bob" length="1" value="0x0" /></protocol>"""
@@ -127,9 +127,9 @@ class TestXml(unittest.TestCase):
                 </sequence>
             </protocol>"""
         decoder = xml.loads(text)[0]
-        result = list(decoder.decode(dt.Data("\x05hello")))
-        self.assertEqual(6, len(result))
-        self.assertEqual("hello", result[4][1].get_value())
+        result = list(value for is_starting, entry, data, value in decoder.decode(dt.Data("\x05hello")) if not is_starting)
+        self.assertEqual(3, len(result))
+        self.assertEqual("hello", result[1])
 
     def test_empty_sequence_error(self):
         text = """<protocol><sequence name="bob"></sequence></protocol>"""
@@ -146,8 +146,8 @@ class TestXml(unittest.TestCase):
                 </sequence>
             </protocol>"""
         decoder = xml.loads(text)[0]
-        result = list(decoder.decode(dt.Data("\x05hello")))
-        self.assertEqual("hello", result[6][1].get_value())
+        result = list(value for is_starting, entry, data, value in decoder.decode(dt.Data("\x05hello")) if not is_starting)
+        self.assertEqual("hello", result[2])
 
     def _decode(self, protocol, data):
         """
@@ -156,7 +156,7 @@ class TestXml(unittest.TestCase):
         result = {}
         for is_starting, entry, entry_data, value in protocol.decode(dt.Data(data)):
             if not is_starting and isinstance(entry, fld.Field):
-                result[entry.name] = entry.get_value()
+                result[entry.name] = value
         return result
 
     def test_expression_reference_choice_field(self):
@@ -255,7 +255,7 @@ class TestXml(unittest.TestCase):
                 if entry.name == "char":
                     result += value
                 elif entry.name == "unused":
-                    unused = entry.get_value()
+                    unused = value
         self.assertEqual("hello world", result)
         self.assertEqual("afd", unused)
 
@@ -268,8 +268,8 @@ class TestXml(unittest.TestCase):
         protocol = xml.loads(text)[0]
         self.assertRaises(fld.BadRangeError, list, protocol.decode(dt.Data('\x03')))
         self.assertRaises(fld.BadRangeError, list, protocol.decode(dt.Data('\x10')))
-        self.assertEqual(4, list(protocol.decode(dt.Data('\x04')))[1][1].get_value())
-        self.assertEqual(15, list(protocol.decode(dt.Data('\x0f')))[1][1].get_value())
+        self.assertEqual(4, list(protocol.decode(dt.Data('\x04')))[1][3])
+        self.assertEqual(15, list(protocol.decode(dt.Data('\x0f')))[1][3])
 
     def test_parent_sequenceof_ends(self):
         text = """
