@@ -78,6 +78,11 @@ class Data:
         self._start = start
         self._end = end
 
+        # Note: We can detect the length of string and empty buffers at
+        # initialisation time; it is a speed win to do so. However, that means
+        # data objects behave differently depending on what they were 
+        # constructed from (a source of bugs) (eg: verification of length
+        # at pop time, as opposed to read time).
         if isinstance(buffer, str):
             self._buffer = _MemoryBuffer(buffer)
         else:
@@ -157,9 +162,13 @@ class Data:
     def __len__(self):
         if self._end is not None:
             return self._end - self._start
-        # TODO: We don't need to create a list of the bits; we only need to count them.
-        # We don't know the end, so we'll have to iterate over the whole lot to find it.
-        return len(list(self._get_bits()))
+
+        # We don't know the size of the buffer, so we'll have to iterate over
+        # the whole lot to find it.
+        i = 0
+        for bit in self._get_bits():
+            i += 1
+        return i
 
     def empty(self):
         """
