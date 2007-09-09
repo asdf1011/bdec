@@ -64,12 +64,15 @@ class _MemoryBuffer:
 
 
 class Data:
-    """ A class to hold data to be decoded """
+    """
+    A class to hold information about data to be decoded.
+    
+    The data is not actually validated to be available until it is used, at
+    which stage NotEnoughDataError can be thrown.
+    """
     def __init__(self, buffer="", start=None, end=None):
         if start is None:
             start = 0
-        if end is None:
-            end = len(buffer) * 8
 
         assert end is None or start <= end
         self._start = start
@@ -84,6 +87,9 @@ class Data:
     def pop(self, length):
         """
         Pop data from this data object.
+
+        The popped data will know the length it should be, but no checks will
+        be made that enough data exists until the data is used.
         """
         if length < 0:
             raise PoppedNegativeBitsError(length)
@@ -110,7 +116,6 @@ class Data:
                 yield self._get_bit(i)
             except _OutOfDataError:
                 if self._end is not None:
-                    # We don't have the data available for this data object.
                     raise NotEnoughDataError(self._end - self._start, i)
                 break
             i += 1
@@ -155,6 +160,25 @@ class Data:
         # TODO: We don't need to create a list of the bits; we only need to count them.
         # We don't know the end, so we'll have to iterate over the whole lot to find it.
         return len(list(self._get_bits()))
+
+    def empty(self):
+        """
+        Check to see if we have data left.
+
+        If the length of the data is known, that value will be used. If the
+        length is unknown, it will see if we can read more data.
+        """
+        if self._end is not None:
+            return self._end == self._start
+
+        # We don't know where the data ends, so look to see if we can read
+        # more of the data.
+        try:
+            self._get_bits().next()
+            return False
+        except StopIteration:
+            pass
+        return True
 
     def _get_bit(self, i):
         """

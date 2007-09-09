@@ -64,9 +64,7 @@ class SequenceOf(bdec.entry.Entry):
             while 1:
                 if stop[0]:
                     break
-                try:
-                    data.copy().pop(1)
-                except dt.NotEnoughDataError:
+                if data.empty():
                     # We ran out of data on a greedy sequence...
                     break
                 yield None

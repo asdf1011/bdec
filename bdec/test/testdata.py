@@ -6,11 +6,11 @@ import bdec.data as dt
 
 class TestData(unittest.TestCase):
     def test_pop_empty_data(self):
-        self.assertRaises(dt.NotEnoughDataError, dt.Data("").pop, 1)
+        self.assertRaises(dt.NotEnoughDataError, int, dt.Data("").pop(1))
 
     def test_pop_negative_number(self):
         self.assertEqual("abcd", str(dt.Data("abcd").pop(32)))
-        self.assertRaises(dt.NotEnoughDataError, dt.Data("abcd").pop, 33)
+        self.assertRaises(dt.NotEnoughDataError, int, dt.Data("abcd").pop(33))
 
     def test_integer(self):
         self.assertEqual(3, int(dt.Data(chr(3))))
@@ -94,6 +94,22 @@ class TestData(unittest.TestCase):
         self.assertRaises(dt.ConversionNeedsBytesError, str, dt.Data("00", 0, 4))
         data = dt.Data.from_hex('ab')
         self.assertRaises(dt.ConversionNeedsBytesError, str, data.pop(4))
+
+    def test_empty(self):
+        data = dt.Data()
+        self.assertTrue(data.empty())
+
+        # Now create some data that should have more data then it does
+        data = dt.Data('', 0, 8)
+        self.assertTrue(not data.empty())
+        self.assertRaises(dt.NotEnoughDataError, int, data)
+        
+        # Now create data that has more buffer available, but we tell it
+        # the length is at an end.
+        data = dt.Data("1234").pop(8)
+        self.assertTrue(not data.empty())
+        data.pop(8)
+        self.assertTrue(data.empty())
 
 if __name__ == "__main__":
     unittest.main()

@@ -134,11 +134,16 @@ class Field(bdec.entry.Entry):
         yield (True, self, data, None)
 
         field_data = data.pop(int(self.length))
-        if self.expected is not None:
-            if self.expected != field_data:
-                raise BadDataError(self, self.expected, field_data)
-        self._validate_range(field_data)
-        value = self.decode_value(field_data)
+        # As this popped data is not guaranteed to be available, we have to
+        # wrap all access to it in an exception handler.
+        try:
+            if self.expected is not None:
+                if self.expected != field_data:
+                    raise BadDataError(self, self.expected, field_data)
+            self._validate_range(field_data)
+            value = self.decode_value(field_data)
+        except dt.NotEnoughDataError, ex:
+            raise FieldDataError(self, ex)
 
         self.data = field_data
 
