@@ -254,12 +254,6 @@ class Field(bdec.entry.Entry):
             result = int(data)
         return result
 
-    def get_value(self):
-        """ Get the decoded value """
-        if self.data is None:
-            raise FieldNotDecodedError(self)
-        return self.decode_value(self.data)
-
     def decode_value(self, data):
         """
         Get a python instance from a data object.

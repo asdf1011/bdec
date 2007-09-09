@@ -19,10 +19,6 @@ class TestField(unittest.TestCase):
         self.assertEqual(1, int(calls[1].data))
         self.assertEqual(0x7a, int(data))
 
-    def test_must_decode_before_querying_value(self):
-        field = fld.Field("bob", 8)
-        self.assertRaises(fld.FieldNotDecodedError, field.get_value)
-
     def _get_decode_value(self, hex, length, format, encoding=""):
         field = fld.Field("bob", length, format, encoding)
         data = dt.Data.from_hex(hex)
