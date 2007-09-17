@@ -6,16 +6,6 @@ areas`_.
 Implementation
 ==============
 
-File backed data source
------------------------
-
-Priority: High
-
-Use a file backed data source, so we don't need to load the entire
-binary data into memory. For inputs that don't use seeking (eg: stdin),
-create a memory backed file source (whenever Data.copy() is called).
-
-
 Generate an xml specification from an in memory protocol
 --------------------------------------------------------
 
@@ -44,6 +34,29 @@ entries to avoid state being shared between them (see the 'pickle' usage in
 bdec.spec.xmlspec). This is an ugly solution, and creates an overhead with
 the bdec.chooser (as each instance of a shared object must create its own
 bdec.choooser.Chooser object).
+
+
+Remove data instance from field
+-------------------------------
+
+Priority: Medium
+
+The storage of the data as an instance of the field object shouldn't be
+required; it's hacky that it is in there.
+
+
+Non-seekable stream data source
+-------------------------------
+
+Priority: Medium
+
+Allow decoding of non-seekable data streams (eg: stdin). To do this the data
+source needs to track what data is being referenced (ie: in Data.pop and
+Data.copy), and caching data that may potentially be accessed later.
+
+Note that this requires `Remove data instance from field`_, as otherwise data
+at the start of the file will keep references to data from the start of the
+decode (as this early data will never become unaccessible).
 
 
 Protocol specification

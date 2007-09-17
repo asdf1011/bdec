@@ -23,11 +23,11 @@ class Sequence(bdec.entry.Entry):
             assert isinstance(child, bdec.entry.Entry)
 
     def _decode(self, data, child_context):
-        yield (True, self, data)
+        yield (True, self, data, None)
         for child in self.children:
             for embedded in child.decode(data, child_context):
                 yield embedded
-        yield (False, self, dt.Data())
+        yield (False, self, dt.Data(), None)
 
     def _encode(self, query, parent):
         structure = self._get_context(query, parent)

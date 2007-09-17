@@ -64,19 +64,17 @@ class SequenceOf(bdec.entry.Entry):
             while 1:
                 if stop[0]:
                     break
-                try:
-                    data.copy().pop(1)
-                except dt.NotEnoughDataError:
+                if data.empty():
                     # We ran out of data on a greedy sequence...
                     break
                 yield None
 
     def _decode(self, data, child_context):
-        yield (True, self, data)
+        yield (True, self, data, None)
         for i in self._loop(child_context, data):
             for item in self.children[0].decode(data, child_context):
                 yield item
-        yield (False, self, dt.Data())
+        yield (False, self, dt.Data(), None)
 
     def _encode(self, query, parent):
         sequenceof = self._get_context(query, parent)

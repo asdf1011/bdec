@@ -1,6 +1,8 @@
 import bdec
 import string
 
+import weakref
+
 class DataError(Exception):
     """
     Base class for all data errors.
@@ -45,28 +47,83 @@ class InvalidBinaryTextError(DataError):
 class InvalidHexTextError(DataError):
     pass
 
-class Data:
-    """ A class to hold data to be decoded """
-    def __init__(self, buffer="", start=None, end=None):
+class _OutOfDataError(Exception):
+    """Not derived from DataError as this is an internal error."""
+
+# Note that we don't include 'x' in the hex characters...
+_HEX_CHARACTERS = ['a', 'b', 'c', 'd', 'e', 'f', 'A', 'B', 'C', 'D', 'E', 'F', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
+
+class _ByteBuffer:
+    def read_byte(self, offset):
+        raise NotImplementedError()
+
+
+class _FileBuffer(_ByteBuffer):
+    """Byte buffer that reads from a seekable file."""
+    def __init__(self, file):
+        self._file = file
+        self._offset = None
+
+    def read_byte(self, offset):
+        if offset != self._offset:
+            self._file.seek(offset)
+        result = self._file.read(1)
+        if len(result) == 0:
+            raise _OutOfDataError()
+        self._offset = offset + 1
+        return ord(result)
+
+
+class _MemoryBuffer(_ByteBuffer):
+    """Byte buffer that reads directly from in memory data."""
+    def __init__(self, buffer):
         self._buffer = buffer
+
+    def read_byte(self, offset):
+        """Read a byte at a given offset"""
+        if offset >= len(self._buffer):
+            raise _OutOfDataError()
+        return ord(self._buffer[offset])
+
+
+class Data:
+    """
+    A class to hold information about data to be decoded.
+    
+    The data is not actually validated to be available until it is used, at
+    which stage NotEnoughDataError can be thrown.
+    """
+    def __init__(self, buffer="", start=None, end=None):
         if start is None:
             start = 0
-        if end is None:
-            end = len(self._buffer) * 8
 
+        assert end is None or start <= end
         self._start = start
         self._end = end
-        assert isinstance(self._start, int)
-        assert isinstance(self._end, int)
-        assert self._start <= self._end
+
+        # Note: We can detect the length of string and empty buffers at
+        # initialisation time; it is a speed win to do so. However, that means
+        # data objects behave differently depending on what they were 
+        # constructed from (a source of bugs) (eg: verification of length
+        # at pop time, as opposed to read time).
+        if isinstance(buffer, str):
+            self._buffer = _MemoryBuffer(buffer)
+        elif isinstance(buffer, _ByteBuffer):
+            self._buffer = buffer
+        else:
+            # Treat the buffer as a file object.
+            self._buffer = _FileBuffer(buffer)
 
     def pop(self, length):
         """
-        Pop data from this data object
+        Pop data from this data object.
+
+        The popped data will know the length it should be, but no checks will
+        be made that enough data exists until the data is used.
         """
         if length < 0:
             raise PoppedNegativeBitsError(length)
-        if length > self._end - self._start:
+        if self._end is not None and length > self._end - self._start:
             raise NotEnoughDataError(length, self._end - self._start)
 
         result = Data(self._buffer, self._start, self._start + length)
@@ -79,17 +136,47 @@ class Data:
     def __str__(self):
         return "".join(chr(byte) for byte in self._get_bytes())
 
+    def _get_bits(self):
+        """
+        Get an iterator to the bits contained in this buffer.
+        """
+        i = 0
+        while self._end is None or i < self._end - self._start:
+            try:
+                yield self._get_bit(i)
+            except _OutOfDataError:
+                if self._end is not None:
+                    raise NotEnoughDataError(self._end - self._start, i)
+                break
+            i += 1
+
     def __eq__(self, other):
         if not isinstance(other, Data):
             return NotImplemented
 
-        if (self._end - self._start) != (other._end - other._start):
-            return False
+        # TODO: This bit by bit comparison is slow...
+        a = self._get_bits()
+        b = other._get_bits()
+        while 1:
+            try:
+                a_bit = a.next()
+            except StopIteration:
+                try:
+                    b.next()
+                    # Not equal, as 'other' is longer then we are
+                    return False
+                except StopIteration:
+                    # Equal, as same size, same values
+                    return True
 
-        for i in range(self._end - self._start):
-            if self._get_bit(i + self._start) != other._get_bit(i + other._start):
+            try:
+                b_bit = b.next()
+            except StopIteration:
+                # Not equal, as we are longer than 'other'
                 return False
-        return True
+
+            if a_bit != b_bit:
+                return False
 
     def __ne__(self, other):
         if not isinstance(other, Data):
@@ -98,12 +185,48 @@ class Data:
         return not self == other
 
     def __len__(self):
-        return self._end - self._start
+        if self._end is not None:
+            return self._end - self._start
+
+        # We don't know the size of the buffer, so we'll have to iterate over
+        # the whole lot to find it.
+        i = 0
+        for bit in self._get_bits():
+            i += 1
+        return i
+
+    def empty(self):
+        """
+        Check to see if we have data left.
+
+        If the length of the data is known, that value will be used. If the
+        length is unknown, it will see if we can read more data.
+        """
+        if self._end is not None:
+            return self._end == self._start
+
+        # We don't know where the data ends, so look to see if we can read
+        # more of the data.
+        try:
+            self._get_bits().next()
+            return False
+        except StopIteration:
+            pass
+        return True
 
     def _get_bit(self, i):
+        """
+        Query the backend byte source for a given bit.
+
+        If the backend doesn't have the data available, or we are querying
+        outside of our bounds, an _OutOfDataError is raised.
+        """
+        i += self._start
+        if self._end is not None and i >= self._end:
+            raise _OutOfDataError()
         byte = i / 8
         i = i % 8
-        return (ord(self._buffer[byte]) >> (7 - i)) & 1
+        return (self._buffer.read_byte(byte) >> (7 - i)) & 1
         
     def __int__(self):
         """
@@ -112,8 +235,8 @@ class Data:
         Conversion is big endian.
         """
         result = 0
-        for bit in range(self._start, self._end):
-            result = (result << 1) | self._get_bit(bit)
+        for bit in self._get_bits():
+            result = (result << 1) | bit
         return result
 
     def __add__(self, other):
@@ -126,20 +249,19 @@ class Data:
         """
         Return an iterator to a series of byte values in the data.
         """
-        if (self._end - self._start) % 8 != 0:
-            raise ConversionNeedsBytesError(self)
-        if self._start % 8 == 0:
-            # We don't need to do this on a bit by bit, as we
-            # are reading aligned bytes...
-            for byte in xrange(self._start / 8, self._end / 8):
-                yield ord(self._buffer[byte])
-        else:
-            # We have to read bit by bit
-            for i in xrange(self._start, self._end, 8):
-                value = 0
-                for bit in xrange(8):
-                    value = (value << 1) | self._get_bit(i + bit)
+        # TODO: Optimise reading when we are byte aligned...
+
+        # Read as many of the bits as possible, yielding the results.
+        value = 0
+        i = None
+        for i, bit in enumerate(self._get_bits()):
+            value = (value << 1) | bit
+            if (i + 1) % 8 == 0:
+                # We have a new byte!
                 yield value
+                value = 0
+        if i is not None and i % 8 != 7:
+            raise ConversionNeedsBytesError()
 
     def get_little_endian_integer(self):
         """
@@ -156,7 +278,7 @@ class Data:
 
         eg: 001 10100000
         """
-        bits = [self._get_bit(bit) for bit in range(self._start, self._end)]
+        bits = list(self._get_bits())
         bytes = []
         if len(bits) % 8 != 0:
             bytes.append(bits[0:len(bits) % 8])
@@ -170,7 +292,7 @@ class Data:
         """
         Get a string representing the data in hex format.
         """
-        bits = [self._get_bit(bit) for bit in range(self._start, self._end)]
+        bits = list(self._get_bits())
         if len(bits) % 4 != 0:
             raise HexNeedsFourBitsError(self)
 
@@ -237,10 +359,10 @@ class Data:
             for i in range(len(entry) / 2):
                 offset = i * 2
                 value = entry[offset:offset + 2]
-                try:
-                    buffer.append(int(value, 16))
-                except ValueError:
-                    raise InvalidHexTextError(hex)
+                for char in value:
+                    if char not in _HEX_CHARACTERS:
+                        raise InvalidHexTextError(hex)
+                buffer.append(int(value, 16))
         return Data("".join(chr(value) for value in buffer))
 
     @staticmethod
@@ -267,3 +389,5 @@ class Data:
                     value = 0
         buffer.append(chr(value << (8 - length)))
         return Data("".join(buffer), 0, len(buffer) * 8 - (8 - length))
+
+

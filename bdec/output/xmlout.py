@@ -18,7 +18,7 @@ class _XMLGenerator(xml.sax.saxutils.XMLGenerator):
 def to_file(decoder, binary, output, encoding="utf-8", verbose=False):
     handler = _XMLGenerator(output, encoding)
     offset = 0
-    for is_starting, entry, data in decoder.decode(binary):
+    for is_starting, entry, data, value in decoder.decode(binary):
         if not verbose and entry.is_hidden():
             continue
 
@@ -30,7 +30,7 @@ def to_file(decoder, binary, output, encoding="utf-8", verbose=False):
         else:
             if isinstance(entry, fld.Field):
                 handler.ignorableWhitespace(' ' * offset)
-                text = unicode(entry.get_value())
+                text = unicode(value)
                 if len(text) > 0 and (text[0] in string.whitespace or text[-1] in string.whitespace):
                     logging.warning('%s has leading/trailing whitespace (%s); it will not re-encode exactly. Consider changing the format to hex.', entry, text)
                 handler.characters(text)

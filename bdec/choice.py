@@ -23,7 +23,7 @@ class Choice(bdec.entry.Entry):
             self._chooser = chsr.Chooser(self.children)
         possibles = self._chooser.choose(data)
 
-        yield (True, self, data)
+        yield (True, self, data, None)
 
         failure_expected = False
         if len(possibles) == 0:
@@ -36,7 +36,7 @@ class Choice(bdec.entry.Entry):
         if len(possibles) == 1:
             best_guess = possibles[0]
         else:
-            # We have multiple possibilitise. We'll decode them one
+            # We have multiple possibilities. We'll decode them one
             # at a time until one of them succeeds; if none decode,
             # we'll re-raise the exception of the 'best guess'.
             #
@@ -52,7 +52,7 @@ class Choice(bdec.entry.Entry):
             for child in possibles:
                 try:
                     bits_decoded = 0
-                    for is_starting, entry, entry_data in child.decode(data.copy(), child_context):
+                    for is_starting, entry, entry_data, value in child.decode(data.copy(), child_context):
                         if not is_starting:
                             bits_decoded += len(entry_data)
 
@@ -65,11 +65,11 @@ class Choice(bdec.entry.Entry):
                         best_guess_bits = bits_decoded
 
         # Decode the best option.
-        for is_starting, entry, data in best_guess.decode(data, child_context):
-            yield is_starting, entry, data
+        for is_starting, entry, data, value in best_guess.decode(data, child_context):
+            yield is_starting, entry, data, value
 
         assert not failure_expected
-        yield (False, self, dt.Data())
+        yield (False, self, dt.Data(), None)
 
     def _encode(self, query, parent):
         # We attempt to encode all of the embedded items, until we find
