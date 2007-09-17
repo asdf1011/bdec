@@ -71,6 +71,21 @@ Download
 
 The bdec library is available under the revised BSD license (no advertising).
 
+* `Version 0.2.0`_
+  17 September 2007
+
+  Changes:
+    Core;
+
+    * Add a 'file' tool that attempts to identify the format of a binary file.
+    * Support efficient decoding of files (the whole file is no longer read into
+      memory).
+
+    Format specifications;
+
+    * More complete pdf protocl specification.
+    * Fixes to 'mp3' and 'vfat' specifications.
+
 * `Version 0.1.1`_
   8 August 2007
 
@@ -86,5 +101,7 @@ The bdec library is available under the revised BSD license (no advertising).
     Encoding is supported only for very basic specifications (no use of 
     expressions).
 
+
 .. _Version 0.1.1: files/bdec-0.1.1.tar.gz
+.. _Version 0.2.0: files/bdec-0.2.0.tar.gz
 
