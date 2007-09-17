@@ -54,7 +54,7 @@ class _DecodingDict(UserDict.DictMixin):
         """Populate the dictionary until we get a given key."""
         while 1:
             try:
-                is_starting, entry, data = self._decode_iter.next()
+                is_starting, entry, data, value = self._decode_iter.next()
             except StopIteration:
                 raise KeyError(key)
 
@@ -62,7 +62,6 @@ class _DecodingDict(UserDict.DictMixin):
                 # TODO: Keep track of the complete stack, so we can
                 # reference items by name.
                 name = bdec.output.instance.escape(entry.name)
-                value = entry.decode_value(data)
                 self._dict[name] = value
                 if name == key:
                     return value
@@ -127,7 +126,7 @@ spec_dir = os.path.join(os.path.dirname(__file__), '..', 'examples')
 specs = load_specs(spec_dir)
 
 # Load the data to choose from
-binary = file(filename, 'rb').read()
+binary = file(filename, 'rb')
 data = bdec.data.Data(binary)
 
 options = detect_file_type(specs, data)
