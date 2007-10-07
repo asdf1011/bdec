@@ -1,0 +1,30 @@
+## Create the C 'type' of each protocol entry
+<%!
+    from bdec.field import Field
+    from bdec.sequence import Sequence
+%>
+
+<%def name="ctype(entry)">
+  %if isinstance(entry, Field):
+    %if entry.format is Field.INTEGER:
+int
+    %else:
+char*
+    %endif
+  %else:
+struct ${entry.name}*
+  %endif
+</%def>
+
+<%def name="define(entry)" >
+  %if isinstance(entry, Sequence):
+struct 
+{
+  %for child in entry.children:
+    ${define(child)} ${child.name};
+  %endfor
+}
+  %else:
+${ctype(entry)}
+  %endif
+</%def>
