@@ -49,6 +49,11 @@ class _CompilerTests:
         self._compile(spec)
         self._decode('a')
 
+    def test_sequence_in_sequence(self):
+        spec = seq.Sequence('blah', [seq.Sequence('hello', [fld.Field('world', 8, fld.Field.INTEGER)])])
+        self._compile(spec)
+        self._decode('a')
+
 
 class TestC(_CompilerTests, unittest.TestCase):
     COMPILER = "gcc"

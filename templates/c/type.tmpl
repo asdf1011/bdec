@@ -12,19 +12,25 @@ int
 char*
     %endif
   %else:
-struct ${entry.name}*
+${entry.name}*
   %endif
 </%def>
 
 <%def name="define(entry)" >
   %if isinstance(entry, Sequence):
-struct 
+    %for child in entry.children:
+      %if not isinstance(child, Field):
+${define(child)}
+      %endif
+    %endfor
+
+typedef struct 
 {
   %for child in entry.children:
-    ${define(child)} ${child.name};
+    ${ctype(child)} ${child.name};
   %endfor
-}
+} ${entry.name};
   %else:
-${ctype(entry)}
+typdef ${ctype(entry)} ${child.name};
   %endif
 </%def>

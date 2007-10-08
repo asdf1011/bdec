@@ -5,7 +5,7 @@
 
 #include "buffer.h"
 
-typedef ${ctype.define(entry)} ${entry.name};
+${ctype.define(entry)}
 
 // Decode a ${entry.name} from a bit aligned buffer
 ${entry.name}* decode_${entry.name}( Buffer* buffer);
