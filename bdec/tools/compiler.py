@@ -37,7 +37,6 @@ def _generate_template(output_dir, filename, lookup, template):
         output.close()
 
 def generate_code(spec, template_path, output_dir):
-    print template_path
     common_templates, entry_templates = _load_templates(template_path)
 
     lookup = {}
