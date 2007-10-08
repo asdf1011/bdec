@@ -34,12 +34,3 @@
   %endfor
     return result;
 </%def>
-
-<%def name="decode(entry)">
-  %if isinstance(entry, Field):
-    ${decodeField(entry, entry.name + " result")};
-    return result;
-  %elif isinstance(entry, Sequence):
-    ${decodeSequence(entry)}
-  %endif
-</%def>
