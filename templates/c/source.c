@@ -1,3 +1,4 @@
+## vim:set syntax=mako:
 <%namespace file="/decodeentry.tmpl" name="decodeentry" />
 <%namespace file="/type.tmpl" name="ctype" />
 <%! 
@@ -5,6 +6,7 @@
   from bdec.sequence import Sequence
  %>
 
+#include <stdio.h>
 #include <stdlib.h>
 
 #include "${entry.name}.h"
@@ -30,3 +32,28 @@ ${entry.name}* decode_${entry.name}(Buffer* buffer)
 </%def>
 
 ${recursiveDecode(entry)}
+
+
+## Recursively create functions for printing the entries contained within this protocol specification.
+<%def name="recursivePrint(entry)">
+%for child in entry.children:
+${recursivePrint(child)}
+%endfor
+
+void print_xml_${entry.name}(${ctype.ctype(entry)} data)
+{
+    printf("<${entry.name}>\n");
+  %if isinstance(entry, Field):
+    %if entry.format is Field.INTEGER:
+    printf("  %i\n", data); 
+    %endif
+  %else:
+    %for child in entry.children:
+    print_xml_${child.name}(data->${child.name});
+    %endfor
+  %endif
+    printf("</${entry.name}>\n");
+}
+</%def>
+
+${recursivePrint(entry)}

@@ -100,9 +100,14 @@ class TestC(_CompilerTests, unittest.TestCase):
                 return 3;
             }
 
+            /* Print the decoded data */
+            print_xml_blah(result);
+
             return 0;
         }\n"""
 
     def _decode_file(self, filename):
-        return subprocess.call([self.EXECUTABLE, filename])
+        decode = subprocess.Popen([self.EXECUTABLE, filename], stdout=subprocess.PIPE)
+        xml = decode.stdout.read()
+        return decode.wait()
 
