@@ -64,6 +64,10 @@ class _CompilerTests:
         spec = seq.Sequence('blah', [seq.Sequence('hello', [fld.Field('world', 8, fld.Field.INTEGER)])])
         self._decode(spec, 'a')
 
+    def test_decode_string(self):
+        spec = seq.Sequence('blah', [fld.Field('bob', 48, fld.Field.TEXT)])
+        self._decode(spec, 'rabbit')
+
 
 class TestC(_CompilerTests, unittest.TestCase):
     COMPILER = "gcc"

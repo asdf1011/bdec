@@ -16,8 +16,9 @@
     ${variable} = *(unsigned int*)buffer->buffer;
      %endif
   %elif entry.format is Field.TEXT:
-    char* text = malloc(${entry.length / 8});
-    memcpy(buffer->buffer, text, ${entry.length / 8});
+    ${variable} = malloc(${entry.length / 8} + 1);
+    memcpy(${variable}, buffer->buffer, ${entry.length / 8});
+    ${variable}[${entry.length / 8}] = 0;
     buffer->buffer += ${entry.length / 8};
   %elif entry.format in [Field.BINARY, Field.HEX]:
     readBinary(&result, length);

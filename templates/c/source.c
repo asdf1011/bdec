@@ -8,6 +8,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "${entry.name}.h"
 #include "buffer.h"
@@ -40,6 +41,8 @@ ${recursiveDecode(entry)}
   %if isinstance(entry, Field):
     %if entry.format is Field.INTEGER:
     printf("  %i\n", ${variable}); 
+    %elif entry.format is Field.TEXT:
+    printf("  %s\n", ${variable});
     %endif
   %else:
     %for child in entry.children:
