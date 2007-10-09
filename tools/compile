@@ -1,0 +1,35 @@
+#!/usr/bin/env python
+"""
+A program to create decoders in other languages from specifications to another
+language.
+"""
+
+import mako.exceptions
+import os
+import sys
+
+import bdec.spec.xmlspec
+import bdec.tools.compiler
+
+def _load_spec(filename):
+    """Load the protocol specification. """
+    try:
+        decoder, lookup = bdec.spec.xmlspec.load(filename)
+    except bdec.spec.LoadError, ex:
+        sys.exit(str(ex))
+    return decoder
+
+if len(sys.argv) not in [2, 3]:
+    sys.exit('Usage: %s <specification> [output dir]' % sys.argv[0])
+spec = _load_spec(sys.argv[1])
+if len(sys.argv) == 3:
+    outputdir = sys.argv[2]
+else:
+    outputdir = os.getcwd()
+
+language = 'c'
+directory = os.path.join(os.path.dirname(__file__), '..', 'templates', language)
+try:
+    bdec.tools.compiler.generate_code(spec, directory, outputdir)
+except:
+    sys.exit(mako.exceptions.text_error_template().render())
