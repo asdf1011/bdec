@@ -1,3 +1,4 @@
+## vim:set syntax=mako:
 <%!
     from bdec.field import Field
     from bdec.sequence import Sequence
@@ -6,18 +7,18 @@
 <%def name="decodeField(entry, variable)">
   %if entry.format is Field.INTEGER:
      %if entry.length == 8:
-    ${variable} = *(unsigned char*)buffer;
+    ${variable} = *(unsigned char*)buffer->buffer;
     buffer += sizeof(unsigned char);
      %elif entry.length == 16:
-    ${variable} = *(unsigned short*)buffer;
+    ${variable} = *(unsigned short*)buffer->buffer;
     buffer += sizeof(unsigned short);
      %elif entry.length == 32:
-    ${variable} = *(unsigned int)buffer;
+    ${variable} = *(unsigned int*)buffer->buffer;
      %endif
   %elif entry.format is Field.TEXT:
-    char* text = malloc(${entry.length} / 8);
-    memcpy(buffer, text, ${entry.length} / 8);
-    buffer += ${entry.length} / 8;
+    char* text = malloc(${entry.length / 8});
+    memcpy(buffer->buffer, text, ${entry.length / 8});
+    buffer->buffer += ${entry.length / 8};
   %elif entry.format in [Field.BINARY, Field.HEX]:
     readBinary(&result, length);
   %endif

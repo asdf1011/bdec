@@ -7,6 +7,7 @@ import subprocess
 import unittest
 
 import bdec.field as fld
+import bdec.output.xmlout as xmlout
 import bdec.sequence as seq
 import bdec.tools.compiler as comp
 
@@ -34,30 +35,39 @@ class _CompilerTests:
             self.fail('Failed to compile!')
 
     def _decode_file(self, filename):
+        """
+        Returns the exit code and the decoded xml.
+        """
         raise NotImplementedError()
 
-    def _decode(self, data):
+    def _decode(self, spec, data):
+        self._compile(spec)
+
         data_filename = os.path.join(self.TEST_DIR, 'data.bin')
         datafile = open(data_filename, 'wb')
         datafile.write(data)
         datafile.close()
-        if self._decode_file(data_filename) != 0:
-            self.fail('Failed to decode data!')
+        exit_code, xml = self._decode_file(data_filename)
+        if exit_code != 0:
+            self.fail('Failed to decode data (exit code=%i)!' % exit_code)
+
+        # Take the xml output, and ensure the re-encoded data has the same
+        # binary value.
+        binary = str(reduce(lambda a,b:a+b, xmlout.encode(spec, xml)))
+        self.assertEqual(data, binary)
 
     def test_basic_decode(self):
         spec = seq.Sequence('blah', [fld.Field('hello', 8, fld.Field.INTEGER)])
-        self._compile(spec)
-        self._decode('a')
+        self._decode(spec, 'a')
 
     def test_sequence_in_sequence(self):
         spec = seq.Sequence('blah', [seq.Sequence('hello', [fld.Field('world', 8, fld.Field.INTEGER)])])
-        self._compile(spec)
-        self._decode('a')
+        self._decode(spec, 'a')
 
 
 class TestC(_CompilerTests, unittest.TestCase):
     COMPILER = "gcc"
-    COMPILER_FLAGS = ["-Wall", '-o']
+    COMPILER_FLAGS = ["-Wall", '-g', '-o']
     FILE_TYPE = "c"
     TEMPLATE_PATH = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'templates', 'c')
 
@@ -109,5 +119,5 @@ class TestC(_CompilerTests, unittest.TestCase):
     def _decode_file(self, filename):
         decode = subprocess.Popen([self.EXECUTABLE, filename], stdout=subprocess.PIPE)
         xml = decode.stdout.read()
-        return decode.wait()
+        return decode.wait(), xml
 
