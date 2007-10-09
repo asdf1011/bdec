@@ -35,25 +35,21 @@ ${recursiveDecode(entry)}
 
 
 ## Recursively create functions for printing the entries contained within this protocol specification.
-<%def name="recursivePrint(entry)">
-%for child in entry.children:
-${recursivePrint(child)}
-%endfor
-
-void print_xml_${entry.name}(${ctype.ctype(entry)} data)
-{
+<%def name="recursivePrint(entry, variable)">
     printf("<${entry.name}>\n");
   %if isinstance(entry, Field):
     %if entry.format is Field.INTEGER:
-    printf("  %i\n", data); 
+    printf("  %i\n", ${variable}); 
     %endif
   %else:
     %for child in entry.children:
-    print_xml_${child.name}(data->${child.name});
+    ${recursivePrint(child, '%s->%s' % (variable, child.name))}
     %endfor
   %endif
     printf("</${entry.name}>\n");
-}
 </%def>
 
-${recursivePrint(entry)}
+void print_xml_${entry.name}(${ctype.ctype(entry)} data)
+{
+${recursivePrint(entry, 'data')}
+}
