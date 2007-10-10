@@ -8,12 +8,13 @@
   %if entry.format is Field.INTEGER:
      %if entry.length == 8:
     ${variable} = *(unsigned char*)buffer->buffer;
-    buffer += sizeof(unsigned char);
+    buffer->buffer += sizeof(unsigned char);
      %elif entry.length == 16:
     ${variable} = *(unsigned short*)buffer->buffer;
-    buffer += sizeof(unsigned short);
+    buffer->buffer += sizeof(unsigned short);
      %elif entry.length == 32:
     ${variable} = *(unsigned int*)buffer->buffer;
+    buffer->buffer += sizeof(unsigned int);
      %endif
      %if entry.expected is not None:
     if (${variable} != ${int(entry.expected)})

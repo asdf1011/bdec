@@ -65,8 +65,8 @@ class _CompilerTests:
         self._decode(spec, 'a')
 
     def test_sequence_in_sequence(self):
-        spec = seq.Sequence('blah', [seq.Sequence('hello', [fld.Field('world', 8, fld.Field.INTEGER)])])
-        self._decode(spec, 'a')
+        spec = seq.Sequence('blah', [seq.Sequence('hello', [fld.Field('world', 8, fld.Field.INTEGER)]), fld.Field('bob', 8, fld.Field.INTEGER)])
+        self._decode(spec, 'ab')
 
     def test_decode_string(self):
         spec = seq.Sequence('blah', [fld.Field('bob', 48, fld.Field.TEXT)])
