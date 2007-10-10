@@ -82,6 +82,10 @@ class _CompilerTests:
         self._decode(spec, 'a')
         self._decode_failure(spec, 'b')
 
+    def test_not_enough_data(self):
+        spec = seq.Sequence('blah', [fld.Field('cat', 8, fld.Field.INTEGER)])
+        self._decode_failure(spec, '')
+        self._decode(spec, 'a')
 
 class TestC(_CompilerTests, unittest.TestCase):
     COMPILER = "gcc"
@@ -120,7 +124,7 @@ class TestC(_CompilerTests, unittest.TestCase):
             fclose(datafile);
 
             /* Attempt to decode the file */
-            Buffer buffer = {data};
+            Buffer buffer = {data, data + length};
             blah* result = decode_blah(&buffer);
             if (result == 0)
             {

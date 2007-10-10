@@ -5,6 +5,10 @@
 %>
 
 <%def name="decodeField(entry, variable)">
+  if (buffer->buffer + ${entry.length / 8} > buffer->end)
+  {
+      return 0;
+  }
   %if entry.format is Field.INTEGER:
      %if entry.length == 8:
     ${variable} = *(unsigned char*)buffer->buffer;

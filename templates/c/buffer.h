@@ -5,6 +5,7 @@
 typedef struct 
 {
     char* buffer;
+    char* end;
 }Buffer;
 
 #endif
