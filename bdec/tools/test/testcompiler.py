@@ -77,6 +77,12 @@ class _CompilerTests:
         self._decode(spec, 'a')
         self._decode_failure(spec, 'b')
 
+    def test_sequence_decode_failure(self):
+        spec = seq.Sequence('blah', [seq.Sequence('dog', [fld.Field('cat', 8, fld.Field.INTEGER, expected=dt.Data('a'))])])
+        self._decode(spec, 'a')
+        self._decode_failure(spec, 'b')
+
+
 class TestC(_CompilerTests, unittest.TestCase):
     COMPILER = "gcc"
     COMPILER_FLAGS = ["-Wall", '-g', '-o']

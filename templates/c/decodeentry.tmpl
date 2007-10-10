@@ -39,6 +39,10 @@
     ${decodeField(child, 'result->' + child.name)}
     %else:
     result->${child.name} = decode_${child.name}(buffer);
+    if (result->${child.name} == 0)
+    {
+        return 0;
+    }
     %endif
   %endfor
     return result;
