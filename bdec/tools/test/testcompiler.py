@@ -87,6 +87,14 @@ class _CompilerTests:
         self._decode_failure(spec, '')
         self._decode(spec, 'a')
 
+    def test_integer_encoding(self):
+        spec = seq.Sequence('blah', [fld.Field('cat', 16, fld.Field.INTEGER, encoding=fld.Field.BIG_ENDIAN)])
+        self._decode(spec, 'ab')
+
+        spec = seq.Sequence('blah', [fld.Field('cat', 16, fld.Field.INTEGER, encoding=fld.Field.LITTLE_ENDIAN)])
+        self._decode(spec, 'ab')
+
+
 class TestC(_CompilerTests, unittest.TestCase):
     COMPILER = "gcc"
     COMPILER_FLAGS = ["-Wall", '-g', '-o']
@@ -119,7 +127,7 @@ class TestC(_CompilerTests, unittest.TestCase):
             fseek(datafile, 0, SEEK_SET);
 
             /* Load the data file into memory */
-            char* data = malloc(length);
+            unsigned char* data = malloc(length);
             fread(data, length, length, datafile);
             fclose(datafile);
 

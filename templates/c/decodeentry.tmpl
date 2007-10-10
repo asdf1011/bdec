@@ -5,21 +5,21 @@
 %>
 
 <%def name="decodeField(entry, variable)">
-  if (buffer->buffer + ${entry.length / 8} > buffer->end)
-  {
-      return 0;
-  }
+    if (buffer->buffer + ${entry.length / 8} > buffer->end)
+    {
+        return 0;
+    }
   %if entry.format is Field.INTEGER:
-     %if entry.length == 8:
-    ${variable} = *(unsigned char*)buffer->buffer;
-    buffer->buffer += sizeof(unsigned char);
-     %elif entry.length == 16:
-    ${variable} = *(unsigned short*)buffer->buffer;
-    buffer->buffer += sizeof(unsigned short);
-     %elif entry.length == 32:
-    ${variable} = *(unsigned int*)buffer->buffer;
-    buffer->buffer += sizeof(unsigned int);
-     %endif
+    %if entry.length % 8 == 0:
+      %if entry.encoding is Field.BIG_ENDIAN:
+    ${variable} = ${" + ".join("(buffer->buffer[%i] << %i)" % (i, (entry.length / 8 - i - 1) * 8) for i in range(entry.length / 8))};
+      %else:
+    ${variable} = ${" + ".join("(buffer->buffer[%i] << %i)" % ((entry.length / 8) - i - 1, (entry.length / 8 - i - 1) * 8) for i in range(entry.length / 8))};
+      %endif
+    buffer->buffer += ${entry.length / 8};
+    %else:
+      #pragma error ("Non-byte integers not handled yet... ${entry}")
+    %endif
      %if entry.expected is not None:
     if (${variable} != ${int(entry.expected)})
     {

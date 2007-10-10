@@ -110,7 +110,7 @@ class Field(bdec.entry.Entry):
                 encoding = self.BIG_ENDIAN
 
         self.format = format
-        self._encoding = encoding
+        self.encoding = encoding
         self.data = None
         self.expected = expected
         self.min = min
@@ -156,13 +156,13 @@ class Field(bdec.entry.Entry):
         elif self.format == self.TEXT:
             text = self._convert_type(data, str)
             try:
-                result = dt.Data(text.encode(self._encoding))
+                result = dt.Data(text.encode(self.encoding))
             except UnicodeDecodeError:
                 raise BadEncodingError(self, data)
         elif self.format == self.INTEGER:
             
-            assert self._encoding in [self.BIG_ENDIAN, self.LITTLE_ENDIAN]
-            if self._encoding == self.BIG_ENDIAN:
+            assert self.encoding in [self.BIG_ENDIAN, self.LITTLE_ENDIAN]
+            if self.encoding == self.BIG_ENDIAN:
                 result = dt.Data.from_int_big_endian(self._convert_type(data, int), length)
             else:
                 result = dt.Data.from_int_little_endian(self._convert_type(data, int), length)
@@ -224,7 +224,7 @@ class Field(bdec.entry.Entry):
         yield result
 
     def __str__(self):
-        return "%s '%s' (%s)" % (self.format, self.name, self._encoding)
+        return "%s '%s' (%s)" % (self.format, self.name, self.encoding)
 
     def _validate_range(self, data):
         """
@@ -243,7 +243,7 @@ class Field(bdec.entry.Entry):
         return self._decode_int(self.data)
 
     def _decode_int(self, data):
-        if self._encoding == self.LITTLE_ENDIAN:
+        if self.encoding == self.LITTLE_ENDIAN:
             result = data.get_little_endian_integer()
         else:
             # If we aren't explicitly little endian, we become big endian.
@@ -269,7 +269,7 @@ class Field(bdec.entry.Entry):
             result = data.get_hex()
         elif self.format == self.TEXT:
             try:
-                result = unicode(str(data), self._encoding)
+                result = unicode(str(data), self.encoding)
             except UnicodeDecodeError:
                 raise BadEncodingError(self, str(data))
         elif self.format == self.INTEGER:

@@ -4,8 +4,8 @@
 // Structure to hold data to be decoded
 typedef struct 
 {
-    char* buffer;
-    char* end;
+    unsigned char* buffer;
+    unsigned char* end;
 }Buffer;
 
 #endif
