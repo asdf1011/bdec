@@ -104,6 +104,74 @@ eg::
     </sequence>
 
 
+C language backend
+==================
+
+Support fields that aren't byte aligned
+---------------------------------------
+
+Priority: High
+
+Fields need to be able to handle non-byte aligned values.
+
+
+Test the length of fields (and others) to make sure data is available
+---------------------------------------------------------------------
+
+Priority: High
+
+We need to test whether data is avaiable before attempting to read it.
+
+
+Support choice entry
+--------------------
+
+Priority: High
+
+We need to support the choice entry type.
+
+
+Support sequenceof entry
+------------------------
+
+Priority: High
+
+We need to support the sequenceof entry type.
+
+
+Support length expressions
+--------------------------
+
+Priority: High
+
+We need to support the use of expressions.
+
+
+Support encoding
+----------------
+
+Priority: Low
+
+Enable encoding of the decoded structures.
+
+
+Support alternate field types
+-----------------------------
+
+Priority: Medium
+
+We need to support bit and hex data types.
+
+
+Text encoding
+-------------
+
+Priority: Medium
+
+We need to enable support for text encodings. At the moment it is hardcoded to
+be ascii.
+
+
 Other areas
 ===========
 
