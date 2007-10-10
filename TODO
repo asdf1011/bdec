@@ -123,6 +123,14 @@ Priority: High
 We need to test whether data is avaiable before attempting to read it.
 
 
+Support integer field encoding
+------------------------------
+
+Priority: High
+
+We need to support field integer encoding.
+
+
 Support choice entry
 --------------------
 
