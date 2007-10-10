@@ -6,6 +6,7 @@ import shutil
 import subprocess
 import unittest
 
+import bdec.data as dt
 import bdec.field as fld
 import bdec.output.xmlout as xmlout
 import bdec.sequence as seq
@@ -40,7 +41,7 @@ class _CompilerTests:
         """
         raise NotImplementedError()
 
-    def _decode(self, spec, data):
+    def _decode(self, spec, data, expected_exit_code=0):
         self._compile(spec)
 
         data_filename = os.path.join(self.TEST_DIR, 'data.bin')
@@ -48,13 +49,16 @@ class _CompilerTests:
         datafile.write(data)
         datafile.close()
         exit_code, xml = self._decode_file(data_filename)
-        if exit_code != 0:
-            self.fail('Failed to decode data (exit code=%i)!' % exit_code)
+        self.assertEqual(expected_exit_code, exit_code)
 
-        # Take the xml output, and ensure the re-encoded data has the same
-        # binary value.
-        binary = str(reduce(lambda a,b:a+b, xmlout.encode(spec, xml)))
-        self.assertEqual(data, binary)
+        if exit_code == 0:
+            # Take the xml output, and ensure the re-encoded data has the same
+            # binary value.
+            binary = str(reduce(lambda a,b:a+b, xmlout.encode(spec, xml)))
+            self.assertEqual(data, binary)
+
+    def _decode_failure(self, spec, data):
+        self._decode(spec, data, 3)
 
     def test_basic_decode(self):
         spec = seq.Sequence('blah', [fld.Field('hello', 8, fld.Field.INTEGER)])
@@ -68,6 +72,10 @@ class _CompilerTests:
         spec = seq.Sequence('blah', [fld.Field('bob', 48, fld.Field.TEXT)])
         self._decode(spec, 'rabbit')
 
+    def test_expected_value(self):
+        spec = seq.Sequence('blah', [fld.Field('bob', 8, fld.Field.INTEGER, expected=dt.Data('a'))])
+        self._decode(spec, 'a')
+        self._decode_failure(spec, 'b')
 
 class TestC(_CompilerTests, unittest.TestCase):
     COMPILER = "gcc"

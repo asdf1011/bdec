@@ -15,6 +15,12 @@
      %elif entry.length == 32:
     ${variable} = *(unsigned int*)buffer->buffer;
      %endif
+     %if entry.expected is not None:
+    if (${variable} != ${int(entry.expected)})
+    {
+        return 0;
+    }
+     %endif
   %elif entry.format is Field.TEXT:
     ${variable} = malloc(${entry.length / 8} + 1);
     memcpy(${variable}, buffer->buffer, ${entry.length / 8});
