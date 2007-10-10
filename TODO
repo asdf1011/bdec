@@ -115,22 +115,6 @@ Priority: High
 Fields need to be able to handle non-byte aligned values.
 
 
-Test the length of fields (and others) to make sure data is available
----------------------------------------------------------------------
-
-Priority: High
-
-We need to test whether data is avaiable before attempting to read it.
-
-
-Support integer field encoding
-------------------------------
-
-Priority: High
-
-We need to support field integer encoding.
-
-
 Support choice entry
 --------------------
 
