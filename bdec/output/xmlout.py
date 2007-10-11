@@ -62,13 +62,13 @@ def _query_element(obj, child):
     If the child has no sub-elements itself, return the element text contents.
     """
     name = _escape_name(child.name)
-    for child in obj.childNodes:
-        if child.nodeType == xml.dom.Node.ELEMENT_NODE and child.tagName == name:
+    for child_node in obj.childNodes:
+        if child_node.nodeType == xml.dom.Node.ELEMENT_NODE and child_node.tagName == name:
             text = ""
-            for subchild in child.childNodes:
+            for subchild in child_node.childNodes:
                 if subchild.nodeType == xml.dom.Node.ELEMENT_NODE:
                     # This element has sub-elements, so return the element itself.
-                    return child
+                    return child_node
                 elif subchild.nodeType == xml.dom.Node.TEXT_NODE:
                     # NOTE: We have to strip to avoid getting all of the extra whitespace,
                     # but if there was leading or trailing whitespace on the original

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import unittest
 
+import bdec.choice as chc
 import bdec.data as dt
 import bdec.field as fld
 import bdec.output.xmlout as xml
@@ -35,6 +36,14 @@ class TestXml(unittest.TestCase):
         sequence = seq.Sequence("blah", [fld.Field("cat", 48, fld.Field.TEXT)])
         data = reduce(lambda a,b:a+b, xml.encode(sequence, text))
         self.assertEqual("rabbit", str(data))
+
+    def test_choice_encode(self):
+        a = fld.Field('a', 8, expected=dt.Data('a'))
+        b = fld.Field('b', 8, expected=dt.Data('b'))
+        choice = chc.Choice('blah', [a, b])
+        text = "<blah><b /></blah>"
+        data = reduce(lambda a,b:a+b, xml.encode(choice, text))
+        self.assertEqual("b", str(data))
 
     def test_verbose(self):
         sequence = seq.Sequence("bob", [
