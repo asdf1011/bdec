@@ -44,8 +44,7 @@
     %if isinstance(child, Field):
     ${decodeField(child, 'result->' + child.name)}
     %else:
-    result->${child.name} = malloc(sizeof(${child.name}));
-    if (!decode_${child.name}(buffer, result->${child.name}))
+    if (!decode_${child.name}(buffer, &result->${child.name}))
     {
         return 0;
     }

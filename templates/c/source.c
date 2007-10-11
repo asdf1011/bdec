@@ -86,17 +86,13 @@ ${recursiveDecode(entry)}
     %endif
   %elif isinstance(entry, Sequence):
     %for child in entry.children:
-    ${recursivePrint(child, '%s->%s' % (variable, child.name))}
+    ${recursivePrint(child, '%s.%s' % (variable, child.name))}
     %endfor
   %elif isinstance(entry, Choice):
     %for child in entry.children:
-    if (${'%s->%s' % (variable, child.name)} != 0)
+    if (${'%s.%s' % (variable, child.name)} != 0)
     {
-        %if isinstance(child, Field):
-        ${recursivePrint(child, "*%s->%s" % (variable, child.name))}
-        %else:
-        ${recursivePrint(child, "%s->%s" % (variable, child.name))}
-        %endif
+        ${recursivePrint(child, "(*%s.%s)" % (variable, child.name))}
     }
     %endfor
   %else:
@@ -105,7 +101,7 @@ ${recursiveDecode(entry)}
     printf("</${entry.name}>\n");
 </%def>
 
-void print_xml_${entry.name}(${ctype.ctype(entry)} data)
+void print_xml_${entry.name}(${entry.name}* data)
 {
-${recursivePrint(entry, 'data')}
+${recursivePrint(entry, '(*data)')}
 }

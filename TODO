@@ -107,15 +107,6 @@ eg::
 C language backend
 ==================
 
-Non-optional entries shouldn't be pointers
-------------------------------------------
-
-Priority: High
-
-Non-optional entries in structures shouldn't be stored as pointers (as they
-must be present).
-
-
 Support fields that aren't byte aligned
 ---------------------------------------
 

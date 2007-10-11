@@ -15,7 +15,7 @@ int
 char*
     %endif
   %else:
-${entry.name}*
+${entry.name}
   %endif
 </%def>
 
@@ -34,16 +34,12 @@ typedef struct
   %endfor
 } ${entry.name};
   %elif isinstance(entry, Field):
-typdef ${ctype(entry)} ${child.name};
+typedef ${ctype(entry)} ${child.name};
   %elif isinstance(entry, Choice):
 typedef struct
 {
     %for child in entry.children:
-      %if isinstance(child, Field):
     ${ctype(child)}* ${child.name};
-      %else:
-    ${ctype(child)} ${child.name};
-      %endif
     %endfor
 } ${entry.name};
   %else:
