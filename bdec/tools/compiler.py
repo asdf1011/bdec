@@ -8,6 +8,7 @@ import mako.runtime
 import os
 import sys
 
+_template_cache = {}
 def _load_templates(directory):
     """
     Load all file templates for a given specification.
@@ -15,6 +16,10 @@ def _load_templates(directory):
     Returns a tuple containing (common file templates, entry specific templates),
     where every template is a tuple containing (name, mako template).
     """
+    # We cache the results, as it sped up the tests by about 3x.
+    if directory in _template_cache:
+        return _template_cache[directory]
+
     common_templates  = []
     entry_templates = []
     for filename in os.listdir(directory):
@@ -26,6 +31,7 @@ def _load_templates(directory):
                 entry_templates.append((filename, template))
             else:
                 common_templates.append((filename, template))
+    _template_cache[directory] = (common_templates, entry_templates)
     return (common_templates, entry_templates)
 
 def _generate_template(output_dir, filename, lookup, template):
