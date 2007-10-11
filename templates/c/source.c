@@ -22,15 +22,15 @@ ${recursiveDecode(child)}
   %endif
 %endfor
 
-${entry.name}* decode_${entry.name}(Buffer* buffer)
+int decode_${entry.name}(Buffer* buffer, ${entry.name}* result)
 {
   %if isinstance(entry, Field):
-    ${decodeField(entry, entry.name + " result")};
-    return result;
+    ${decodeField(entry, "*result")};
+    return 1;
   %elif isinstance(entry, Sequence):
     ${decodeentry.decodeSequence(entry)}
+    return 1;
   %elif isinstance(entry, Choice):
-    ${entry.name}* result = malloc(sizeof(${entry.name}));
     memset(result, 0, sizeof(${entry.name}));
     Buffer temp;
     %for child in entry.children:
@@ -45,22 +45,23 @@ ${entry.name}* decode_${entry.name}(Buffer* buffer)
             result->${child.name} = malloc(sizeof(${ctype.ctype(child)}));
             *result->${child.name} = temp_${child.name};
             buffer->buffer += ${child.length / 8};
-            return result;
+            return 1;
         }
         %else:
         result->${child.name} = malloc(sizeof(${ctype.ctype(child)}));
         *result->${child.name} = *temp;
         buffer->buffer += ${entry.length / 8};
-        return result;
+        return 1;
         %endif
     }
       %else:
     temp = *buffer;
-    result->${child.name} = decode_${child.name}(&temp);
-    if (result->${child.name} != 0)
+    ${child.name}* temp_${child.name} = malloc(sizeof(${child.name}));
+    if (decode_${child.name}(&temp, temp_${child.name}))
     {
         *buffer = temp;
-        return result;
+        result->${child.name} = temp_${child.name};
+        return 1;
     }
       %endif
     %endfor

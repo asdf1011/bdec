@@ -8,8 +8,11 @@
 
 ${ctype.define(entry)}
 
-// Decode a ${entry.name} from a bit aligned buffer
-${entry.name}* decode_${entry.name}( Buffer* buffer);
+// Decode a ${entry.name} instance.
+// The data is decoded into the result argument. Return value is 0 for decode
+// failure, non-zero for success.
+// Note: Any values allready present in result will be ignored and overwritten.
+int decode_${entry.name}( Buffer* buffer, ${entry.name}* result);
 
 // Print an xml representation of a ${entry.name} object.
 void print_xml_${entry.name}(${entry.name}* data);

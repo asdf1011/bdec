@@ -40,17 +40,15 @@
 </%def>
 
 <%def name="decodeSequence(entry)">
-    ${entry.name}* result = malloc(sizeof(${entry.name}));
   %for child in entry.children:
     %if isinstance(child, Field):
     ${decodeField(child, 'result->' + child.name)}
     %else:
-    result->${child.name} = decode_${child.name}(buffer);
-    if (result->${child.name} == 0)
+    result->${child.name} = malloc(sizeof(${child.name}));
+    if (!decode_${child.name}(buffer, result->${child.name}))
     {
         return 0;
     }
     %endif
   %endfor
-    return result;
 </%def>

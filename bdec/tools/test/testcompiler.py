@@ -142,15 +142,15 @@ class TestC(_CompilerTests, unittest.TestCase):
 
             /* Attempt to decode the file */
             Buffer buffer = {data, data + length};
-            blah* result = decode_blah(&buffer);
-            if (result == 0)
+            blah result;
+            if (!decode_blah(&buffer, &result))
             {
                 /* Decode failed! */
                 return 3;
             }
 
             /* Print the decoded data */
-            print_xml_blah(result);
+            print_xml_blah(&result);
 
             return 0;
         }\n"""
