@@ -34,7 +34,7 @@ class SequenceOf(bdec.entry.Entry):
         of data.
         """
         bdec.entry.Entry.__init__(self, name, length, [child])
-        self._count = count
+        self.count = count
         self._end_entries = end_entries
         assert isinstance(child, bdec.entry.Entry)
 
@@ -53,8 +53,8 @@ class SequenceOf(bdec.entry.Entry):
             entry.add_listener(break_sequence)
 
         self._stop = False
-        if self._count is not None:
-            count = int(self._count)
+        if self.count is not None:
+            count = int(self.count)
             if count < 0:
                 raise NegativeSequenceofLoop(self, count)
 
@@ -80,8 +80,8 @@ class SequenceOf(bdec.entry.Entry):
 
     def _encode(self, query, parent):
         sequenceof = self._get_context(query, parent)
-        if self._count is not None and int(self._count) != len(sequenceof):
-            raise InvalidSequenceOfCount(self, self._count, sequenceof)
+        if self.count is not None and int(self.count) != len(sequenceof):
+            raise InvalidSequenceOfCount(self, self.count, sequenceof)
 
         for child in sequenceof:
             for data in self.children[0].encode(query, child):
