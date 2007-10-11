@@ -1,5 +1,8 @@
+## vim:set syntax=mako:
+
 ## Create the C 'type' of each protocol entry
 <%!
+    from bdec.choice import Choice
     from bdec.field import Field
     from bdec.sequence import Sequence
 %>
@@ -17,20 +20,33 @@ ${entry.name}*
 </%def>
 
 <%def name="define(entry)" >
-  %if isinstance(entry, Sequence):
     %for child in entry.children:
       %if not isinstance(child, Field):
 ${define(child)}
       %endif
     %endfor
 
+  %if isinstance(entry, Sequence):
 typedef struct 
 {
   %for child in entry.children:
     ${ctype(child)} ${child.name};
   %endfor
 } ${entry.name};
-  %else:
+  %elif isinstance(entry, Field):
 typdef ${ctype(entry)} ${child.name};
+  %elif isinstance(entry, Choice):
+typedef struct
+{
+    %for child in entry.children:
+      %if isinstance(child, Field):
+    ${ctype(child)}* ${child.name};
+      %else:
+    ${ctype(child)} ${child.name};
+      %endif
+    %endfor
+} ${entry.name};
+  %else:
+Unsupported entry ${entry}
   %endif
 </%def>

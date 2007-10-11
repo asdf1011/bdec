@@ -33,6 +33,8 @@ def _generate_template(output_dir, filename, lookup, template):
     try:
         context = mako.runtime.Context(output, **lookup)
         template.render_context(context)
+    except:
+        raise Exception(mako.exceptions.text_error_template().render())
     finally:
         output.close()
 

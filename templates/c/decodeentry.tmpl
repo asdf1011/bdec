@@ -4,11 +4,7 @@
     from bdec.sequence import Sequence
 %>
 
-<%def name="decodeField(entry, variable)">
-    if (buffer->buffer + ${entry.length / 8} > buffer->end)
-    {
-        return 0;
-    }
+<%def name="decodeFieldValue(entry, variable)">
   %if entry.format is Field.INTEGER:
     %if entry.length % 8 == 0:
       %if entry.encoding is Field.BIG_ENDIAN:
@@ -16,24 +12,31 @@
       %else:
     ${variable} = ${" + ".join("(buffer->buffer[%i] << %i)" % ((entry.length / 8) - i - 1, (entry.length / 8 - i - 1) * 8) for i in range(entry.length / 8))};
       %endif
-    buffer->buffer += ${entry.length / 8};
     %else:
-      #pragma error ("Non-byte integers not handled yet... ${entry}")
+      #error Non-byte integers not handled yet... ${entry}
     %endif
+  %elif entry.format is Field.TEXT:
+    ${variable} = malloc(${entry.length / 8} + 1);
+    memcpy(${variable}, buffer->buffer, ${entry.length / 8});
+    ${variable}[${entry.length / 8}] = 0;
+  %elif entry.format in [Field.BINARY, Field.HEX]:
+    #error Binary and hex field types not supported yet...
+  %endif
+</%def>
+
+<%def name="decodeField(entry, variable)">
+    if (buffer->buffer + ${entry.length / 8} > buffer->end)
+    {
+        return 0;
+    }
+    ${decodeFieldValue(entry, variable)}
+    buffer->buffer += ${entry.length / 8};
      %if entry.expected is not None:
     if (${variable} != ${int(entry.expected)})
     {
         return 0;
     }
      %endif
-  %elif entry.format is Field.TEXT:
-    ${variable} = malloc(${entry.length / 8} + 1);
-    memcpy(${variable}, buffer->buffer, ${entry.length / 8});
-    ${variable}[${entry.length / 8}] = 0;
-    buffer->buffer += ${entry.length / 8};
-  %elif entry.format in [Field.BINARY, Field.HEX]:
-    readBinary(&result, length);
-  %endif
 </%def>
 
 <%def name="decodeSequence(entry)">

@@ -6,6 +6,7 @@ import shutil
 import subprocess
 import unittest
 
+import bdec.choice as chc
 import bdec.data as dt
 import bdec.field as fld
 import bdec.output.xmlout as xmlout
@@ -93,6 +94,14 @@ class _CompilerTests:
 
         spec = seq.Sequence('blah', [fld.Field('cat', 16, fld.Field.INTEGER, encoding=fld.Field.LITTLE_ENDIAN)])
         self._decode(spec, 'ab')
+
+    def test_choice(self):
+        a = fld.Field('a', 8, fld.Field.INTEGER, expected=dt.Data('a'))
+        b = seq.Sequence('bob', [fld.Field('b', 8, fld.Field.INTEGER, expected=dt.Data('b'))])
+        spec = chc.Choice('blah', [a, b])
+        self._decode(spec, 'a')
+        self._decode(spec, 'b')
+        self._decode_failure(spec, 'c')
 
 
 class TestC(_CompilerTests, unittest.TestCase):

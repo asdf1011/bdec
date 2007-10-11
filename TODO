@@ -124,14 +124,6 @@ Priority: High
 Fields need to be able to handle non-byte aligned values.
 
 
-Support choice entry
---------------------
-
-Priority: High
-
-We need to support the choice entry type.
-
-
 Support sequenceof entry
 ------------------------
 
