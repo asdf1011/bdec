@@ -11,6 +11,7 @@ import bdec.data as dt
 import bdec.field as fld
 import bdec.output.xmlout as xmlout
 import bdec.sequence as seq
+import bdec.sequenceof as sof
 import bdec.tools.compiler as comp
 
 
@@ -103,6 +104,13 @@ class _CompilerTests:
         self._decode(spec, 'b')
         self._decode_failure(spec, 'c')
 
+    def test_sequenceof(self):
+        a = fld.Field('a', 8, fld.Field.INTEGER, expected=dt.Data('a'))
+        b = fld.Field('x', 8, fld.Field.INTEGER)
+        spec = sof.SequenceOf('blah', seq.Sequence('dog', [a, b]), 4)
+        self._decode(spec, 'a1a2a3a4')
+        self._decode(spec, 'axa8aaac')
+        self._decode_failure(spec, 'a1a3a3b4')
 
 class TestC(_CompilerTests, unittest.TestCase):
     COMPILER = "gcc"

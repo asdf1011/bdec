@@ -115,14 +115,6 @@ Priority: High
 Fields need to be able to handle non-byte aligned values.
 
 
-Support sequenceof entry
-------------------------
-
-Priority: High
-
-We need to support the sequenceof entry type.
-
-
 Support length expressions
 --------------------------
 

@@ -5,6 +5,7 @@
     from bdec.choice import Choice
     from bdec.field import Field
     from bdec.sequence import Sequence
+    from bdec.sequenceof import SequenceOf
 %>
 
 <%def name="ctype(entry)">
@@ -41,6 +42,12 @@ typedef struct
     %for child in entry.children:
     ${ctype(child)}* ${child.name};
     %endfor
+} ${entry.name};
+  %elif isinstance(entry, SequenceOf):
+typedef struct
+{
+    ${ctype(child)}* items;
+    unsigned int count;
 } ${entry.name};
   %else:
 Unsupported entry ${entry}

@@ -5,6 +5,7 @@
   from bdec.choice import Choice
   from bdec.field import Field
   from bdec.sequence import Sequence
+  from bdec.sequenceof import SequenceOf
  %>
 
 #include <stdio.h>
@@ -29,6 +30,18 @@ int decode_${entry.name}(Buffer* buffer, ${entry.name}* result)
     return 1;
   %elif isinstance(entry, Sequence):
     ${decodeentry.decodeSequence(entry)}
+    return 1;
+  %elif isinstance(entry, SequenceOf):
+    int i;
+    result->count = ${entry.count};
+    result->items = malloc(sizeof(${entry.children[0].name}) * result->count);
+    for (i = 0; i < result->count; ++i)
+    {
+        if (!decode_${entry.children[0].name}(buffer, &result->items[i]))
+        {
+            return 0;
+        }
+    }
     return 1;
   %elif isinstance(entry, Choice):
     memset(result, 0, sizeof(${entry.name}));
@@ -88,6 +101,12 @@ ${recursiveDecode(entry)}
     %for child in entry.children:
     ${recursivePrint(child, '%s.%s' % (variable, child.name))}
     %endfor
+  %elif isinstance(entry, SequenceOf):
+    int i;
+    for (i = 0; i < ${variable}.count; ++i)
+    {
+        ${recursivePrint(entry.children[0], '%s.items[i]' % variable)}
+    }
   %elif isinstance(entry, Choice):
     %for child in entry.children:
     if (${'%s.%s' % (variable, child.name)} != 0)
