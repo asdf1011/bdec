@@ -9,6 +9,13 @@ typedef struct
     // be in the range [0,8).
     unsigned int start_bit;
     unsigned char* end;
+}BitBuffer;
+
+// Structure to hold bit aligned data to be decoded.
+typedef struct
+{
+    unsigned char* buffer;
+    int length;
 }Buffer;
 
 #endif

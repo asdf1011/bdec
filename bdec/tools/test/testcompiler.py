@@ -133,6 +133,11 @@ class _CompilerTests:
         # cannot do it.
         self._decode(spec, '\x03\x00\x00\x53', do_encode=False)
 
+    def test_hex_decode(self):
+        a = fld.Field('a', 32, fld.Field.HEX)
+        spec = seq.Sequence('blah', [a])
+        self._decode(spec, 'abcd')
+
 class TestC(_CompilerTests, unittest.TestCase):
     COMPILER = "gcc"
     COMPILER_FLAGS = ["-Wall", '-g', '-o']
@@ -170,7 +175,7 @@ class TestC(_CompilerTests, unittest.TestCase):
             fclose(datafile);
 
             /* Attempt to decode the file */
-            Buffer buffer = {data, 0, data + length};
+            BitBuffer buffer = {data, 0, data + length};
             blah result;
             if (!decode_blah(&buffer, &result))
             {

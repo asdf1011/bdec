@@ -2,7 +2,7 @@
 #include <assert.h>
 #include "variable_integer.h"
 
-int decode_integer(Buffer* buffer, int num_bits)
+int decode_integer(BitBuffer* buffer, int num_bits)
 {
     int result = 0;
     while (num_bits > 0)
@@ -36,7 +36,7 @@ int decode_integer(Buffer* buffer, int num_bits)
     return result;
 }
 
-int decode_little_endian_integer(Buffer* buffer, int num_bits)
+int decode_little_endian_integer(BitBuffer* buffer, int num_bits)
 {
     // Little endian conversion only works for fields that are a multiple
     // of 8 bits.

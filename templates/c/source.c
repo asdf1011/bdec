@@ -24,7 +24,7 @@ ${recursiveDecode(child)}
   %endif
 %endfor
 
-int decode_${entry.name}(Buffer* buffer, ${entry.name}* result)
+int decode_${entry.name}(BitBuffer* buffer, ${entry.name}* result)
 {
   %if isinstance(entry, Field):
     ${decodeField(entry, "*result")};
@@ -46,7 +46,7 @@ int decode_${entry.name}(Buffer* buffer, ${entry.name}* result)
     return 1;
   %elif isinstance(entry, Choice):
     memset(result, 0, sizeof(${entry.name}));
-    Buffer temp;
+    BitBuffer temp;
     %for child in entry.children:
     // Attempt to decode ${child}...
       %if isinstance(child, Field):
@@ -80,6 +80,16 @@ ${recursiveDecode(entry)}
     printf("  %i\n", ${variable}); 
     %elif entry.format is Field.TEXT:
     printf("  %s\n", ${variable});
+    %elif entry.format is Field.HEX:
+    int i;
+    printf("  ");
+    for (i = 0; i < ${variable}.length; ++i)
+    {
+        printf("%x", ${variable}.buffer[i]);
+    }
+    printf("\n");
+    %else:
+    #error Don't know how to print ${entry}
     %endif
   %elif isinstance(entry, Sequence):
     %for child in entry.children:

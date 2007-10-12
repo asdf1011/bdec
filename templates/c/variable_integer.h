@@ -6,7 +6,7 @@
 
 // Both functions decode an integer from the buffer. There
 // must be enough data available.
-int decode_integer(Buffer* buffer, int num_bits);
-int decode_little_endian_integer(Buffer* buffer, int num_bits);
+int decode_integer(BitBuffer* buffer, int num_bits);
+int decode_little_endian_integer(BitBuffer* buffer, int num_bits);
 
 #endif

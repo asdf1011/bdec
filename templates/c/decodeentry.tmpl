@@ -21,8 +21,18 @@
     {
         ${variable}[i] = decode_integer(buffer, 8);
     }
-  %elif entry.format in [Field.BINARY, Field.HEX]:
-    #error Binary and hex field types not supported yet...
+  %elif entry.format is Field.HEX:
+    int i;
+    ${variable}.length = ${expr.length(entry)} / 8;
+    ${variable}.buffer = malloc(${variable}.length);
+    for (i = 0; i < ${variable}.length; ++i)
+    {
+        ${variable}.buffer[i] = decode_integer(buffer, 8);
+    }
+  %elif entry.format is Field.BINARY:
+    #error Binary field type not supported yet...
+  %else:
+    #error Unknown field type ${entry}
   %endif
 </%def>
 
