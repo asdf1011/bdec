@@ -97,7 +97,7 @@ class _CompilerTests:
         self._decode(spec, 'ab')
 
     def test_choice(self):
-        a = fld.Field('a', 8, fld.Field.INTEGER, expected=dt.Data('a'))
+        a = seq.Sequence('sue', [fld.Field('a', 8, fld.Field.INTEGER, expected=dt.Data('a'))])
         b = seq.Sequence('bob', [fld.Field('b', 8, fld.Field.INTEGER, expected=dt.Data('b'))])
         spec = chc.Choice('blah', [a, b])
         self._decode(spec, 'a')
@@ -111,6 +111,14 @@ class _CompilerTests:
         self._decode(spec, 'a1a2a3a4')
         self._decode(spec, 'axa8aaac')
         self._decode_failure(spec, 'a1a3a3b4')
+
+    def test_unaligned_bits(self):
+        a = fld.Field('a', 1, fld.Field.INTEGER)
+        b = fld.Field('b', 3, fld.Field.INTEGER)
+        c = fld.Field('c', 8, fld.Field.INTEGER)
+        d = fld.Field('d', 4, fld.Field.INTEGER)
+        spec = seq.Sequence('blah', [a,b,c,d])
+        self._decode(spec, 'ab')
 
 class TestC(_CompilerTests, unittest.TestCase):
     COMPILER = "gcc"
@@ -149,7 +157,7 @@ class TestC(_CompilerTests, unittest.TestCase):
             fclose(datafile);
 
             /* Attempt to decode the file */
-            Buffer buffer = {data, data + length};
+            Buffer buffer = {data, 0, data + length};
             blah result;
             if (!decode_blah(&buffer, &result))
             {

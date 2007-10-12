@@ -14,6 +14,7 @@
 
 #include "${entry.name}.h"
 #include "buffer.h"
+#include "variable_integer.h"
 
 ## Recursively create functions for decoding the entries contained within this protocol specification.
 <%def name="recursiveDecode(entry)">
@@ -49,24 +50,7 @@ int decode_${entry.name}(Buffer* buffer, ${entry.name}* result)
     %for child in entry.children:
     // Attempt to decode ${child}...
       %if isinstance(child, Field):
-    if (buffer->buffer + ${child.length / 8} <= buffer->end)
-    {
-        ${ctype.ctype(child)} ${decodeentry.decodeFieldValue(child, 'temp_' + child.name)}
-        %if child.expected is not None:
-        if (temp_${child.name} == ${int(child.expected)})
-        {
-            result->${child.name} = malloc(sizeof(${ctype.ctype(child)}));
-            *result->${child.name} = temp_${child.name};
-            buffer->buffer += ${child.length / 8};
-            return 1;
-        }
-        %else:
-        result->${child.name} = malloc(sizeof(${ctype.ctype(child)}));
-        *result->${child.name} = *temp;
-        buffer->buffer += ${entry.length / 8};
-        return 1;
-        %endif
-    }
+    #error Don't support decoding fields directly under a choice yet (${child})...
       %else:
     temp = *buffer;
     ${child.name}* temp_${child.name} = malloc(sizeof(${child.name}));

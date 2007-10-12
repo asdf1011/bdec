@@ -5,6 +5,9 @@
 typedef struct 
 {
     unsigned char* buffer;
+    // The start bit is the offset in buffer to start decoding at. It should
+    // be in the range [0,8).
+    unsigned int start_bit;
     unsigned char* end;
 }Buffer;
 
