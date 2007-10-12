@@ -46,7 +46,7 @@ class _CompilerTests:
         """
         raise NotImplementedError()
 
-    def _decode(self, spec, data, expected_exit_code=0):
+    def _decode(self, spec, data, expected_exit_code=0, do_encode=True):
         self._compile(spec)
 
         data_filename = os.path.join(self.TEST_DIR, 'data.bin')
@@ -56,7 +56,7 @@ class _CompilerTests:
         exit_code, xml = self._decode_file(data_filename)
         self.assertEqual(expected_exit_code, exit_code)
 
-        if exit_code == 0:
+        if exit_code == 0 and do_encode:
             # Take the xml output, and ensure the re-encoded data has the same
             # binary value.
             binary = str(reduce(lambda a,b:a+b, xmlout.encode(spec, xml)))
@@ -129,7 +129,9 @@ class _CompilerTests:
         value.add_entry(a)
         b = fld.Field('b', expr._Delayed(operator.__mul__, value, 8), fld.Field.INTEGER)
         spec = seq.Sequence('blah', [a,b])
-        self._decode(spec, '\x03\x00\x00\x53')
+        # We don't attempt to re-encode the data, because the python encoder
+        # cannot do it.
+        self._decode(spec, '\x03\x00\x00\x53', do_encode=False)
 
 class TestC(_CompilerTests, unittest.TestCase):
     COMPILER = "gcc"

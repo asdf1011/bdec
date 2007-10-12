@@ -10,13 +10,17 @@
     %if entry.encoding is Field.BIG_ENDIAN:
     ${variable} = decode_integer(buffer, ${expr.length(entry)});
     %else:
-    ${variable} = decode_little_endian_integer(buffer, ${entry.length(entry)});
+    ${variable} = decode_little_endian_integer(buffer, ${expr.length(entry)});
     %endif
   %elif entry.format is Field.TEXT:
-    ${variable} = malloc(${entry.length / 8} + 1);
-    memcpy(${variable}, buffer->buffer, ${entry.length / 8});
-    ${variable}[${entry.length / 8}] = 0;
-    buffer->buffer += ${entry.length / 8};
+    int i;
+    int ${entry.name}_length = ${expr.length(entry)} / 8;
+    ${variable} = malloc(${entry.name}_length + 1);
+    ${variable}[${entry.name}_length] = 0;
+    for (i = 0; i < ${entry.name}_length; ++i)
+    {
+        ${variable}[i] = decode_integer(buffer, 8);
+    }
   %elif entry.format in [Field.BINARY, Field.HEX]:
     #error Binary and hex field types not supported yet...
   %endif
