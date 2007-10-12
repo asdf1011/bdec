@@ -107,14 +107,6 @@ eg::
 C language backend
 ==================
 
-Support fields that aren't byte aligned
----------------------------------------
-
-Priority: High
-
-Fields need to be able to handle non-byte aligned values.
-
-
 Support length expressions
 --------------------------
 
