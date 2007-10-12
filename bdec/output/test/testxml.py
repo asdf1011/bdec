@@ -6,6 +6,7 @@ import bdec.data as dt
 import bdec.field as fld
 import bdec.output.xmlout as xml
 import bdec.sequence as seq
+import bdec.sequenceof as sof
 
 class TestXml(unittest.TestCase):
     def test_field(self):
@@ -66,6 +67,12 @@ class TestXml(unittest.TestCase):
         # Now test that we can re-encode verbose generated xml...
         data = reduce(lambda a,b:a+b, xml.encode(sequence, text))
         self.assertEqual("mzip", str(data))
+
+    def test_encode_sequenceof(self):
+        spec = sof.SequenceOf('cat', fld.Field('dog', 8, fld.Field.TEXT), 4)
+        text = "<cat> <dog>a</dog> <dog>b</dog> <dog>c</dog> <dog>d</dog> </cat>"
+        data = reduce(lambda a,b:a+b, xml.encode(spec, text))
+        self.assertEqual("abcd", str(data))
 
 if __name__ == "__main__":
     unittest.main()

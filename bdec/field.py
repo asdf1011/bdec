@@ -69,7 +69,7 @@ class BadFormatError(FieldError):
         self.expected_type = expected_type
 
     def __str__(self):
-        return "BadFormatError: %s expected %s got %s" % (self.field, self.expected_type, self.data)
+        return "BadFormatError: %s expected %s got '%s'" % (self.field, self.expected_type, self.data)
 
 
 class FieldDataError(FieldError):

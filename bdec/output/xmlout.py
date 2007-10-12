@@ -7,6 +7,7 @@ import xml.sax.xmlreader
 
 import bdec.entry as ent
 import bdec.field as fld
+import bdec.sequenceof as sof
 
 def _escape_name(name):
     return name.replace(' ', '-').replace('(', '_').replace(')', '_').replace(':', '_')
@@ -54,6 +55,25 @@ def to_string(decoder, binary, verbose=False):
     to_file(decoder, binary, buffer, verbose=verbose)
     return buffer.getvalue()
 
+class _DummyElement:
+    """Class to workaround the fact that entries of a sequenceof are asked for themselves. """
+    def __init__(self, child):
+        self.childNodes = [child]
+
+class _SequenceOfIter:
+    """A class to iterate over xml children entries from a sequenceof. """
+    def __init__(self, child_nodes, child):
+        self._child_nodes = child_nodes
+        self._child = child
+
+    def __iter__(self):
+        for node in self._child_nodes:
+            if node.nodeType == xml.dom.Node.ELEMENT_NODE:
+                # The object we return now will get asked for the child object,
+                # but we allready have the child object. To work around this we
+                # will create a 'dummy' element, with just this one node.
+                yield _DummyElement(node)
+
 
 def _query_element(obj, child):
     """
@@ -64,6 +84,11 @@ def _query_element(obj, child):
     name = _escape_name(child.name)
     for child_node in obj.childNodes:
         if child_node.nodeType == xml.dom.Node.ELEMENT_NODE and child_node.tagName == name:
+            if isinstance(child, sof.SequenceOf):
+                # This element represents a sequence of, so we'll return an
+                # object to iterate over the children.
+                return _SequenceOfIter(child_node.childNodes, child.children[0])
+
             text = ""
             for subchild in child_node.childNodes:
                 if subchild.nodeType == xml.dom.Node.ELEMENT_NODE:

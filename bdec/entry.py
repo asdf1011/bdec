@@ -171,7 +171,7 @@ class Entry(object):
         object. This query should raise a MissingInstanceError if the instance
         could not be found.
         
-        Returns an iterator object for a series of data objects.
+        Should return an iterable object for SequenceOf entries.
         """
         encode_length = 0
         for data in self._encode(query, parent_context):
