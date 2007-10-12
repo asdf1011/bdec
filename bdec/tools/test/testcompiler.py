@@ -1,5 +1,6 @@
 
 import glob
+import operator
 import os
 import os.path
 import shutil
@@ -12,6 +13,8 @@ import bdec.field as fld
 import bdec.output.xmlout as xmlout
 import bdec.sequence as seq
 import bdec.sequenceof as sof
+import bdec.spec.expression as expr
+import bdec.spec.xmlspec as xmlspec
 import bdec.tools.compiler as comp
 
 
@@ -119,6 +122,14 @@ class _CompilerTests:
         d = fld.Field('d', 4, fld.Field.INTEGER)
         spec = seq.Sequence('blah', [a,b,c,d])
         self._decode(spec, 'ab')
+
+    def test_variable_length_integer(self):
+        a = fld.Field('a', 8, fld.Field.INTEGER)
+        value = xmlspec._ValueResult()
+        value.add_entry(a)
+        b = fld.Field('b', expr._Delayed(operator.__mul__, value, 8), fld.Field.INTEGER)
+        spec = seq.Sequence('blah', [a,b])
+        self._decode(spec, '\x03\x00\x00\x53')
 
 class TestC(_CompilerTests, unittest.TestCase):
     COMPILER = "gcc"

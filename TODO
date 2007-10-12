@@ -1,3 +1,5 @@
+.. vim:set syntax=rst:
+
 These page is a list of things it would be nice to have in both the
 `protocol specification`_, the implementation_, and in `other
 areas`_.
@@ -107,12 +109,14 @@ eg::
 C language backend
 ==================
 
-Support length expressions
---------------------------
+Support complex length expressions
+----------------------------------
 
-Priority: High
+Priority: Medium
 
-We need to support the use of expressions.
+We currently support the use of simple expressions (where we are referencing
+another item in the same sequence). We also need to support the use of length,
+and more arbitrary references (including sequence values).
 
 
 Support encoding

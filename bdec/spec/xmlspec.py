@@ -96,8 +96,10 @@ class _ValueResult:
     """
     def __init__(self):
         self.length = None
+        self.entries = []
 
     def add_entry(self, entry):
+        self.entries.append(entry)
         entry.add_listener(self)
 
     def __call__(self, entry, length, context):

@@ -1,4 +1,5 @@
 ## vim:set syntax=mako:
+<%namespace file="/expression.tmpl" name="expr" />
 <%!
     from bdec.field import Field
     from bdec.sequence import Sequence
@@ -7,9 +8,9 @@
 <%def name="decodeFieldValue(entry, variable)">
   %if entry.format is Field.INTEGER:
     %if entry.encoding is Field.BIG_ENDIAN:
-    ${variable} = decode_integer(buffer, ${entry.length});
+    ${variable} = decode_integer(buffer, ${expr.length(entry)});
     %else:
-    ${variable} = decode_little_endian_integer(buffer, ${entry.length});
+    ${variable} = decode_little_endian_integer(buffer, ${entry.length(entry)});
     %endif
   %elif entry.format is Field.TEXT:
     ${variable} = malloc(${entry.length / 8} + 1);
@@ -22,7 +23,7 @@
 </%def>
 
 <%def name="decodeField(entry, variable)">
-    if ((buffer->end - buffer->buffer) * 8 < ${entry.length})
+    if ((buffer->end - buffer->buffer) * 8 < ${expr.length(entry)})
     {
         return 0;
     }

@@ -1,0 +1,36 @@
+## vim:set syntax=mako:
+<%!
+    from bdec.spec.xmlspec import _ValueResult
+    from bdec.spec.expression import _Delayed
+    import operator
+%>
+
+<%def name="get_op(op)">
+    %if op is operator.__div__:
+/
+    %elif op is operator.__mul__:
+*
+    %elif op is operator.__sub__:
+-
+    %elif op is operator.__add__:
++
+    %else:
+#error Unknown operator type!
+    %endif
+</%def>
+
+<%def name="recursive_expr(length)">
+  %if isinstance(length, int):
+${length}
+  %elif isinstance(length, _ValueResult):
+result->${length.entries[0].name}
+  %elif isinstance(length, _Delayed):
+(${recursive_expr(length.left)} ${get_op(length.op)} ${recursive_expr(length.right)}) 
+  %else:
+  #error Unknown length item ${length} 
+  %endif
+</%def>
+
+<%def name="length(entry)">
+${recursive_expr(entry.length)}
+</%def>
