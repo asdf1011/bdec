@@ -119,6 +119,15 @@ another item in the same sequence). We also need to support the use of length,
 and more arbitrary references (including sequence values).
 
 
+Support common elements
+-----------------------
+
+Priority: High
+
+We need to support 'common' protocol entries (entries that can be used in
+multiple places).
+
+
 Support encoding
 ----------------
 
