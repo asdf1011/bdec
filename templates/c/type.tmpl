@@ -16,6 +16,8 @@ int
 char*
     %elif entry.format is Field.HEX:
 Buffer
+    %elif entry.format is Field.BINARY:
+BitBuffer
     %else:
 #error Unhandled field format '${entry}'!
     %endif

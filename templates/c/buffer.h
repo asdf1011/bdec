@@ -8,7 +8,7 @@ typedef struct
     // The start bit is the offset in buffer to start decoding at. It should
     // be in the range [0,8).
     unsigned int start_bit;
-    unsigned char* end;
+    unsigned int num_bits;
 }BitBuffer;
 
 // Structure to hold bit aligned data to be decoded.

@@ -88,6 +88,15 @@ ${recursiveDecode(entry)}
         printf("%x", ${variable}.buffer[i]);
     }
     printf("\n");
+    %elif entry.format is Field.BINARY:
+    BitBuffer temp = ${variable};
+    int i;
+    printf("  ");
+    for (i = 0; i < ${variable}.num_bits; ++i)
+    {
+        printf("%i", decode_integer(&temp, 1));
+    }
+    printf("\n");
     %else:
     #error Don't know how to print ${entry}
     %endif

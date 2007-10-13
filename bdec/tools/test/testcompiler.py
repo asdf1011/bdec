@@ -138,6 +138,13 @@ class _CompilerTests:
         spec = seq.Sequence('blah', [a])
         self._decode(spec, 'abcd')
 
+    def test_bits_decode(self):
+        a = fld.Field('a', 6, fld.Field.INTEGER)
+        b = fld.Field('b', 6, fld.Field.BINARY)
+        c = fld.Field('c', 4, fld.Field.INTEGER)
+        spec = seq.Sequence('blah', [a, b, c])
+        self._decode(spec, 'ab')
+
 class TestC(_CompilerTests, unittest.TestCase):
     COMPILER = "gcc"
     COMPILER_FLAGS = ["-Wall", '-g', '-o']
@@ -175,7 +182,7 @@ class TestC(_CompilerTests, unittest.TestCase):
             fclose(datafile);
 
             /* Attempt to decode the file */
-            BitBuffer buffer = {data, 0, data + length};
+            BitBuffer buffer = {data, 0, length * 8};
             blah result;
             if (!decode_blah(&buffer, &result))
             {

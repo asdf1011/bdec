@@ -7,7 +7,7 @@ int decode_integer(BitBuffer* buffer, int num_bits)
     int result = 0;
     while (num_bits > 0)
     {
-        assert(buffer->buffer != buffer->end);
+        assert(buffer->num_bits > 0);
 
         // We need to mask the higher and lower bits we don't care about
         unsigned char mask = 0xFF >> buffer->start_bit;
@@ -24,6 +24,7 @@ int decode_integer(BitBuffer* buffer, int num_bits)
         unsigned int data = (buffer->buffer[0] & mask) >> unused_trailing_bits;
 
         buffer->start_bit += bits_used;
+        buffer->num_bits -= bits_used;
         assert(buffer->start_bit <= 8);
         if (buffer->start_bit == 8)
         {
