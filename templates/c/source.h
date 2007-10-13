@@ -5,6 +5,11 @@
 #define ${entry.name}_HEADER_GUARD
 
 #include "buffer.h"
+%for common_entry in common:
+  %if common_entry is not entry:
+#include "${common_entry.name}.h"
+  %endif
+%endfor
 
 ${ctype.define(entry)}
 

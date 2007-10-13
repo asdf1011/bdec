@@ -44,12 +44,32 @@ def _generate_template(output_dir, filename, lookup, template):
     finally:
         output.close()
 
-def generate_code(spec, template_path, output_dir):
+def _recursive_update(common_references, common, entry):
+    if entry in common:
+        common_references.add(entry)
+    else:
+        for child in entry.children:
+            _recursive_update(common_references, common, child)
+
+def generate_code(spec, template_path, output_dir, common_entries=[]):
+    """
+    Generate code to decode the given specification.
+    """
     common_templates, entry_templates = _load_templates(template_path)
 
     lookup = {}
     for filename, template in common_templates:
         _generate_template(output_dir, filename, lookup, template)
+    entries = set(common_entries)
+    entries.add(spec)
     for filename, template in entry_templates:
-        lookup['entry'] = spec
-        _generate_template(output_dir, filename.replace('source', spec.name), lookup, template)
+        for entry in entries:
+            referenced_entries = set()
+            common_items = entries.copy()
+            common_items.remove(entry)
+            _recursive_update(referenced_entries, common_items, entry)
+
+            lookup['entry'] = entry
+            lookup['common'] = referenced_entries
+            _generate_template(output_dir, filename.replace('source', entry.name), lookup, template)
+

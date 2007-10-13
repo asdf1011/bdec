@@ -19,7 +19,7 @@
 ## Recursively create functions for decoding the entries contained within this protocol specification.
 <%def name="recursiveDecode(entry)">
 %for child in entry.children:
-  %if not isinstance(child, Field):
+  %if not isinstance(child, Field) and child not in common:
 ${recursiveDecode(child)}
   %endif
 %endfor
@@ -73,14 +73,17 @@ ${recursiveDecode(entry)}
 
 
 ## Recursively create functions for printing the entries contained within this protocol specification.
-<%def name="recursivePrint(entry, variable)">
-    printf("<${entry.name}>\n");
-  %if isinstance(entry, Field):
-    %if entry.format is Field.INTEGER:
+<%def name="recursivePrint(item, variable)">
+  %if item in common and item is not entry:
+    print_xml_${item.name}(&${variable});
+  %else:
+    printf("<${item.name}>\n");
+    %if isinstance(item, Field):
+      %if item.format is Field.INTEGER:
     printf("  %i\n", ${variable}); 
-    %elif entry.format is Field.TEXT:
+      %elif item.format is Field.TEXT:
     printf("  %s\n", ${variable});
-    %elif entry.format is Field.HEX:
+      %elif item.format is Field.HEX:
     int i;
     printf("  ");
     for (i = 0; i < ${variable}.length; ++i)
@@ -88,7 +91,7 @@ ${recursiveDecode(entry)}
         printf("%x", ${variable}.buffer[i]);
     }
     printf("\n");
-    %elif entry.format is Field.BINARY:
+      %elif item.format is Field.BINARY:
     BitBuffer temp = ${variable};
     int i;
     printf("  ");
@@ -97,30 +100,31 @@ ${recursiveDecode(entry)}
         printf("%i", decode_integer(&temp, 1));
     }
     printf("\n");
-    %else:
-    #error Don't know how to print ${entry}
-    %endif
-  %elif isinstance(entry, Sequence):
-    %for child in entry.children:
+      %else:
+    #error Don't know how to print ${item}
+      %endif
+    %elif isinstance(item, Sequence):
+      %for child in item.children:
     ${recursivePrint(child, '%s.%s' % (variable, child.name))}
-    %endfor
-  %elif isinstance(entry, SequenceOf):
+      %endfor
+    %elif isinstance(item, SequenceOf):
     int i;
     for (i = 0; i < ${variable}.count; ++i)
     {
-        ${recursivePrint(entry.children[0], '%s.items[i]' % variable)}
+        ${recursivePrint(item.children[0], '%s.items[i]' % variable)}
     }
-  %elif isinstance(entry, Choice):
-    %for child in entry.children:
+    %elif isinstance(item, Choice):
+      %for child in item.children:
     if (${'%s.%s' % (variable, child.name)} != 0)
     {
         ${recursivePrint(child, "(*%s.%s)" % (variable, child.name))}
     }
-    %endfor
-  %else:
-    #error Don't know how to print ${entry}
+      %endfor
+    %else:
+    #error Don't know how to print ${item}
+    %endif
+    printf("</${item.name}>\n");
   %endif
-    printf("</${entry.name}>\n");
 </%def>
 
 void print_xml_${entry.name}(${entry.name}* data)

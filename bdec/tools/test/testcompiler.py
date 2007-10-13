@@ -26,7 +26,7 @@ class _CompilerTests:
     TEST_DIR = os.path.join(os.path.dirname(__file__), 'temp')
     EXECUTABLE = os.path.join(TEST_DIR, 'decode')
 
-    def _compile(self, spec):
+    def _compile(self, spec, common):
         if os.path.exists(self.TEST_DIR):
             shutil.rmtree(self.TEST_DIR)
         os.mkdir(self.TEST_DIR)
@@ -34,7 +34,7 @@ class _CompilerTests:
         main.write(self.ENTRYPOINT)
         main.close()
 
-        comp.generate_code(spec, self.TEMPLATE_PATH, self.TEST_DIR)
+        comp.generate_code(spec, self.TEMPLATE_PATH, self.TEST_DIR, common)
 
         files = glob.glob(os.path.join(self.TEST_DIR, '*.%s' % self.FILE_TYPE))
         if subprocess.call([self.COMPILER] + self.COMPILER_FLAGS + [self.EXECUTABLE] + files) != 0:
@@ -46,8 +46,8 @@ class _CompilerTests:
         """
         raise NotImplementedError()
 
-    def _decode(self, spec, data, expected_exit_code=0, do_encode=True):
-        self._compile(spec)
+    def _decode(self, spec, data, expected_exit_code=0, do_encode=True, common=[]):
+        self._compile(spec, common)
 
         data_filename = os.path.join(self.TEST_DIR, 'data.bin')
         datafile = open(data_filename, 'wb')
@@ -72,6 +72,14 @@ class _CompilerTests:
     def test_sequence_in_sequence(self):
         spec = seq.Sequence('blah', [seq.Sequence('hello', [fld.Field('world', 8, fld.Field.INTEGER)]), fld.Field('bob', 8, fld.Field.INTEGER)])
         self._decode(spec, 'ab')
+
+    def test_common_sequence(self):
+        a = seq.Sequence('a', [fld.Field('a1', 8, fld.Field.INTEGER), fld.Field('a2', 8, fld.Field.INTEGER)])
+        b = seq.Sequence('b', [a])
+        spec = seq.Sequence('blah', [a, b])
+        self._decode(spec, 'abcd', common=[a])
+        self.assertTrue(os.path.exists(os.path.join(self.TEST_DIR, 'blah.%s' % self.FILE_TYPE)))
+        self.assertTrue(os.path.exists(os.path.join(self.TEST_DIR, 'a.%s' % self.FILE_TYPE)))
 
     def test_decode_string(self):
         spec = seq.Sequence('blah', [fld.Field('bob', 48, fld.Field.TEXT)])
