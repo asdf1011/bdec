@@ -153,6 +153,14 @@ class _CompilerTests:
         spec = seq.Sequence('blah', [a, b, c])
         self._decode(spec, 'ab')
 
+    def test_end_sequenceof(self):
+        # Note that we are wrapping the bugs in sequences because we cannot
+        # store fields directly under a choice (see issue 20).
+        null = seq.Sequence('fixa', [fld.Field('null', 8, fld.Field.INTEGER, expected=dt.Data('\x00'))])
+        char = seq.Sequence('fixb', [fld.Field('character', 8, fld.Field.TEXT)])
+        spec = sof.SequenceOf('blah', chc.Choice('byte', [null, char]), None, end_entries=[null])
+        self._decode(spec, 'rabbit\0')
+
 class TestC(_CompilerTests, unittest.TestCase):
     COMPILER = "gcc"
     COMPILER_FLAGS = ["-Wall", '-g', '-o']

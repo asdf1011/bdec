@@ -35,7 +35,7 @@ class SequenceOf(bdec.entry.Entry):
         """
         bdec.entry.Entry.__init__(self, name, length, [child])
         self.count = count
-        self._end_entries = end_entries
+        self.end_entries = end_entries
         assert isinstance(child, bdec.entry.Entry)
 
     def _loop(self, child_context, data):
@@ -43,7 +43,7 @@ class SequenceOf(bdec.entry.Entry):
         # for stack based notifications (eg: recursive sequenceof entries,
         # where only the outer entry wants to be notified).
         stop = [False]
-        for entry, offset in self._end_entries:
+        for entry, offset in self.end_entries:
             def break_sequence(entry, length, context):
                 # The entry we have been waiting for has triggered. In the event
                 # that we are a recursive entry, we need to make sure that is

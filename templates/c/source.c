@@ -24,24 +24,45 @@ ${recursiveDecode(child)}
   %endif
 %endfor
 
-int decode_${entry.name}(BitBuffer* buffer, ${entry.name}* result)
+int decode_${entry.name}(BitBuffer* buffer, ${entry.name}* result${decodeentry.define_params(entry)})
 {
   %if isinstance(entry, Field):
     ${decodeField(entry, "*result")};
+    %if is_end_sequenceof(entry):
+    *should_end = 1;
+    %endif
     return 1;
   %elif isinstance(entry, Sequence):
     ${decodeentry.decodeSequence(entry)}
+    %if is_end_sequenceof(entry):
+    *should_end = 1;
+    %endif
     return 1;
   %elif isinstance(entry, SequenceOf):
     int i;
+    %if entry.count is not None:
     result->count = ${entry.count};
     result->items = malloc(sizeof(${entry.children[0].name}) * result->count);
     for (i = 0; i < result->count; ++i)
     {
-        if (!decode_${entry.children[0].name}(buffer, &result->items[i]))
+    %else:
+    int should_end_sequenceof = 0;
+    int* should_end = &should_end_sequenceof;
+    result->items = 0;
+    result->count = 0;
+    while (!should_end_sequenceof)
+    {
+        i = result->count;
+        ++result->count;
+        result->items = realloc(result->items, sizeof(${entry.children[0].name}) * (result->count + 1));
+    %endif
+        if (!decode_${entry.children[0].name}(buffer, &result->items[i]${decodeentry.params(entry.children[0])}))
         {
             return 0;
         }
+      %if is_end_sequenceof(entry):
+      *should_end = 1;
+      %endif
     }
     return 1;
   %elif isinstance(entry, Choice):
@@ -54,7 +75,7 @@ int decode_${entry.name}(BitBuffer* buffer, ${entry.name}* result)
       %else:
     temp = *buffer;
     ${child.name}* temp_${child.name} = malloc(sizeof(${child.name}));
-    if (decode_${child.name}(&temp, temp_${child.name}))
+    if (decode_${child.name}(&temp, temp_${child.name}${decodeentry.params(child)}))
     {
         *buffer = temp;
         result->${child.name} = temp_${child.name};
@@ -62,7 +83,6 @@ int decode_${entry.name}(BitBuffer* buffer, ${entry.name}* result)
     }
       %endif
     %endfor
-
     // Decode failed, no options succeeded...
     return 0;
   %endif

@@ -5,6 +5,31 @@
     from bdec.sequence import Sequence
 %>
 
+<%!
+def _define_params(entry, get_params):
+    result = ""
+    for param in get_params(entry):
+        if param.direction is param.IN:
+            result += ", int %s" % param.name
+        else:
+            result += ", int* %s" % param.name
+    return result
+
+def _params(entry, get_params):
+    result = ""
+    for param in get_params(entry):
+        result += ", %s" % param.name
+    return result
+%>
+
+<%def name="define_params(entry)">
+${_define_params(entry, get_params)}
+</%def>
+
+<%def name="params(entry)">
+${_params(entry, get_params)}
+</%def>
+
 <%def name="decodeFieldValue(entry, variable)">
   %if entry.format is Field.INTEGER:
     %if entry.encoding is Field.BIG_ENDIAN:
@@ -61,7 +86,7 @@
     %if isinstance(child, Field):
     ${decodeField(child, 'result->' + child.name)}
     %else:
-    if (!decode_${child.name}(buffer, &result->${child.name}))
+    if (!decode_${child.name}(buffer, &result->${child.name}${params(child)}))
     {
         return 0;
     }
