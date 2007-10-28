@@ -26,6 +26,9 @@ ${recursiveDecode(child)}
 
 int decode_${entry.name}(BitBuffer* buffer, ${entry.name}* result${decodeentry.define_params(entry)})
 {
+  %for local in local_vars(entry):
+      int ${local} = 0;
+  %endfor
   %if isinstance(entry, Field):
     ${decodeField(entry, "*result")};
     %if is_end_sequenceof(entry):
@@ -46,17 +49,15 @@ int decode_${entry.name}(BitBuffer* buffer, ${entry.name}* result${decodeentry.d
     for (i = 0; i < result->count; ++i)
     {
     %else:
-    int should_end_sequenceof = 0;
-    int* should_end = &should_end_sequenceof;
     result->items = 0;
     result->count = 0;
-    while (!should_end_sequenceof)
+    while (!should_end)
     {
         i = result->count;
         ++result->count;
         result->items = realloc(result->items, sizeof(${entry.children[0].name}) * (result->count + 1));
     %endif
-        if (!decode_${entry.children[0].name}(buffer, &result->items[i]${decodeentry.params(entry.children[0])}))
+        if (!decode_${entry.children[0].name}(buffer, &result->items[i]${decodeentry.params(entry, entry.children[0])}))
         {
             return 0;
         }
@@ -75,7 +76,7 @@ int decode_${entry.name}(BitBuffer* buffer, ${entry.name}* result${decodeentry.d
       %else:
     temp = *buffer;
     ${child.name}* temp_${child.name} = malloc(sizeof(${child.name}));
-    if (decode_${child.name}(&temp, temp_${child.name}${decodeentry.params(child)}))
+    if (decode_${child.name}(&temp, temp_${child.name}${decodeentry.params(entry, child)}))
     {
         *buffer = temp;
         result->${child.name} = temp_${child.name};

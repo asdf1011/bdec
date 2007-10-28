@@ -105,6 +105,11 @@ class _SequenceOfParamLookup:
     def is_end_sequenceof(self, entry):
         return entry in self._end_sequenceof_entries
 
+def _get_locals(entry):
+    if isinstance(entry, sof.SequenceOf):
+        if entry.end_entries:
+            return ['should_end']
+    return []
 
 def generate_code(spec, template_path, output_dir, common_entries=[]):
     """
@@ -129,5 +134,6 @@ def generate_code(spec, template_path, output_dir, common_entries=[]):
             lookup['common'] = referenced_entries
             lookup['get_params'] = sequenceof_lookup.get_params
             lookup['is_end_sequenceof'] = sequenceof_lookup.is_end_sequenceof
+            lookup['local_vars'] = _get_locals
             _generate_template(output_dir, filename.replace('source', entry.name), lookup, template)
 
