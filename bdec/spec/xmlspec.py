@@ -90,47 +90,6 @@ class UndecodedReferenceError(Exception):
     We don't derive this from DecodeError, as it is an internal program error.
     """
 
-class _ValueResult:
-    """
-    Object returning the result of a entry when cast to an integer.
-    """
-    def __init__(self):
-        self.length = None
-        self.entries = []
-
-    def add_entry(self, entry):
-        self.entries.append(entry)
-        entry.add_listener(self)
-
-    def __call__(self, entry, length, context):
-        if isinstance(entry, fld.Field):
-            self.length = int(entry)
-        elif isinstance(entry, seq.Sequence):
-            self.length = int(entry.value)
-        else:
-            raise Exception("Don't know how to get the result of %s" % entry)
-
-    def __int__(self):
-        if self.length is None:
-            raise UndecodedReferenceError()
-        return self.length
-
-class _LengthResult:
-    """
-    Object returning the length of a decoded entry.
-    """
-    def __init__(self, entries):
-        for entry in entries:
-            entry.add_listener(self)
-        self.length = None
-
-    def __call__(self, entry, length, context):
-        self.length = length
-
-    def __int__(self):
-        if self.length is None:
-            raise UndecodedReferenceError()
-        return self.length
 
 class _ReferencedEntry(ent.Entry):
     """
@@ -345,7 +304,7 @@ class _Handler(xml.sax.handler.ContentHandler):
         """
         Create an object that returns the length of decoded data in an entry.
         """
-        return _LengthResult(self._get_entries(fullname))
+        return exp.LengthResult(self._get_entries(fullname))
 
     def _query_entry_value(self, fullname):
         """
@@ -357,7 +316,7 @@ class _Handler(xml.sax.handler.ContentHandler):
         Typically only fields have a value, but sequences may also be assigned
         values.
         """
-        result = _ValueResult()
+        result = exp.ValueResult()
         for entry in self._get_entries(fullname):
             if isinstance(entry, fld.Field):
                 result.add_entry(entry)

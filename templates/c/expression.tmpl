@@ -1,7 +1,6 @@
 ## vim:set syntax=mako:
 <%!
-    from bdec.spec.xmlspec import _ValueResult
-    from bdec.spec.expression import _Delayed
+    from bdec.spec.expression import Delayed, ValueResult
     import operator
 %>
 
@@ -22,9 +21,9 @@
 <%def name="recursive_expr(length)">
   %if isinstance(length, int):
 ${length}
-  %elif isinstance(length, _ValueResult):
+  %elif isinstance(length, ValueResult):
 result->${length.entries[0].name}
-  %elif isinstance(length, _Delayed):
+  %elif isinstance(length, Delayed):
 (${recursive_expr(length.left)} ${get_op(length.op)} ${recursive_expr(length.right)}) 
   %else:
   #error Unknown length item ${length} 

@@ -8,7 +8,7 @@ class ExpressionError(bdec.spec.LoadError):
     def __str__(self):
         return str(self.error)
 
-class _Delayed:
+class Delayed:
     """
     Class to delay the operation of an integer operation.
 
@@ -24,6 +24,50 @@ class _Delayed:
     def __int__(self):
         return self.op(int(self.left), int(self.right))
 
+class ValueResult:
+    """
+    Object returning the result of a entry when cast to an integer.
+    """
+    def __init__(self):
+        self.length = None
+        self.entries = []
+
+    def add_entry(self, entry):
+        self.entries.append(entry)
+        entry.add_listener(self)
+
+    def __call__(self, entry, length, context):
+        if isinstance(entry, fld.Field):
+            self.length = int(entry)
+        elif isinstance(entry, seq.Sequence):
+            self.length = int(entry.value)
+        else:
+            raise Exception("Don't know how to get the result of %s" % entry)
+
+    def __int__(self):
+        if self.length is None:
+            raise UndecodedReferenceError()
+        return self.length
+
+
+class LengthResult:
+    """
+    Object returning the length of a decoded entry.
+    """
+    def __init__(self, entries):
+        for entry in entries:
+            entry.add_listener(self)
+        self.length = None
+
+    def __call__(self, entry, length, context):
+        self.length = length
+
+    def __int__(self):
+        if self.length is None:
+            raise UndecodedReferenceError()
+        return self.length
+
+
 def _half(op):
     """
     Create a handler to handle half of a binary expression.
@@ -32,7 +76,7 @@ def _half(op):
     of the binary expression.
     """
     def handler(s,l,t):
-        return lambda left: _Delayed(op, left, t[1])
+        return lambda left: Delayed(op, left, t[1])
     return handler
 
 def _collapse(s,l,t):

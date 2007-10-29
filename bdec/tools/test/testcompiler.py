@@ -14,7 +14,6 @@ import bdec.output.xmlout as xmlout
 import bdec.sequence as seq
 import bdec.sequenceof as sof
 import bdec.spec.expression as expr
-import bdec.spec.xmlspec as xmlspec
 import bdec.tools.compiler as comp
 
 
@@ -133,9 +132,9 @@ class _CompilerTests:
 
     def test_variable_length_integer(self):
         a = fld.Field('a', 8, fld.Field.INTEGER)
-        value = xmlspec._ValueResult()
+        value = expr.ValueResult()
         value.add_entry(a)
-        b = fld.Field('b', expr._Delayed(operator.__mul__, value, 8), fld.Field.INTEGER)
+        b = fld.Field('b', expr.Delayed(operator.__mul__, value, 8), fld.Field.INTEGER)
         spec = seq.Sequence('blah', [a,b])
         # We don't attempt to re-encode the data, because the python encoder
         # cannot do it.
