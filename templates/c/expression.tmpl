@@ -22,7 +22,7 @@
   %if isinstance(length, int):
 ${length}
   %elif isinstance(length, ValueResult):
-result->${length.entries[0].name}
+${length.entries[0].name}
   %elif isinstance(length, Delayed):
 (${recursive_expr(length.left)} ${get_op(length.op)} ${recursive_expr(length.right)}) 
   %else:

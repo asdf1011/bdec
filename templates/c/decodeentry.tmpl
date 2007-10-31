@@ -40,6 +40,9 @@ ${_params(parent, entry, get_params, local_vars(parent))}
     %else:
     ${variable} = decode_little_endian_integer(buffer, ${expr.length(entry.length)});
     %endif
+    %if is_referenced(entry):
+    ${entry.name} = ${variable};
+    %endif
   %elif entry.format is Field.TEXT:
     int i;
     int ${entry.name}_length = ${expr.length(entry.length)} / 8;

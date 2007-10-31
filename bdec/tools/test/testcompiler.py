@@ -16,6 +16,9 @@ import bdec.sequenceof as sof
 import bdec.spec.expression as expr
 import bdec.tools.compiler as comp
 
+import sys
+
+file('hmm', 'w').write("\n".join(sys.modules))
 
 class _CompilerTests:
     """
@@ -159,6 +162,36 @@ class _CompilerTests:
         char = seq.Sequence('fixb', [fld.Field('character', 8, fld.Field.TEXT)])
         spec = sof.SequenceOf('blah', chc.Choice('byte', [null, char]), None, end_entries=[null])
         self._decode(spec, 'rabbit\0')
+
+
+class TestVariableReference(unittest.TestCase):
+    def test_direct_children(self):
+        a = fld.Field('a', 8)
+        value = expr.ValueResult()
+        value.add_entry(a)
+        b = fld.Field('b', value)
+        spec = seq.Sequence('blah', [a,b])
+
+        vars = comp._VariableReference(spec)
+        self.assertEqual(set(['a']), vars.get_locals(spec))
+        self.assertTrue(vars.is_referenced(a))
+        self.assertFalse(vars.is_referenced(b))
+        self.assertEqual(set(), vars.get_locals(a))
+
+    def test_sub_children(self):
+        a1 = fld.Field('a1', 8)
+        a = seq.Sequence('a', [a1])
+        value = expr.ValueResult()
+        value.add_entry(a1)
+        b = fld.Field('b', value)
+        spec = seq.Sequence('blah', [a,b])
+
+        vars = comp._VariableReference(spec)
+        self.assertEqual(set(['a1']), vars.get_locals(spec))
+        # Note that despite containing a referenced entry, it isn't a local (as
+        # it is passed up to the parent entry).
+        self.assertEqual(set(), vars.get_locals(a))
+
 
 class TestC(_CompilerTests, unittest.TestCase):
     COMPILER = "gcc"
