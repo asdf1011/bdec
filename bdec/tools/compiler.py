@@ -55,13 +55,21 @@ def _recursive_update(common_references, common, entry):
         for child in entry.children:
             _recursive_update(common_references, common, child)
 
-class _Param:
+class Param:
+    """Class to represent parameters passed into and out of decodes. """
     IN = "in"
     OUT = "out"
 
     def __init__(self, name, direction):
         self.name = name
         self.direction = direction
+
+    def __eq__(self, other):
+        return self.name == other.name and self.direction == other.direction
+
+    def __hash__(self):
+        return hash(self.name)
+
 
 class _SequenceOfParamLookup:
     """
@@ -101,20 +109,19 @@ class _SequenceOfParamLookup:
         should pass an output 'should_end' context item.
         """
         if self._has_context_lookup[entry]:
-            return [_Param('should_end', _Param.OUT)]
-        return []
+            return set([Param('should_end', Param.OUT)])
+        return set()
 
     def is_end_sequenceof(self, entry):
         return entry in self._end_sequenceof_entries
 
 class _VariableReference:
     def __init__(self, spec):
-        # A map of entries to a set of unresolved and resolved references.
-        self._unreferenced_entries = {}
-        self._known_references = {}
-        self._referenced_entries = set()
+        self._locals = {}
+        self._params = {}
 
-        self._populate_references(spec)
+        self._referenced_entries = set()
+        self._populate_references(spec, {}, {})
 
     def _collect_references(self, expression):
         """ Walk an expression object, collecting all named references. """
@@ -122,37 +129,64 @@ class _VariableReference:
             return []
         elif isinstance(expression, expr.ValueResult):
             self._referenced_entries.add(expression.entries[0])
-            return [expression.entries[0].name]
+            return [expression.entries[0]]
         elif isinstance(expression, expr.Delayed):
             return self._collect_references(expression.left) + self._collect_references(expression.right)
         raise Exception("Unable to collect references from unhandled expression type '%s'!" % expression)
 
-    def _populate_references(self, entry):
+    def _populate_references(self, entry, unreferenced_entries, known_references):
         """
-        Walk down the tree, populating the 'unreferenced' and 'known' maps.
+        Walk down the tree, populating the '_params', '_locals', and '_referenced_entries' sets.
 
         Handles recursive elements.
         """
-        if entry in self._known_references:
+        if entry in self._params:
             return
-        self._known_references[entry] = set([entry.name])
+        self._params[entry] = set()
 
         for child in entry.children:
-            self._populate_references(child)
+            self._populate_references(child, unreferenced_entries, known_references)
 
         # An entries unknown references are those referenced in any 
         # expressions, and those that are unknown in all of its children.
-        self._unreferenced_entries[entry] = set()
+        unreferenced_entries[entry] = set()
         if isinstance(entry, fld.Field):
-            self._unreferenced_entries[entry].update(self._collect_references(entry.length))
-        for child in entry.children:
-            self._known_references[entry].update(self._known_references[child])
+            unreferenced_entries[entry].update(self._collect_references(entry.length))
+        elif isinstance(entry, sof.SequenceOf) and entry.count is not None:
+            unreferenced_entries[entry].update(self._collect_references(entry.count))
 
-            # Our unknown list is all the unknowns in our children that aren't
-            # present in our known references.
-            unknown = self._unreferenced_entries[child].copy()
-            unknown -= self._known_references[entry]
-            self._unreferenced_entries[entry].update(unknown)
+        child_unknowns = set()
+        known_references[entry] = set([entry])
+        for child in entry.children:
+            known_references[entry].update(known_references[child])
+            child_unknowns.update(unreferenced_entries[child])
+
+        # Our unknown list is all the unknowns in our children that aren't
+        # present in our known references.
+        unknown = child_unknowns.difference(known_references[entry])
+        unreferenced_entries[entry].update(unknown)
+
+        # Local variables for this entry are all entries that our children
+        # don't know about, but we do (eg: we can access it through another
+        # of our children).
+        self._locals[entry] = child_unknowns.intersection(known_references[entry])
+
+        # Detect all parameters necessary to decode this entry.
+        for item in unreferenced_entries[entry]:
+            self._params[entry].add(Param(item.name, Param.IN))
+        for local in self._locals[entry]:
+            self._add_out_params(local, entry.children, known_references)
+
+    def _add_out_params(self, entry, entries, known_references):
+        """
+        Drill down into entries looking for entry, adding output params.
+        """
+        for item in entries:
+            if entry is item or entry in known_references[item]:
+                self._params[item].add(Param(entry.name, Param.OUT))
+                if entry in item.children:
+                    self._add_out_params(entry, item.children, known_references)
+                return
 
     def get_locals(self, entry):
         """
@@ -161,17 +195,13 @@ class _VariableReference:
         All child entries that reference another child reference, where the
         given entry is the nearest common ancestor.
         """
-        child_unknowns = set()
-        child_knowns = set()
-        for child in entry.children:
-            child_unknowns.update(self._unreferenced_entries[child])
-            child_knowns.update(self._known_references[child])
+        return [local.name for local in self._locals[entry]]
 
-        # All references that are unknown in one child, but resolvable in
-        # another, must be stored as local variables when decoding this
-        # entry.
-        locals = child_knowns.intersection(child_unknowns)
-        return locals
+    def get_params(self, entry):
+        """
+        Get all parameters passed to an entry due to value references.
+        """
+        return self._params[entry]
 
     def is_referenced(self, entry):
         """ Is the decoded value of an entry used elsewhere. """
@@ -192,7 +222,9 @@ class _EntryInfo:
         return result
 
     def get_params(self, entry):
-        return self._sequenceof_lookup.get_params(entry)
+        result = self._sequenceof_lookup.get_params(entry).copy()
+        result.update(self._variable_references.get_params(entry))
+        return result
 
     def is_end_sequenceof(self, entry):
         return self._sequenceof_lookup.is_end_sequenceof(entry)

@@ -163,6 +163,19 @@ class _CompilerTests:
         spec = sof.SequenceOf('blah', chc.Choice('byte', [null, char]), None, end_entries=[null])
         self._decode(spec, 'rabbit\0')
 
+    def test_variable_sequenceof(self):
+        a1 = fld.Field('a1', 8, fld.Field.INTEGER)
+        value = expr.ValueResult()
+        value.add_entry(a1)
+        a = seq.Sequence('a', [a1])
+
+        b1 = fld.Field('b1', 8, fld.Field.INTEGER)
+        ba = seq.Sequence('b1', [b1])
+        b = sof.SequenceOf('b', ba, value)
+        spec = seq.Sequence('blah', [a,b])
+        # We don't attempt to re-encode the data, because the python encoder
+        # cannot do it.
+        self._decode(spec, '\x03\x00\x00\x53', do_encode=False)
 
 class TestVariableReference(unittest.TestCase):
     def test_direct_children(self):
@@ -173,24 +186,30 @@ class TestVariableReference(unittest.TestCase):
         spec = seq.Sequence('blah', [a,b])
 
         vars = comp._VariableReference(spec)
-        self.assertEqual(set(['a']), vars.get_locals(spec))
+        self.assertEqual(['a'], vars.get_locals(spec))
         self.assertTrue(vars.is_referenced(a))
         self.assertFalse(vars.is_referenced(b))
-        self.assertEqual(set(), vars.get_locals(a))
+        self.assertEqual([], vars.get_locals(a))
 
     def test_sub_children(self):
         a1 = fld.Field('a1', 8)
         a = seq.Sequence('a', [a1])
         value = expr.ValueResult()
         value.add_entry(a1)
-        b = fld.Field('b', value)
+        b1 = fld.Field('b1', value)
+        b = seq.Sequence('b', [b1])
         spec = seq.Sequence('blah', [a,b])
 
         vars = comp._VariableReference(spec)
-        self.assertEqual(set(['a1']), vars.get_locals(spec))
+        self.assertEqual(['a1'], vars.get_locals(spec))
         # Note that despite containing a referenced entry, it isn't a local (as
         # it is passed up to the parent entry).
-        self.assertEqual(set(), vars.get_locals(a))
+        self.assertEqual([], vars.get_locals(a))
+
+        # Now check what parameters are passed in and out
+        self.assertEqual(set(), vars.get_params(spec))
+        self.assertEqual(set([comp.Param('a1', comp.Param.OUT)]), vars.get_params(a))
+        self.assertEqual(set([comp.Param('a1', comp.Param.IN)]), vars.get_params(b))
 
 
 class TestC(_CompilerTests, unittest.TestCase):

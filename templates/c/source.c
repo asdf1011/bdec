@@ -1,5 +1,6 @@
 ## vim:set syntax=mako:
 <%namespace file="/decodeentry.tmpl" name="decodeentry" />
+<%namespace file="/expression.tmpl" name="expr" />
 <%namespace file="/type.tmpl" name="ctype" />
 <%! 
   from bdec.choice import Choice
@@ -44,8 +45,8 @@ int decode_${entry.name}(BitBuffer* buffer, ${entry.name}* result${decodeentry.d
   %elif isinstance(entry, SequenceOf):
     int i;
     %if entry.count is not None:
-    result->count = ${entry.count};
-    result->items = malloc(sizeof(${entry.children[0].name}) * result->count);
+    result->count = ${expr.length(entry.count)};
+    result->items = malloc(sizeof(${ctype.ctype(entry.children[0])}) * result->count);
     for (i = 0; i < result->count; ++i)
     {
     %else:
