@@ -86,12 +86,3 @@ ${_params(parent, entry, get_params, local_vars(parent))}
     }
      %endif
 </%def>
-
-<%def name="decodeSequence(entry)">
-  %for child in entry.children:
-    if (!decode_${child.name}(buffer, &result->${child.name}${params(entry, child)}))
-    {
-        return 0;
-    }
-  %endfor
-</%def>

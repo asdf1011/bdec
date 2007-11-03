@@ -37,7 +37,12 @@ int decode_${entry.name}(BitBuffer* buffer, ${ctype.ctype(entry)}* result${decod
     %endif
     return 1;
   %elif isinstance(entry, Sequence):
-    ${decodeentry.decodeSequence(entry)}
+    %for child in entry.children:
+    if (!decode_${child.name}(buffer, &result->${child.name}${decodeentry.params(entry, child)}))
+    {
+        return 0;
+    }
+    %endfor
     %if is_end_sequenceof(entry):
     *should_end = 1;
     %endif
