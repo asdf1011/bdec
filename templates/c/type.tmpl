@@ -22,7 +22,7 @@ BitBuffer
 #error Unhandled field format '${entry}'!
     %endif
   %else:
-${entry.name}
+${entry.name|typename}
   %endif
 </%def>
 
@@ -37,16 +37,16 @@ ${define(child)}
 typedef struct 
 {
   %for child in entry.children:
-    ${ctype(child)} ${child.name};
+    ${ctype(child)} ${child.name |variable};
   %endfor
-} ${entry.name};
+} ${entry.name |typename};
   %elif isinstance(entry, Field):
-typedef ${ctype(entry)} ${child.name};
+typedef ${ctype(entry)} ${entry.name |typename};
   %elif isinstance(entry, Choice):
 typedef struct
 {
     %for child in entry.children:
-    ${ctype(child)}* ${child.name};
+    ${ctype(child)}* ${child.name |variable};
     %endfor
 } ${entry.name};
   %elif isinstance(entry, SequenceOf):
@@ -54,7 +54,7 @@ typedef struct
 {
     ${ctype(child)}* items;
     unsigned int count;
-} ${entry.name};
+} ${entry.name |variable};
   %else:
 Unsupported entry ${entry}
   %endif

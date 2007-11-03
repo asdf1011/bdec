@@ -33,28 +33,28 @@ ${_define_params(entry, get_params)}
 ${_params(parent, entry, get_params, local_vars(parent))}
 </%def>
 
-<%def name="decodeField(entry, variable)">
+<%def name="decodeField(entry, varname)">
     if (${expr.length(entry.length)} > buffer->num_bits)
     {
         return 0;
     }
   %if entry.format is Field.INTEGER:
     %if entry.encoding is Field.BIG_ENDIAN:
-    ${variable} = decode_integer(buffer, ${expr.length(entry.length)});
+    ${varname} = decode_integer(buffer, ${expr.length(entry.length)});
     %else:
-    ${variable} = decode_little_endian_integer(buffer, ${expr.length(entry.length)});
+    ${varname} = decode_little_endian_integer(buffer, ${expr.length(entry.length)});
     %endif
     %if is_referenced(entry):
-    *${entry.name} = ${variable};
+    *${entry.name |variable} = ${varname};
     %endif
   %elif entry.format is Field.TEXT:
     int i;
-    int ${entry.name}_length = ${expr.length(entry.length)} / 8;
-    ${variable} = malloc(${entry.name}_length + 1);
-    ${variable}[${entry.name}_length] = 0;
-    for (i = 0; i < ${entry.name}_length; ++i)
+    int ${entry.name + ' length' |variable} = ${expr.length(entry.length)} / 8;
+    ${varname} = malloc(${entry.name + ' length' |variable} + 1);
+    ${varname}[${entry.name + ' length' |variable}] = 0;
+    for (i = 0; i < ${entry.name + ' length' |variable}; ++i)
     {
-        ${variable}[i] = decode_integer(buffer, 8);
+        ${varname}[i] = decode_integer(buffer, 8);
     }
   %elif entry.format is Field.HEX:
     int i;

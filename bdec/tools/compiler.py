@@ -8,6 +8,7 @@ import mako.runtime
 import os
 import sys
 
+import bdec.output.xmlout
 import bdec.spec.expression as expr
 import bdec.field as fld
 import bdec.sequenceof as sof
@@ -55,14 +56,18 @@ def _recursive_update(common_references, common, entry):
         for child in entry.children:
             _recursive_update(common_references, common, child)
 
-class Param:
+class Param(object):
     """Class to represent parameters passed into and out of decodes. """
     IN = "in"
     OUT = "out"
 
     def __init__(self, name, direction):
-        self.name = name
+        self._name = name
         self.direction = direction
+
+    def _name(self):
+        return _variable_name(self._name)
+    name = property(_name)
 
     def __eq__(self, other):
         return self.name == other.name and self.direction == other.direction
@@ -232,6 +237,29 @@ class _EntryInfo:
     def is_referenced(self, entry):
         return self._variable_references.is_referenced(entry)
 
+def _escape_name(name):
+    return "".join(char for char in name if char not in ['%', '(', ')', ':'])
+
+def _camelcase(name):
+    words = _escape_name(name).split()
+    return "".join(word[0].upper() + word[1:].lower() for word in words)
+
+def _delimiter(name, delim):
+    words = _escape_name(name).split()
+    return delim.join(words)
+
+def _variable_name(name):
+    return name[0].lower() + _camelcase(name)[1:]
+
+def _filename(name):
+    return _delimiter(name, '').lower()
+
+def _type_name(name):
+    return _camelcase(name)
+
+def _constant_name(name):
+    return _delimiter(name, '_').upper()
+
 def generate_code(spec, template_path, output_dir, common_entries=[]):
     """
     Generate code to decode the given specification.
@@ -257,5 +285,11 @@ def generate_code(spec, template_path, output_dir, common_entries=[]):
             lookup['is_end_sequenceof'] = info.is_end_sequenceof
             lookup['is_referenced'] = info.is_referenced
             lookup['local_vars'] = info.get_locals
-            _generate_template(output_dir, filename.replace('source', entry.name), lookup, template)
+            lookup['constant'] = _constant_name
+            lookup['filename'] = _filename
+            lookup['function'] = _variable_name
+            lookup['typename'] = _type_name
+            lookup['variable'] = _variable_name
+            lookup['xmlname'] = bdec.output.xmlout.escape_name
+            _generate_template(output_dir, _filename(filename.replace('source', entry.name)), lookup, template)
 

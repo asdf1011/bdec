@@ -9,7 +9,7 @@ import bdec.entry as ent
 import bdec.field as fld
 import bdec.sequenceof as sof
 
-def _escape_name(name):
+def escape_name(name):
     return name.replace(' ', '-').replace('(', '_').replace(')', '_').replace(':', '_')
 
 class _XMLGenerator(xml.sax.saxutils.XMLGenerator):
@@ -25,7 +25,7 @@ def to_file(decoder, binary, output, encoding="utf-8", verbose=False):
 
         if is_starting:
             handler.ignorableWhitespace(' ' * offset)
-            handler.startElement(_escape_name(entry.name), xml.sax.xmlreader.AttributesImpl({}))
+            handler.startElement(escape_name(entry.name), xml.sax.xmlreader.AttributesImpl({}))
             handler.ignorableWhitespace('\n')
             offset = offset + 4
         else:
@@ -47,7 +47,7 @@ def to_file(decoder, binary, output, encoding="utf-8", verbose=False):
                     
             offset = offset - 4
             handler.ignorableWhitespace(' ' * offset)
-            handler.endElement(_escape_name(entry.name))
+            handler.endElement(escape_name(entry.name))
             handler.ignorableWhitespace('\n')
 
 def to_string(decoder, binary, verbose=False):
@@ -81,7 +81,7 @@ def _query_element(obj, child):
 
     If the child has no sub-elements itself, return the element text contents.
     """
-    name = _escape_name(child.name)
+    name = escape_name(child.name)
     for child_node in obj.childNodes:
         if child_node.nodeType == xml.dom.Node.ELEMENT_NODE and child_node.tagName == name:
             if isinstance(child, sof.SequenceOf):

@@ -13,7 +13,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "${entry.name}.h"
+#include "${entry.name |filename}.h"
 #include "buffer.h"
 #include "variable_integer.h"
 
@@ -25,7 +25,7 @@ ${recursiveDecode(child)}
   %endif
 %endfor
 
-int decode_${entry.name}(BitBuffer* buffer, ${ctype.ctype(entry)}* result${decodeentry.define_params(entry)})
+int ${'decode ' + entry.name |function}(BitBuffer* buffer, ${ctype.ctype(entry)}* result${decodeentry.define_params(entry)})
 {
   %for local in local_vars(entry):
       int ${local} = 0;
@@ -38,7 +38,7 @@ int decode_${entry.name}(BitBuffer* buffer, ${ctype.ctype(entry)}* result${decod
     return 1;
   %elif isinstance(entry, Sequence):
     %for child in entry.children:
-    if (!decode_${child.name}(buffer, &result->${child.name}${decodeentry.params(entry, child)}))
+    if (!${'decode ' + child.name |function}(buffer, &result->${child.name |variable}${decodeentry.params(entry, child)}))
     {
         return 0;
     }
@@ -61,9 +61,9 @@ int decode_${entry.name}(BitBuffer* buffer, ${ctype.ctype(entry)}* result${decod
     {
         i = result->count;
         ++result->count;
-        result->items = realloc(result->items, sizeof(${entry.children[0].name}) * (result->count + 1));
+        result->items = realloc(result->items, sizeof(${ctype.ctype(entry.children[0])}) * (result->count + 1));
     %endif
-        if (!decode_${entry.children[0].name}(buffer, &result->items[i]${decodeentry.params(entry, entry.children[0])}))
+        if (!${'decode ' + entry.children[0].name |function}(buffer, &result->items[i]${decodeentry.params(entry, entry.children[0])}))
         {
             return 0;
         }
@@ -76,13 +76,12 @@ int decode_${entry.name}(BitBuffer* buffer, ${ctype.ctype(entry)}* result${decod
     memset(result, 0, sizeof(${ctype.ctype(entry)}));
     BitBuffer temp;
     %for child in entry.children:
-    // Attempt to decode ${child}...
     temp = *buffer;
-    ${ctype.ctype(child)}* temp_${child.name} = malloc(sizeof(${ctype.ctype(child)}));
-    if (decode_${child.name}(&temp, temp_${child.name}${decodeentry.params(entry, child)}))
+    ${ctype.ctype(child)}* ${'temp ' + child.name |variable} = malloc(sizeof(${ctype.ctype(child)}));
+    if (${'decode ' + child.name |function}(&temp, ${'temp ' + child.name |variable}${decodeentry.params(entry, child)}))
     {
         *buffer = temp;
-        result->${child.name} = temp_${child.name};
+        result->${child.name |variable} = ${'temp ' + child.name |variable};
         return 1;
     }
     %endfor
@@ -96,29 +95,29 @@ ${recursiveDecode(entry)}
 
 
 ## Recursively create functions for printing the entries contained within this protocol specification.
-<%def name="recursivePrint(item, variable)">
+<%def name="recursivePrint(item, varname)">
   %if item in common and item is not entry:
-    print_xml_${item.name}(&${variable});
+    ${'print xml ' + item.name |function}(&${varname});
   %else:
-    printf("<${item.name}>\n");
+    printf("<${item.name |xmlname}>\n");
     %if isinstance(item, Field):
       %if item.format is Field.INTEGER:
-    printf("  %i\n", ${variable}); 
+    printf("  %i\n", ${varname}); 
       %elif item.format is Field.TEXT:
-    printf("  %s\n", ${variable});
+    printf("  %s\n", ${varname});
       %elif item.format is Field.HEX:
     int i;
     printf("  ");
-    for (i = 0; i < ${variable}.length; ++i)
+    for (i = 0; i < ${varname}.length; ++i)
     {
-        printf("%x", ${variable}.buffer[i]);
+        printf("%x", ${varname}.buffer[i]);
     }
     printf("\n");
       %elif item.format is Field.BINARY:
-    BitBuffer temp = ${variable};
+    BitBuffer temp = ${varname};
     int i;
     printf("  ");
-    for (i = 0; i < ${variable}.num_bits; ++i)
+    for (i = 0; i < ${varname}.num_bits; ++i)
     {
         printf("%i", decode_integer(&temp, 1));
     }
@@ -128,29 +127,29 @@ ${recursiveDecode(entry)}
       %endif
     %elif isinstance(item, Sequence):
       %for child in item.children:
-    ${recursivePrint(child, '%s.%s' % (variable, child.name))}
+    ${recursivePrint(child, '%s.%s' % (varname, variable(child.name)))}
       %endfor
     %elif isinstance(item, SequenceOf):
     int i;
-    for (i = 0; i < ${variable}.count; ++i)
+    for (i = 0; i < ${varname}.count; ++i)
     {
-        ${recursivePrint(item.children[0], '%s.items[i]' % variable)}
+        ${recursivePrint(item.children[0], '%s.items[i]' % varname)}
     }
     %elif isinstance(item, Choice):
       %for child in item.children:
-    if (${'%s.%s' % (variable, child.name)} != 0)
+    if (${'%s.%s' % (varname, variable(child.name))} != 0)
     {
-        ${recursivePrint(child, "(*%s.%s)" % (variable, child.name))}
+        ${recursivePrint(child, "(*%s.%s)" % (varname, variable(child.name)))}
     }
       %endfor
     %else:
     #error Don't know how to print ${item}
     %endif
-    printf("</${item.name}>\n");
+    printf("</${item.name |xmlname}>\n");
   %endif
 </%def>
 
-void print_xml_${entry.name}(${entry.name}* data)
+void ${'print xml ' + entry.name |function}(${ctype.ctype(entry)}* data)
 {
 ${recursivePrint(entry, '(*data)')}
 }

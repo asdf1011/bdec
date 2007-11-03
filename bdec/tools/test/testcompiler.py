@@ -185,6 +185,13 @@ class _CompilerTests:
         self._decode(spec, 'b')
         self._decode_failure(spec, 'c')
 
+    def test_name_escaping(self):
+        a = fld.Field('a with spaces', 8, fld.Field.INTEGER)
+        b = seq.Sequence('b with a :', [a])
+        c = fld.Field('c', 8, fld.Field.INTEGER)
+        d = seq.Sequence('d', [c])
+        blah = seq.Sequence('blah', [b, d])
+        self._decode(blah, 'xy', common=[blah, d])
 
 class TestVariableReference(unittest.TestCase):
     def test_direct_children(self):
@@ -259,15 +266,15 @@ class TestC(_CompilerTests, unittest.TestCase):
 
             /* Attempt to decode the file */
             BitBuffer buffer = {data, 0, length * 8};
-            blah result;
-            if (!decode_blah(&buffer, &result))
+            Blah result;
+            if (!decodeBlah(&buffer, &result))
             {
                 /* Decode failed! */
                 return 3;
             }
 
             /* Print the decoded data */
-            print_xml_blah(&result);
+            printXmlBlah(&result);
 
             return 0;
         }\n"""
