@@ -169,13 +169,22 @@ class _CompilerTests:
         value.add_entry(a1)
         a = seq.Sequence('a', [a1])
 
-        b1 = fld.Field('b1', 8, fld.Field.INTEGER)
+        b1 = fld.Field('b2', 8, fld.Field.INTEGER)
         ba = seq.Sequence('b1', [b1])
         b = sof.SequenceOf('b', ba, value)
         spec = seq.Sequence('blah', [a,b])
         # We don't attempt to re-encode the data, because the python encoder
         # cannot do it.
         self._decode(spec, '\x03\x00\x00\x53', do_encode=False)
+
+    def test_fields_under_choice(self):
+        a = fld.Field('a', 8, fld.Field.INTEGER, expected=dt.Data('a'))
+        b = fld.Field('b', 8, fld.Field.INTEGER, expected=dt.Data('b'))
+        spec = chc.Choice('blah', [a, b])
+        self._decode(spec, 'a')
+        self._decode(spec, 'b')
+        self._decode_failure(spec, 'c')
+
 
 class TestVariableReference(unittest.TestCase):
     def test_direct_children(self):

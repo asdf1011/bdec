@@ -20,18 +20,18 @@
 ## Recursively create functions for decoding the entries contained within this protocol specification.
 <%def name="recursiveDecode(entry)">
 %for child in entry.children:
-  %if not isinstance(child, Field) and child not in common:
+  %if child not in common:
 ${recursiveDecode(child)}
   %endif
 %endfor
 
-int decode_${entry.name}(BitBuffer* buffer, ${entry.name}* result${decodeentry.define_params(entry)})
+int decode_${entry.name}(BitBuffer* buffer, ${ctype.ctype(entry)}* result${decodeentry.define_params(entry)})
 {
   %for local in local_vars(entry):
       int ${local} = 0;
   %endfor
   %if isinstance(entry, Field):
-    ${decodeField(entry, "*result")};
+    ${decodeentry.decodeField(entry, "(*result)")};
     %if is_end_sequenceof(entry):
     *should_end = 1;
     %endif
@@ -68,22 +68,18 @@ int decode_${entry.name}(BitBuffer* buffer, ${entry.name}* result${decodeentry.d
     }
     return 1;
   %elif isinstance(entry, Choice):
-    memset(result, 0, sizeof(${entry.name}));
+    memset(result, 0, sizeof(${ctype.ctype(entry)}));
     BitBuffer temp;
     %for child in entry.children:
     // Attempt to decode ${child}...
-      %if isinstance(child, Field):
-    #error Don't support decoding fields directly under a choice yet (${child})...
-      %else:
     temp = *buffer;
-    ${child.name}* temp_${child.name} = malloc(sizeof(${child.name}));
+    ${ctype.ctype(child)}* temp_${child.name} = malloc(sizeof(${ctype.ctype(child)}));
     if (decode_${child.name}(&temp, temp_${child.name}${decodeentry.params(entry, child)}))
     {
         *buffer = temp;
         result->${child.name} = temp_${child.name};
         return 1;
     }
-      %endif
     %endfor
     // Decode failed, no options succeeded...
     return 0;

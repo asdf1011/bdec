@@ -89,13 +89,9 @@ ${_params(parent, entry, get_params, local_vars(parent))}
 
 <%def name="decodeSequence(entry)">
   %for child in entry.children:
-    %if isinstance(child, Field):
-    ${decodeField(child, 'result->' + child.name)}
-    %else:
     if (!decode_${child.name}(buffer, &result->${child.name}${params(entry, child)}))
     {
         return 0;
     }
-    %endif
   %endfor
 </%def>
