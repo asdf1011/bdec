@@ -33,7 +33,11 @@ ${_define_params(entry, get_params)}
 ${_params(parent, entry, get_params, local_vars(parent))}
 </%def>
 
-<%def name="decodeFieldValue(entry, variable)">
+<%def name="decodeField(entry, variable)">
+    if (${expr.length(entry.length)} > buffer->num_bits)
+    {
+        return 0;
+    }
   %if entry.format is Field.INTEGER:
     %if entry.encoding is Field.BIG_ENDIAN:
     ${variable} = decode_integer(buffer, ${expr.length(entry.length)});
@@ -71,14 +75,6 @@ ${_params(parent, entry, get_params, local_vars(parent))}
   %else:
     #error Unknown field type ${entry}
   %endif
-</%def>
-
-<%def name="decodeField(entry, variable)">
-    if (${expr.length(entry.length)} > buffer->num_bits)
-    {
-        return 0;
-    }
-    ${decodeFieldValue(entry, variable)}
      %if entry.expected is not None:
     if (${variable} != ${int(entry.expected)})
     {
