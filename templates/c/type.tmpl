@@ -48,14 +48,14 @@ typedef struct
     %for child in entry.children:
     ${ctype(child)}* ${child.name |variable};
     %endfor
-} ${entry.name};
+} ${entry.name |typename};
   %elif isinstance(entry, SequenceOf):
 typedef struct
 {
     ${ctype(child)}* items;
     unsigned int count;
-} ${entry.name |variable};
+} ${entry.name |typename};
   %else:
-Unsupported entry ${entry}
+#error Unsupported entry ${entry}
   %endif
 </%def>

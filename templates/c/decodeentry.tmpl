@@ -58,25 +58,25 @@ ${_params(parent, entry, get_params, local_vars(parent))}
     }
   %elif entry.format is Field.HEX:
     int i;
-    ${variable}.length = ${expr.length(entry.length)} / 8;
-    ${variable}.buffer = malloc(${variable}.length);
-    for (i = 0; i < ${variable}.length; ++i)
+    ${varname}.length = ${expr.length(entry.length)} / 8;
+    ${varname}.buffer = malloc(${varname}.length);
+    for (i = 0; i < ${varname}.length; ++i)
     {
-        ${variable}.buffer[i] = decode_integer(buffer, 8);
+        ${varname}.buffer[i] = decode_integer(buffer, 8);
     }
   %elif entry.format is Field.BINARY:
     // FIXME: We are referencing the source buffer!
-    ${variable} = *buffer;
-    ${variable}.num_bits = ${expr.length(entry.length)};
-    buffer->start_bit += ${variable}.num_bits;
+    ${varname} = *buffer;
+    ${varname}.num_bits = ${expr.length(entry.length)};
+    buffer->start_bit += ${varname}.num_bits;
     buffer->buffer += buffer->start_bit / 8;
     buffer->start_bit %= 8;
-    buffer->num_bits -= ${variable}.num_bits;
+    buffer->num_bits -= ${varname}.num_bits;
   %else:
     #error Unknown field type ${entry}
   %endif
      %if entry.expected is not None:
-    if (${variable} != ${int(entry.expected)})
+    if (${varname} != ${int(entry.expected)})
     {
         return 0;
     }

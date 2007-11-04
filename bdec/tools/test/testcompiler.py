@@ -201,7 +201,7 @@ class TestVariableReference(unittest.TestCase):
         b = fld.Field('b', value)
         spec = seq.Sequence('blah', [a,b])
 
-        vars = comp._VariableReference(spec)
+        vars = comp._VariableReference([spec])
         self.assertEqual(['a'], vars.get_locals(spec))
         self.assertTrue(vars.is_referenced(a))
         self.assertFalse(vars.is_referenced(b))
@@ -216,7 +216,7 @@ class TestVariableReference(unittest.TestCase):
         b = seq.Sequence('b', [b1])
         spec = seq.Sequence('blah', [a,b])
 
-        vars = comp._VariableReference(spec)
+        vars = comp._VariableReference([spec])
         self.assertEqual(['a1'], vars.get_locals(spec))
         # Note that despite containing a referenced entry, it isn't a local (as
         # it is passed up to the parent entry).
