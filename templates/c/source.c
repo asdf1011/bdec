@@ -101,11 +101,11 @@ ${recursiveDecode(entry)}
   %else:
     printf("<${item.name |xmlname}>\n");
     %if isinstance(item, Field):
-      %if item.format is Field.INTEGER:
+      %if item.format == Field.INTEGER:
     printf("  %i\n", ${varname}); 
-      %elif item.format is Field.TEXT:
+      %elif item.format == Field.TEXT:
     printf("  %s\n", ${varname});
-      %elif item.format is Field.HEX:
+      %elif item.format == Field.HEX:
     int i;
     printf("  ");
     for (i = 0; i < ${varname}.length; ++i)
@@ -113,7 +113,7 @@ ${recursiveDecode(entry)}
         printf("%x", ${varname}.buffer[i]);
     }
     printf("\n");
-      %elif item.format is Field.BINARY:
+      %elif item.format == Field.BINARY:
     BitBuffer temp = ${varname};
     int i;
     printf("  ");

@@ -38,8 +38,8 @@ ${_params(parent, entry, get_params, local_vars(parent))}
     {
         return 0;
     }
-  %if entry.format is Field.INTEGER:
-    %if entry.encoding is Field.BIG_ENDIAN:
+  %if entry.format == Field.INTEGER:
+    %if entry.encoding == Field.BIG_ENDIAN:
     ${varname} = decode_integer(buffer, ${expr.length(entry.length)});
     %else:
     ${varname} = decode_little_endian_integer(buffer, ${expr.length(entry.length)});
@@ -47,7 +47,7 @@ ${_params(parent, entry, get_params, local_vars(parent))}
     %if is_referenced(entry):
     *${entry.name |variable} = ${varname};
     %endif
-  %elif entry.format is Field.TEXT:
+  %elif entry.format == Field.TEXT:
     int i;
     int ${entry.name + ' length' |variable} = ${expr.length(entry.length)} / 8;
     ${varname} = malloc(${entry.name + ' length' |variable} + 1);
@@ -56,7 +56,7 @@ ${_params(parent, entry, get_params, local_vars(parent))}
     {
         ${varname}[i] = decode_integer(buffer, 8);
     }
-  %elif entry.format is Field.HEX:
+  %elif entry.format == Field.HEX:
     int i;
     ${varname}.length = ${expr.length(entry.length)} / 8;
     ${varname}.buffer = malloc(${varname}.length);
@@ -64,7 +64,7 @@ ${_params(parent, entry, get_params, local_vars(parent))}
     {
         ${varname}.buffer[i] = decode_integer(buffer, 8);
     }
-  %elif entry.format is Field.BINARY:
+  %elif entry.format == Field.BINARY:
     // FIXME: We are referencing the source buffer!
     ${varname} = *buffer;
     ${varname}.num_bits = ${expr.length(entry.length)};

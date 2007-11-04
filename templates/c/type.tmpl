@@ -10,13 +10,13 @@
 
 <%def name="ctype(entry)">
   %if isinstance(entry, Field):
-    %if entry.format is Field.INTEGER:
+    %if entry.format == Field.INTEGER:
 int
-    %elif entry.format is Field.TEXT:
+    %elif entry.format == Field.TEXT:
 char*
-    %elif entry.format is Field.HEX:
+    %elif entry.format == Field.HEX:
 Buffer
-    %elif entry.format is Field.BINARY:
+    %elif entry.format == Field.BINARY:
 BitBuffer
     %else:
 #error Unhandled field format '${entry}'!

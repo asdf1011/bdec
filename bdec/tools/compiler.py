@@ -80,11 +80,12 @@ class _SequenceOfParamLookup:
     """
     Class to allow querying of paremeters used when decoding a sequence of.
     """
-    def __init__(self, spec):
+    def __init__(self, entries):
         self._has_context_lookup = {}
 
         self._end_sequenceof_entries = set()
-        self._populate_lookup(spec, [])
+        for entry in entries:
+            self._populate_lookup(entry, [])
 
     def _populate_lookup(self, entry, intermediaries):
         if entry in self._has_context_lookup:
@@ -108,11 +109,27 @@ class _SequenceOfParamLookup:
         for child in entry.children:
             self._populate_lookup(child, intermediaries[:])
 
+    def _walk(self, entry, visited, offset):
+        print ' ' * offset,
+        if entry in visited:
+            print 'found allready visited', entry, id(entry)
+            return
+        visited.add(entry)
+        print "found ", entry, id(entry)
+        for child in children:
+            self._walk(child, visited, offset + 1)
+
     def get_params(self, entry):
         """
         If an item is between a sequenceof and an end-sequenceof entry, it
         should pass an output 'should_end' context item.
         """
+        try:
+            self._has_context_lookup[entry]
+        except:
+            print "looking for", id(entry), entry
+            self._walk(self._test_spec, set(), 0)
+            raise
         if self._has_context_lookup[entry]:
             return set([Param('should_end', Param.OUT)])
         return set()
@@ -121,12 +138,15 @@ class _SequenceOfParamLookup:
         return entry in self._end_sequenceof_entries
 
 class _VariableReference:
-    def __init__(self, spec):
+    def __init__(self, entries):
         self._locals = {}
         self._params = {}
 
         self._referenced_entries = set()
-        self._populate_references(spec, {}, {})
+        unreferenced_entries = {}
+        known_references = {}
+        for entry in entries:
+            self._populate_references(entry, unreferenced_entries, known_references)
 
     def _collect_references(self, expression):
         """ Walk an expression object, collecting all named references. """
@@ -214,9 +234,9 @@ class _VariableReference:
 
 
 class _EntryInfo:
-    def __init__(self, spec):
-        self._sequenceof_lookup = _SequenceOfParamLookup(spec)
-        self._variable_references = _VariableReference(spec)
+    def __init__(self, entries):
+        self._sequenceof_lookup = _SequenceOfParamLookup(entries)
+        self._variable_references = _VariableReference(entries)
 
     def get_locals(self, entry):
         result = []
@@ -271,7 +291,7 @@ def generate_code(spec, template_path, output_dir, common_entries=[]):
         _generate_template(output_dir, filename, lookup, template)
     entries = set(common_entries)
     entries.add(spec)
-    info = _EntryInfo(spec)
+    info = _EntryInfo(entries)
     for filename, template in entry_templates:
         for entry in entries:
             referenced_entries = set()
