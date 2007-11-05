@@ -1,5 +1,14 @@
+import bdec.field as fld
+import bdec.sequence as seq
 import bdec.spec
 import operator
+
+class UndecodedReferenceError(Exception):
+    """
+    Raised when a decoded entry is referenced (but unused).
+
+    We don't derive this from DecodeError, as it is an internal program error.
+    """
 
 class ExpressionError(bdec.spec.LoadError):
     def __init__(self, ex):

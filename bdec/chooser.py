@@ -50,7 +50,7 @@ def _data_iter(entry):
         if entry.expected is not None:
             yield entry.expected.copy()
         else:
-            import bdec.spec.xmlspec
+            import bdec.spec.expression as expr
             length = None
             min = max = None
             try:
@@ -59,7 +59,7 @@ def _data_iter(entry):
                     min = int(entry.min)
                 if entry.max is not None:
                     max = int(entry.max)
-            except bdec.spec.xmlspec.UndecodedReferenceError:
+            except expr.UndecodedReferenceError:
                 # If the length of a  field references the decoded value of
                 # another field, we will not be able to calculate the length.
                 pass

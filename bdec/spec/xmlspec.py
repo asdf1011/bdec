@@ -83,13 +83,6 @@ class XmlExpressionError(XmlSpecError):
     def __str__(self):
         return self._src() + "Expression error - " + str(self.ex)
 
-class UndecodedReferenceError(Exception):
-    """
-    Raised when a decoded entry is referenced (but unused).
-
-    We don't derive this from DecodeError, as it is an internal program error.
-    """
-
 
 class _ReferencedEntry(ent.Entry):
     """
@@ -396,7 +389,7 @@ class _Handler(xml.sax.handler.ContentHandler):
             if result.length is not None:
                 try:
                     expected_length = int(result.length)
-                except UndecodedReferenceError:
+                except exp.UndecodedReferenceError:
                     pass
 
             if len(expected) < expected_length:

@@ -119,12 +119,12 @@ class Field(bdec.entry.Entry):
     def _set_expected(self, expected):
         assert expected is None or isinstance(expected, dt.Data)
         if expected is not None and self.length is not None:
-            import bdec.spec.xmlspec
+            import bdec.spec.expression
             try:
                 length = int(self.length)
                 if length != len(expected):
                     raise FieldDataError(self, 'Expected data should have a length of %i, got %i' % (length, len(expected)))
-            except bdec.spec.xmlspec.UndecodedReferenceError:
+            except bdec.spec.expression.UndecodedReferenceError:
                 pass
         self._expected = expected
     expected = property(lambda self: self._expected, _set_expected)
