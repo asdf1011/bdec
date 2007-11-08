@@ -62,18 +62,17 @@ class Param(object):
     OUT = "out"
 
     def __init__(self, name, direction):
-        self._name = name
+        self.name = name
         self.direction = direction
-
-    def _name(self):
-        return _variable_name(self._name)
-    name = property(_name)
 
     def __eq__(self, other):
         return self.name == other.name and self.direction == other.direction
 
     def __hash__(self):
         return hash(self.name)
+
+    def __repr__(self):
+        return "%s param '%s'" % (self.direction, self.name)
 
 
 class _SequenceOfParamLookup:
@@ -110,12 +109,9 @@ class _SequenceOfParamLookup:
             self._populate_lookup(child, intermediaries[:])
 
     def _walk(self, entry, visited, offset):
-        print ' ' * offset,
         if entry in visited:
-            print 'found allready visited', entry, id(entry)
             return
         visited.add(entry)
-        print "found ", entry, id(entry)
         for child in children:
             self._walk(child, visited, offset + 1)
 
@@ -127,41 +123,49 @@ class _SequenceOfParamLookup:
         try:
             self._has_context_lookup[entry]
         except:
-            print "looking for", id(entry), entry
             self._walk(self._test_spec, set(), 0)
             raise
         if self._has_context_lookup[entry]:
-            return set([Param('should_end', Param.OUT)])
+            return set([Param('should end', Param.OUT)])
         return set()
 
     def is_end_sequenceof(self, entry):
         return entry in self._end_sequenceof_entries
+
 
 class _VariableReference:
     def __init__(self, entries):
         self._locals = {}
         self._params = {}
 
-        self._referenced_entries = set()
+        self._referenced_values = set()
+        self._referenced_lengths = set()
         unreferenced_entries = {}
         known_references = {}
         for entry in entries:
             self._populate_references(entry, unreferenced_entries, known_references)
 
     def _collect_references(self, expression):
-        """ Walk an expression object, collecting all named references. """
+        """
+        Walk an expression object, collecting all named references.
+        
+        Returns a list of tuples of (entry instances, variable name).
+        """
         if isinstance(expression, int):
             return []
         elif isinstance(expression, expr.ValueResult):
-            self._referenced_entries.add(expression.entries[0])
-            return [expression.entries[0]]
+            self._referenced_values.add(expression.entries[0])
+            return [(expression.entries[0], expression.entries[0].name)]
+        elif isinstance(expression, expr.LengthResult):
+            self._referenced_lengths.add(expression.entries[0])
+            return [(expression.entries[0], expression.entries[0].name + ' length')]
         elif isinstance(expression, expr.Delayed):
             return self._collect_references(expression.left) + self._collect_references(expression.right)
         raise Exception("Unable to collect references from unhandled expression type '%s'!" % expression)
 
     def _populate_references(self, entry, unreferenced_entries, known_references):
         """
-        Walk down the tree, populating the '_params', '_locals', and '_referenced_entries' sets.
+        Walk down the tree, populating the '_params', '_locals', and '_referenced_XXX' sets.
 
         Handles recursive elements.
         """
@@ -188,29 +192,29 @@ class _VariableReference:
 
         # Our unknown list is all the unknowns in our children that aren't
         # present in our known references.
-        unknown = child_unknowns.difference(known_references[entry])
+        unknown = ((child, name) for child, name in child_unknowns if child not in known_references[entry])
         unreferenced_entries[entry].update(unknown)
 
         # Local variables for this entry are all entries that our children
         # don't know about, but we do (eg: we can access it through another
         # of our children).
-        self._locals[entry] = child_unknowns.intersection(known_references[entry])
+        self._locals[entry] = [(child, name) for child, name in child_unknowns if child in known_references[entry]]
 
         # Detect all parameters necessary to decode this entry.
-        for item in unreferenced_entries[entry]:
-            self._params[entry].add(Param(item.name, Param.IN))
-        for local in self._locals[entry]:
-            self._add_out_params(local, entry.children, known_references)
+        for item, name in unreferenced_entries[entry]:
+            self._params[entry].add(Param(name, Param.IN))
+        for local, name in self._locals[entry]:
+            self._add_out_params(local, name, entry.children, known_references)
 
-    def _add_out_params(self, entry, entries, known_references):
+    def _add_out_params(self, entry, name, entries, known_references):
         """
         Drill down into entries looking for entry, adding output params.
         """
         for item in entries:
             if entry is item or entry in known_references[item]:
-                self._params[item].add(Param(entry.name, Param.OUT))
+                self._params[item].add(Param(name, Param.OUT))
                 if entry in item.children:
-                    self._add_out_params(entry, item.children, known_references)
+                    self._add_out_params(entry, name, item.children, known_references)
                 return
 
     def get_locals(self, entry):
@@ -220,7 +224,7 @@ class _VariableReference:
         All child entries that reference another child reference, where the
         given entry is the nearest common ancestor.
         """
-        return [local.name for local in self._locals[entry]]
+        return [name for item, name in self._locals[entry]]
 
     def get_params(self, entry):
         """
@@ -228,9 +232,13 @@ class _VariableReference:
         """
         return self._params[entry]
 
-    def is_referenced(self, entry):
+    def is_value_referenced(self, entry):
         """ Is the decoded value of an entry used elsewhere. """
-        return entry in self._referenced_entries
+        return entry in self._referenced_values
+
+    def is_length_referenced(self, entry):
+        """ Is the decoded length of an entry used elsewhere. """
+        return entry in self._referenced_lengths
 
 
 class _EntryInfo:
@@ -242,20 +250,26 @@ class _EntryInfo:
         result = []
         if isinstance(entry, sof.SequenceOf):
             if entry.end_entries:
-                result.append('should_end')
+                result.append('should end')
         result.extend(self._variable_references.get_locals(entry))
-        return result
+
+        for name in result:
+            yield _variable_name(name)
 
     def get_params(self, entry):
         result = self._sequenceof_lookup.get_params(entry).copy()
         result.update(self._variable_references.get_params(entry))
-        return result
+        for param in result:
+            yield Param(_variable_name(param.name), param.direction)
 
     def is_end_sequenceof(self, entry):
         return self._sequenceof_lookup.is_end_sequenceof(entry)
 
-    def is_referenced(self, entry):
-        return self._variable_references.is_referenced(entry)
+    def is_value_referenced(self, entry):
+        return self._variable_references.is_value_referenced(entry)
+
+    def is_length_referenced(self, entry):
+        return self._variable_references.is_length_referenced(entry)
 
 def _escape_name(name):
     return "".join(char for char in name if char not in ['%', '(', ')', ':'])
@@ -303,7 +317,8 @@ def generate_code(spec, template_path, output_dir, common_entries=[]):
             lookup['common'] = referenced_entries
             lookup['get_params'] = info.get_params
             lookup['is_end_sequenceof'] = info.is_end_sequenceof
-            lookup['is_referenced'] = info.is_referenced
+            lookup['is_value_referenced'] = info.is_value_referenced
+            lookup['is_length_referenced'] = info.is_length_referenced
             lookup['local_vars'] = info.get_locals
             lookup['constant'] = _constant_name
             lookup['filename'] = _filename

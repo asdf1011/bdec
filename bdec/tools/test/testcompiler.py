@@ -1,11 +1,14 @@
 
 import glob
+import itertools
 import operator
 import os
 import os.path
 import shutil
+import StringIO
 import subprocess
 import unittest
+import xml.etree.ElementTree
 
 import bdec.choice as chc
 import bdec.data as dt
@@ -48,7 +51,26 @@ class _CompilerTests:
         """
         raise NotImplementedError()
 
-    def _decode(self, spec, data, expected_exit_code=0, do_encode=True, common=[]):
+    def _is_xml_text_equal(self, a, b):
+        a = a.text or ""
+        b = b.text or ""
+        return a.strip() == b.strip()
+
+    def _get_elem_text(self, a):
+        attribs = ' '.join('%s=%s' for name, value in a.attrib.itervalues())
+        text = a.text or ""
+        return "<%s %s>%s ..." % (a.tag, attribs, text.strip())
+
+    def _compare_xml(self, expected, actual):
+        a = xml.etree.ElementTree.iterparse(StringIO.StringIO(expected), ['start', 'end'])
+        b = xml.etree.ElementTree.iterparse(StringIO.StringIO(actual), ['start', 'end'])
+        for (a_event, a_elem), (b_event, b_elem) in itertools.izip(a, b):
+            if a_event != b_event or a_elem.tag != b_elem.tag or \
+                    a_elem.attrib != b_elem.attrib or \
+                    not self._is_xml_text_equal(a_elem, b_elem):
+                self.fail("expected '%s', got '%s'" % (self._get_elem_text(a_elem), self._get_elem_text(b_elem)))
+
+    def _decode(self, spec, data, expected_exit_code=0, expected_xml=None, common=[]):
         self._compile(spec, common)
 
         data_filename = os.path.join(self.TEST_DIR, 'data.bin')
@@ -58,11 +80,14 @@ class _CompilerTests:
         exit_code, xml = self._decode_file(data_filename)
         self.assertEqual(expected_exit_code, exit_code)
 
-        if exit_code == 0 and do_encode:
-            # Take the xml output, and ensure the re-encoded data has the same
-            # binary value.
-            binary = str(reduce(lambda a,b:a+b, xmlout.encode(spec, xml)))
-            self.assertEqual(data, binary)
+        if exit_code == 0:
+            if expected_xml is None:
+                # Take the xml output, and ensure the re-encoded data has the same
+                # binary value.
+                binary = str(reduce(lambda a,b:a+b, xmlout.encode(spec, xml)))
+                self.assertEqual(data, binary)
+            else:
+                self._compare_xml(expected_xml, xml)
 
     def _decode_failure(self, spec, data):
         self._decode(spec, data, 3)
@@ -139,9 +164,12 @@ class _CompilerTests:
         value.add_entry(a)
         b = fld.Field('b', expr.Delayed(operator.__mul__, value, 8), fld.Field.INTEGER)
         spec = seq.Sequence('blah', [a,b])
-        # We don't attempt to re-encode the data, because the python encoder
-        # cannot do it.
-        self._decode(spec, '\x03\x00\x00\x53', do_encode=False)
+        expected_xml = """
+           <blah>
+              <a>3</a>
+              <b>83</b>
+           </blah> """
+        self._decode(spec, '\x03\x00\x00\x53', expected_xml=expected_xml)
 
     def test_hex_decode(self):
         a = fld.Field('a', 32, fld.Field.HEX)
@@ -175,7 +203,39 @@ class _CompilerTests:
         spec = seq.Sequence('blah', [a,b])
         # We don't attempt to re-encode the data, because the python encoder
         # cannot do it.
-        self._decode(spec, '\x03\x00\x00\x53', do_encode=False)
+        expected_xml = """
+           <blah>
+              <a>
+                 <a1>3</a1>
+              </a>
+              <b>
+                 <b1><b2>0</b2></b1>
+                 <b1><b2>0</b2></b1>
+                 <b1><b2>83</b2></b1>
+              </b>
+           </blah> """
+        self._decode(spec, '\x03\x00\x00\x53', expected_xml=expected_xml)
+
+    def test_length_reference(self):
+        length_total = fld.Field('length total', 8, fld.Field.INTEGER)
+        total_length_expr = expr.ValueResult()
+        total_length_expr.add_entry(length_total)
+        header_length = fld.Field('length header', 8, fld.Field.INTEGER)
+        header_length_expr = expr.ValueResult()
+        header_length_expr.add_entry(header_length)
+        header = fld.Field('header', expr.Delayed(operator.__mul__, header_length_expr, 8), fld.Field.TEXT)
+        header_data_length = expr.LengthResult([header])
+        data_length = expr.Delayed(operator.__sub__, expr.Delayed(operator.__mul__, total_length_expr, 8), header_data_length)
+        data = fld.Field('data', data_length, fld.Field.TEXT)
+        spec = seq.Sequence('blah', [length_total, header_length, header, data])
+        expected_xml = """
+           <blah>
+              <length-total>10</length-total>
+              <length-header>6</length-header>
+              <header>header</header>
+              <data>data</data>
+           </blah> """
+        self._decode(spec, '\x0a\x06headerdata', expected_xml=expected_xml)
 
     def test_fields_under_choice(self):
         a = fld.Field('a', 8, fld.Field.INTEGER, expected=dt.Data('a'))
@@ -203,8 +263,8 @@ class TestVariableReference(unittest.TestCase):
 
         vars = comp._VariableReference([spec])
         self.assertEqual(['a'], vars.get_locals(spec))
-        self.assertTrue(vars.is_referenced(a))
-        self.assertFalse(vars.is_referenced(b))
+        self.assertTrue(vars.is_value_referenced(a))
+        self.assertFalse(vars.is_value_referenced(b))
         self.assertEqual([], vars.get_locals(a))
 
     def test_sub_children(self):
@@ -223,10 +283,23 @@ class TestVariableReference(unittest.TestCase):
         self.assertEqual([], vars.get_locals(a))
 
         # Now check what parameters are passed in and out
-        self.assertEqual(set(), vars.get_params(spec))
+        self.assertEqual(set(), set(vars.get_params(spec)))
         self.assertEqual(set([comp.Param('a1', comp.Param.OUT)]), vars.get_params(a))
         self.assertEqual(set([comp.Param('a1', comp.Param.IN)]), vars.get_params(b))
 
+    def test_length_reference(self):
+        a1 = fld.Field('a1', 8)
+        a = seq.Sequence('a', [a1])
+        b1 = fld.Field('b1', expr.LengthResult([a]))
+        b = seq.Sequence('b', [b1])
+        spec = seq.Sequence('blah', [a,b])
+
+        vars = comp._VariableReference([spec])
+        self.assertEqual(['a length'], vars.get_locals(spec))
+        self.assertFalse(vars.is_length_referenced(a1))
+        self.assertTrue(vars.is_length_referenced(a))
+        self.assertEqual(set([comp.Param('a length', comp.Param.OUT)]), vars.get_params(a))
+        self.assertEqual(set([comp.Param('a length', comp.Param.IN)]), vars.get_params(b))
 
 class TestC(_CompilerTests, unittest.TestCase):
     COMPILER = "gcc"

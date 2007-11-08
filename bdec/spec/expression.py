@@ -67,6 +67,7 @@ class LengthResult:
         for entry in entries:
             entry.add_listener(self)
         self.length = None
+        self.entries = entries[:]
 
     def __call__(self, entry, length, context):
         self.length = length

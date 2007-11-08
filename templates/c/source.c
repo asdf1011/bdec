@@ -17,6 +17,13 @@
 #include "buffer.h"
 #include "variable_integer.h"
 
+<%def name="success(entry)">
+  %if is_length_referenced(entry):
+    *${entry.name + ' length' |variable} = ${'initial length' |variable} - buffer->num_bits;
+  %endif
+    return 1;
+</%def>
+
 ## Recursively create functions for decoding the entries contained within this protocol specification.
 <%def name="recursiveDecode(entry)">
 %for child in entry.children:
@@ -30,12 +37,15 @@ int ${'decode ' + entry.name |function}(BitBuffer* buffer, ${ctype.ctype(entry)}
   %for local in local_vars(entry):
       int ${local} = 0;
   %endfor
+  %if is_length_referenced(entry):
+      int ${'initial length' |variable} = buffer->num_bits;
+  %endif
   %if isinstance(entry, Field):
-    ${decodeentry.decodeField(entry, "(*result)")};
+    ${decodeentry.decodeField(entry, "(*result)")}
     %if is_end_sequenceof(entry):
-    *should_end = 1;
+    *${'should end' |variable} = 1;
     %endif
-    return 1;
+    ${success(entry)}
   %elif isinstance(entry, Sequence):
     %for child in entry.children:
     if (!${'decode ' + child.name |function}(buffer, &result->${child.name |variable}${decodeentry.params(entry, child)}))
@@ -44,9 +54,9 @@ int ${'decode ' + entry.name |function}(BitBuffer* buffer, ${ctype.ctype(entry)}
     }
     %endfor
     %if is_end_sequenceof(entry):
-    *should_end = 1;
+    *${'should end' |variable} = 1;
     %endif
-    return 1;
+    ${success(entry)}
   %elif isinstance(entry, SequenceOf):
     int i;
     %if entry.count is not None:
@@ -57,7 +67,7 @@ int ${'decode ' + entry.name |function}(BitBuffer* buffer, ${ctype.ctype(entry)}
     %else:
     result->items = 0;
     result->count = 0;
-    while (!should_end)
+    while (!${'should end' |variable})
     {
         i = result->count;
         ++result->count;
@@ -68,10 +78,10 @@ int ${'decode ' + entry.name |function}(BitBuffer* buffer, ${ctype.ctype(entry)}
             return 0;
         }
       %if is_end_sequenceof(entry):
-      *should_end = 1;
+      *${'should end' |variable} = 1;
       %endif
     }
-    return 1;
+    ${success(entry)}
   %elif isinstance(entry, Choice):
     memset(result, 0, sizeof(${ctype.ctype(entry)}));
     BitBuffer temp;
@@ -82,7 +92,7 @@ int ${'decode ' + entry.name |function}(BitBuffer* buffer, ${ctype.ctype(entry)}
     {
         *buffer = temp;
         result->${child.name |variable} = ${'temp ' + child.name |variable};
-        return 1;
+        ${success(entry)}
     }
     %endfor
     // Decode failed, no options succeeded...
@@ -106,20 +116,23 @@ ${recursiveDecode(entry)}
       %elif item.format == Field.TEXT:
     printf("  %s\n", ${varname});
       %elif item.format == Field.HEX:
-    int i;
+        <% iter_name = variable(item.name + ' counter') %>
+    int ${iter_name};
     printf("  ");
-    for (i = 0; i < ${varname}.length; ++i)
+    for (${iter_name} = 0; ${iter_name} < ${varname}.length; ++${iter_name})
     {
-        printf("%x", ${varname}.buffer[i]);
+        printf("%x", ${varname}.buffer[${iter_name}]);
     }
     printf("\n");
       %elif item.format == Field.BINARY:
-    BitBuffer temp = ${varname};
-    int i;
+        <% copy_name = variable('copy of ' + item.name) %>
+        <% iter_name = variable(item.name + ' counter') %>
+    BitBuffer ${copy_name} = ${varname};
+    int ${iter_name};
     printf("  ");
-    for (i = 0; i < ${varname}.num_bits; ++i)
+    for (${iter_name} = 0; ${iter_name} < ${varname}.num_bits; ++${iter_name})
     {
-        printf("%i", decode_integer(&temp, 1));
+        printf("%i", decode_integer(&${copy_name}, 1));
     }
     printf("\n");
       %else:
@@ -130,10 +143,11 @@ ${recursiveDecode(entry)}
     ${recursivePrint(child, '%s.%s' % (varname, variable(child.name)))}
       %endfor
     %elif isinstance(item, SequenceOf):
-    int i;
-    for (i = 0; i < ${varname}.count; ++i)
+      <% iter_name = variable(item.name + ' counter') %>
+    int ${iter_name};
+    for (${iter_name} = 0; ${iter_name} < ${varname}.count; ++${iter_name})
     {
-        ${recursivePrint(item.children[0], '%s.items[i]' % varname)}
+        ${recursivePrint(item.children[0], '%s.items[%s]' % (varname, iter_name))}
     }
     %elif isinstance(item, Choice):
       %for child in item.children:

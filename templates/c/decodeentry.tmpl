@@ -44,15 +44,15 @@ ${_params(parent, entry, get_params, local_vars(parent))}
     %else:
     ${varname} = decode_little_endian_integer(buffer, ${expr.length(entry.length)});
     %endif
-    %if is_referenced(entry):
+    %if is_value_referenced(entry):
     *${entry.name |variable} = ${varname};
     %endif
   %elif entry.format == Field.TEXT:
     int i;
-    int ${entry.name + ' length' |variable} = ${expr.length(entry.length)} / 8;
-    ${varname} = malloc(${entry.name + ' length' |variable} + 1);
-    ${varname}[${entry.name + ' length' |variable}] = 0;
-    for (i = 0; i < ${entry.name + ' length' |variable}; ++i)
+    int ${entry.name + ' buffer length' |variable} = ${expr.length(entry.length)} / 8;
+    ${varname} = malloc(${entry.name + ' buffer length' |variable} + 1);
+    ${varname}[${entry.name + ' buffer length' |variable}] = 0;
+    for (i = 0; i < ${entry.name + ' buffer length' |variable}; ++i)
     {
         ${varname}[i] = decode_integer(buffer, 8);
     }
