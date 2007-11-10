@@ -115,6 +115,13 @@ class _SequenceOfParamLookup:
         for child in children:
             self._walk(child, visited, offset + 1)
 
+    def get_locals(self, entry):
+        result = []
+        if isinstance(entry, sof.SequenceOf):
+            if entry.end_entries:
+                result.append('should end')
+        return result
+
     def get_params(self, entry):
         """
         If an item is between a sequenceof and an end-sequenceof entry, it
@@ -247,10 +254,7 @@ class _EntryInfo:
         self._variable_references = _VariableReference(entries)
 
     def get_locals(self, entry):
-        result = []
-        if isinstance(entry, sof.SequenceOf):
-            if entry.end_entries:
-                result.append('should end')
+        result = self._sequenceof_lookup.get_locals(entry)
         result.extend(self._variable_references.get_locals(entry))
 
         for name in result:
