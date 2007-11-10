@@ -21,7 +21,6 @@ import bdec.tools.compiler as comp
 
 import sys
 
-file('hmm', 'w').write("\n".join(sys.modules))
 
 class _CompilerTests:
     """
