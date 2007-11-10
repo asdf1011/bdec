@@ -253,53 +253,6 @@ class _CompilerTests:
         blah = seq.Sequence('blah', [b, d])
         self._decode(blah, 'xy', common=[blah, d])
 
-class TestVariableReference(unittest.TestCase):
-    def test_direct_children(self):
-        a = fld.Field('a', 8)
-        value = expr.ValueResult()
-        value.add_entry(a)
-        b = fld.Field('b', value)
-        spec = seq.Sequence('blah', [a,b])
-
-        vars = comp._VariableReference([spec])
-        self.assertEqual(['a'], vars.get_locals(spec))
-        self.assertTrue(vars.is_value_referenced(a))
-        self.assertFalse(vars.is_value_referenced(b))
-        self.assertEqual([], vars.get_locals(a))
-
-    def test_sub_children(self):
-        a1 = fld.Field('a1', 8)
-        a = seq.Sequence('a', [a1])
-        value = expr.ValueResult()
-        value.add_entry(a1)
-        b1 = fld.Field('b1', value)
-        b = seq.Sequence('b', [b1])
-        spec = seq.Sequence('blah', [a,b])
-
-        vars = comp._VariableReference([spec])
-        self.assertEqual(['a1'], vars.get_locals(spec))
-        # Note that despite containing a referenced entry, it isn't a local (as
-        # it is passed up to the parent entry).
-        self.assertEqual([], vars.get_locals(a))
-
-        # Now check what parameters are passed in and out
-        self.assertEqual(set(), set(vars.get_params(spec)))
-        self.assertEqual(set([comp.Param('a1', comp.Param.OUT)]), vars.get_params(a))
-        self.assertEqual(set([comp.Param('a1', comp.Param.IN)]), vars.get_params(b))
-
-    def test_length_reference(self):
-        a1 = fld.Field('a1', 8)
-        a = seq.Sequence('a', [a1])
-        b1 = fld.Field('b1', expr.LengthResult([a]))
-        b = seq.Sequence('b', [b1])
-        spec = seq.Sequence('blah', [a,b])
-
-        vars = comp._VariableReference([spec])
-        self.assertEqual(['a length'], vars.get_locals(spec))
-        self.assertFalse(vars.is_length_referenced(a1))
-        self.assertTrue(vars.is_length_referenced(a))
-        self.assertEqual(set([comp.Param('a length', comp.Param.OUT)]), vars.get_params(a))
-        self.assertEqual(set([comp.Param('a length', comp.Param.IN)]), vars.get_params(b))
 
 class TestC(_CompilerTests, unittest.TestCase):
     COMPILER = "gcc"
