@@ -19,7 +19,7 @@ class Choice(bdec.entry.Entry):
 
     def _decode(self, data, child_context):
         if self._chooser is None:
-            import bdec.chooser as chsr
+            import bdec.inspect.chooser as chsr
             self._chooser = chsr.Chooser(self.children)
         possibles = self._chooser.choose(data)
 
