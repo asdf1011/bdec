@@ -55,32 +55,15 @@ def _recursive_update(common_references, common, entry):
             _recursive_update(common_references, common, child)
 
 
-class _EntryInfo:
-    def __init__(self, entries):
-        self._sequenceof_lookup = prm.SequenceOfParamLookup(entries)
-        self._variable_references = prm.VariableReference(entries)
-
+class _EntryInfo(prm.ParamLookup):
     def get_locals(self, entry):
-        result = self._sequenceof_lookup.get_locals(entry)
-        result.extend(self._variable_references.get_locals(entry))
-
-        for name in result:
-            yield _variable_name(name)
+        for local in prm.ParamLookup.get_locals(self, entry):
+            yield _variable_name(local)
 
     def get_params(self, entry):
-        result = self._sequenceof_lookup.get_params(entry).copy()
-        result.update(self._variable_references.get_params(entry))
-        for param in result:
+        for param in prm.ParamLookup.get_params(self, entry):
             yield prm.Param(_variable_name(param.name), param.direction)
-
-    def is_end_sequenceof(self, entry):
-        return self._sequenceof_lookup.is_end_sequenceof(entry)
-
-    def is_value_referenced(self, entry):
-        return self._variable_references.is_value_referenced(entry)
-
-    def is_length_referenced(self, entry):
-        return self._variable_references.is_length_referenced(entry)
+            
 
 def _escape_name(name):
     return "".join(char for char in name if char not in ['%', '(', ')', ':'])

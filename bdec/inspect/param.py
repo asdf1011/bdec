@@ -195,3 +195,31 @@ class VariableReference:
         """ Is the decoded length of an entry used elsewhere. """
         return entry in self._referenced_lengths
 
+
+class ParamLookup:
+    """
+    Class to detect parameter information about all entries in a tree.
+    """
+    def __init__(self, entries):
+        self._sequenceof_lookup = SequenceOfParamLookup(entries)
+        self._variable_references = VariableReference(entries)
+
+    def get_locals(self, entry):
+        result = self._sequenceof_lookup.get_locals(entry)
+        result.extend(self._variable_references.get_locals(entry))
+        return result
+
+    def get_params(self, entry):
+        result = self._sequenceof_lookup.get_params(entry).copy()
+        result.update(self._variable_references.get_params(entry))
+        return result
+
+    def is_end_sequenceof(self, entry):
+        return self._sequenceof_lookup.is_end_sequenceof(entry)
+
+    def is_value_referenced(self, entry):
+        return self._variable_references.is_value_referenced(entry)
+
+    def is_length_referenced(self, entry):
+        return self._variable_references.is_length_referenced(entry)
+
