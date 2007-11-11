@@ -71,6 +71,7 @@ class TestVariableReference(unittest.TestCase):
         upper_value.add_entry(upper)
         value = expr.Delayed(operator.__add__, expr.Delayed(operator.__mul__, upper_value, 256), lower_value)
         length = seq.Sequence('length', [lower, ignored, upper], value)
+        header = seq.Sequence('header', [length])
 
         int_value = expr.ValueResult()
         int_value.add_entry(length)

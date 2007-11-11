@@ -129,11 +129,11 @@ class Field(bdec.entry.Entry):
         self._expected = expected
     expected = property(lambda self: self._expected, _set_expected)
 
-    def _decode(self, data, child_context):
+    def _decode(self, data, context):
         """ see bdec.entry.Entry._decode """
         yield (True, self, data)
 
-        self.data = data.pop(int(self.length))
+        self.data = data.pop(bdec.entry.hack_calculate_expression(self.length, context))
         if self.expected is not None:
             if int(self.expected) != int(self.data):
                 raise BadDataError(self, self.expected, self.data)

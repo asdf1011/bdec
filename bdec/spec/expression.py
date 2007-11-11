@@ -41,17 +41,16 @@ class ValueResult:
         self.length = None
         self.entries = []
 
-    def add_entry(self, entry):
-        self.entries.append(entry)
+    def add_entry(self, entry, name=None):
+        if name is None:
+            name = entry.name
+        self.entries.append((entry, name))
         entry.add_listener(self)
 
     def __call__(self, entry, length, context):
-        if isinstance(entry, fld.Field):
-            self.length = int(entry)
-        elif isinstance(entry, seq.Sequence):
-            self.length = int(entry.value)
-        else:
-            raise Exception("Don't know how to get the result of %s" % entry)
+        # TODO: Value functions are no longer called (values are passed around
+        # as parameters in the entry context). 
+        pass
 
     def __int__(self):
         if self.length is None:
@@ -70,7 +69,9 @@ class LengthResult:
         self.entries = entries[:]
 
     def __call__(self, entry, length, context):
-        self.length = length
+        # TODO: Value functions are no longer called (values are passed around
+        # as parameters in the entry context). 
+        pass
 
     def __int__(self):
         if self.length is None:

@@ -187,7 +187,7 @@ class _CompilerTests:
         # store fields directly under a choice (see issue 20).
         null = seq.Sequence('fixa', [fld.Field('null', 8, fld.Field.INTEGER, expected=dt.Data('\x00'))])
         char = seq.Sequence('fixb', [fld.Field('character', 8, fld.Field.TEXT)])
-        spec = sof.SequenceOf('blah', chc.Choice('byte', [null, char]), None, end_entries=[null])
+        spec = sof.SequenceOf('blah', chc.Choice('byte', [null, char]), None, end_entries=[(null, 0)])
         self._decode(spec, 'rabbit\0')
 
     def test_variable_sequenceof(self):

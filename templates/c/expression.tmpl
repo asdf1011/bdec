@@ -22,7 +22,7 @@
   %if isinstance(length, int):
 ${length}
   %elif isinstance(length, ValueResult):
-${length.entries[0].name |variable}
+${length.entries[0][1] |variable}
   %elif isinstance(length, LengthResult):
 ${length.entries[0].name + ' length' |variable}
   %elif isinstance(length, Delayed):

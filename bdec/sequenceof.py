@@ -38,23 +38,10 @@ class SequenceOf(bdec.entry.Entry):
         self.end_entries = end_entries
         assert isinstance(child, bdec.entry.Entry)
 
-    def _loop(self, child_context, data):
-        # At the moment this 'listener' is never removed, and it doesn't work
-        # for stack based notifications (eg: recursive sequenceof entries,
-        # where only the outer entry wants to be notified).
-        stop = [False]
-        for entry, offset in self.end_entries:
-            def break_sequence(entry, length, context):
-                # The entry we have been waiting for has triggered. In the event
-                # that we are a recursive entry, we need to make sure that is
-                # the _correct_ instance of the entry that we are waiting on.
-                if context - child_context == offset:
-                    stop[0] = True
-            entry.add_listener(break_sequence)
-
-        self._stop = False
+    def _loop(self, context, data):
+        context['should end'] = False
         if self.count is not None:
-            count = int(self.count)
+            count = int(bdec.entry.hack_calculate_expression(self.count, context))
             if count < 0:
                 raise NegativeSequenceofLoop(self, count)
 
@@ -62,7 +49,7 @@ class SequenceOf(bdec.entry.Entry):
                 yield i
         else:
             while 1:
-                if stop[0]:
+                if context['should end']:
                     break
                 try:
                     data.copy().pop(1)
@@ -71,10 +58,10 @@ class SequenceOf(bdec.entry.Entry):
                     break
                 yield None
 
-    def _decode(self, data, child_context):
+    def _decode(self, data, context):
         yield (True, self, data)
-        for i in self._loop(child_context, data):
-            for item in self.children[0].decode(data, child_context):
+        for i in self._loop(context, data):
+            for item in self.children[0].decode(data, context):
                 yield item
         yield (False, self, dt.Data())
 

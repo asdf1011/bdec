@@ -101,7 +101,7 @@ class _ReferencedEntry(ent.Entry):
 
     def _decode(self, data, child_context):
         assert self._reference is not None, "Asked to decode unresolved entry '%s'!" % self.name
-        return self._reference.decode(data, child_context - 1)
+        return self._reference.decode(data, child_context)
 
     def _encode(self, query, context):
         assert self._reference is not None, "Asked to encode unresolved entry '%s'!" % self.name
@@ -312,9 +312,9 @@ class _Handler(xml.sax.handler.ContentHandler):
         result = exp.ValueResult()
         for entry in self._get_entries(fullname):
             if isinstance(entry, fld.Field):
-                result.add_entry(entry)
+                result.add_entry(entry, fullname)
             elif isinstance(entry, seq.Sequence) and entry.value is not None:
-                result.add_entry(entry)
+                result.add_entry(entry, fullname)
             else:
                 raise EntryHasNoValueError(entry)
         return result

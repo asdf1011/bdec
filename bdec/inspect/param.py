@@ -111,9 +111,9 @@ class VariableReference:
         if isinstance(expression, int):
             pass
         elif isinstance(expression, expr.ValueResult):
-            for reference in expression.entries:
+            for reference, name in expression.entries:
                 self._referenced_values.add(reference)
-                result.append((reference, reference.name))
+                result.append((reference, name))
         elif isinstance(expression, expr.LengthResult):
             for reference in expression.entries:
                 self._referenced_lengths.add(reference)
@@ -141,7 +141,7 @@ class VariableReference:
         # An entries unknown references are those referenced in any 
         # expressions, and those that are unknown in all of its children.
         unreferenced_entries[entry] = set()
-        if isinstance(entry, fld.Field):
+        if entry.length is not None:
             unreferenced_entries[entry].update(self._collect_references(entry.length))
         elif isinstance(entry, sof.SequenceOf) and entry.count is not None:
             unreferenced_entries[entry].update(self._collect_references(entry.count))
