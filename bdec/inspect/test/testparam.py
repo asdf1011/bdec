@@ -1,3 +1,4 @@
+import operator
 import unittest
 
 import bdec.choice as chc
@@ -58,6 +59,36 @@ class TestVariableReference(unittest.TestCase):
         self.assertTrue(vars.is_length_referenced(a))
         self.assertEqual(set([prm.Param('a length', prm.Param.OUT)]), vars.get_params(a))
         self.assertEqual(set([prm.Param('a length', prm.Param.IN)]), vars.get_params(b))
+
+    def test_sequence_value(self):
+        # Define an integer with a custom byte ordering
+        lower = fld.Field('lower byte', 8)
+        lower_value = expr.ValueResult()
+        lower_value.add_entry(lower)
+        ignored = fld.Field('ignored', 8)
+        upper = fld.Field('upper byte', 8)
+        upper_value = expr.ValueResult()
+        upper_value.add_entry(upper)
+        value = expr.Delayed(operator.__add__, expr.Delayed(operator.__mul__, upper_value, 256), lower_value)
+        length = seq.Sequence('length', [lower, ignored, upper], value)
+
+        int_value = expr.ValueResult()
+        int_value.add_entry(length)
+        data = fld.Field('data', int_value)
+        spec = seq.Sequence('blah', [length, data])
+
+        vars = prm.VariableReference([spec])
+        self.assertTrue(vars.is_value_referenced(lower))
+        self.assertFalse(vars.is_value_referenced(ignored))
+        self.assertTrue(vars.is_value_referenced(upper))
+        self.assertEqual(['lower byte', 'upper byte'], vars.get_locals(length))
+        self.assertEqual(set([prm.Param('lower byte', prm.Param.OUT)]), vars.get_params(lower))
+        self.assertEqual(set([prm.Param('upper byte', prm.Param.OUT)]), vars.get_params(upper))
+        self.assertEqual(set([prm.Param('length', prm.Param.OUT)]), vars.get_params(length))
+
+        self.assertEqual(['length'], vars.get_locals(spec))
+        self.assertEqual(set([prm.Param('length', prm.Param.IN)]), vars.get_params(data))
+
 
 class TestSequenceOfParamLookup(unittest.TestCase):
     def test_end_entry_lookup(self):

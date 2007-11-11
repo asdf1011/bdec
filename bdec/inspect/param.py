@@ -1,6 +1,7 @@
 
 import bdec.spec.expression as expr
 import bdec.field as fld
+import bdec.sequence as seq
 import bdec.sequenceof as sof
 
 
@@ -136,6 +137,7 @@ class VariableReference:
         for child in entry.children:
             self._populate_references(child, unreferenced_entries, known_references)
 
+
         # An entries unknown references are those referenced in any 
         # expressions, and those that are unknown in all of its children.
         unreferenced_entries[entry] = set()
@@ -149,6 +151,10 @@ class VariableReference:
         for child in entry.children:
             known_references[entry].update(known_references[child])
             child_unknowns.update(unreferenced_entries[child])
+        if isinstance(entry, seq.Sequence) and entry.value is not None:
+            # A sequence's references are treated as child unknowns, as they
+            # are resolved from within the entry (and not passed in).
+            child_unknowns.update(self._collect_references(entry.value))
 
         # Our unknown list is all the unknowns in our children that aren't
         # present in our known references.
