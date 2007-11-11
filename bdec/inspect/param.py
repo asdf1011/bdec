@@ -40,7 +40,7 @@ class SequenceOfParamLookup:
         self._has_context_lookup.setdefault(entry, False)
 
         if isinstance(entry, sof.SequenceOf):
-            self._end_sequenceof_entries.update(entry.end_entries)
+            self._end_sequenceof_entries.update(end for end, offset in entry.end_entries)
             intermediaries = []
         else:
             intermediaries.append(entry)
@@ -106,17 +106,22 @@ class VariableReference:
         
         Returns a list of tuples of (entry instances, variable name).
         """
+        result = []
         if isinstance(expression, int):
-            return []
+            pass
         elif isinstance(expression, expr.ValueResult):
-            self._referenced_values.add(expression.entries[0])
-            return [(expression.entries[0], expression.entries[0].name)]
+            for reference in expression.entries:
+                self._referenced_values.add(reference)
+                result.append((reference, reference.name))
         elif isinstance(expression, expr.LengthResult):
-            self._referenced_lengths.add(expression.entries[0])
-            return [(expression.entries[0], expression.entries[0].name + ' length')]
+            for reference in expression.entries:
+                self._referenced_lengths.add(reference)
+                result.append((reference, reference.name + ' length'))
         elif isinstance(expression, expr.Delayed):
-            return self._collect_references(expression.left) + self._collect_references(expression.right)
-        raise Exception("Unable to collect references from unhandled expression type '%s'!" % expression)
+            result = self._collect_references(expression.left) + self._collect_references(expression.right)
+        else:
+            raise Exception("Unable to collect references from unhandled expression type '%s'!" % expression)
+        return result
 
     def _populate_references(self, entry, unreferenced_entries, known_references):
         """
@@ -168,8 +173,9 @@ class VariableReference:
         for item in entries:
             if entry is item or entry in known_references[item]:
                 self._params[item].add(Param(name, Param.OUT))
-                if entry in item.children:
-                    self._add_out_params(entry, name, item.children, known_references)
+                for child in item.children:
+                    if entry in known_references[child]:
+                        self._add_out_params(entry, name, item.children, known_references)
                 return
 
     def get_locals(self, entry):
@@ -210,6 +216,9 @@ class ParamLookup:
         return result
 
     def get_params(self, entry):
+        """
+        Return an iterator to Param objects for the given entry.
+        """
         result = self._sequenceof_lookup.get_params(entry).copy()
         result.update(self._variable_references.get_params(entry))
         return result
