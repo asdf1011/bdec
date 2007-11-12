@@ -158,9 +158,19 @@
             </sequence>
         </sequence>
 
+        <sequence name="data">
+            <field name="guid:" length="128" value="0x3626B2758E66CF11A6D900AA0062CE6C" />
+            <field name="size:" length="64" type="integer" encoding="little endian" />
+            <field name="guid" length="128" type="hex" />
+            <field name="packet count" length="64" type="integer" encoding="little endian" />
+            <field name="padding" length="16" />
+            <field name="data" length="${size:} * 8 - 400" type="hex" />
+        </sequence>
+
         <choice name="object">
             <reference name="bitrate list" />
             <reference name="codec list" />
+            <reference name="data" />
             <reference name="extended content description" />
             <reference name="file property" />
             <reference name="header" />
