@@ -127,12 +127,45 @@
             </sequence>
         </sequence>
 
+        <sequence name="bitrate list">
+            <field name="guid:" length="128" value="0xCE75F87B8D46D1118D82006097C9A2B2" />
+            <field name="size:" length="64" type="integer" encoding="little endian" />
+            <field name="count:" length="16" type="integer" encoding="little endian" />
+            <sequenceof name="bit rates" count="${count:}" length="${size:} * 8 - 208">
+                <sequence name="bit rate">
+                    <field name="stream index" length="7" type="integer" />
+                    <field name="padding" length="9" type="integer" />
+                    <field name="average bitrate" length="32" type="integer" encoding="little endian" />
+                </sequence>
+            </sequenceof>
+        </sequence>
+
+        <sequence name="metadata">
+            <field name="guid:" length="128" value="0x3326B2758E66CF11A6D900AA0062CE6C" />
+            <field name="size:" length="64" type="integer" encoding="little endian" />
+            <sequence  name="contents:" length="${size:} * 8 - 192" >
+                <field name="title size:" length="16" type="integer" encoding="little endian" />
+                <field name="author size:" length="16" type="integer" encoding="little endian" />
+                <field name="copyright size:" length="16" type="integer" encoding="little endian" />
+                <field name="xxx size:" length="16" type="integer" encoding="little endian" />
+                <field name="yyy size:" length="16" type="integer" encoding="little endian" />
+
+                <field name="title" length="${title size:} * 8" type="text" encoding="UTF-16-LE" />
+                <field name="author" length="${author size:} * 8" type="text" encoding="UTF-16-LE" />
+                <field name="title" length="${copyright size:} * 8" type="text" encoding="UTF-16-LE" />
+                <field name="xxx" length="${xxx size:} * 8" type="text" encoding="UTF-16-LE" />
+                <field name="yyy" length="${yyy size:} * 8" type="text" encoding="UTF-16-LE" />
+            </sequence>
+        </sequence>
+
         <choice name="object">
+            <reference name="bitrate list" />
             <reference name="codec list" />
-            <reference name="header" />
-            <reference name="header extension" />
             <reference name="extended content description" />
             <reference name="file property" />
+            <reference name="header" />
+            <reference name="header extension" />
+            <reference name="metadata" />
             <reference name="stream property" />
             <!--<sequence name="unknown">
                 <field name="guid" length="128" type="hex" />
