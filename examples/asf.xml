@@ -173,7 +173,6 @@
             <reference name="data" />
             <reference name="extended content description" />
             <reference name="file property" />
-            <reference name="header" />
             <reference name="header extension" />
             <reference name="metadata" />
             <reference name="stream property" />
@@ -185,6 +184,7 @@
         </choice>
     </common>
     <sequence name="asf">
+        <reference name="header" />
         <sequenceof name="objects">
             <reference name="object" />
         </sequenceof>
