@@ -1,0 +1,106 @@
+<protocol>
+    <common>
+        <sequence name="header">
+            <field name="guid:" length="128" value="0x3026B2758E66CF11A6D900AA0062CE6C" type="hex" />
+            <field name="size:" length="64" type="integer" encoding="little endian" />
+            <field name="object count:" length="32" type="integer" encoding="little endian" />
+            <field name="padding" length="16" />
+            <sequenceof name="objects" count="${object count:}" length="${size:} * 8 - 240">
+                <reference name="object" />
+            </sequenceof>
+        </sequence>
+
+        <sequence name="file property">
+            <field name="guid:" length="128" value="0xA1DCAB8C47A9CF118EE400C00C205365" />
+            <field name="size:" length="64" type="integer" encoding="little endian" value="104" />
+            <field name="guid" length="128" type="hex" />
+            <field name="file size" length="64" type="integer" encoding="little endian" />
+            <field name="creation date" length="64" type="integer" encoding="little endian" />
+            <field name="packet count" length="64" type="integer" encoding="little endian" />
+            <field name="play duration" length="64" type="integer" encoding="little endian" />
+            <field name="send duration" length="64" type="integer" encoding="little endian" />
+            <field name="preroll" length="64" type="integer" encoding="little endian" />
+            <field name="broadcast" length="1" type="integer" />
+            <field name="seekable" length="1" type="integer" />
+            <field name="reserved" length="30" />
+            <field name="min packet size" length="32" type="integer" encoding="little endian" />
+            <field name="max packet size" length="32" type="integer" encoding="little endian" />
+            <field name="max bitrate" length="32" type="integer" encoding="little endian" />
+        </sequence>
+
+        <sequence name="extended content description">
+            <field name="guid:" length="128" value="0x40A4D0D207E3D21197F000A0C95EA850" type="hex" />
+            <field name="size:" length="64" type="integer" encoding="little endian" />
+            <field name="count:" length="16" type="integer" encoding="little endian" />
+            <sequenceof name="descriptors" count="${count:}" length="${size:} * 8 - 208">
+                <sequence name="descriptor">
+                    <field name="length:" length="16" type="integer" encoding="little endian" />
+                    <field name="name" length="${length:} * 8" type="text" encoding="UTF-16-LE" />
+                    <choice name="value">
+                        <sequence name="unicode">
+                            <field name="id:" length="16" value="0x0000" />
+                            <field name="value size:" length="16" type="integer" encoding="little endian" />
+                            <field name="value" length="${value size:} * 8" type="text" encoding="UTF-16-LE" />
+                        </sequence>
+                        <sequence name="BOOL">
+                            <field name="id:" length="16" value="0x0200" />
+                            <field name="value size:" length="16" value="0x0400" />
+                            <field name="value" length="32" type="integer" encoding="little endian" />
+                        </sequence>
+                        <sequence name="WORD">
+                            <field name="id:" length="16" value="0x0500" />
+                            <field name="value size:" length="16" value="0x0200" />
+                            <field name="value" length="16" type="integer" encoding="little endian" />
+                        </sequence>
+                        <sequence name="DWORD">
+                            <field name="id:" length="16" value="0x0300" />
+                            <field name="value size:" length="16" value="0x0400" />
+                            <field name="value" length="32" type="integer" encoding="little endian" />
+                        </sequence>
+                        <sequence name="QWORD">
+                            <field name="id:" length="16" value="0x0400" />
+                            <field name="value size:" length="16" value="0x0800" />
+                            <field name="value" length="64" type="integer" encoding="little endian" />
+                        </sequence>
+                        <sequence name="byte array">
+                            <field name="id" length="16" value="0x0100" />
+                            <field name="value size:" length="16" type="integer" encoding="little endian" />
+                            <field name="value" length="${value size:} * 8" type="hex" />
+                        </sequence>
+                        <sequence name="unknown">
+                            <field name="id" length="16" type="integer" encoding="little endian" />
+                            <field name="value size:" length="16" type="integer" encoding="little endian" />
+                            <field name="value" length="${value size:} * 8" type="hex" />
+                        </sequence>
+                    </choice>
+                </sequence>
+            </sequenceof>
+        </sequence>
+
+        <sequence name="header extension">
+            <field name="guid:" length="128" value="0xB503BF5F2EA9CF118EE300C00C205365" />
+            <field name="size:" length="64" type="integer" />
+            <field name="guid" length="128" type="hex" />
+            <field name="reserved" length="16" type="integer" encoding="little endian" />
+            <field name="data size:" length="32" type="integer" encoding="little endian" />
+            <field name="data" length="${data size:} * 8" type="hex" />
+        </sequence>
+
+        <choice name="object">
+            <reference name="header" />
+            <reference name="header extension" />
+            <reference name="extended content description" />
+            <reference name="file property" />
+            <!--<sequence name="unknown">
+                <field name="guid" length="128" type="hex" />
+                <field name="length:" length="64" type="integer" encoding="little endian" />
+                <field name="data" length="${length:} * 8 - 192" />
+            </sequence>-->
+        </choice>
+    </common>
+    <sequence name="asf">
+        <sequenceof name="objects">
+            <reference name="object" />
+        </sequenceof>
+    </sequence>
+</protocol>
