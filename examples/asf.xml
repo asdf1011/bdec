@@ -4,7 +4,8 @@
             <field name="guid:" length="128" value="0x3026B2758E66CF11A6D900AA0062CE6C" type="hex" />
             <field name="size:" length="64" type="integer" encoding="little endian" />
             <field name="object count:" length="32" type="integer" encoding="little endian" />
-            <field name="padding" length="16" />
+            <field name="reserved 1" length="8" />
+            <field name="reserved 2" length="8" value="0x2" />
             <sequenceof name="objects" count="${object count:}" length="${size:} * 8 - 240">
                 <reference name="object" />
             </sequenceof>
@@ -81,8 +82,8 @@
             <field name="guid:" length="128" value="0xB503BF5F2EA9CF118EE300C00C205365" />
             <field name="size:" length="64" type="integer" encoding="little endian" />
             <sequence name="contents:" length="${size:} * 8 - 192">
-                <field name="guid" length="128" type="hex" />
-                <field name="reserved" length="16" type="integer" encoding="little endian" />
+                <field name="guid:" length="128" value="0x11D2D3ABBAA9cf118EE600C00C205365" />
+                <field name="reserved:" length="16" type="integer" encoding="little endian" value="0x0600" />
                 <field name="data size:" length="32" type="integer" encoding="little endian" />
                 <field name="data" length="${data size:} * 8" type="hex" />
             </sequence>
