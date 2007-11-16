@@ -76,11 +76,6 @@ class SequenceOfParamLookup:
         If an item is between a sequenceof and an end-sequenceof entry, it
         should pass an output 'should_end' context item.
         """
-        try:
-            self._has_context_lookup[entry]
-        except:
-            self._walk(self._test_spec, set(), 0)
-            raise
         if self._has_context_lookup[entry]:
             return set([Param('should end', Param.OUT)])
         return set()
