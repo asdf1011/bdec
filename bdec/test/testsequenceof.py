@@ -76,6 +76,3 @@ class TestSequenceOf(unittest.TestCase):
 
         self.assertEqual("hello", result)
         self.assertEqual("bob", str(data))
-
-if __name__ == "__main__":
-    unittest.main()

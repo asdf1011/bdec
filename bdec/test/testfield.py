@@ -145,6 +145,3 @@ class TestField(unittest.TestCase):
 
     def test_bad_expected_length(self):
         self.assertRaises(fld.FieldDataError, fld.Field, "bob", 8, expected=dt.Data('ab'))
-
-if __name__ == "__main__":
-    unittest.main()

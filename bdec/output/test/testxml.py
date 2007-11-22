@@ -73,6 +73,3 @@ class TestXml(unittest.TestCase):
         text = "<cat> <dog>a</dog> <dog>b</dog> <dog>c</dog> <dog>d</dog> </cat>"
         data = reduce(lambda a,b:a+b, xml.encode(spec, text))
         self.assertEqual("abcd", str(data))
-
-if __name__ == "__main__":
-    unittest.main()

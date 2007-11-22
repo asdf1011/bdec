@@ -105,6 +105,3 @@ class TestChoice(unittest.TestCase):
         choice = chc.Choice("blah", options)
         self.assertEqual(4, choice.range().min)
         self.assertEqual(8, choice.range().max)
-
-if __name__ == "__main__":
-    unittest.main()

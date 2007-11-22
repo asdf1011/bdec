@@ -120,5 +120,3 @@ class TestInstance(unittest.TestCase):
                 self.data = 0x5f
         self.assertEqual("\x5f", self._encode(hidden_seq, Blah()))
 
-if __name__ == "__main__":
-    unittest.main()

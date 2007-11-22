@@ -118,6 +118,3 @@ class TestData(unittest.TestCase):
         data = dt.Data(buffer)
         self.assertEqual(4, int(data.pop(8)))
         self.assertEqual('abcd', str(data))
-
-if __name__ == "__main__":
-    unittest.main()

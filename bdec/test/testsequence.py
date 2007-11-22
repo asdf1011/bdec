@@ -55,6 +55,3 @@ class TestSequence(unittest.TestCase):
         sequence = seq.Sequence("blah", children)
         self.assertEqual(16, sequence.range().min)
         self.assertEqual(16, sequence.range().max)
-
-if __name__ == "__main__":
-    unittest.main()

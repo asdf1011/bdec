@@ -543,6 +543,3 @@ class TestXml(unittest.TestCase):
               <reference name="hey" />
             </protocol>"""
         self.assertRaises(xml.XmlExpressionError, xml.loads, text)
-
-if __name__ == "__main__":
-    unittest.main()
