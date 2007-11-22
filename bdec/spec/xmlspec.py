@@ -369,6 +369,10 @@ class _Handler(xml.sax.handler.ContentHandler):
         encoding = None
         if attributes.has_key('encoding'):
             encoding = attributes['encoding']
+            if format is fld.Field.INTEGER:
+                _integer_encodings = [fld.Field.LITTLE_ENDIAN, fld.Field.BIG_ENDIAN]
+                if encoding not in _integer_encodings:
+                    raise self._error("Invalid integer encoding '%s'! Valid values are: %s" % (encoding, ", ".join(_integer_encodings)))
         min = None
         if attributes.has_key('min'):
             min = self._parse_expression(attributes['min'])

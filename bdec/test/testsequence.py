@@ -13,7 +13,7 @@ class TestSequence(unittest.TestCase):
         data = dt.Data.from_hex("017a")
 
         calls = []
-        for is_starting, entry, entry_data in sequence.decode(data):
+        for is_starting, entry, entry_data, value in sequence.decode(data):
             if not is_starting:
                 calls.append(entry)
 

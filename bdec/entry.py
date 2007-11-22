@@ -225,10 +225,10 @@ class Entry(object):
 
         # Do the actual decode of this entry (and all embedded entries).
         length = 0
-        for is_starting, entry, entry_data in self._decode(data, context):
+        for is_starting, entry, entry_data, value in self._decode(data, context):
             if not is_starting:
                 length += len(entry_data)
-            yield is_starting, entry, entry_data
+            yield is_starting, entry, entry_data, value
 
         if self.length is not None and len(data) != 0:
             raise DecodeLengthError(self, data)

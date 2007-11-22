@@ -11,7 +11,7 @@ class TestField(unittest.TestCase):
         data = dt.Data.from_hex("017a")
 
         calls = []
-        for is_starting, entry, entry_data in field.decode(data):
+        for is_starting, entry, entry_data, value in field.decode(data):
             calls.append(entry)
         self.assertEqual(2, len(calls))
         self.assertEqual(field, calls[0])
@@ -19,18 +19,11 @@ class TestField(unittest.TestCase):
         self.assertEqual(1, int(calls[1].data))
         self.assertEqual(0x7a, int(data))
 
-    def test_must_decode_before_querying_value(self):
-        field = fld.Field("bob", 8)
-        self.assertRaises(fld.FieldNotDecodedError, field.get_value)
-
     def _get_decode_value(self, hex, length, format, encoding=""):
         field = fld.Field("bob", length, format, encoding)
         data = dt.Data.from_hex(hex)
-        calls = []
-        for is_starting, entry, entry_data in field.decode(data):
-            calls.append(entry)
-        self.assertEqual(2, len(calls))
-        return calls[1].get_value()
+        calls = list(field.decode(data))
+        return calls[1][3]
 
     def test_binary_type(self):
         actual = self._get_decode_value("017a", 12, fld.Field.BINARY)

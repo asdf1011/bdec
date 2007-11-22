@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import StringIO
 import unittest
 
 import bdec
@@ -6,11 +7,11 @@ import bdec.data as dt
 
 class TestData(unittest.TestCase):
     def test_pop_empty_data(self):
-        self.assertRaises(dt.NotEnoughDataError, dt.Data("").pop, 1)
+        self.assertRaises(dt.NotEnoughDataError, int, dt.Data("").pop(1))
 
     def test_pop_negative_number(self):
         self.assertEqual("abcd", str(dt.Data("abcd").pop(32)))
-        self.assertRaises(dt.NotEnoughDataError, dt.Data("abcd").pop, 33)
+        self.assertRaises(dt.NotEnoughDataError, int, dt.Data("abcd").pop(33))
 
     def test_integer(self):
         self.assertEqual(3, int(dt.Data(chr(3))))
@@ -21,6 +22,7 @@ class TestData(unittest.TestCase):
 
     def test_string(self):
         self.assertEqual("Some text", str(dt.Data("Some text")))
+        self.assertEqual("", str(dt.Data()))
 
     def test_unaligned_string(self):
         # The first 4 bits (the 'a') will be popped, then the 5 byte
@@ -80,11 +82,42 @@ class TestData(unittest.TestCase):
     def test_adding_data(self):
         self.assertEqual("chicken little", str(dt.Data("chicken ") + dt.Data("little")))
 
+    def test_equality(self):
+        self.assertEqual(dt.Data.from_binary_text('1110'), dt.Data.from_hex('e0').pop(4))
+
     def test_unaligned_bits(self):
         self.assertEqual(0x2d, int(dt.Data.from_binary_text("010") + dt.Data.from_binary_text("1101")))
 
     def test_hex_conversion(self):
         self.assertEqual("\x23\x45\x67", str(dt.Data.from_hex("23 45 67")))
+
+    def test_conversion_needs_bytes(self):
+        self.assertRaises(dt.ConversionNeedsBytesError, str, dt.Data("00", 0, 4))
+        data = dt.Data.from_hex('ab')
+        self.assertRaises(dt.ConversionNeedsBytesError, str, data.pop(4))
+
+    def test_empty(self):
+        data = dt.Data()
+        self.assertTrue(data.empty())
+
+        # Now create some data that should have more data then it does
+        data = dt.Data('', 0, 8)
+        self.assertTrue(not data.empty())
+        self.assertRaises(dt.NotEnoughDataError, int, data)
+        
+        # Now create data that has more buffer available, but we tell it
+        # the length is at an end.
+        data = dt.Data("1234").pop(8)
+        self.assertTrue(not data.empty())
+        data.pop(8)
+        self.assertTrue(data.empty())
+
+    def test_file_buffer(self):
+        buffer = StringIO.StringIO()
+        buffer.write('\x04abcd')
+        data = dt.Data(buffer)
+        self.assertEqual(4, int(data.pop(8)))
+        self.assertEqual('abcd', str(data))
 
 if __name__ == "__main__":
     unittest.main()

@@ -131,15 +131,23 @@ class Field(bdec.entry.Entry):
 
     def _decode(self, data, context):
         """ see bdec.entry.Entry._decode """
-        yield (True, self, data)
+        yield (True, self, data, None)
 
-        self.data = data.pop(bdec.entry.hack_calculate_expression(self.length, context))
-        if self.expected is not None:
-            if int(self.expected) != int(self.data):
-                raise BadDataError(self, self.expected, self.data)
-        self._validate_range(self.data)
+        field_data = data.pop(bdec.entry.hack_calculate_expression(self.length, context))
+        # As this popped data is not guaranteed to be available, we have to
+        # wrap all access to it in an exception handler.
+        try:
+            if self.expected is not None:
+                if self.expected != field_data:
+                    raise BadDataError(self, self.expected, field_data)
+            self._validate_range(field_data)
+            value = self.decode_value(field_data)
+        except dt.NotEnoughDataError, ex:
+            raise FieldDataError(self, ex)
 
-        yield (False, self, self.data)
+        self.data = field_data
+
+        yield (False, self, field_data, value)
 
     def _convert_type(self, data, expected_type):
         try:
@@ -252,12 +260,6 @@ class Field(bdec.entry.Entry):
             # integer, to ensure we are in a given character range).
             result = int(data)
         return result
-
-    def get_value(self):
-        """ Get the decoded value """
-        if self.data is None:
-            raise FieldNotDecodedError(self)
-        return self.decode_value(self.data)
 
     def decode_value(self, data):
         """

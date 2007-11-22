@@ -22,11 +22,11 @@ class _DecodedItem:
         """
         Create a python object representing the decoded protocol entry.
         """
+        # We allready have the decoded values for fields; this function shouldn't
+        # be used.
+        assert not isinstance(self._entry, fld.Field)
         if isinstance(self._entry, sof.SequenceOf):
             result = list(value for name, value in self.children)
-        elif isinstance(self._entry, fld.Field):
-            assert len(self.children) == 0
-            result = self._entry.get_value()
         else:
             result = _Item()
             for name, value in self.children:
@@ -38,19 +38,21 @@ def decode(decoder, binary):
     Create a python instance representing the decoded data.
     """
     stack = [_DecodedItem(None)]
-    for is_starting, entry, data in decoder.decode(binary):
+    for is_starting, entry, data, value in decoder.decode(binary):
         if is_starting:
             stack.append(_DecodedItem(entry))
         else:
             item = stack.pop()
             if not entry.is_hidden():
-                stack[-1].add_entry(entry.name, item.get_value())
+                if not isinstance(entry, fld.Field):
+                    value = item.get_value()
+                stack[-1].add_entry(entry.name, value)
             else:
                 # We want to ignore this item, but still add the childs items to the parent.
                 if isinstance(entry, fld.Field):
                     # For ignored field items, we'll add the value to the parent. This allows
                     # us to have lists of numbers (eg: sequenceof with an ignored field)
-                    stack[-1].add_entry("", item.get_value())
+                    stack[-1].add_entry("", value)
                 else:
                     for name, value in item.children:
                         stack[-1].add_entry(name, value)
