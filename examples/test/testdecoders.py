@@ -51,7 +51,7 @@ def _create_tests():
             for datafile in os.listdir(datadir):
                 testname = "test_%s" % os.path.splitext(datafile)[0]
                 datafile = os.path.join(datadir, datafile)
-                method = _create_decode_function(name, datafile)
+                method = _create_decode_function(testname, datafile)
                 members[testname] = method
         result[testcasename] = type(testcasename, (unittest.TestCase, _BaseTest), members)
     assert result, "No example specifications found!"
