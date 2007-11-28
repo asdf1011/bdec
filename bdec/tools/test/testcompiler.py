@@ -193,7 +193,7 @@ class _CompilerTests:
     def test_variable_sequenceof(self):
         a1 = fld.Field('a1', 8, fld.Field.INTEGER)
         value = expr.ValueResult()
-        value.add_entry(a1)
+        value.add_entry(a1, 'a.a1')
         a = seq.Sequence('a', [a1])
 
         b1 = fld.Field('b2', 8, fld.Field.INTEGER)

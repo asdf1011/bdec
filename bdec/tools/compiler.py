@@ -6,6 +6,7 @@ import mako.lookup
 import mako.template
 import mako.runtime
 import os
+import os.path
 import sys
 
 import bdec.inspect.param as prm
@@ -64,9 +65,13 @@ class _EntryInfo(prm.ParamLookup):
         for param in prm.ParamLookup.get_params(self, entry):
             yield prm.Param(_variable_name(param.name), param.direction)
             
+    def get_invoked_params(self, entry, child):
+        for param in prm.ParamLookup.get_invoked_params(self, entry, child):
+            yield prm.Param(_variable_name(param.name), param.direction)
+
 
 def _escape_name(name):
-    return "".join(char for char in name if char not in ['%', '(', ')', ':'])
+    return "".join(char for char in name if char not in ['%', '(', ')', ':', '.'])
 
 def _camelcase(name):
     words = _escape_name(name).split()
@@ -77,10 +82,12 @@ def _delimiter(name, delim):
     return delim.join(words)
 
 def _variable_name(name):
+    name = _delimiter(name, ' ')
     return name[0].lower() + _camelcase(name)[1:]
 
 def _filename(name):
-    return _delimiter(name, '').lower()
+    basename, extension = os.path.splitext(name)
+    return _delimiter(basename, '').lower() + extension
 
 def _type_name(name):
     return _camelcase(name)
@@ -110,6 +117,7 @@ def generate_code(spec, template_path, output_dir, common_entries=[]):
             lookup['entry'] = entry
             lookup['common'] = referenced_entries
             lookup['get_params'] = info.get_params
+            lookup['get_invoked_params'] = info.get_invoked_params
             lookup['is_end_sequenceof'] = info.is_end_sequenceof
             lookup['is_value_referenced'] = info.is_value_referenced
             lookup['is_length_referenced'] = info.is_length_referenced

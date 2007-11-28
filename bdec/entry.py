@@ -134,7 +134,9 @@ class Entry(object):
         self._listeners = []
         self.length = length
         self.children = embedded
+
         self._params = None
+        self._parent_param_lookup = {}
         self._is_end_of_sequenceof = False
 
     def _validate(self):
@@ -156,6 +158,10 @@ class Entry(object):
         if self._params is not None:
             return
         self._params = lookup.get_params(self)
+        for child in self.children:
+            child_params = (param.name for param in lookup.get_params(child))
+            our_params = (param.name for param in lookup.get_invoked_params(self, child))
+            self._parent_param_lookup[child] = dict(zip(child_params, our_params))
 
         if lookup.is_end_sequenceof(self):
             self.add_listener(_hack_on_end_sequenceof)
@@ -186,6 +192,29 @@ class Entry(object):
         """
         self._listeners.append(listener)
 
+    def _decode_child(self, child, data, context):
+        # Create the childs context from our data
+        child_context = {}
+        for param in child._params:
+            if param.direction is param.IN:
+                child_context[param.name] = context[self._parent_param_lookup[child][param.name]]
+
+        # Do the decode
+        for result in child.decode(data, child_context):
+            yield result
+
+        # Update our context with the output values from the childs context
+        for param in child._params:
+            if param.direction is param.OUT:
+                if param.name == "should end":
+                    try:
+                        context[param.name] = child_context[param.name]
+                    except KeyError:
+                        # 'should end' is a hacked special case, as it may not always be set.
+                        pass
+                else:
+                    context[self._parent_param_lookup[child][param.name]] = child_context[param.name]
+
     def _decode(self, data, child_context):
         """
         Decode the given protocol entry.
@@ -195,13 +224,13 @@ class Entry(object):
         """
         raise NotImplementedError()
 
-    def decode(self, data, parent_context={}):
+    def decode(self, data, context={}):
         """
         Decode this entry from input data.
 
         @param data The data to decode
-        @param parent_context The context of the parent. This entry will look
-            in the parent context and pull out any items it needs.
+        @param context The context of our decode. Is a lookup of names to
+            intger values.
         @return An iterator that returns (is_starting, Entry, data) tuples. The
             data when the decode is starting is the data available to be 
             decoded, and the data when the decode is finished is the data from
@@ -211,11 +240,10 @@ class Entry(object):
             self._validate()
             assert self._params is not None
 
-        # Create our context from the parents
-        context = {}
+        # Validate our context
         for param in self._params:
             if param.direction is param.IN:
-                context[param.name] = parent_context[param.name]
+                assert param.name in context, "Context to '%s' must include %s!" % (self, param.name)
 
         if self.length is not None:
             try:
@@ -235,19 +263,6 @@ class Entry(object):
 
         for listener in self._listeners:
             listener(self, length, context)
-
-        # Update our parents context with our out parameters.
-        for param in self._params:
-            if param.direction is param.OUT:
-                try:
-                    parent_context[param.name] = context[param.name]
-                except KeyError:
-                    # FIXME: The 'should end' parameter isn't set on every
-                    # control path (only on the item with the end-sequenceof
-                    # entry). We should have a nicer way of handling this...
-                    if param.name != 'should end':
-                        raise
-
 
     def _get_context(self, query, parent):
         # This interface isn't too good; it requires us to load the _entire_ document

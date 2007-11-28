@@ -17,7 +17,7 @@ class Choice(bdec.entry.Entry):
             assert isinstance(child, bdec.entry.Entry)
         self._chooser = None
 
-    def _decode(self, data, child_context):
+    def _decode(self, data, context):
         if self._chooser is None:
             import bdec.inspect.chooser as chsr
             self._chooser = chsr.Chooser(self.children)
@@ -52,7 +52,7 @@ class Choice(bdec.entry.Entry):
             for child in possibles:
                 try:
                     bits_decoded = 0
-                    for is_starting, entry, entry_data, value in child.decode(data.copy(), child_context):
+                    for is_starting, entry, entry_data, value in self._decode_child(child, data.copy(), context.copy()):
                         if not is_starting:
                             bits_decoded += len(entry_data)
 
@@ -65,7 +65,7 @@ class Choice(bdec.entry.Entry):
                         best_guess_bits = bits_decoded
 
         # Decode the best option.
-        for is_starting, entry, data, value in best_guess.decode(data, child_context):
+        for is_starting, entry, data, value in best_guess.decode(data, context):
             yield is_starting, entry, data, value
 
         assert not failure_expected

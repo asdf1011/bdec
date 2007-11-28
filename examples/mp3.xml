@@ -152,7 +152,7 @@
                     <field name="CCIT J.17" length="2" value="0x3" />
                 </choice>
             </sequence>
-            <field name="data" length="(144 * ${header.bitrate} * 1000 / ${header.sample rate} + ${header.padding}) * 8 - len{header}" type="hex" />
+            <field name="data" length="(144 * ${header.mpeg 1 layer 3 bitrate lookup:.bitrate} * 1000 / ${header.sample rate} + ${header.mpeg 1 padding lookup:.padding}) * 8 - len{header}" type="hex" />
         </sequence>
 
         <sequence name="id3 v1">

@@ -1,8 +1,10 @@
 
-import bdec.spec.expression as expr
+import bdec.choice as chc
+import bdec.entry as ent
 import bdec.field as fld
 import bdec.sequence as seq
 import bdec.sequenceof as sof
+import bdec.spec.expression as expr
 
 
 class Param(object):
@@ -89,6 +91,9 @@ class VariableReference:
         self._locals = {}
         self._params = {}
 
+        # Maybe this should be a dictionary of [entry][child][local name] -> list[child names]
+        self._child_name_lookup = {}
+
         self._referenced_values = set()
         self._referenced_lengths = set()
         unreferenced_entries = {}
@@ -132,7 +137,6 @@ class VariableReference:
         for child in entry.children:
             self._populate_references(child, unreferenced_entries, known_references)
 
-
         # An entries unknown references are those referenced in any 
         # expressions, and those that are unknown in all of its children.
         unreferenced_entries[entry] = set()
@@ -142,10 +146,38 @@ class VariableReference:
             unreferenced_entries[entry].update(self._collect_references(entry.count))
 
         child_unknowns = set()
-        known_references[entry] = set([entry])
-        for child in entry.children:
-            known_references[entry].update(known_references[child])
+        self._child_name_lookup[entry] = {}
+        known_references[entry] = set()
+        for i, child in enumerate(entry.children):
+            # We need to map between the names we know about, and the name they
+            # are in the child.
+            lookup = set([(child.name, child.name), (child.name + ' length', child.name + ' length')])
+            
+            lookup.update(("%s.%s" % (child.name, name), name) for name in known_references[child])
+            if ent.is_hidden(child.name):
+                lookup.update((name, name) for name in known_references[child])
+
+            # Update the known references for this item.
+            if isinstance(entry, sof.SequenceOf):
+                pass
+            elif isinstance(entry, chc.Choice) and i != 0:
+                # For choice entries, the known references are the names
+                # shared between all options.
+                known_references[entry].intersection_update(entry_name for entry_name, child_name in lookup)
+            else:
+                known_references[entry].update(entry_name for entry_name, child_name in lookup)
+
+            # Update the lookup with the names the child doesn't know about
+            lookup.update((name, name) for item, name in unreferenced_entries[child])
+            if isinstance(entry, chc.Choice):
+                self._child_name_lookup[entry][child] = set((name, name) for name in known_references[child])
+            elif isinstance(entry, seq.Sequence):
+                self._child_name_lookup[entry][child] = lookup
+            else:
+                self._child_name_lookup[entry][child] = set()
+
             child_unknowns.update(unreferenced_entries[child])
+
         if isinstance(entry, seq.Sequence) and entry.value is not None:
             # A sequence's references are treated as child unknowns, as they
             # are resolved from within the entry (and not passed in).
@@ -153,31 +185,42 @@ class VariableReference:
 
         # Our unknown list is all the unknowns in our children that aren't
         # present in our known references.
-        unknown = ((child, name) for child, name in child_unknowns if child not in known_references[entry])
+        unknown = ((child, name) for child, name in child_unknowns if name not in known_references[entry])
         unreferenced_entries[entry].update(unknown)
 
         # Local variables for this entry are all entries that our children
         # don't know about, but we do (eg: we can access it through another
         # of our children).
-        self._locals[entry] = [(child, name) for child, name in child_unknowns if child in known_references[entry]]
+        self._locals[entry] = list(set(name for child, name in child_unknowns if name in known_references[entry]))
+        self._locals[entry].sort()
 
         # Detect all parameters necessary to decode this entry.
         for item, name in unreferenced_entries[entry]:
             self._params[entry].add(Param(name, Param.IN))
-        for local, name in self._locals[entry]:
-            self._add_out_params(local, name, entry.children, known_references)
+        for name in self._locals[entry]:
+            self._add_out_params(entry, name, known_references)
 
-    def _add_out_params(self, entry, name, entries, known_references):
+    def _add_out_params(self, entry, name, known_references):
         """
-        Drill down into entries looking for entry, adding output params.
+        Drill down into the children of 'entry', adding output params to 'name'.
         """
-        for item in entries:
-            if entry is item or entry in known_references[item]:
-                self._params[item].add(Param(name, Param.OUT))
-                for child in item.children:
-                    if entry in known_references[child]:
-                        self._add_out_params(entry, name, item.children, known_references)
-                return
+        # Look at all of our children. If 
+        was_child_found = False
+        for child in entry.children:
+            # Get the child's name for this param
+            if name in [child.name, child.name + ' length']:
+                self._params[child].add(Param(name, Param.OUT))
+                was_child_found = True
+            else:
+                for param_name, child_param_name in self._child_name_lookup[entry][child]:
+                    if param_name == name and child_param_name in known_references[child]:
+                        # We found a child item that knows about this parameter; we'll
+                        # add an output parameter.
+                        self._params[child].add(Param(child_param_name, Param.OUT))
+                        self._add_out_params(child, child_param_name, known_references)
+                        was_child_found = True
+        if not was_child_found:
+            raise Exception("Failed to find child matching name '%s' from item '%s'" % (name, entry))
 
     def get_locals(self, entry):
         """
@@ -186,13 +229,40 @@ class VariableReference:
         All child entries that reference another child reference, where the
         given entry is the nearest common ancestor.
         """
-        return [name for item, name in self._locals[entry]]
+        return self._locals[entry]
 
     def get_params(self, entry):
         """
-        Get all parameters passed to an entry due to value references.
+        Get an iterator to all parameters passed to an entry due to value references.
         """
         return self._params[entry]
+
+    def get_invoked_params(self, entry, child):
+        """
+        Get a iterator to all parameters passed from a parent to a child entry.
+        """
+        for param in self.get_params(child):
+            local = self._get_local_name(entry, child, param.name)
+            yield Param(local, param.direction)
+
+    def _get_local_name(self, entry, child, child_param_name):
+        """
+        Returns a list of tuples containing (local name, child name) for all parameters passed to 'child'.
+        """
+        # FIXME: We can have multiple local names! eg: '8 bit:length' or
+        # 'length'. We currently return the last one (which works by
+        # coincidence). We should decode on one (see issue37).
+        result = None
+        for name, child_name in self._child_name_lookup[entry][child]:
+            if child_param_name == child_name:
+                result =  name
+        if result:
+            return result
+
+        # We were unable to find entry's name for this param; assume it is the
+        # same as the child.
+        # FIXME: This is a hack!
+        return child_param_name
 
     def is_value_referenced(self, entry):
         """ Is the decoded value of an entry used elsewhere. """
@@ -223,6 +293,12 @@ class ParamLookup:
         result = self._sequenceof_lookup.get_params(entry).copy()
         result.update(self._variable_references.get_params(entry))
         return result
+
+    def get_invoked_params(self, entry, child):
+        for param in self._sequenceof_lookup.get_params(child):
+            yield param
+        for param in self._variable_references.get_invoked_params(entry, child):
+            yield param
 
     def is_end_sequenceof(self, entry):
         return self._sequenceof_lookup.is_end_sequenceof(entry)

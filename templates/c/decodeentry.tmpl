@@ -15,9 +15,9 @@ def _define_params(entry, get_params):
             result += ", int* %s" % param.name
     return result
 
-def _params(parent, entry, get_params, local_variables):
+def _params(parent, entry, get_invoked_params, local_variables):
     result = ""
-    for param in get_params(entry):
+    for param in get_invoked_params(parent, entry):
         if param.direction is param.OUT and param.name in local_variables:
             result += ", &%s" % param.name
         else:
@@ -30,7 +30,7 @@ ${_define_params(entry, get_params)}
 </%def>
 
 <%def name="params(parent, entry)">
-${_params(parent, entry, get_params, local_vars(parent))}
+${_params(parent, entry, get_invoked_params, local_vars(parent))}
 </%def>
 
 <%def name="decodeField(entry, varname)">
