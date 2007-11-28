@@ -37,14 +37,9 @@ class ValueResult:
     """
     Object returning the result of a entry when cast to an integer.
     """
-    def __init__(self):
+    def __init__(self, name):
         self.length = None
-        self.entries = []
-
-    def add_entry(self, entry, name=None):
-        if name is None:
-            name = entry.name
-        self.entries.append((entry, name))
+        self.name = name
 
     def __int__(self):
         if self.length is None:
@@ -56,9 +51,9 @@ class LengthResult:
     """
     Object returning the length of a decoded entry.
     """
-    def __init__(self, entries):
+    def __init__(self, name):
         self.length = None
-        self.entries = entries[:]
+        self.name = name
 
     def __int__(self):
         if self.length is None:

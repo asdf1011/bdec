@@ -12,8 +12,7 @@ import bdec.spec.expression as expr
 class TestVariableReference(unittest.TestCase):
     def test_direct_children(self):
         a = fld.Field('a', 8)
-        value = expr.ValueResult()
-        value.add_entry(a)
+        value = expr.ValueResult('a')
         b = fld.Field('b', value)
         spec = seq.Sequence('blah', [a,b])
 
@@ -27,8 +26,7 @@ class TestVariableReference(unittest.TestCase):
         a2 = fld.Field('a2', 8)
         a1 = seq.Sequence('a1', [a2])
         a = seq.Sequence('a', [a1])
-        value = expr.ValueResult()
-        value.add_entry(a2, "a.a1.a2")
+        value = expr.ValueResult('a.a1.a2')
         b1 = fld.Field('b1', value)
         b = seq.Sequence('b', [b1])
         spec = seq.Sequence('blah', [a,b])
@@ -53,7 +51,7 @@ class TestVariableReference(unittest.TestCase):
     def test_length_reference(self):
         a1 = fld.Field('a1', 8)
         a = seq.Sequence('a', [a1])
-        b1 = fld.Field('b1', expr.LengthResult([a]))
+        b1 = fld.Field('b1', expr.LengthResult('a'))
         b = seq.Sequence('b', [b1])
         spec = seq.Sequence('blah', [a,b])
 
@@ -67,18 +65,15 @@ class TestVariableReference(unittest.TestCase):
     def test_sequence_value(self):
         # Define an integer with a custom byte ordering
         lower = fld.Field('lower byte', 8)
-        lower_value = expr.ValueResult()
-        lower_value.add_entry(lower)
+        lower_value = expr.ValueResult('lower byte')
         ignored = fld.Field('ignored', 8)
         upper = fld.Field('upper byte', 8)
-        upper_value = expr.ValueResult()
-        upper_value.add_entry(upper)
+        upper_value = expr.ValueResult('upper byte')
         value = expr.Delayed(operator.__add__, expr.Delayed(operator.__mul__, upper_value, 256), lower_value)
         length = seq.Sequence('length', [lower, ignored, upper], value)
         header = seq.Sequence('header', [length])
 
-        int_value = expr.ValueResult()
-        int_value.add_entry(length)
+        int_value = expr.ValueResult('length')
         data = fld.Field('data', int_value)
         spec = seq.Sequence('blah', [length, data])
 
@@ -101,9 +96,7 @@ class TestVariableReference(unittest.TestCase):
         byte = seq.Sequence('8 bit:', [fld.Field('id', 8, expected=dt.Data('\x00')), fld.Field('length', 8)])
         word = seq.Sequence('16 bit:', [fld.Field('id', 8, expected=dt.Data('\x01')), fld.Field('length', 16)])
         length = chc.Choice('variable integer', [byte, word])
-        length_value = expr.ValueResult()
-        length_value.add_entry(byte.children[1], 'variable integer.length')
-        length_value.add_entry(word.children[1], 'variable integer.length')
+        length_value = expr.ValueResult('variable integer.length')
         data = fld.Field('data', length_value)
         spec = seq.Sequence('spec', [length, data])
         vars = prm.VariableReference([spec])
@@ -127,8 +120,7 @@ class TestVariableReference(unittest.TestCase):
         """
         # Note that the 'integer' option has a fixed length...
         length = fld.Field('length:', 8)
-        length_value = expr.ValueResult()
-        length_value.add_entry(length, 'length:')
+        length_value = expr.ValueResult('length:')
         text = seq.Sequence('text', [fld.Field('id:',  8, expected=dt.Data('\x00')), fld.Field('value', length_value, fld.Field.TEXT)])
         integer = seq.Sequence('integer', [fld.Field('id:',  8, expected=dt.Data('\x01')), fld.Field('value', 16, fld.Field.INTEGER)])
         spec = seq.Sequence('spec', [length, chc.Choice('data', [text, integer])])

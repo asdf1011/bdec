@@ -111,9 +111,7 @@ class TestChoice(unittest.TestCase):
         byte = seq.Sequence('8 bit:', [fld.Field('id', 8, expected=dt.Data('\x00')), fld.Field('length', 8)])
         word = seq.Sequence('16 bit:', [fld.Field('id', 8, expected=dt.Data('\x01')), fld.Field('length', 16)])
         length = chc.Choice('variable integer', [byte, word])
-        length_value = expr.ValueResult()
-        length_value.add_entry(byte.children[1], 'variable integer.length')
-        length_value.add_entry(word.children[1], 'variable integer.length')
+        length_value = expr.ValueResult('variable integer.length')
         data = fld.Field('data', length_value, fld.Field.TEXT)
         spec = seq.Sequence('spec', [length, data])
 

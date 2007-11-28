@@ -209,11 +209,7 @@ class TestXml(unittest.TestCase):
                     <field name="bob" length="${variable length:.length:} * 8" type="text" />
                 </sequence>
             </protocol>"""
-        try:
-            xml.loads(text)
-            self.fail("Exception not thrown!")
-        except xml.XmlExpressionError, ex:
-            self.assertTrue(isinstance(ex.ex, xml.OptionMissingNameError))
+        self.assertRaises(xml.XmlExpressionError, xml.loads, text)
 
     def test_sequenceof_break(self):
         text = """

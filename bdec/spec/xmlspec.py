@@ -297,7 +297,7 @@ class _Handler(xml.sax.handler.ContentHandler):
         """
         Create an object that returns the length of decoded data in an entry.
         """
-        return exp.LengthResult(self._get_entries(fullname))
+        return exp.LengthResult(fullname)
 
     def _query_entry_value(self, fullname):
         """
@@ -309,14 +309,7 @@ class _Handler(xml.sax.handler.ContentHandler):
         Typically only fields have a value, but sequences may also be assigned
         values.
         """
-        result = exp.ValueResult()
-        for entry in self._get_entries(fullname):
-            if isinstance(entry, fld.Field):
-                result.add_entry(entry, fullname)
-            elif isinstance(entry, seq.Sequence) and entry.value is not None:
-                result.add_entry(entry, fullname)
-            else:
-                raise EntryHasNoValueError(entry)
+        result = exp.ValueResult(fullname)
         return result
 
     def _get_entries(self, fullname):
@@ -450,6 +443,10 @@ def _load_from_file(file, filename):
     except xml.sax.SAXParseException, ex:
         # The sax parse exception object can operate as a locator
         raise XmlError(ex.args[0], filename, ex)
+    try:
+        handler.decoder.validate()
+    except ent.MissingExpressionReferenceError, ex:
+        raise XmlExpressionError(MissingReferenceError(ex.missing_context), filename, handler.locator)
     return (handler.decoder, handler.lookup)
 
 def loads(xml):

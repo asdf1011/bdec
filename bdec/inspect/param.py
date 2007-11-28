@@ -111,11 +111,9 @@ class VariableReference:
         if isinstance(expression, int):
             pass
         elif isinstance(expression, expr.ValueResult):
-            for reference, name in expression.entries:
-                result.append(name)
+            result.append(expression.name)
         elif isinstance(expression, expr.LengthResult):
-            for reference in expression.entries:
-                result.append(reference.name + ' length')
+            result.append(expression.name + ' length')
         elif isinstance(expression, expr.Delayed):
             result = self._collect_references(expression.left) + self._collect_references(expression.right)
         else:

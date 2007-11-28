@@ -41,9 +41,9 @@ class DataLengthError(bdec.DecodeError):
     def __str__(self):
         return "%s expected length %i, got length %i (%s)" % (self.entry, self.length, len(self.data), self.data.get_binary_text())
 
-class MissingDecodeReferenceError(bdec.DecodeError):
+class MissingExpressionReferenceError(bdec.DecodeError):
     """
-    Parent didn't pass in a required context variable for decoding.
+    An expression references an unknown entry.
     """
     def __init__(self, entry, missing):
         bdec.DecodeError.__init__(self, entry)
@@ -67,10 +67,10 @@ def _hack_recursive_replace_values(expression, context):
     # Walk the expression tree, and replace context items as appropriate.
     import bdec.spec.expression as expr
     if isinstance(expression, expr.ValueResult):
-        name = expression.entries[0][1]
+        name = expression.name
         expression.length = context[name]
     elif isinstance(expression, expr.LengthResult):
-        expression.length = context[expression.entries[0].name + " length"]
+        expression.length = context[expression.name + " length"]
     elif isinstance(expression, expr.Delayed):
         _hack_recursive_replace_values(expression.left, context)
         _hack_recursive_replace_values(expression.right, context)
@@ -139,17 +139,22 @@ class Entry(object):
         self._parent_param_lookup = {}
         self._is_end_of_sequenceof = False
 
-    def _validate(self):
+    def validate(self):
+        """
+        Validate all expressions contained within the entries.
+
+        Throws MissingReferenceError if any expressions reference unknown instances.
+        """
         import bdec.inspect.param
         params = bdec.inspect.param.ParamLookup([self])
         self._set_params(params)
 
         # We need to raise an error as to missing parameters
         for param in params.get_params(self):
-            if param.direction is param.OUT:
+            if param.direction is param.IN:
                 # TODO: We should instead raise the error from the context of the
                 # child that needs the data.
-                raise MissingDecodeReferenceError(self, param.name)
+                raise MissingExpressionReferenceError(self, param.name)
 
     def _set_params(self, lookup):
         """
@@ -237,7 +242,7 @@ class Entry(object):
             this entry only (not including embedded entries).
         """
         if self._params is None:
-            self._validate()
+            self.validate()
             assert self._params is not None
 
         # Validate our context
