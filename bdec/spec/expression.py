@@ -45,12 +45,6 @@ class ValueResult:
         if name is None:
             name = entry.name
         self.entries.append((entry, name))
-        entry.add_listener(self)
-
-    def __call__(self, entry, length, context):
-        # TODO: Value functions are no longer called (values are passed around
-        # as parameters in the entry context). 
-        pass
 
     def __int__(self):
         if self.length is None:
@@ -63,15 +57,8 @@ class LengthResult:
     Object returning the length of a decoded entry.
     """
     def __init__(self, entries):
-        for entry in entries:
-            entry.add_listener(self)
         self.length = None
         self.entries = entries[:]
-
-    def __call__(self, entry, length, context):
-        # TODO: Value functions are no longer called (values are passed around
-        # as parameters in the entry context). 
-        pass
 
     def __int__(self):
         if self.length is None:
