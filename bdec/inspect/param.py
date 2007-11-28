@@ -113,11 +113,11 @@ class VariableReference:
         elif isinstance(expression, expr.ValueResult):
             for reference, name in expression.entries:
                 self._referenced_values.add(reference)
-                result.append((reference, name))
+                result.append(name)
         elif isinstance(expression, expr.LengthResult):
             for reference in expression.entries:
                 self._referenced_lengths.add(reference)
-                result.append((reference, reference.name + ' length'))
+                result.append(reference.name + ' length')
         elif isinstance(expression, expr.Delayed):
             result = self._collect_references(expression.left) + self._collect_references(expression.right)
         else:
@@ -168,7 +168,7 @@ class VariableReference:
                 known_references[entry].update(entry_name for entry_name, child_name in lookup)
 
             # Update the lookup with the names the child doesn't know about
-            lookup.update((name, name) for item, name in unreferenced_entries[child])
+            lookup.update((name, name) for name in unreferenced_entries[child])
             if isinstance(entry, chc.Choice):
                 self._child_name_lookup[entry][child] = set((name, name) for name in known_references[child])
             elif isinstance(entry, seq.Sequence):
@@ -185,17 +185,17 @@ class VariableReference:
 
         # Our unknown list is all the unknowns in our children that aren't
         # present in our known references.
-        unknown = ((child, name) for child, name in child_unknowns if name not in known_references[entry])
+        unknown = (name for name in child_unknowns if name not in known_references[entry])
         unreferenced_entries[entry].update(unknown)
 
         # Local variables for this entry are all entries that our children
         # don't know about, but we do (eg: we can access it through another
         # of our children).
-        self._locals[entry] = list(set(name for child, name in child_unknowns if name in known_references[entry]))
+        self._locals[entry] = list(set(name for name in child_unknowns if name in known_references[entry]))
         self._locals[entry].sort()
 
         # Detect all parameters necessary to decode this entry.
-        for item, name in unreferenced_entries[entry]:
+        for name in unreferenced_entries[entry]:
             self._params[entry].add(Param(name, Param.IN))
         for name in self._locals[entry]:
             self._add_out_params(entry, name, known_references)
