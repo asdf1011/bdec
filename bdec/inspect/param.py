@@ -112,11 +112,9 @@ class VariableReference:
             pass
         elif isinstance(expression, expr.ValueResult):
             for reference, name in expression.entries:
-                self._referenced_values.add(reference)
                 result.append(name)
         elif isinstance(expression, expr.LengthResult):
             for reference in expression.entries:
-                self._referenced_lengths.add(reference)
                 result.append(reference.name + ' length')
         elif isinstance(expression, expr.Delayed):
             result = self._collect_references(expression.left) + self._collect_references(expression.right)
@@ -211,6 +209,10 @@ class VariableReference:
             if name in [child.name, child.name + ' length']:
                 self._params[child].add(Param(name, Param.OUT))
                 was_child_found = True
+                if name == child.name:
+                    self._referenced_values.add(child)
+                else:
+                    self._referenced_lengths.add(child)
             else:
                 for param_name, child_param_name in self._child_name_lookup[entry][child]:
                     if param_name == name and child_param_name in known_references[child]:
