@@ -242,57 +242,6 @@ class _Handler(xml.sax.handler.ContentHandler):
         except exp.ExpressionError, ex:
             raise XmlExpressionError(ex, self._filename, self.locator)
 
-    def _get_entry_children(self, entry, name):
-        """
-        Get an iterator to all children of an entity matching a given
-        name.
-        """
-        if isinstance(entry, seq.Sequence):
-            for child in self._get_children(entry.children, name):
-                yield child
-        elif isinstance(entry, chc.Choice):
-            found_name = None
-            for option in entry.children:
-                option_matches = False
-                for child in self._get_children([option], name):
-                    option_matches = True
-                    yield child
-
-                if found_name is None:
-                    found_name = option_matches
-                else:
-                    if found_name != option_matches:
-                        # Not all of the choice entries agree; for some the
-                        # name matches, but not for others.
-                        if option_matches:
-                            # This option has the named entry, but the
-                            # previous one didn't.
-                            missing = entry.children[entry.children.index(option) - 1]
-                        else:
-                            missing = option
-                        raise OptionMissingNameError(missing, name, self.lookup)
-
-    def _get_children(self, items, name):
-        """
-        Get an iterator to all children matching the given name.
-
-        There may be more then one in the event children of a 
-        'choice' entry are selected.
-        """
-        for entry in items:
-            if name == entry.name:
-                yield entry
-                return
-
-            if ent.is_hidden(entry.name):
-                # If an entry is hidden, look into its children for the name.
-                match = False
-                for child in self._get_entry_children(entry, name):
-                    match = True
-                    yield child
-                if match:
-                    return
-
     def _query_length(self, fullname):
         """
         Create an object that returns the length of decoded data in an entry.
@@ -311,33 +260,6 @@ class _Handler(xml.sax.handler.ContentHandler):
         """
         result = exp.ValueResult(fullname)
         return result
-
-    def _get_entries(self, fullname):
-        """
-        Get a list of all entries that match a given name.
-        """
-        names = fullname.split('.')
-
-        # Find the first name by walking up the stack
-        for i, children in enumerate(reversed(self._children)):
-            if i + 2 == len(self._children) and len(self._stack) > 1 and self._stack[1][0] == 'common':
-                # Note that we don't want to select the 'common' children
-                continue
-
-            matches = list(self._get_children(children, names[0]))
-            if matches:
-                for name in names[1:]:
-                    # We've found items that match the top name. Each of
-                    # these items _must_ support the requested names.
-                    subitems = [list(self._get_entry_children(child, name)) for child in matches]
-                    matches = []
-                    for items in subitems:
-                        if len(items) == 0:
-                            raise MissingReferenceError(name)
-                        matches.extend(items)
-
-                return matches
-        raise MissingReferenceError(fullname)
 
     def _reference(self, attributes, children, length, breaks):
         if attributes.getNames() != ["name"]:
