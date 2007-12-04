@@ -84,28 +84,25 @@ class XmlExpressionError(XmlSpecError):
         return self._src() + "Expression error - " + str(self.ex)
 
 
-class _ReferencedEntry(ent.Entry):
+class _ReferencedEntry:
     """
-    A mock decoder entry to forward all decoder calls onto another entry.
+    A entry to insert into child lists when referencing a common entry.
 
     Used to 'delay' referencing of decoder entries, for the case where a
     decoder entry has been referenced (but has not yet been defined).
     """
     def __init__(self, name):
-        ent.Entry.__init__(self, name, None, [])
-        self._reference = None
+        self.name = name
+        self._parent = None
 
     def resolve(self, entry):
-        assert self._reference is None
-        self._reference = entry
+        assert self._parent is not None
+        self._parent.children[self._parent.children.index(self)] = entry
+     
+    def set_parent(self, parent):
+        assert self._parent is None
+        self._parent = parent
 
-    def _decode(self, data, child_context):
-        assert self._reference is not None, "Asked to decode unresolved entry '%s'!" % self.name
-        return self._reference.decode(data, child_context)
-
-    def _encode(self, query, context):
-        assert self._reference is not None, "Asked to encode unresolved entry '%s'!" % self.name
-        return self._reference.encode(data)
 
 class _Handler(xml.sax.handler.ContentHandler):
     """
@@ -156,30 +153,10 @@ class _Handler(xml.sax.handler.ContentHandler):
 
     def _walk(self, entry):
         yield entry
-        for embedded in entry.children:
-            for child in self._walk(embedded):
-                yield child
-
-    def _get_common_entry(self, name):
-        if name not in self._common_entries:
-            result = _ReferencedEntry(name)
-            self._unresolved_references.append(result)
-            return result
-
-        # There is a problem where listeners to common entries will be  called
-        # for all common decodes (see the 
-        # test_common_elements_are_independent testcase). We attempt to work
-        # around this problem be copying common elements.
-        entry = self._common_entries[name]
-        result = pickle.loads(pickle.dumps(entry))
-
-        # For all of the copied elements, we need to update the lookup table
-        # so that the copied elements can be found.
-        for original, copy in zip(self._walk(entry), self._walk(result)):
-            if isinstance(original, _ReferencedEntry):
-                self._unresolved_references.append(copy)
-            self.lookup[copy] = self.lookup[original]
-        return result
+        if not isinstance(entry, _ReferencedEntry):
+            for embedded in entry.children:
+                for child in self._walk(embedded):
+                    yield child
 
     def endElement(self, name):
         assert self._stack[-1][0] == name
@@ -191,48 +168,60 @@ class _Handler(xml.sax.handler.ContentHandler):
         length = None
         if attrs.has_key('length'):
             length = self._parse_expression(attrs['length'])
-        child = self._handlers[name](attrs, children, length, breaks)
+        entry = self._handlers[name](attrs, children, length, breaks)
+        for child in children:
+            if isinstance(child, _ReferencedEntry):
+                child.set_parent(entry)
         self._children.pop()
 
-        if child is not None:
+        if entry is not None:
             if self._end_sequenceof:
                 # There is a parent sequence of object that must stop when
                 # this entry decodes.
                 for offset, (name, attrs, breaks) in enumerate(reversed(self._stack)):
                     if name == "sequenceof":
-                        breaks.append((child, offset))
+                        breaks.append((entry, offset))
                         break
                 else:
                     raise self._error("end-sequenceof is not surrounded by a sequenceof")
                 self._end_sequenceof = False
-            self._children[-1].append(child)
+            self._children[-1].append(entry)
 
-            self.lookup[child] = (self._filename, self.locator.getLineNumber(), self.locator.getColumnNumber())
+            self.lookup[entry] = (self._filename, self.locator.getLineNumber(), self.locator.getColumnNumber())
 
         if len(self._stack) == 2 and self._stack[1][0] == 'common':
             # We have to handle common entries _before_ the end of the
             # 'common' element, as common entries can reference other
             # common entries.
-            assert child is not None
-            self._common_entries[child.name] = child
+            assert entry is not None
+            self._common_entries[entry.name] = entry
 
     def _common(self, attributes, children, length, breaks):
         pass
+
+    def _get_common_entry(self, name):
+        try:
+            return self._common_entries[name]
+        except KeyError:
+            raise self._error("Referenced element '%s' is not found!" % name)
 
     def _protocol(self, attributes, children, length, breaks):
         if len(children) != 1:
             raise self._error("Protocol should have a single entry to be decoded!")
 
-        for entry in self._unresolved_references:
-            try:
-                # TODO: Instead of a keeping a pseudo protocol entry in the final
-                # loaded protcol, when resolving we should simply substitute the
-                # loaded item.
-                item = self._common_entries[entry.name]
-            except KeyError:
-                raise self._error("Referenced element '%s' is not found!" % entry.name)
-            entry.resolve(item)
-        self._unresolved_references = []
+        if isinstance(children[0], _ReferencedEntry):
+            # If the 'top level' item is a reference, it won't have had a
+            # parent set to allow it to resolve. We'll do this by hand.
+            del self._unresolved_references[self._unresolved_references.index(children[0])]
+            children[0] = self._get_common_entry(children[0].name)
+
+        # Note the we don't iterate over the unresolved references, as the
+        # list can change as we iterate over it (in _get_common_entry).
+        while self._unresolved_references:
+            entry = self._unresolved_references.pop()
+            # Problem: We are copying the entry while we still have the referenced item in the tree...
+            #  we'll have to insert it in the tree before copying it!
+            entry.resolve(self._get_common_entry(entry.name))
 
         self.decoder = children[0]
 
@@ -265,7 +254,9 @@ class _Handler(xml.sax.handler.ContentHandler):
         if attributes.getNames() != ["name"]:
             raise self._error("Reference entries must have a single 'name' attribute!")
         name = attributes.getValue('name')
-        return self._get_common_entry(name)
+        result = _ReferencedEntry(name)
+        self._unresolved_references.append(result)
+        return result
 
     def _field(self, attributes, children, length, breaks):
         name = attributes['name']

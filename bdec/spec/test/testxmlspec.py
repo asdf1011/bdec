@@ -459,6 +459,22 @@ class TestXml(unittest.TestCase):
             entries.extend(entry.children)
         self.assertEqual(set(['dog', 'rabbit', 'hole', 'length a', 'length:', 'bob', 'data a']), names)
 
+    def test_referenced_common_entry(self):
+        text = """
+          <protocol>
+             <common>
+                 <field name="a" type="integer" length="8" />
+             </common>
+             <sequence name="b">
+                <reference name="a" />
+                <field name="b value" length="${a} * 8" type="integer" />
+             </sequence>
+          </protocol> """
+        protocol, lookup = xml.loads(text)
+        items = [value for is_starting, entry, entry_data, value in protocol.decode(dt.Data("\x01\x07"))]
+        self.assertEqual(1, items[2])
+        self.assertEqual(7, items[4])
+
     def test_out_of_order_references(self):
         text = """
             <protocol>

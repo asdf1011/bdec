@@ -204,7 +204,7 @@ def _differentiate(entries):
     # those that may have decoded.
     successful = []
     possible = []
-    while data_options:
+    while len(data_options) > 1:
         test_for_forks = True
         while test_for_forks:
             for option in data_options[:]:
@@ -249,6 +249,9 @@ def _differentiate(entries):
                     successful.append(entry.entry)
                 data_options.remove(entry)
         offset += length
+
+    # Unable to differentiate any more; give one more result with all
+    # of the current possible option.
     yield offset, 0, {}, [entry.entry for entry in data_options], successful, possible
 
 

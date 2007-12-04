@@ -129,21 +129,21 @@ class VariableReference:
         if entry in self._params:
             return
         self._params[entry] = set()
+        known_references[entry] = set()
+        unreferenced_entries[entry] = set()
+        self._child_name_lookup[entry] = {}
 
         for child in entry.children:
             self._populate_references(child, unreferenced_entries, known_references)
 
         # An entries unknown references are those referenced in any 
         # expressions, and those that are unknown in all of its children.
-        unreferenced_entries[entry] = set()
         if entry.length is not None:
             unreferenced_entries[entry].update(self._collect_references(entry.length))
         elif isinstance(entry, sof.SequenceOf) and entry.count is not None:
             unreferenced_entries[entry].update(self._collect_references(entry.count))
 
         child_unknowns = set()
-        self._child_name_lookup[entry] = {}
-        known_references[entry] = set()
         for i, child in enumerate(entry.children):
             # We need to map between the names we know about, and the name they
             # are in the child.
