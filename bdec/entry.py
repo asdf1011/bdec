@@ -323,5 +323,32 @@ class Entry(object):
     def __repr__(self):
         return "%s '%s'" % (self.__class__, self.name)
 
-    def range(self):
-        return Range()
+    def _range(self, ignore_entries):
+        """
+        Can be implemented by derived classes to detect ranges.
+        """
+        return bdec.entry.Range()
+
+    def range(self, ignore_entries=set()):
+        """
+        Return a Range instance indicating the length of this entry.
+
+        If 'entry' is in 'ignore_entries', the length will be ignored.
+        """
+        if self in ignore_entries:
+            # If an entry is recursive, we cannot predict how long it will be.
+            return Range()
+
+        import bdec.spec.expression
+        result = None
+        if self.length is not None:
+            try:
+                min = max = int(self.length)
+                result = bdec.entry.Range(min, max)
+            except bdec.spec.expression.UndecodedReferenceError:
+                pass
+        if result is None:
+            ignore_entries.add(self)
+            result = self._range(ignore_entries)
+            ignore_entries.remove(self)
+        return result

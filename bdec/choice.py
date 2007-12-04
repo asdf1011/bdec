@@ -13,8 +13,6 @@ class Choice(bdec.entry.Entry):
         bdec.entry.Entry.__init__(self, name, length, children)
 
         assert len(children) > 0
-        for child in children:
-            assert isinstance(child, bdec.entry.Entry)
         self._chooser = None
 
     def _decode(self, data, context):
@@ -93,7 +91,7 @@ class Choice(bdec.entry.Entry):
 
         return best_guess.encode(query, choice)
 
-    def range(self):
-        minimum = min(child.range().min for child in self.children)
-        maximum = max(child.range().max for child in self.children)
+    def _range(self, ignore_entries):
+        minimum = min(child.range(ignore_entries).min for child in self.children)
+        maximum = max(child.range(ignore_entries).max for child in self.children)
         return bdec.entry.Range(minimum, maximum)

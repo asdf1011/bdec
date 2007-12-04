@@ -36,7 +36,6 @@ class SequenceOf(bdec.entry.Entry):
         bdec.entry.Entry.__init__(self, name, length, [child])
         self.count = count
         self.end_entries = end_entries
-        assert isinstance(child, bdec.entry.Entry)
 
     def _loop(self, context, data):
         context['should end'] = False
