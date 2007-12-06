@@ -449,7 +449,7 @@ class TestXml(unittest.TestCase):
                 </sequence>
             </protocol>
             """
-        protocol, lookup = xml.loads(text)
+        protocol, lookup, common = xml.loads(text)
         entries = [protocol]
         names = set()
         while entries:
@@ -470,7 +470,7 @@ class TestXml(unittest.TestCase):
                 <field name="b value" length="${a} * 8" type="integer" />
              </sequence>
           </protocol> """
-        protocol, lookup = xml.loads(text)
+        protocol, lookup, common = xml.loads(text)
         items = [value for is_starting, entry, entry_data, value in protocol.decode(dt.Data("\x01\x07"))]
         self.assertEqual(1, items[2])
         self.assertEqual(7, items[4])
@@ -494,7 +494,7 @@ class TestXml(unittest.TestCase):
                 <reference name="dog" />
             </protocol>
             """
-        protocol, lookup = xml.loads(text)
+        protocol, lookup, common = xml.loads(text)
         for is_starting, entry, entry_data, value in protocol.decode(dt.Data('a')):
             if not is_starting and entry.name == "length":
                 result = value
@@ -515,7 +515,7 @@ class TestXml(unittest.TestCase):
                 <reference name="null terminating string:" />
             </protocol>
             """
-        protocol, lookup = xml.loads(text)
+        protocol, lookup, common = xml.loads(text)
         data = dt.Data('rabbit\0legs')
         result = ""
         for is_starting, entry, entry_data, value in protocol.decode(data):

@@ -120,7 +120,7 @@ class _Handler(xml.sax.handler.ContentHandler):
             "sequenceof" : self._sequenceof,
             }
         self.decoder = None
-        self._common_entries = {}
+        self.common_entries = {}
 
         self.lookup = {}
         self.locator = None
@@ -190,14 +190,14 @@ class _Handler(xml.sax.handler.ContentHandler):
             # 'common' element, as common entries can reference other
             # common entries.
             assert entry is not None
-            self._common_entries[entry.name] = entry
+            self.common_entries[entry.name] = entry
 
     def _common(self, attributes, children, length, breaks):
         pass
 
     def _get_common_entry(self, name):
         try:
-            return self._common_entries[name]
+            return self.common_entries[name]
         except KeyError:
             raise self._error("Referenced element '%s' is not found!" % name)
 
@@ -341,8 +341,9 @@ def _load_from_file(file, filename):
     Read a string from open file and interpret it as an
     xml data stream identifying a protocol entity.
 
-    @return Returns a tuple containing the decoder entry, and a dictionary
-        of decoder entries to (filename, line number, column number)
+    @return Returns a tuple containing the decoder entry, a dictionary
+        of decoder entries to (filename, line number, column number), and
+        a list of common entries.
     """
     parser = xml.sax.make_parser()
     handler = _Handler(filename)
@@ -356,7 +357,7 @@ def _load_from_file(file, filename):
         handler.decoder.validate()
     except ent.MissingExpressionReferenceError, ex:
         raise XmlExpressionError(MissingReferenceError(ex.missing_context), filename, handler.locator)
-    return (handler.decoder, handler.lookup)
+    return (handler.decoder, handler.lookup, handler.common_entries)
 
 def loads(xml):
     """
