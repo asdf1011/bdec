@@ -93,6 +93,7 @@ class _ReferencedEntry:
 
     def resolve(self, entry):
         assert self._parent is not None
+        assert isinstance(entry, ent.Entry)
         self._parent.children[self._parent.children.index(self)] = entry
      
     def set_parent(self, parent):
@@ -146,13 +147,6 @@ class _Handler(xml.sax.handler.ContentHandler):
 
         self._stack.append((name, attrs, []))
         self._children.append([])
-
-    def _walk(self, entry):
-        yield entry
-        if not isinstance(entry, _ReferencedEntry):
-            for embedded in entry.children:
-                for child in self._walk(embedded):
-                    yield child
 
     def endElement(self, name):
         assert self._stack[-1][0] == name
