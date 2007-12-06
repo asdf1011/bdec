@@ -69,9 +69,12 @@ class _EntryInfo(prm.ParamLookup):
         for param in prm.ParamLookup.get_invoked_params(self, entry, child):
             yield prm.Param(_variable_name(param.name), param.direction)
 
+def _crange(start, end):
+    return [chr(i) for i in range(ord(start), ord(end))] 
+_VALID_CHARS = _crange('0', '9') + _crange('a', 'z') + _crange('A', 'Z') + ['_']
 
 def _escape_name(name):
-    return "".join(char for char in name if char not in ['%', '(', ')', ':', '.'])
+    return "".join(char for char in name if char in _VALID_CHARS)
 
 def _camelcase(name):
     words = _escape_name(name).split()
