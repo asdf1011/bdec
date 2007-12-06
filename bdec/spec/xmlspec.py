@@ -349,6 +349,8 @@ def _load_from_file(file, filename):
         raise XmlError(ex.args[0], filename, ex)
     try:
         handler.decoder.validate()
+        for entry in handler.common_entries.itervalues():
+            entry.validate()
     except ent.MissingExpressionReferenceError, ex:
         raise XmlExpressionError(MissingReferenceError(ex.missing_context), filename, handler.locator)
     return (handler.decoder, handler.lookup, handler.common_entries)

@@ -145,6 +145,9 @@ class Entry(object):
 
         Throws MissingReferenceError if any expressions reference unknown instances.
         """
+        if self._params is not None:
+            return
+
         import bdec.inspect.param
         params = bdec.inspect.param.ParamLookup([self])
         self._set_params(params)
@@ -241,9 +244,7 @@ class Entry(object):
             decoded, and the data when the decode is finished is the data from
             this entry only (not including embedded entries).
         """
-        if self._params is None:
-            self.validate()
-            assert self._params is not None
+        self.validate()
 
         # Validate our context
         for param in self._params:
