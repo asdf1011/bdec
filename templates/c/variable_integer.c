@@ -2,6 +2,13 @@
 #include <assert.h>
 #include "variable_integer.h"
 
+int get_integer(BitBuffer* buffer)
+{
+    // We'll just create a copy of the buffer, and decode it's value.
+    BitBuffer temp = *buffer;
+    return decode_integer(&temp, temp.num_bits);
+}
+
 int decode_integer(BitBuffer* buffer, int num_bits)
 {
     int result = 0;

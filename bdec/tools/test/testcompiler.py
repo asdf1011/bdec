@@ -116,6 +116,11 @@ class _CompilerTests:
         self._decode(spec, 'a')
         self._decode_failure(spec, 'b')
 
+    def test_binary_expected_value(self):
+        spec = seq.Sequence('blah', [fld.Field('bob', 8, fld.Field.BINARY, expected=dt.Data('a'))])
+        self._decode(spec, 'a')
+        self._decode_failure(spec, 'b')
+
     def test_sequence_decode_failure(self):
         spec = seq.Sequence('blah', [seq.Sequence('dog', [fld.Field('cat', 8, fld.Field.INTEGER, expected=dt.Data('a'))])])
         self._decode(spec, 'a')

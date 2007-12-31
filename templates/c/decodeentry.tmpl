@@ -76,7 +76,11 @@ ${_params(parent, entry, get_invoked_params, local_vars(parent))}
     #error Unknown field type ${entry}
   %endif
      %if entry.expected is not None:
+       %if entry.format == entry.INTEGER:
     if (${varname} != ${int(entry.expected)})
+       %elif entry.format == entry.BINARY:
+    if (get_integer(&${varname}) != ${int(entry.expected)})
+       %endif
     {
         return 0;
     }
