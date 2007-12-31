@@ -71,7 +71,7 @@ class _EntryInfo(prm.ParamLookup):
 
 def _crange(start, end):
     return [chr(i) for i in range(ord(start), ord(end))] 
-_VALID_CHARS = _crange('0', '9') + _crange('a', 'z') + _crange('A', 'Z') + ['_']
+_VALID_CHARS = _crange('0', '9') + _crange('a', 'z') + _crange('A', 'Z') + ['_', ' ']
 
 def _escape_name(name):
     return "".join(char for char in name if char in _VALID_CHARS)
