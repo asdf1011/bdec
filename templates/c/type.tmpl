@@ -26,13 +26,7 @@ ${entry.name|typename}
   %endif
 </%def>
 
-<%def name="define(entry)" >
-    %for child in entry.children:
-      %if not isinstance(child, Field) and child not in common:
-${define(child)}
-      %endif
-    %endfor
-
+<%def name="c_define(entry)" >
   %if isinstance(entry, Sequence):
 typedef struct 
 {
@@ -52,10 +46,32 @@ typedef struct
   %elif isinstance(entry, SequenceOf):
 typedef struct
 {
-    ${ctype(child)}* items;
+    ${ctype(entry.children[0])}* items;
     unsigned int count;
 } ${entry.name |typename};
   %else:
 #error Unsupported entry ${entry}
   %endif
 </%def>
+
+<%!
+def _get_local_entries(entry, common, offset):
+    """
+    Query all non-common entries embedded within another entry.
+    
+    Also includes the initial entry (regardless of whether it is common or
+    not). Returns an iterable.
+    """
+    for child in entry.children:
+       if child not in common:
+          for sub_child in _get_local_entries(child, common,offset+2):
+              yield sub_child
+    yield entry
+%>
+
+<%def name="define(entry)" >
+    %for e in _get_local_entries(entry, common, 0):
+${c_define(e)}
+    %endfor
+</%def>
+
