@@ -71,7 +71,9 @@ def _get_local_entries(entry, common, offset):
 
 <%def name="define(entry)" >
     %for e in _get_local_entries(entry, common, 0):
+      %if not isinstance(e, Field):
 ${c_define(e)}
+      %endif
     %endfor
 </%def>
 
