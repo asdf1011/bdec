@@ -32,7 +32,7 @@ ${recursiveDecode(child)}
   %endif
 %endfor
 
-int ${'decode ' + entry.name |function}(BitBuffer* buffer, ${ctype.ctype(entry)}* result${decodeentry.define_params(entry)})
+int ${ctype.decode_name(entry)}(BitBuffer* buffer, ${ctype.ctype(entry)}* result${decodeentry.define_params(entry)})
 {
   %for local in local_vars(entry):
       int ${local} = 0;
@@ -48,7 +48,7 @@ int ${'decode ' + entry.name |function}(BitBuffer* buffer, ${ctype.ctype(entry)}
     ${success(entry)}
   %elif isinstance(entry, Sequence):
     %for child in entry.children:
-    if (!${'decode ' + child.name |function}(buffer, &result->${child.name |variable}${decodeentry.params(entry, child)}))
+    if (!${ctype.decode_name(child)}(buffer, &result->${child.name |variable}${decodeentry.params(entry, child)}))
     {
         return 0;
     }
@@ -73,7 +73,7 @@ int ${'decode ' + entry.name |function}(BitBuffer* buffer, ${ctype.ctype(entry)}
         ++result->count;
         result->items = realloc(result->items, sizeof(${ctype.ctype(entry.children[0])}) * (result->count + 1));
     %endif
-        if (!${'decode ' + entry.children[0].name |function}(buffer, &result->items[i]${decodeentry.params(entry, entry.children[0])}))
+        if (!${ctype.decode_name(entry.children[0])}(buffer, &result->items[i]${decodeentry.params(entry, entry.children[0])}))
         {
             return 0;
         }
@@ -88,7 +88,7 @@ int ${'decode ' + entry.name |function}(BitBuffer* buffer, ${ctype.ctype(entry)}
     %for child in entry.children:
     temp = *buffer;
     ${ctype.ctype(child)}* ${'temp ' + child.name |variable} = malloc(sizeof(${ctype.ctype(child)}));
-    if (${'decode ' + child.name |function}(&temp, ${'temp ' + child.name |variable}${decodeentry.params(entry, child)}))
+    if (${ctype.decode_name(child)}(&temp, ${'temp ' + child.name |variable}${decodeentry.params(entry, child)}))
     {
         *buffer = temp;
         result->${child.name |variable} = ${'temp ' + child.name |variable};
@@ -107,7 +107,7 @@ ${recursiveDecode(entry)}
 ## Recursively create functions for printing the entries contained within this protocol specification.
 <%def name="recursivePrint(item, varname)">
   %if item in common and item is not entry:
-    ${'print xml ' + item.name |function}(&${varname});
+    ${ctype.print_name(item)}(&${varname});
   %else:
     printf("<${item.name |xmlname}>\n");
     %if isinstance(item, Field):
@@ -163,7 +163,7 @@ ${recursiveDecode(entry)}
   %endif
 </%def>
 
-void ${'print xml ' + entry.name |function}(${ctype.ctype(entry)}* data)
+void ${ctype.print_name(entry)}(${ctype.ctype(entry)}* data)
 {
 ${recursivePrint(entry, '(*data)')}
 }

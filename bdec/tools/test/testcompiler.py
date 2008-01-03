@@ -253,6 +253,11 @@ class _CompilerTests:
         blah = seq.Sequence('blah', [b, d])
         self._decode(blah, 'xy', common=[blah, d])
 
+    def test_duplicate_names_at_different_level(self):
+        a = seq.Sequence('a', [fld.Field('c', 8, fld.Field.INTEGER)])
+        b = seq.Sequence('b', [seq.Sequence('a', [fld.Field('d', 8, fld.Field.INTEGER)])])
+        blah = seq.Sequence('blah', [a, b])
+        self._decode(blah, '\x09\x06', common=[blah, a,b])
 
 class TestC(_CompilerTests, unittest.TestCase):
     COMPILER = "gcc"
