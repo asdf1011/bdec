@@ -83,7 +83,11 @@ ${_params(parent, entry, get_invoked_params, local_vars(parent))}
          %if len(entry.expected) < 32:
     if (get_integer(&${varname}) != ${int(entry.expected)})
          %else:
-           <% c_hex_text = ''.join('\\x00%02x' % ord(c) for c in str(entry.expected)) %>
+           <% 
+           extra_bits = 8 - len(entry.expected) % 8
+           expected = entry.expected + Data('\x00', start=0, end=extra_bits)
+           c_hex_text = ''.join('\\x00%02x' % ord(c) for c in str(expected))
+           %>
     BitBuffer expected = {(unsigned char*)"${c_hex_text}", 0, ${len(entry.expected)}};
     BitBuffer copy = ${varname};
     int isMatch = 1;
