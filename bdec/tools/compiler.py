@@ -2,6 +2,7 @@
 Library to generate source code in various languages for decoding specifications.
 """
 
+import ConfigParser
 import mako.lookup
 import mako.template
 import mako.runtime
@@ -70,9 +71,14 @@ class _EntryInfo(prm.ParamLookup):
             yield prm.Param(_variable_name(param.name), param.direction)
 
 class _Utils:
-    def __init__(self, common):
+    def __init__(self, common, template_path):
         self._common = common
         self._entries = self._detect_entries()
+
+        config_file = os.path.join(template_path, '.settings')
+        settings = ConfigParser.ConfigParser()
+        settings.read([config_file])
+        self._keywords = list(self._get_keywords(settings))
 
     def _detect_entries(self):
         """
@@ -82,6 +88,12 @@ class _Utils:
         for entry in self._common:
             entries.extend(self.iter_inner_entries(entry))
         return entries
+
+    def _get_keywords(self, config):
+        text = config.get('general', 'keywords')
+        keywords = text.split(',')
+        for word in keywords:
+            yield word.strip()
 
     def iter_inner_entries(self, entry):
         """
@@ -104,7 +116,7 @@ class _Utils:
             lookup.setdefault(e.name, []).append(e)
         names = {}
         for name, entries in lookup.iteritems():
-            if len(entries) == 1:
+            if len(entries) == 1 and name not in self._keywords:
                 names[entries[0]] = name
             else:
                 names.update((e, "%s %i" % (name, i)) for i, e in enumerate(entries))
@@ -155,7 +167,7 @@ def generate_code(spec, template_path, output_dir, common_entries=[]):
     entries = set(common_entries)
     entries.add(spec)
     info = _EntryInfo(entries)
-    utils = _Utils(entries)
+    utils = _Utils(entries, template_path)
     for filename, template in entry_templates:
         for entry in entries:
             referenced_entries = set()

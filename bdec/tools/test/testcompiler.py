@@ -285,6 +285,11 @@ class _CompilerTests:
         blah = seq.Sequence('blah', [a])
         self._decode(blah, 'x')
 
+    def test_reserved_word(self):
+        a = fld.Field('int', 8, fld.Field.INTEGER)
+        blah = seq.Sequence('blah', [a])
+        self._decode(blah, '\x45')
+
 
 class TestC(_CompilerTests, unittest.TestCase):
     COMPILER = "gcc"
