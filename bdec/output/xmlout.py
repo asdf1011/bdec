@@ -10,7 +10,7 @@ import bdec.field as fld
 import bdec.sequenceof as sof
 
 def escape_name(name):
-    return name.replace(' ', '-').replace('(', '_').replace(')', '_').replace(':', '_')
+    return name.replace(' ', '-').replace('(', '_').replace(')', '_').replace(':', '_').replace('/', '_')
 
 class _XMLGenerator(xml.sax.saxutils.XMLGenerator):
     def comment(self, text):
