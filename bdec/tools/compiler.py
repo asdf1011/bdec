@@ -126,7 +126,7 @@ class _Utils:
             raise Exception("Entry '%s' name to escape must be in group (%s)!" % (entry, iter_entries))
 
 def _crange(start, end):
-    return [chr(i) for i in range(ord(start), ord(end))] 
+    return [chr(i) for i in range(ord(start), ord(end)+1)] 
 _VALID_CHARS = _crange('0', '9') + _crange('a', 'z') + _crange('A', 'Z') + ['_', ' ']
 
 def _escape_name(name):
