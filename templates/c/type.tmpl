@@ -23,7 +23,7 @@ BitBuffer
 #error Unhandled field format '${entry}'!
     %endif
   %else:
-${esc_name(entry, iter_entries)|typename}
+${esc_name(entry, iter_entries())|typename}
   %endif
 </%def>
 
@@ -32,7 +32,7 @@ ${esc_name(entry, iter_entries)|typename}
 typedef struct 
 {
   %for child in entry.children:
-    ${ctype(child)} ${child.name |variable};
+    ${ctype(child)} ${var_name(child, entry.children)};
   %endfor
 } ${ctype(entry)};
   %elif isinstance(entry, Field):
@@ -41,7 +41,7 @@ typedef ${ctype(entry)} ${entry.name |typename};
 typedef struct
 {
     %for child in entry.children:
-    ${ctype(child)}* ${child.name |variable};
+    ${ctype(child)}* ${var_name(child, entry.children)};
     %endfor
 } ${ctype(entry)};
   %elif isinstance(entry, SequenceOf):
@@ -64,9 +64,13 @@ ${c_define(e)}
 </%def>
 
 <%def name="decode_name(entry)">
-${'decode ' + esc_name(entry, iter_entries)|function}
+${'decode ' + esc_name(entry, iter_entries())|function}
 </%def>
 
 <%def name="print_name(entry)">
-${'print xml ' + esc_name(entry, iter_entries)|function}
+${'print xml ' + esc_name(entry, iter_entries())|function}
+</%def>
+
+<%def name="var_name(entry, other_vars)">
+${esc_name(entry, other_vars)|variable}
 </%def>

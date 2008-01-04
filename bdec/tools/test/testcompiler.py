@@ -259,6 +259,18 @@ class _CompilerTests:
         blah = seq.Sequence('blah', [a, b])
         self._decode(blah, '\x09\x06', common=[blah, a,b])
 
+    def test_duplicate_names_in_sequence(self):
+        b = seq.Sequence('a', [fld.Field('b', 8, fld.Field.INTEGER), fld.Field('b', 8, fld.Field.INTEGER)])
+        blah = seq.Sequence('blah', [b])
+        self._decode(blah, '\x09\x06')
+
+    def test_duplicate_names_in_choice(self):
+        b = chc.Choice('a', [fld.Field('a', 8, fld.Field.INTEGER, expected=dt.Data('a')), fld.Field('a', 8, fld.Field.INTEGER)])
+        blah = seq.Sequence('blah', [b])
+        self._decode(blah, 'a')
+        self._decode(blah, 'b')
+
+
 class TestC(_CompilerTests, unittest.TestCase):
     COMPILER = "gcc"
     COMPILER_FLAGS = ["-Wall", '-g', '-o']

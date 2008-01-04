@@ -95,7 +95,7 @@ def _create_iter_entries(common):
 
 def _esc_name(entry, iter_entries):
     lookup = {}
-    for e in iter_entries():
+    for e in iter_entries:
         lookup.setdefault(e.name, []).append(e)
     names = {}
     for name, entries in lookup.iteritems():
@@ -103,7 +103,10 @@ def _esc_name(entry, iter_entries):
             names[entries[0]] = name
         else:
             names.update((e, "%s %i" % (name, i)) for i, e in enumerate(entries))
-    return names[entry]
+    try:
+        return names[entry]
+    except KeyError:
+        raise Exception("Entry '%s' name to escape must be in group (%s)!" % (entry, iter_entries))
 
 def _crange(start, end):
     return [chr(i) for i in range(ord(start), ord(end))] 

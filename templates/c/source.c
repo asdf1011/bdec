@@ -48,7 +48,7 @@ int ${ctype.decode_name(entry)}(BitBuffer* buffer, ${ctype.ctype(entry)}* result
     ${success(entry)}
   %elif isinstance(entry, Sequence):
     %for child in entry.children:
-    if (!${ctype.decode_name(child)}(buffer, &result->${child.name |variable}${decodeentry.params(entry, child)}))
+    if (!${ctype.decode_name(child)}(buffer, &result->${ctype.var_name(child, entry.children)}${decodeentry.params(entry, child)}))
     {
         return 0;
     }
@@ -87,11 +87,12 @@ int ${ctype.decode_name(entry)}(BitBuffer* buffer, ${ctype.ctype(entry)}* result
     BitBuffer temp;
     %for child in entry.children:
     temp = *buffer;
-    ${ctype.ctype(child)}* ${'temp ' + child.name |variable} = malloc(sizeof(${ctype.ctype(child)}));
-    if (${ctype.decode_name(child)}(&temp, ${'temp ' + child.name |variable}${decodeentry.params(entry, child)}))
+    <% temp_name = variable('temp ' + esc_name(child, entry.children)) %>
+    ${ctype.ctype(child)}* ${temp_name} = malloc(sizeof(${ctype.ctype(child)}));
+    if (${ctype.decode_name(child)}(&temp, ${temp_name}${decodeentry.params(entry, child)}))
     {
         *buffer = temp;
-        result->${child.name |variable} = ${'temp ' + child.name |variable};
+        result->${ctype.var_name(child, entry.children)} = ${temp_name};
         ${success(entry)}
     }
     %endfor
@@ -140,7 +141,7 @@ ${recursiveDecode(entry)}
       %endif
     %elif isinstance(item, Sequence):
       %for child in item.children:
-    ${recursivePrint(child, '%s.%s' % (varname, variable(child.name)))}
+    ${recursivePrint(child, '%s.%s' % (varname, variable(esc_name(child, item.children))))}
       %endfor
     %elif isinstance(item, SequenceOf):
       <% iter_name = variable(item.name + ' counter') %>
@@ -151,9 +152,9 @@ ${recursiveDecode(entry)}
     }
     %elif isinstance(item, Choice):
       %for child in item.children:
-    if (${'%s.%s' % (varname, variable(child.name))} != 0)
+    if (${'%s.%s' % (varname, variable(esc_name(child, item.children)))} != 0)
     {
-        ${recursivePrint(child, "(*%s.%s)" % (varname, variable(child.name)))}
+        ${recursivePrint(child, "(*%s.%s)" % (varname, variable(esc_name(child, item.children))))}
     }
       %endfor
     %else:
