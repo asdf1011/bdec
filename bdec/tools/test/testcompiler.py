@@ -270,6 +270,11 @@ class _CompilerTests:
         self._decode(blah, 'a')
         self._decode(blah, 'b')
 
+    def test_duplicate_complex_embedded_entries(self):
+        a = seq.Sequence('a', [seq.Sequence('a', [fld.Field('a', 8, fld.Field.INTEGER)])])
+        blah = seq.Sequence('blah', [a])
+        self._decode(blah, 'x')
+
 
 class TestC(_CompilerTests, unittest.TestCase):
     COMPILER = "gcc"
