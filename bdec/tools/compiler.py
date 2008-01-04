@@ -69,6 +69,45 @@ class _EntryInfo(prm.ParamLookup):
         for param in prm.ParamLookup.get_invoked_params(self, entry, child):
             yield prm.Param(_variable_name(param.name), param.direction)
 
+def _create_iter_inner_entries(common):
+    """
+    Create a function that can iterate over all non-common entries.
+    
+    Note that entry is also returned, even if it is a common entry.
+    """
+    def iter_inner_entries(entry):
+        for child in entry.children:
+           if child not in common:
+              for sub_child in iter_inner_entries(child):
+                  yield sub_child
+        yield entry
+    return iter_inner_entries
+
+def _create_iter_entries(common):
+    """Create a function that returns an iterator to all the entries."""
+    iter_inner_entries = _create_iter_inner_entries(common)
+    entries = []
+    for entry in common:
+        entries.extend(iter_inner_entries(entry))
+    def iter_entries():
+        return entries
+    return iter_entries
+
+def _esc_name(entry, iter_entries):
+    lookup = {}
+    for e in iter_entries:
+        lookup.setdefault(e.name, []).append(e)
+    names = {}
+    for name, entries in lookup.iteritems():
+        if len(entries) == 1:
+            names[entries[0]] = name
+        else:
+            names.update((e, "%s %i" % (name, i)) for i, e in enumerate(entries))
+    try:
+        return names[entry]
+    except KeyError:
+        raise Exception("Entry '%s' name to escape must be in group (%s)!" % (entry, iter_entries))
+
 def _crange(start, end):
     return [chr(i) for i in range(ord(start), ord(end))] 
 _VALID_CHARS = _crange('0', '9') + _crange('a', 'z') + _crange('A', 'Z') + ['_', ' ']
@@ -93,7 +132,8 @@ def _filename(name):
     return _delimiter(basename, '').lower() + extension
 
 def _type_name(name):
-    return _camelcase(name)
+    result= _camelcase(name)
+    return result
 
 def _constant_name(name):
     return _delimiter(name, '_').upper()
@@ -118,12 +158,15 @@ def generate_code(spec, template_path, output_dir, common_entries=[]):
             _recursive_update(referenced_entries, common_items, entry)
 
             lookup['entry'] = entry
+            lookup['esc_name'] = _esc_name
             lookup['common'] = referenced_entries
             lookup['get_params'] = info.get_params
             lookup['get_invoked_params'] = info.get_invoked_params
             lookup['is_end_sequenceof'] = info.is_end_sequenceof
             lookup['is_value_referenced'] = info.is_value_referenced
             lookup['is_length_referenced'] = info.is_length_referenced
+            lookup['iter_inner_entries'] = _create_iter_inner_entries(entries)
+            lookup['iter_entries'] = _create_iter_entries(entries)
             lookup['local_vars'] = info.get_locals
             lookup['constant'] = _constant_name
             lookup['filename'] = _filename

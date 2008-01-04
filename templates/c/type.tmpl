@@ -8,6 +8,7 @@
     from bdec.sequenceof import SequenceOf
 %>
 
+
 <%def name="ctype(entry)">
   %if isinstance(entry, Field):
     %if entry.format == Field.INTEGER:
@@ -22,40 +23,54 @@ BitBuffer
 #error Unhandled field format '${entry}'!
     %endif
   %else:
-${entry.name|typename}
+${esc_name(entry, iter_entries())|typename}
   %endif
 </%def>
 
-<%def name="define(entry)" >
-    %for child in entry.children:
-      %if not isinstance(child, Field) and child not in common:
-${define(child)}
-      %endif
-    %endfor
-
+<%def name="c_define(entry)" >
   %if isinstance(entry, Sequence):
 typedef struct 
 {
   %for child in entry.children:
-    ${ctype(child)} ${child.name |variable};
+    ${ctype(child)} ${var_name(child, entry.children)};
   %endfor
-} ${entry.name |typename};
+} ${ctype(entry)};
   %elif isinstance(entry, Field):
 typedef ${ctype(entry)} ${entry.name |typename};
   %elif isinstance(entry, Choice):
 typedef struct
 {
     %for child in entry.children:
-    ${ctype(child)}* ${child.name |variable};
+    ${ctype(child)}* ${var_name(child, entry.children)};
     %endfor
-} ${entry.name |typename};
+} ${ctype(entry)};
   %elif isinstance(entry, SequenceOf):
 typedef struct
 {
-    ${ctype(child)}* items;
+    ${ctype(entry.children[0])}* items;
     unsigned int count;
-} ${entry.name |typename};
+} ${ctype(entry)};
   %else:
 #error Unsupported entry ${entry}
   %endif
+</%def>
+
+<%def name="define(entry)" >
+    %for e in iter_inner_entries(entry):
+      %if not isinstance(e, Field):
+${c_define(e)}
+      %endif
+    %endfor
+</%def>
+
+<%def name="decode_name(entry)">
+${'decode ' + esc_name(entry, iter_entries())|function}
+</%def>
+
+<%def name="print_name(entry)">
+${'print xml ' + esc_name(entry, iter_entries())|function}
+</%def>
+
+<%def name="var_name(entry, other_vars)">
+${esc_name(entry, other_vars)|variable}
 </%def>

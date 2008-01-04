@@ -18,9 +18,9 @@ ${ctype.define(entry)}
 // The data is decoded into the result argument. Return value is 0 for decode
 // failure, non-zero for success.
 // Note: Any values allready present in result will be ignored and overwritten.
-int ${'decode ' + entry.name|function}( BitBuffer* buffer, ${ctype.ctype(entry)}* result${decodeentry.define_params(entry)});
+int ${ctype.decode_name(entry)}( BitBuffer* buffer, ${ctype.ctype(entry)}* result${decodeentry.define_params(entry)});
 
 // Print an xml representation of a ${entry.name} object.
-void ${'print xml ' + entry.name|function}(${ctype.ctype(entry)}* data);
+void ${ctype.print_name(entry)}(${ctype.ctype(entry)}* data);
 
 #endif

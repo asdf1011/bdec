@@ -253,6 +253,38 @@ class _CompilerTests:
         blah = seq.Sequence('blah', [b, d])
         self._decode(blah, 'xy', common=[blah, d])
 
+    def test_duplicate_names_at_different_level(self):
+        a = seq.Sequence('a', [fld.Field('c', 8, fld.Field.INTEGER)])
+        b = seq.Sequence('b', [seq.Sequence('a', [fld.Field('d', 8, fld.Field.INTEGER)])])
+        blah = seq.Sequence('blah', [a, b])
+        self._decode(blah, '\x09\x06', common=[blah, a,b])
+
+    def test_duplicate_names_in_sequence(self):
+        b = seq.Sequence('a', [fld.Field('b', 8, fld.Field.INTEGER), fld.Field('b', 8, fld.Field.INTEGER)])
+        blah = seq.Sequence('blah', [b])
+
+        # We don't attempt to re-encode the data, because the python encoder
+        # cannot do it (see issue41).
+        expected_xml = """
+           <blah>
+              <a>
+                 <b>9</b>
+                 <b>6</b>
+              </a>
+           </blah> """
+        self._decode(blah, '\x09\x06', expected_xml=expected_xml)
+
+    def test_duplicate_names_in_choice(self):
+        b = chc.Choice('a', [fld.Field('a', 8, fld.Field.INTEGER, expected=dt.Data('a')), fld.Field('a', 8, fld.Field.INTEGER)])
+        blah = seq.Sequence('blah', [b])
+        self._decode(blah, 'a')
+        self._decode(blah, 'b')
+
+    def test_duplicate_complex_embedded_entries(self):
+        a = seq.Sequence('a', [seq.Sequence('a', [fld.Field('a', 8, fld.Field.INTEGER)])])
+        blah = seq.Sequence('blah', [a])
+        self._decode(blah, 'x')
+
 
 class TestC(_CompilerTests, unittest.TestCase):
     COMPILER = "gcc"
