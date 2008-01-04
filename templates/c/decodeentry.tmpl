@@ -1,6 +1,7 @@
 ## vim:set syntax=mako:
 <%namespace file="/expression.tmpl" name="expr" />
 <%!
+    from bdec.data import Data
     from bdec.field import Field
     from bdec.sequence import Sequence
 %>
@@ -79,7 +80,25 @@ ${_params(parent, entry, get_invoked_params, local_vars(parent))}
        %if entry.format == entry.INTEGER:
     if (${varname} != ${int(entry.expected)})
        %elif entry.format == entry.BINARY:
+         %if len(entry.expected) < 32:
     if (get_integer(&${varname}) != ${int(entry.expected)})
+         %else:
+           <% c_hex_text = ''.join('\\x00%02x' % ord(c) for c in str(entry.expected)) %>
+    BitBuffer expected = {(unsigned char*)"${c_hex_text}", 0, ${len(entry.expected)}};
+    BitBuffer copy = ${varname};
+    int isMatch = 1;
+    while (expected.num_bits > 0)
+    {
+        if (decode_integer(&expected, 1) != decode_integer(&copy, 1))
+        {
+            isMatch = 0;
+            break;
+        }
+    }
+    if (!isMatch)
+         %endif
+       %else:
+#error Field of type ${entry.format} not currently supported for an expected value!
        %endif
     {
         return 0;
