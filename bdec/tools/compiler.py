@@ -113,7 +113,7 @@ class _Utils:
     def esc_name(self, entry, iter_entries):
         lookup = {}
         for e in iter_entries:
-            lookup.setdefault(e.name, []).append(e)
+            lookup.setdefault(_escape_name(e.name), []).append(e)
         names = {}
         for name, entries in lookup.iteritems():
             if len(entries) == 1 and name not in self._keywords:
