@@ -30,7 +30,7 @@ if log:
 if spec is None:
     sys.exit('Specification not set!')
 try:
-    decoder, lookup = xmlspec.load(spec)
+    decoder, lookup, common = xmlspec.load(spec)
 except bdec.spec.LoadError, ex:
     sys.exit(str(ex))
 
