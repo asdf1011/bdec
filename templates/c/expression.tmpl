@@ -5,16 +5,16 @@
 %>
 
 <%def name="get_op(op)">
-    %if op is operator.__div__:
+    %if op == operator.__div__:
 /
-    %elif op is operator.__mul__:
+    %elif op == operator.__mul__:
 *
-    %elif op is operator.__sub__:
+    %elif op == operator.__sub__:
 -
-    %elif op is operator.__add__:
+    %elif op == operator.__add__:
 +
     %else:
-#error Unknown operator type!
+#error Unknown operator type ${op}!
     %endif
 </%def>
 
