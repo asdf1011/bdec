@@ -262,7 +262,17 @@ class _CompilerTests:
     def test_duplicate_names_in_sequence(self):
         b = seq.Sequence('a', [fld.Field('b', 8, fld.Field.INTEGER), fld.Field('b', 8, fld.Field.INTEGER)])
         blah = seq.Sequence('blah', [b])
-        self._decode(blah, '\x09\x06')
+
+        # We don't attempt to re-encode the data, because the python encoder
+        # cannot do it (see issue41).
+        expected_xml = """
+           <blah>
+              <a>
+                 <b>9</b>
+                 <b>6</b>
+              </a>
+           </blah> """
+        self._decode(blah, '\x09\x06', expected_xml=expected_xml)
 
     def test_duplicate_names_in_choice(self):
         b = chc.Choice('a', [fld.Field('a', 8, fld.Field.INTEGER, expected=dt.Data('a')), fld.Field('a', 8, fld.Field.INTEGER)])
