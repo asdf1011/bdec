@@ -45,7 +45,7 @@ class BadRangeError(FieldError):
         if self.field.max is not None:
             result += "%i]" % int(self.field.max)
         else:
-            result = "inf)"
+            result += "inf)"
         return result
 
     def __str__(self):
