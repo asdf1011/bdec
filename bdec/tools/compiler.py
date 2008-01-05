@@ -170,32 +170,33 @@ def generate_code(spec, template_path, output_dir, common_entries=[]):
     common_templates, entry_templates = _load_templates(template_path)
     entries = set(common_entries)
     entries.add(spec)
+    info = _EntryInfo(entries)
+    utils = _Utils(entries, template_path)
 
     lookup = {}
     lookup['protocol'] = spec
     lookup['common'] = entries
+    lookup['esc_name'] = utils.esc_name
+    lookup['get_params'] = info.get_params
+    lookup['get_invoked_params'] = info.get_invoked_params
+    lookup['is_end_sequenceof'] = info.is_end_sequenceof
+    lookup['is_value_referenced'] = info.is_value_referenced
+    lookup['is_length_referenced'] = info.is_length_referenced
+    lookup['iter_inner_entries'] = utils.iter_inner_entries
+    lookup['iter_referenced_common'] = utils.iter_referenced_common
+    lookup['iter_entries'] = utils.iter_entries
+    lookup['local_vars'] = info.get_locals
+    lookup['constant'] = _constant_name
+    lookup['filename'] = _filename
+    lookup['function'] = _variable_name
+    lookup['typename'] = _type_name
+    lookup['variable'] = _variable_name
+    lookup['xmlname'] = bdec.output.xmlout.escape_name
+
     for filename, template in common_templates:
         _generate_template(output_dir, filename, lookup, template)
-    info = _EntryInfo(entries)
-    utils = _Utils(entries, template_path)
     for filename, template in entry_templates:
         for entry in entries:
             lookup['entry'] = entry
-            lookup['esc_name'] = utils.esc_name
-            lookup['get_params'] = info.get_params
-            lookup['get_invoked_params'] = info.get_invoked_params
-            lookup['is_end_sequenceof'] = info.is_end_sequenceof
-            lookup['is_value_referenced'] = info.is_value_referenced
-            lookup['is_length_referenced'] = info.is_length_referenced
-            lookup['iter_inner_entries'] = utils.iter_inner_entries
-            lookup['iter_referenced_common'] = utils.iter_referenced_common
-            lookup['iter_entries'] = utils.iter_entries
-            lookup['local_vars'] = info.get_locals
-            lookup['constant'] = _constant_name
-            lookup['filename'] = _filename
-            lookup['function'] = _variable_name
-            lookup['typename'] = _type_name
-            lookup['variable'] = _variable_name
-            lookup['xmlname'] = bdec.output.xmlout.escape_name
             _generate_template(output_dir, _filename(filename.replace('source', entry.name)), lookup, template)
 

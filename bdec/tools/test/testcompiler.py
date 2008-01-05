@@ -34,9 +34,6 @@ class _CompilerTests:
         if os.path.exists(self.TEST_DIR):
             shutil.rmtree(self.TEST_DIR)
         os.mkdir(self.TEST_DIR)
-        main = file(os.path.join(self.TEST_DIR, "main.%s" % self.FILE_TYPE), 'w')
-        main.write(self.ENTRYPOINT)
-        main.close()
 
         comp.generate_code(spec, self.TEMPLATE_PATH, self.TEST_DIR, common)
 
@@ -334,50 +331,6 @@ class TestC(_CompilerTests, unittest.TestCase):
     FILE_TYPE = "c"
     TEMPLATE_PATH = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'templates', 'c')
 
-    ENTRYPOINT = """
-        #include <stdio.h>
-        #include <stdlib.h>
-
-        #include "blah.h"
-        #include "buffer.h"
-
-        int main(int argc, char* argv[])
-        {
-            if (argc != 2)
-            {
-                /* Bad number of arguments */
-                return 1;
-            }
-            char* filename = argv[1];
-            FILE* datafile = fopen(filename, "rb");
-            if (datafile == 0)
-            {
-                /* Failed to open file */
-                return 2;
-            }
-            fseek(datafile, 0, SEEK_END);
-            long int length = ftell(datafile);
-            fseek(datafile, 0, SEEK_SET);
-
-            /* Load the data file into memory */
-            unsigned char* data = malloc(length);
-            fread(data, length, length, datafile);
-            fclose(datafile);
-
-            /* Attempt to decode the file */
-            BitBuffer buffer = {data, 0, length * 8};
-            Blah result;
-            if (!decodeBlah(&buffer, &result))
-            {
-                /* Decode failed! */
-                return 3;
-            }
-
-            /* Print the decoded data */
-            printXmlBlah(&result, 0);
-
-            return 0;
-        }\n"""
 
     def _decode_file(self, filename):
         decode = subprocess.Popen([self.EXECUTABLE, filename], stdout=subprocess.PIPE)
