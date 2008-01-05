@@ -104,22 +104,31 @@ int ${ctype.decode_name(entry)}(BitBuffer* buffer, ${ctype.ctype(entry)}* result
 
 ${recursiveDecode(entry)}
 
+static void printWhitespace(int numChars)
+{
+    int i = 0;
+    for (i = 0; i < numChars; ++i) {
+        printf(" ");
+    }
+}
 
 ## Recursively create functions for printing the entries contained within this protocol specification.
-<%def name="recursivePrint(item, varname)">
+<%def name="recursivePrint(item, varname, offset)">
   %if item in common and item is not entry:
-    ${ctype.print_name(item)}(&${varname});
+    ${ctype.print_name(item)}(&${varname}, offset + ${offset});
   %else:
-    printf("<${item.name |xmlname}>\n");
+    printWhitespace(offset);
+    printf("${' ' * offset}<${item.name |xmlname}>\n");
     %if isinstance(item, Field):
+    printWhitespace(offset);
       %if item.format == Field.INTEGER:
-    printf("  %i\n", ${varname}); 
+    printf("${' ' * (offset+3)}%i\n", ${varname}); 
       %elif item.format == Field.TEXT:
-    printf("  %s\n", ${varname});
+    printf("${' ' * (offset+3)}%s\n", ${varname});
       %elif item.format == Field.HEX:
         <% iter_name = variable(item.name + ' counter') %>
     int ${iter_name};
-    printf("  ");
+    printf("${' ' * (offset+3)}");
     for (${iter_name} = 0; ${iter_name} < ${varname}.length; ++${iter_name})
     {
         printf("%x", ${varname}.buffer[${iter_name}]);
@@ -130,7 +139,7 @@ ${recursiveDecode(entry)}
         <% iter_name = variable(item.name + ' counter') %>
     BitBuffer ${copy_name} = ${varname};
     int ${iter_name};
-    printf("  ");
+    printf("${' ' * (offset+3)}");
     for (${iter_name} = 0; ${iter_name} < ${varname}.num_bits; ++${iter_name})
     {
         printf("%i", decode_integer(&${copy_name}, 1));
@@ -141,30 +150,31 @@ ${recursiveDecode(entry)}
       %endif
     %elif isinstance(item, Sequence):
       %for i, child in enumerate(item.children):
-    ${recursivePrint(child, '%s.%s' % (varname, variable(esc_name(i, item.children))))}
+    ${recursivePrint(child, '%s.%s' % (varname, variable(esc_name(i, item.children))), offset+3)}
       %endfor
     %elif isinstance(item, SequenceOf):
       <% iter_name = variable(item.name + ' counter') %>
     int ${iter_name};
     for (${iter_name} = 0; ${iter_name} < ${varname}.count; ++${iter_name})
     {
-        ${recursivePrint(item.children[0], '%s.items[%s]' % (varname, iter_name))}
+        ${recursivePrint(item.children[0], '%s.items[%s]' % (varname, iter_name), offset+3)}
     }
     %elif isinstance(item, Choice):
       %for i, child in enumerate(item.children):
     if (${'%s.%s' % (varname, variable(esc_name(i, item.children)))} != 0)
     {
-        ${recursivePrint(child, "(*%s.%s)" % (varname, variable(esc_name(i, item.children))))}
+        ${recursivePrint(child, "(*%s.%s)" % (varname, variable(esc_name(i, item.children))), offset+3)}
     }
       %endfor
     %else:
     #error Don't know how to print ${item}
     %endif
-    printf("</${item.name |xmlname}>\n");
+    printWhitespace(offset);
+    printf("${' ' * offset}</${item.name |xmlname}>\n");
   %endif
 </%def>
 
-void ${ctype.print_name(entry)}(${ctype.ctype(entry)}* data)
+void ${ctype.print_name(entry)}(${ctype.ctype(entry)}* data, int offset)
 {
-${recursivePrint(entry, '(*data)')}
+${recursivePrint(entry, '(*data)', 0)}
 }

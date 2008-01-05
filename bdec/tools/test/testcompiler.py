@@ -361,7 +361,7 @@ class TestC(_CompilerTests, unittest.TestCase):
             }
 
             /* Print the decoded data */
-            printXmlBlah(&result);
+            printXmlBlah(&result, 0);
 
             return 0;
         }\n"""

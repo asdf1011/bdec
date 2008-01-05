@@ -21,6 +21,6 @@ ${ctype.define(entry)}
 int ${ctype.decode_name(entry)}( BitBuffer* buffer, ${ctype.ctype(entry)}* result${decodeentry.define_params(entry)});
 
 // Print an xml representation of a ${entry.name} object.
-void ${ctype.print_name(entry)}(${ctype.ctype(entry)}* data);
+void ${ctype.print_name(entry)}(${ctype.ctype(entry)}* data, int offset);
 
 #endif
