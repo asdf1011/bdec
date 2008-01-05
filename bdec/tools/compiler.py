@@ -49,13 +49,6 @@ def _generate_template(output_dir, filename, lookup, template):
     finally:
         output.close()
 
-def _recursive_update(common_references, common, entry):
-    if entry in common:
-        common_references.add(entry)
-    else:
-        for child in entry.children:
-            _recursive_update(common_references, common, child)
-
 
 class _EntryInfo(prm.ParamLookup):
     def get_locals(self, entry):
@@ -109,6 +102,14 @@ class _Utils:
 
     def iter_entries(self):
         return self._entries
+
+    def iter_referenced_common(self, entry):
+        for child in entry.children:
+           if child in self._common:
+               yield child
+           else:
+              for sub_child in self.iter_referenced_common(child):
+                  yield sub_child
 
     def esc_name(self, index, iter_entries):
         # Find all entries that will have the same name as the entry at i
@@ -167,30 +168,27 @@ def generate_code(spec, template_path, output_dir, common_entries=[]):
     Generate code to decode the given specification.
     """
     common_templates, entry_templates = _load_templates(template_path)
-
-    lookup = {}
-    for filename, template in common_templates:
-        _generate_template(output_dir, filename, lookup, template)
     entries = set(common_entries)
     entries.add(spec)
+
+    lookup = {}
+    lookup['protocol'] = spec
+    lookup['common'] = entries
+    for filename, template in common_templates:
+        _generate_template(output_dir, filename, lookup, template)
     info = _EntryInfo(entries)
     utils = _Utils(entries, template_path)
     for filename, template in entry_templates:
         for entry in entries:
-            referenced_entries = set()
-            common_items = entries.copy()
-            common_items.remove(entry)
-            _recursive_update(referenced_entries, common_items, entry)
-
             lookup['entry'] = entry
             lookup['esc_name'] = utils.esc_name
-            lookup['common'] = referenced_entries
             lookup['get_params'] = info.get_params
             lookup['get_invoked_params'] = info.get_invoked_params
             lookup['is_end_sequenceof'] = info.is_end_sequenceof
             lookup['is_value_referenced'] = info.is_value_referenced
             lookup['is_length_referenced'] = info.is_length_referenced
             lookup['iter_inner_entries'] = utils.iter_inner_entries
+            lookup['iter_referenced_common'] = utils.iter_referenced_common
             lookup['iter_entries'] = utils.iter_entries
             lookup['local_vars'] = info.get_locals
             lookup['constant'] = _constant_name

@@ -6,10 +6,8 @@
 #define ${entry.name + 'header guard' |constant}
 
 #include "buffer.h"
-%for common_entry in common:
-  %if common_entry is not entry:
-#include "${common_entry.name |filename}.h"
-  %endif
+%for e in iter_referenced_common(entry):
+#include "${e.name |filename}.h"
 %endfor
 
 ${ctype.define(entry)}
