@@ -110,20 +110,27 @@ class _Utils:
     def iter_entries(self):
         return self._entries
 
-    def esc_name(self, entry, iter_entries):
-        lookup = {}
-        for e in iter_entries:
-            lookup.setdefault(_escape_name(e.name), []).append(e)
-        names = {}
-        for name, entries in lookup.iteritems():
-            if len(entries) == 1 and name not in self._keywords:
-                names[entries[0]] = name
-            else:
-                names.update((e, "%s %i" % (name, i)) for i, e in enumerate(entries))
-        try:
-            return names[entry]
-        except KeyError:
-            raise Exception("Entry '%s' name to escape must be in group (%s)!" % (entry, iter_entries))
+    def esc_name(self, index, iter_entries):
+        # Find all entries that will have the same name as the entry at i
+        entry_name = _escape_name(iter_entries[index].name)
+        matching_entries = []
+        matching_index = None
+        for i, e in enumerate(iter_entries):
+            name = _escape_name(e.name)
+            if name == entry_name:
+                matching_entries.append(e)
+                if i == index:
+                    matching_index = len(matching_entries)
+
+        assert matching_index != None
+        assert len(matching_entries) > 0
+
+        if len(matching_entries) == 1 and name not in self._keywords:
+            # No need to escape the name
+            result = entry_name 
+        else:
+            result = "%s %i" % (entry_name, matching_index)
+        return result
 
 def _crange(start, end):
     return [chr(i) for i in range(ord(start), ord(end)+1)] 

@@ -47,8 +47,8 @@ int ${ctype.decode_name(entry)}(BitBuffer* buffer, ${ctype.ctype(entry)}* result
     %endif
     ${success(entry)}
   %elif isinstance(entry, Sequence):
-    %for child in entry.children:
-    if (!${ctype.decode_name(child)}(buffer, &result->${ctype.var_name(child, entry.children)}${decodeentry.params(entry, child)}))
+    %for i, child in enumerate(entry.children):
+    if (!${ctype.decode_name(child)}(buffer, &result->${ctype.var_name(i, entry.children)}${decodeentry.params(entry, child)}))
     {
         return 0;
     }
@@ -85,14 +85,14 @@ int ${ctype.decode_name(entry)}(BitBuffer* buffer, ${ctype.ctype(entry)}* result
   %elif isinstance(entry, Choice):
     memset(result, 0, sizeof(${ctype.ctype(entry)}));
     BitBuffer temp;
-    %for child in entry.children:
+    %for i, child in enumerate(entry.children):
     temp = *buffer;
-    <% temp_name = variable('temp ' + esc_name(child, entry.children)) %>
+    <% temp_name = variable('temp ' + esc_name(i, entry.children)) %>
     ${ctype.ctype(child)}* ${temp_name} = malloc(sizeof(${ctype.ctype(child)}));
     if (${ctype.decode_name(child)}(&temp, ${temp_name}${decodeentry.params(entry, child)}))
     {
         *buffer = temp;
-        result->${ctype.var_name(child, entry.children)} = ${temp_name};
+        result->${ctype.var_name(i, entry.children)} = ${temp_name};
         ${success(entry)}
     }
     %endfor
@@ -140,8 +140,8 @@ ${recursiveDecode(entry)}
     #error Don't know how to print ${item}
       %endif
     %elif isinstance(item, Sequence):
-      %for child in item.children:
-    ${recursivePrint(child, '%s.%s' % (varname, variable(esc_name(child, item.children))))}
+      %for i, child in enumerate(item.children):
+    ${recursivePrint(child, '%s.%s' % (varname, variable(esc_name(i, item.children))))}
       %endfor
     %elif isinstance(item, SequenceOf):
       <% iter_name = variable(item.name + ' counter') %>
@@ -151,10 +151,10 @@ ${recursiveDecode(entry)}
         ${recursivePrint(item.children[0], '%s.items[%s]' % (varname, iter_name))}
     }
     %elif isinstance(item, Choice):
-      %for child in item.children:
-    if (${'%s.%s' % (varname, variable(esc_name(child, item.children)))} != 0)
+      %for i, child in enumerate(item.children):
+    if (${'%s.%s' % (varname, variable(esc_name(i, item.children)))} != 0)
     {
-        ${recursivePrint(child, "(*%s.%s)" % (varname, variable(esc_name(child, item.children))))}
+        ${recursivePrint(child, "(*%s.%s)" % (varname, variable(esc_name(i, item.children))))}
     }
       %endfor
     %else:

@@ -295,6 +295,19 @@ class _CompilerTests:
         blah = seq.Sequence('blah', [a])
         self._decode(blah, '\x45')
 
+    def test_duplicate_name_to_same_instance(self):
+        a = fld.Field('a', 8, fld.Field.INTEGER)
+        blah = seq.Sequence('blah', [a, a])
+
+        # We don't attempt to re-encode the data, because the python encoder
+        # cannot do it (see issue41).
+        expected_xml = """
+           <blah>
+              <a>1</a>
+              <a>2</a>
+           </blah> """
+        self._decode(blah, '\x01\x02', common=[blah, a], expected_xml=expected_xml)
+
 
 class TestC(_CompilerTests, unittest.TestCase):
     COMPILER = "gcc"
