@@ -23,33 +23,33 @@ BitBuffer
 #error Unhandled field format '${entry}'!
     %endif
   %else:
-${esc_name(iter_entries().index(entry), iter_entries())|typename}
+struct ${esc_name(iter_entries().index(entry), iter_entries())|typename}
   %endif
 </%def>
 
 <%def name="c_define(entry)" >
   %if isinstance(entry, Sequence):
-typedef struct 
+${ctype(entry)}
 {
   %for i, child in enumerate(entry.children):
     ${ctype(child)} ${var_name(i, entry.children)};
   %endfor
-} ${ctype(entry)};
+};
   %elif isinstance(entry, Field):
 typedef ${ctype(entry)} ${entry.name |typename};
   %elif isinstance(entry, Choice):
-typedef struct
+${ctype(entry)}
 {
     %for i, child in enumerate(entry.children):
     ${ctype(child)}* ${var_name(i, entry.children)};
     %endfor
-} ${ctype(entry)};
+};
   %elif isinstance(entry, SequenceOf):
-typedef struct
+${ctype(entry)}
 {
     ${ctype(entry.children[0])}* items;
     unsigned int count;
-} ${ctype(entry)};
+};
   %else:
 #error Unsupported entry ${entry}
   %endif
