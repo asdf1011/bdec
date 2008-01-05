@@ -50,7 +50,7 @@ ${_params(parent, entry, get_invoked_params, local_vars(parent))}
   %if len(entry.expected) < 32:
     if (get_integer(&actual) != ${int(entry.expected)})
   %else:
-    BitBuffer expected = {(unsigned char*)${c_string(expected)}, 0, ${len(entry.expected)}};
+    BitBuffer expected = {(unsigned char*)${c_string(str(expected))}, 0, ${len(entry.expected)}};
     int isMatch = 1;
     while (expected.num_bits > 0)
     {
