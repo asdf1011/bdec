@@ -69,6 +69,10 @@ ${_params(parent, entry, get_invoked_params, local_vars(parent))}
     {
         return 0;
     }
+  %if entry.min is not None or entry.max is not None:
+    BitBuffer field_data = *buffer;
+    field_data.num_bits = ${expr.length(entry.length)};
+  %endif
   %if entry.format == Field.INTEGER:
     %if entry.encoding == Field.BIG_ENDIAN:
     ${varname} = decode_integer(buffer, ${expr.length(entry.length)});
@@ -128,4 +132,18 @@ ${_params(parent, entry, get_invoked_params, local_vars(parent))}
         return 0;
     }
      %endif
+    %if entry.min is not None:
+      %if entry.format is entry.INTEGER:
+    if (get_integer(&field_data) < ${expr.length(entry.min)})
+    {
+        return 0;
+    }
+      %endif
+    %endif
+    %if entry.max is not None:
+    if (get_integer(&field_data) >= ${expr.length(entry.max)})
+    {
+        return 0;
+    }
+    %endif
 </%def>

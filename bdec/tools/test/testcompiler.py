@@ -314,6 +314,19 @@ class _CompilerTests:
            </blah> """
         self._decode(blah, '\x01\x02', common=[blah, a], expected_xml=expected_xml)
 
+    def test_min(self):
+        a = fld.Field('a', 8, fld.Field.INTEGER, min=8)
+        b = fld.Field('b', 8, fld.Field.INTEGER)
+        blah = chc.Choice('blah', [a,b])
+        self._decode(blah, '\x08')
+        self._decode(blah, '\x07')
+
+    def test_max(self):
+        a = fld.Field('a', 8, fld.Field.INTEGER, max=8)
+        b = fld.Field('b', 8, fld.Field.INTEGER)
+        blah = chc.Choice('blah', [a,b])
+        self._decode(blah, '\x08')
+        self._decode(blah, '\x09')
 
 class TestC(_CompilerTests, unittest.TestCase):
     COMPILER = "gcc"
