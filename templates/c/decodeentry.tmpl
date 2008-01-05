@@ -133,12 +133,10 @@ ${_params(parent, entry, get_invoked_params, local_vars(parent))}
     }
      %endif
     %if entry.min is not None:
-      %if entry.format is entry.INTEGER:
     if (get_integer(&field_data) < ${expr.length(entry.min)})
     {
         return 0;
     }
-      %endif
     %endif
     %if entry.max is not None:
     if (get_integer(&field_data) >= ${expr.length(entry.max)})
