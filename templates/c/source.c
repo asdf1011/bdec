@@ -14,7 +14,9 @@
 #include <string.h>
 
 #include "${entry.name |filename}.h"
-#include "buffer.h"
+%for e in iter_optional_common(entry):
+#include "${e.name |filename}.h"
+%endfor
 #include "variable_integer.h"
 
 <%def name="success(entry)">

@@ -10,6 +10,7 @@ import os
 import os.path
 import sys
 
+import bdec.choice as chc
 import bdec.inspect.param as prm
 import bdec.output.xmlout
 
@@ -103,13 +104,23 @@ class _Utils:
     def iter_entries(self):
         return self._entries
 
-    def iter_referenced_common(self, entry):
+    def iter_required_common(self, entry):
         for child in entry.children:
-           if child in self._common:
-               yield child
-           else:
-              for sub_child in self.iter_referenced_common(child):
-                  yield sub_child
+            if child in self._common:
+                if not isinstance(entry, chc.Choice):
+                    yield child
+            else:
+                for e in self.iter_required_common(child):
+                    yield e
+
+    def iter_optional_common(self, entry):
+        for child in entry.children:
+            if child in self._common:
+                if isinstance(entry, chc.Choice):
+                    yield child
+            else:
+                for entry in self.iter_optional_common(child):
+                    yield entry
 
     def esc_name(self, index, iter_entries):
         # Find all entries that will have the same name as the entry at i
@@ -183,7 +194,8 @@ def generate_code(spec, template_path, output_dir, common_entries=[]):
     lookup['is_value_referenced'] = info.is_value_referenced
     lookup['is_length_referenced'] = info.is_length_referenced
     lookup['iter_inner_entries'] = utils.iter_inner_entries
-    lookup['iter_referenced_common'] = utils.iter_referenced_common
+    lookup['iter_required_common'] = utils.iter_required_common
+    lookup['iter_optional_common'] = utils.iter_optional_common
     lookup['iter_entries'] = utils.iter_entries
     lookup['local_vars'] = info.get_locals
     lookup['constant'] = _constant_name

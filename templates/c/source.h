@@ -6,7 +6,7 @@
 #define ${entry.name + 'header guard' |constant}
 
 #include "buffer.h"
-%for e in iter_referenced_common(entry):
+%for e in iter_required_common(entry):
 #include "${e.name |filename}.h"
 %endfor
 

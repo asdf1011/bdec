@@ -85,8 +85,8 @@ class _CompilerTests:
             else:
                 self._compare_xml(expected_xml, xml)
 
-    def _decode_failure(self, spec, data):
-        self._decode(spec, data, 3)
+    def _decode_failure(self, spec, data, common=[]):
+        self._decode(spec, data, 3, common=common)
 
     def test_basic_decode(self):
         spec = seq.Sequence('blah', [fld.Field('hello', 8, fld.Field.INTEGER)])
@@ -324,6 +324,21 @@ class _CompilerTests:
         blah = chc.Choice('blah', [a,b])
         self._decode(blah, '\x08')
         self._decode(blah, '\x09')
+
+    def test_recursive_entries(self):
+        # There was a problem with creating include files for items that cross
+        # reference each other. Test that we can create a decoder for a
+        # recursive specification.
+        embed_b = chc.Choice('embed b', [fld.Field('null', 8, expected=dt.Data('\x00'))])
+        a = seq.Sequence('a', [fld.Field('id', 8, fld.Field.TEXT, expected=dt.Data('a')), embed_b])
+
+        embed_a = chc.Choice('embed a', [fld.Field('null', 8, expected=dt.Data('\x00')), a])
+        b = seq.Sequence('b', [fld.Field('id', 8, fld.Field.TEXT, expected=dt.Data('b')), embed_a])
+        embed_b.children.append(b)
+
+        self._decode(b, 'bababa\00', common=[a,b])
+        self._decode(b, 'b\00', common=[a,b])
+        self._decode_failure(b, 'bac', common=[a,b])
 
 class TestC(_CompilerTests, unittest.TestCase):
     COMPILER = "gcc"
