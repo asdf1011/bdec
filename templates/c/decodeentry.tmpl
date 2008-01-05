@@ -34,12 +34,23 @@ ${_define_params(entry, get_params)}
 ${_params(parent, entry, get_invoked_params, local_vars(parent))}
 </%def>
 
+<%!
+    import string
+    _PRINTABLE = string.ascii_letters + string.digits
+    def c_repr(char):
+        if char in _PRINTABLE:
+            return char
+        return '\\x00%02x' % ord(char)
+
+    def c_string(data):
+        return '"%s"' % ''.join(c_repr(char) for char in data)
+%>
+
 <%def name="compare_binary_expected(entry, expected)">
   %if len(entry.expected) < 32:
     if (get_integer(&actual) != ${int(entry.expected)})
   %else:
-    <%c_hex_text = ''.join('\\x00%02x' % ord(c) for c in str(expected))%>
-    BitBuffer expected = {(unsigned char*)"${c_hex_text}", 0, ${len(entry.expected)}};
+    BitBuffer expected = {(unsigned char*)${c_string(expected)}, 0, ${len(entry.expected)}};
     int isMatch = 1;
     while (expected.num_bits > 0)
     {
@@ -108,6 +119,8 @@ ${_params(parent, entry, get_invoked_params, local_vars(parent))}
        %elif entry.format == entry.HEX:
     BitBuffer actual = {${varname}.buffer, 0, ${varname}.length * 8};
     ${compare_binary_expected(entry, entry.expected)}
+       %elif entry.format == entry.TEXT:
+    if (memcmp(${varname}, ${c_string(str(entry.expected))}, ${len(entry.expected) / 8}) != 0)
        %else:
 #error Field of type ${entry.format} not currently supported for an expected value!
        %endif

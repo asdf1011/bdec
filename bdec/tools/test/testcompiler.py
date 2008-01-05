@@ -126,6 +126,12 @@ class _CompilerTests:
         self._decode(spec, 'abcde\xf0')
         self._decode_failure(spec, 'abcde\x40')
 
+    def test_expected_text_value(self):
+        spec = seq.Sequence('blah', [fld.Field('bob', 40, fld.Field.TEXT, expected=dt.Data('hello'))])
+        self._decode(spec, 'hello')
+        self._decode_failure(spec, 'hella')
+        self._decode_failure(spec, 'hell')
+
     def test_sequence_decode_failure(self):
         spec = seq.Sequence('blah', [seq.Sequence('dog', [fld.Field('cat', 8, fld.Field.INTEGER, expected=dt.Data('a'))])])
         self._decode(spec, 'a')
