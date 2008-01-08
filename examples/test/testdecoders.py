@@ -22,7 +22,12 @@ class _BaseTest:
 
     def _decode(self, filename):
         self._load_spec()
-        datafile = open(filename, 'rb')
+        if os.path.splitext(filename)[1] == "gz":
+            import gzip
+            datafile = gzip.GzipFile(filename, 'rb')
+        else:
+            datafile = open(filename, 'rb')
+
         data = dt.Data(datafile.read())
         datafile.close()
         entries = list(self._spec.decode(data))
