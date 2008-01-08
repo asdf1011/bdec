@@ -13,8 +13,8 @@ import sys
 import UserDict
 
 import bdec.data
-import bdec.chooser
 import bdec.field
+import bdec.inspect.chooser
 import bdec.output.instance
 import bdec.sequenceof
 import bdec.spec.xmlspec
@@ -23,7 +23,7 @@ def load_specs(spec_dir):
     specs = []
     for spec in glob.glob(os.path.join(spec_dir, '*.xml')):
         try:
-            decoder, lookup = bdec.spec.xmlspec.load(spec)
+            decoder, lookup, common = bdec.spec.xmlspec.load(spec)
         except bdec.spec.LoadError, ex:
             logging.error('failed to load: %s (%s)', spec, ex)
         specs.append(decoder)
@@ -111,7 +111,7 @@ def detect_file_type(protocols, data):
     # differentiating when only one is left (but we want to know if we don't
     # get a match at all).
     unknown = bdec.sequenceof.SequenceOf('unknown', bdec.field.Field('byte', 8), None)
-    chooser = bdec.chooser.Chooser(specs + [unknown])
+    chooser = bdec.inspect.chooser.Chooser(specs + [unknown])
     options = chooser.choose(data)
 
     return [option for option in options if option is not unknown]
