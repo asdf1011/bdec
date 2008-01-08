@@ -140,6 +140,40 @@ class TestVariableReference(unittest.TestCase):
         self.assertEqual(set(), vars.get_params(integer))
         self.assertEqual([], list(vars.get_invoked_params(spec.children[1], integer)))
 
+    def test_unused_parameters(self):
+        """
+        Test detection of re-use of a common entry, where not all output parameters are used.
+        """
+        length = fld.Field('length', 8)
+        shared = seq.Sequence('shared', [length])
+        length_value = expr.ValueResult('shared.length')
+
+        # Now we'll reference that common component twice, but only once referencing an actual value.
+        a = seq.Sequence('a', [shared, fld.Field('a data', length_value)])
+        b = seq.Sequence('b', [shared])
+        spec = seq.Sequence('spec', [a,b])
+        vars = prm.VariableReference([spec])
+        self.assertTrue(vars.is_value_referenced(length))
+        self.assertFalse(vars.is_value_referenced(shared))
+        self.assertEqual([], vars.get_locals(spec))
+
+        # Test that the 'length' and 'shared' entries pass out their value
+        self.assertEqual(set([prm.Param('length', prm.Param.OUT)]), vars.get_params(length))
+        self.assertEqual(set([prm.Param('length', prm.Param.OUT)]), vars.get_params(shared))
+
+        # First validate the passing of the length value within entry 'a'
+        self.assertEqual(set(), vars.get_params(a))
+        self.assertEqual(['shared.length'], vars.get_locals(a))
+        self.assertEqual([prm.Param('shared.length', prm.Param.OUT)], list(vars.get_invoked_params(a, shared)))
+        self.assertEqual([prm.Param('shared.length', prm.Param.IN)], list(vars.get_invoked_params(a, a.children[1])))
+        self.assertEqual([], list(vars.get_invoked_params(spec, a)))
+
+        # Now test the passing out (and ignoring) of the length value within 'b'
+        self.assertEqual(set(), vars.get_params(b))
+        self.assertEqual(['shared.length'], vars.get_locals(b))
+        self.assertEqual([prm.Param('shared.length', prm.Param.OUT)], list(vars.get_invoked_params(b, shared)))
+        self.assertEqual([], list(vars.get_invoked_params(spec, b)))
+
 class TestSequenceOfParamLookup(unittest.TestCase):
     def test_end_entry_lookup(self):
         null = fld.Field("null", 8, expected=dt.Data('\x00'))

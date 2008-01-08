@@ -88,7 +88,6 @@ class SequenceOfParamLookup:
 
 class VariableReference:
     def __init__(self, entries):
-        self._locals = {}
         self._params = {}
 
         # This is a lookup of [parent entry][child entry] => set of (parent name, child name)
@@ -122,7 +121,7 @@ class VariableReference:
 
     def _populate_references(self, entry, unreferenced_entries, known_references):
         """
-        Walk down the tree, populating the '_params', '_locals', and '_referenced_XXX' sets.
+        Walk down the tree, populating the '_params', '_referenced_XXX' sets.
 
         Handles recursive elements.
         """
@@ -185,16 +184,12 @@ class VariableReference:
         unknown = (name for name in child_unknowns if name not in known_references[entry])
         unreferenced_entries[entry].update(unknown)
 
-        # Local variables for this entry are all entries that our children
-        # don't know about, but we do (eg: we can access it through another
-        # of our children).
-        self._locals[entry] = list(set(name for name in child_unknowns if name in known_references[entry]))
-        self._locals[entry].sort()
-
         # Detect all parameters necessary to decode this entry.
         for name in unreferenced_entries[entry]:
             self._params[entry].add(Param(name, Param.IN))
-        for name in self._locals[entry]:
+        local_references = list(set(name for name in child_unknowns if name in known_references[entry]))
+        local_references.sort()
+        for name in local_references:
             self._add_out_params(entry, name, known_references)
 
     def _add_out_params(self, entry, name, known_references):
@@ -225,12 +220,28 @@ class VariableReference:
 
     def get_locals(self, entry):
         """
-        Get locals used when decoding an entry.
+        Get the names of local variables used when decoding an entry.
 
-        All child entries that reference another child reference, where the
-        given entry is the nearest common ancestor.
+        Local variables are all child outputs that aren't an output of the
+        entry.
         """
-        return self._locals[entry]
+        # Store all of our output parameters for easy lookup
+        output_params = set(param.name for param in self.get_params(entry) if param.direction is param.OUT)
+
+        locals = set()
+        for child in entry.children:
+            for param in self.get_params(child):
+                if param.direction is param.OUT:
+                    name = self._get_local_name(entry, child, param.name)
+                    if name not in output_params:
+                        # We found a child output parameter that we don't pass
+                        # out ourselves; this must be stored locally.
+                        locals.add(name)
+
+        result = list(locals)
+        result.sort()
+        return result
+                    
 
     def get_params(self, entry):
         """
