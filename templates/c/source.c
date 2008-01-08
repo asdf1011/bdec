@@ -115,7 +115,7 @@ static void printWhitespace(int numChars)
 }
 
 ## Recursively create functions for printing the entries contained within this protocol specification.
-<%def name="recursivePrint(item, varname, offset)">
+<%def name="recursivePrint(item, varname, offset, iter_postfix)">
   %if item in common and item is not entry:
     ${ctype.print_name(item)}(&${varname}, offset + ${offset});
   %else:
@@ -128,7 +128,7 @@ static void printWhitespace(int numChars)
       %elif item.format == Field.TEXT:
     printf("${' ' * (offset+3)}%s\n", ${varname});
       %elif item.format == Field.HEX:
-        <% iter_name = variable(item.name + ' counter') %>
+        <% iter_name = variable(item.name + ' counter' + str(iter_postfix.next())) %>
     int ${iter_name};
     printf("${' ' * (offset+3)}");
     for (${iter_name} = 0; ${iter_name} < ${varname}.length; ++${iter_name})
@@ -138,7 +138,7 @@ static void printWhitespace(int numChars)
     printf("\n");
       %elif item.format == Field.BINARY:
         <% copy_name = variable('copy of ' + item.name) %>
-        <% iter_name = variable(item.name + ' counter') %>
+        <% iter_name = variable(item.name + ' counter' + str(iter_postfix.next())) %>
     BitBuffer ${copy_name} = ${varname};
     int ${iter_name};
     printf("${' ' * (offset+3)}");
@@ -152,20 +152,20 @@ static void printWhitespace(int numChars)
       %endif
     %elif isinstance(item, Sequence):
       %for i, child in enumerate(item.children):
-    ${recursivePrint(child, '%s.%s' % (varname, variable(esc_name(i, item.children))), offset+3)}
+    ${recursivePrint(child, '%s.%s' % (varname, variable(esc_name(i, item.children))), offset+3, iter_postfix)}
       %endfor
     %elif isinstance(item, SequenceOf):
-      <% iter_name = variable(item.name + ' counter') %>
+      <% iter_name = variable(item.name + ' counter' + str(iter_postfix.next())) %>
     int ${iter_name};
     for (${iter_name} = 0; ${iter_name} < ${varname}.count; ++${iter_name})
     {
-        ${recursivePrint(item.children[0], '%s.items[%s]' % (varname, iter_name), offset+3)}
+        ${recursivePrint(item.children[0], '%s.items[%s]' % (varname, iter_name), offset+3, iter_postfix)}
     }
     %elif isinstance(item, Choice):
       %for i, child in enumerate(item.children):
     if (${'%s.%s' % (varname, variable(esc_name(i, item.children)))} != 0)
     {
-        ${recursivePrint(child, "(*%s.%s)" % (varname, variable(esc_name(i, item.children))), offset+3)}
+        ${recursivePrint(child, "(*%s.%s)" % (varname, variable(esc_name(i, item.children))), offset+3, iter_postfix)}
     }
       %endfor
     %else:
@@ -178,5 +178,5 @@ static void printWhitespace(int numChars)
 
 void ${ctype.print_name(entry)}(${ctype.ctype(entry)}* data, int offset)
 {
-${recursivePrint(entry, '(*data)', 0)}
+${recursivePrint(entry, '(*data)', 0, iter(xrange(100)))}
 }
