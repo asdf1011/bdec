@@ -18,8 +18,9 @@ def _define_params(entry, get_params):
 
 def _params(parent, entry, get_invoked_params, local_variables):
     result = ""
+    locals = list(local_variables)
     for param in get_invoked_params(parent, entry):
-        if param.direction is param.OUT and param.name in local_variables:
+        if param.direction is param.OUT and param.name in locals:
             result += ", &%s" % param.name
         else:
             result += ", %s" % param.name

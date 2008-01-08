@@ -182,6 +182,23 @@ class _CompilerTests:
            </blah> """
         self._decode(spec, '\x03\x00\x00\x53', expected_xml=expected_xml)
 
+    def test_entry_with_multiple_outputs(self):
+        # There was a problem with an entry that had multiple outputs from a
+        # single child (in this test, 'c' has outputs for 'a' and 'b', both of
+        # which are passed through 'problem').
+        a = fld.Field('a', 8, fld.Field.INTEGER)
+        b = fld.Field('b', 8, fld.Field.INTEGER)
+        c = seq.Sequence('c', [a, b])
+        problem = seq.Sequence('problem', [c])
+
+        value_a = expr.ValueResult('problem.c.a')
+        value_b = expr.ValueResult('problem.c.b')
+        d = fld.Field('d', value_a)
+        e = fld.Field('e', value_b)
+        spec = seq.Sequence('spec', [problem, d, e])
+        expected_xml = "<spec><problem><c><a>6</a><b>2</b></c></problem><d>111100</d><e>01</e></spec>"
+        self._decode(spec, '\x06\x02\xf1', expected_xml=expected_xml)
+
     def test_hex_decode(self):
         a = fld.Field('a', 32, fld.Field.HEX)
         spec = seq.Sequence('blah', [a])
