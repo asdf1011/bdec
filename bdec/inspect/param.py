@@ -91,7 +91,7 @@ class VariableReference:
         self._locals = {}
         self._params = {}
 
-        # Maybe this should be a dictionary of [entry][child][local name] -> list[child names]
+        # This is a lookup of [parent entry][child entry] => set of (parent name, child name)
         self._child_name_lookup = {}
 
         self._referenced_values = set()
@@ -145,15 +145,14 @@ class VariableReference:
 
         child_unknowns = set()
         for i, child in enumerate(entry.children):
-            # We need to map between the names we know about, and the name they
-            # are in the child.
+            # Create a lookup mapping between names of entries as we know them,
+            # and the name of those entries as the child knows them.
             lookup = set([(child.name, child.name), (child.name + ' length', child.name + ' length')])
-            
             lookup.update(("%s.%s" % (child.name, name), name) for name in known_references[child])
             if ent.is_hidden(child.name):
                 lookup.update((name, name) for name in known_references[child])
 
-            # Update the known references for this item.
+            # Detect the known references for this item (ie: referencable names).
             if isinstance(entry, sof.SequenceOf):
                 pass
             elif isinstance(entry, chc.Choice) and i != 0:
@@ -163,7 +162,8 @@ class VariableReference:
             else:
                 known_references[entry].update(entry_name for entry_name, child_name in lookup)
 
-            # Update the lookup with the names the child doesn't know about
+            # Store the mapping between the names of variables for this entry,
+            # and the names as the child knows them.
             lookup.update((name, name) for name in unreferenced_entries[child])
             if isinstance(entry, chc.Choice):
                 self._child_name_lookup[entry][child] = set((name, name) for name in known_references[child])
@@ -172,6 +172,7 @@ class VariableReference:
             else:
                 self._child_name_lookup[entry][child] = set()
 
+            # Store the names the child doesn't know about (ie: names that must be resolved for this entry to decode)
             child_unknowns.update(unreferenced_entries[child])
 
         if isinstance(entry, seq.Sequence) and entry.value is not None:
