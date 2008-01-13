@@ -217,27 +217,9 @@ class _Handler(xml.sax.handler.ContentHandler):
 
     def _parse_expression(self, text):
         try:
-            return exp.compile(text, self._query_entry_value, self._query_length)
+            return exp.compile(text)
         except exp.ExpressionError, ex:
             raise XmlExpressionError(ex, self._filename, self.locator)
-
-    def _query_length(self, fullname):
-        """
-        Create an object that returns the length of decoded data in an entry.
-        """
-        return exp.LengthResult(fullname)
-
-    def _query_entry_value(self, fullname):
-        """
-        Get an object that returns the decoded value of a protocol entry.
-
-        The fullname is the qualified name of the entry with respect to
-        the current entry. 'Hidden' entries may or may not be included.
-
-        Typically only fields have a value, but sequences may also be assigned
-        values.
-        """
-        result = exp.ValueResult(fullname)
         return result
 
     def _reference(self, attributes, children, length, breaks):

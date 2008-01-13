@@ -34,15 +34,14 @@ class TestExpression(unittest.TestCase):
         self.assertEqual(70, int(exp.compile('(5 + 2) * 10')))
 
     def test_named_reference(self):
-        # Note that we'll use a few odd characters to see if the are valid...
-        _lookup = {"bob":3, "cat :_":5}
-        query = lambda name: _lookup[name]
-        self.assertEqual(3, int(exp.compile('${bob}', query)))
-        self.assertEqual(13, int(exp.compile('${bob} + 2 * ${cat :_}', query)))
+        a = exp.compile('${bob}')
+        self.assertTrue(isinstance(a, exp.ValueResult))
+        self.assertEquals('bob', a.name)
 
     def test_length_lookup(self):
-        query = lambda name: {"bob": 3}[name]
-        self.assertEqual(3, int(exp.compile('len{bob}', length_lookup=query)))
+        a = exp.compile('len{bob}')
+        self.assertTrue(isinstance(a, exp.LengthResult))
+        self.assertEquals('bob', a.name)
 
     def test_hex(self):
         self.assertEqual(5, int(exp.compile("0x5")))

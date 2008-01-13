@@ -83,13 +83,7 @@ def _collapse(s,l,t):
         result = next(result)
     return result
 
-def _no_named_lookups(name):
-    raise NotImplementedError("Named lookups not supported")
-
-def _no_length_lookups(name):
-    raise NotImplementedError("Length lookups are not supported")
-
-def compile(text, name_lookup=_no_named_lookups, length_lookup=_no_length_lookups):
+def compile(text):
     """
     Compile a length expression into an integer convertible object.
 
@@ -106,8 +100,8 @@ def compile(text, name_lookup=_no_named_lookups, length_lookup=_no_length_lookup
     entry_name = Word(alphanums + ' _+:.')
     integer = Word(nums).addParseAction(lambda s,l,t: [int(t[0])])
     hex = Combine(CaselessLiteral("0x") + Word(srange("[0-9a-fA-F]"))).addParseAction(lambda s,l,t:[int(t[0][2:], 16)])
-    named_reference = ('${' + entry_name + '}').addParseAction(lambda s,l,t:name_lookup(t[1]))
-    length_reference = ('len{' + entry_name + '}').addParseAction(lambda s,l,t:length_lookup(t[1]))
+    named_reference = ('${' + entry_name + '}').addParseAction(lambda s,l,t:ValueResult(t[1]))
+    length_reference = ('len{' + entry_name + '}').addParseAction(lambda s,l,t:LengthResult(t[1]))
 
     expression = Forward()
     factor = hex | integer | named_reference | length_reference | ('(' + expression + ')').addParseAction(lambda s,l,t:t[1])
