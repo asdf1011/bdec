@@ -256,7 +256,9 @@ class VariableReference:
         """
         Get an iterator to all parameters passed to an entry due to value references.
         """
-        return self._params[entry]
+        result = list(self._params[entry])
+        result.sort(key=lambda a:a.name)
+        return result
 
     def get_invoked_params(self, entry, child):
         """
@@ -292,9 +294,10 @@ class ParamLookup:
         """
         Return an iterator to Param objects for the given entry.
         """
-        result = self._sequenceof_lookup.get_params(entry).copy()
-        result.update(self._variable_references.get_params(entry))
-        return result
+        for param in self._sequenceof_lookup.get_params(entry):
+            yield param
+        for param in self._variable_references.get_params(entry):
+            yield param
 
     def get_invoked_params(self, entry, child):
         for param in self._sequenceof_lookup.get_params(child):
