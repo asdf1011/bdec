@@ -94,6 +94,7 @@ ${_params(parent, entry, get_invoked_params, local_vars(parent))}
     }
   %elif entry.format == Field.HEX:
     int i;
+    assert((${expr.length(entry.length)}) % 8 == 0);
     ${varname}.length = ${expr.length(entry.length)} / 8;
     ${varname}.buffer = malloc(${varname}.length);
     for (i = 0; i < ${varname}.length; ++i)
