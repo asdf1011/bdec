@@ -112,6 +112,10 @@ class TestData(unittest.TestCase):
         data.pop(8)
         self.assertTrue(data.empty())
 
+    def test_bad_encoding(self):
+        data = dt.Data('\xb2')
+        self.assertRaises(dt.BadTextEncodingError, dt.Data.text, data, "ascii")
+
     def test_file_buffer(self):
         buffer = StringIO.StringIO()
         buffer.write('\x04abcd')
