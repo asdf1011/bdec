@@ -131,10 +131,6 @@ class TestXml(unittest.TestCase):
         self.assertEqual(3, len(result))
         self.assertEqual("hello", result[1])
 
-    def test_empty_sequence_error(self):
-        text = """<protocol><sequence name="bob"></sequence></protocol>"""
-        self.assertRaises(xml.EmptySequenceError, xml.loads, text)
-
     def test_expression_references_sub_field(self):
         text = """
             <protocol>
@@ -175,8 +171,7 @@ class TestXml(unittest.TestCase):
                        </sequence>
                     </choice>
                     <field name="bob" length="${variable length:.length:} * 8" type="text" />
-                    <!-- Now try matching the length without specifying the hidden choice -->
-                    <!--<field name="sue" length="${length:} * 8" type="text" />-->
+                    <field name="sue" length="${variable length:.length:} * 8" type="text" />
                 </sequence>
             </protocol>"""
         decoder = xml.loads(text)[0]
@@ -184,12 +179,12 @@ class TestXml(unittest.TestCase):
         # Try using the 8 bit length
         result = self._decode(decoder, "\x00\x05hellokitty")
         self.assertEqual("hello", result['bob'])
-        #self.assertEqual("kitty", result['sue'])
+        self.assertEqual("kitty", result['sue'])
 
         # Try using the 16 bit length
         result = self._decode(decoder, "\x01\x00\x05hellokitty")
         self.assertEqual("hello", result['bob'])
-        #self.assertEqual("kitty", result['sue'])
+        self.assertEqual("kitty", result['sue'])
 
     def test_not_all_choice_entries_match_error(self):
         text = """
@@ -294,11 +289,7 @@ class TestXml(unittest.TestCase):
             <protocol>
                 <field name="bob" length="${missing}" />
             </protocol>"""
-        try:
-            xml.loads(text)
-            self.fail("Exception not thrown!")
-        except xml.XmlExpressionError, ex:
-            self.assertEqual(xml.MissingReferenceError, type(ex.ex))
+        self.assertRaises(xml.XmlExpressionError, xml.loads, text)
 
     def test_sequence_value(self):
         text = """
@@ -327,8 +318,8 @@ class TestXml(unittest.TestCase):
             <protocol>
                 <sequence name="bob">
                     <choice name="valid items:">
-                        <field name="length:" length="8" value="0x5" />
-                        <field name="length:" length="8" value="0x7" />
+                        <sequence name="option a:"><field name="length:" length="8" value="0x5" /></sequence>
+                        <sequence name="option b:"><field name="length:" length="8" value="0x7" /></sequence>
                     </choice>
                     <field name="data" length="${valid items:.length:} * 8" type="text" />
                 </sequence>

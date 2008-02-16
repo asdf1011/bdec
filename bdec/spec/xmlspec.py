@@ -17,7 +17,7 @@ class XmlSpecError(bdec.spec.LoadError):
         self.column = locator.getColumnNumber()
 
     def _src(self):
-        return "%s[%s]: " % (self.filename, self.line)
+        return "%s[%s]: " % (filename, line)
 
 class XmlError(XmlSpecError):
     """
@@ -29,14 +29,6 @@ class XmlError(XmlSpecError):
 
     def __str__(self):
         return self._src() + str(self.error)
-
-class EmptySequenceError(XmlSpecError):
-    def __init__(self, name, filename, locator):
-        XmlSpecError.__init__(self, filename, locator)
-        self.name = name
-
-    def __str__(self):
-        return self._src() + "Sequence '%s' must have children! Should this be a 'reference' entry?" % self.name
 
 class EntryHasNoValueError(exp.ExpressionError):
     def __init__(self, entry):
@@ -54,13 +46,6 @@ class NonSequenceError(exp.ExpressionError):
 
     def __str__(self):
         return "Expressions can only reference children of sequences (%s)" % self.entry
-
-class MissingReferenceError(exp.ExpressionError):
-    def __init__(self, name):
-        self.name = name
-
-    def __str__(self):
-        return "Expression references unknown field '%s'" % self.name
 
 class OptionMissingNameError(exp.ExpressionError):
     def __init__(self, entry, name, lookup):
@@ -286,8 +271,6 @@ class _Handler(xml.sax.handler.ContentHandler):
         return result
 
     def _sequence(self, attributes, children, length, breaks):
-        if len(children) == 0:
-            raise EmptySequenceError(attributes['name'], self._filename, self.locator)
         value = None
         if attributes.has_key('value'):
             # A sequence can have a value derived from its children...
@@ -334,7 +317,12 @@ def _load_from_file(file, filename):
         for entry in handler.common_entries.itervalues():
             entry.validate()
     except ent.MissingExpressionReferenceError, ex:
-        raise XmlExpressionError(MissingReferenceError(ex.missing_context), filename, handler.locator)
+        class Locator:
+            def getLineNumber(self):
+                return handler.lookup[ex.entry][1]
+            def getColumnNumber(self):
+                return handler.lookup[ex.entry][2]
+        raise XmlExpressionError(ex, filename, Locator())
     return (handler.decoder, handler.lookup, handler.common_entries)
 
 def loads(xml):

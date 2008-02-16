@@ -82,31 +82,31 @@
 
         <!-- Create a set of 'lookup' tables to map the binary value to bitrate -->
         <choice name="mpeg 1 layer 3 bitrate lookup:">
-            <sequence name="bitrate" value="0"> <field name="free" length="4" value="0x0" /></sequence>
-            <sequence name="bitrate" value="32"><field name="32 kbs" length="4" value="0x1" /></sequence>
-            <sequence name="bitrate" value="40"><field name="40 kbs" length="4" value="0x2" /></sequence>
-            <sequence name="bitrate" value="48"><field name="48 kbs" length="4" value="0x3" /></sequence>
-            <sequence name="bitrate" value="56"><field name="56 kbs" length="4" value="0x4" /></sequence>
-            <sequence name="bitrate" value="64"><field name="64 kbs" length="4" value="0x5" /></sequence>
-            <sequence name="bitrate" value="80"><field name="80 kbs" length="4" value="0x6" /></sequence>
-            <sequence name="bitrate" value="96"><field name="96 kbs" length="4" value="0x7" /></sequence>
-            <sequence name="bitrate" value="112"><field name="112 kbs" length="4" value="0x8" /></sequence>
-            <sequence name="bitrate" value="128"><field name="128 kbs" length="4" value="0x9" /></sequence>
-            <sequence name="bitrate" value="160"><field name="160 kbs" length="4" value="0xa" /></sequence>
-            <sequence name="bitrate" value="192"><field name="192 kbs" length="4" value="0xb" /></sequence>
-            <sequence name="bitrate" value="224"><field name="224 kbs" length="4" value="0xc" /></sequence>
-            <sequence name="bitrate" value="256"><field name="256 kbs" length="4" value="0xd" /></sequence>
-            <sequence name="bitrate" value="320"><field name="320 kbs" length="4" value="0xe" /></sequence>
+            <sequence name="free">   <field name="id:" length="4" value="0x0" /><sequence name="bitrate" value="0"/></sequence>
+            <sequence name="32 kbs"> <field name="id:" length="4" value="0x1" /><sequence name="bitrate" value="32"/></sequence>
+            <sequence name="40 kbs"> <field name="id:" length="4" value="0x2" /><sequence name="bitrate" value="40"/></sequence>
+            <sequence name="48 kbs"> <field name="id:" length="4" value="0x3" /><sequence name="bitrate" value="48"/></sequence>
+            <sequence name="56 kbs"> <field name="id:" length="4" value="0x4" /><sequence name="bitrate" value="56"/></sequence>
+            <sequence name="64 kbs"> <field name="id:" length="4" value="0x5" /><sequence name="bitrate" value="64"/></sequence>
+            <sequence name="80 kbs"> <field name="id:" length="4" value="0x6" /><sequence name="bitrate" value="80"/></sequence>
+            <sequence name="96 kbs"> <field name="id:" length="4" value="0x7" /><sequence name="bitrate" value="96"/></sequence>
+            <sequence name="112 kbs"><field name="id:" length="4" value="0x8" /><sequence name="bitrate" value="112"/></sequence>
+            <sequence name="128 kbs"><field name="id:" length="4" value="0x9" /><sequence name="bitrate" value="128"/></sequence>
+            <sequence name="160 kbs"><field name="id:" length="4" value="0xa" /><sequence name="bitrate" value="160"/></sequence>
+            <sequence name="192 kbs"><field name="id:" length="4" value="0xb" /><sequence name="bitrate" value="192"/></sequence>
+            <sequence name="224 kbs"><field name="id:" length="4" value="0xc" /><sequence name="bitrate" value="224"/></sequence>
+            <sequence name="256 kbs"><field name="id:" length="4" value="0xd" /><sequence name="bitrate" value="256"/></sequence>
+            <sequence name="320 kbs"><field name="id:" length="4" value="0xe" /><sequence name="bitrate" value="320"/></sequence>
         </choice>
 
         <choice name="mpeg 1 sampling frequency lookup:">
-            <sequence name="sample rate" value="44100"><field name="44100 Hz" length="2" value="0x0" /></sequence>
-            <sequence name="sample rate" value="48000"><field name="48000 Hz" length="2" value="0x1" /></sequence>
-            <sequence name="sample rate" value="32000"><field name="32000 Hz" length="2" value="0x2" /></sequence>
+            <sequence name="44100 Hz"><field name="id:" length="2" value="0x0" /><sequence name="sample rate" value="44100"/></sequence>
+            <sequence name="48000 Hz"><field name="id:" length="2" value="0x1" /><sequence name="sample rate" value="48000"/></sequence>
+            <sequence name="32000 Hz"><field name="id:" length="2" value="0x2" /><sequence name="sample rate" value="32000"/></sequence>
         </choice>
         <choice name="mpeg 1 padding lookup:">
-            <sequence name="padding" value="1"><field name="1 byte" length="1" value="0x1" /></sequence>
-            <sequence name="padding" value="0"><field name="None" length="1" value="0x0" /></sequence>
+            <sequence name="1 byte"><field name="id:" length="1" value="0x1" /><sequence name="padding" value="1"/></sequence>
+            <sequence name="None"><field name="id:" length="1" value="0x0" /><sequence name="padding" value="0"/></sequence>
         </choice>
 
         <sequence name="frame">
@@ -152,7 +152,7 @@
                     <field name="CCIT J.17" length="2" value="0x3" />
                 </choice>
             </sequence>
-            <field name="data" length="(144 * ${header.mpeg 1 layer 3 bitrate lookup:.bitrate} * 1000 / ${header.sample rate} + ${header.mpeg 1 padding lookup:.padding}) * 8 - len{header}" type="hex" />
+            <field name="data" length="(144 * ${header.mpeg 1 layer 3 bitrate lookup:.bitrate} * 1000 / ${header.mpeg 1 sampling frequency lookup:.sample rate} + ${header.mpeg 1 padding lookup:.padding}) * 8 - len{header}" type="hex" />
         </sequence>
 
         <sequence name="id3 v1">

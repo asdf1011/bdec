@@ -78,6 +78,7 @@ class TestVariableReference(unittest.TestCase):
         spec = seq.Sequence('blah', [length, data])
 
         vars = prm.VariableReference([spec])
+        self.assertEquals(set(), vars.get_params(spec))
         self.assertTrue(vars.is_value_referenced(lower))
         self.assertFalse(vars.is_value_referenced(ignored))
         self.assertTrue(vars.is_value_referenced(upper))
@@ -153,6 +154,7 @@ class TestVariableReference(unittest.TestCase):
         b = seq.Sequence('b', [shared])
         spec = seq.Sequence('spec', [a,b])
         vars = prm.VariableReference([spec])
+        self.assertEqual(set(), vars.get_params(spec))
         self.assertTrue(vars.is_value_referenced(length))
         self.assertFalse(vars.is_value_referenced(shared))
         self.assertEqual([], vars.get_locals(spec))
@@ -173,6 +175,7 @@ class TestVariableReference(unittest.TestCase):
         self.assertEqual(['shared.length'], vars.get_locals(b))
         self.assertEqual([prm.Param('shared.length', prm.Param.OUT)], list(vars.get_invoked_params(b, shared)))
         self.assertEqual([], list(vars.get_invoked_params(spec, b)))
+
 
 class TestSequenceOfParamLookup(unittest.TestCase):
     def test_end_entry_lookup(self):

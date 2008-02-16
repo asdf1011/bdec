@@ -18,7 +18,6 @@ class Sequence(bdec.entry.Entry):
     def __init__(self, name, children, value=None, length=None):
         bdec.entry.Entry.__init__(self, name, length, children)
         self.value = value
-        assert len(children) > 0
 
     def _decode(self, data, context):
         yield (True, self, data, None)
