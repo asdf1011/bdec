@@ -10,7 +10,7 @@ class TestData(unittest.TestCase):
         self.assertRaises(dt.NotEnoughDataError, int, dt.Data("").pop(1))
 
     def test_pop_negative_number(self):
-        self.assertEqual("abcd", str(dt.Data("abcd").pop(32)))
+        self.assertEqual("abcd", dt.Data("abcd").pop(32).bytes())
         self.assertRaises(dt.NotEnoughDataError, int, dt.Data("abcd").pop(33))
 
     def test_integer(self):
@@ -30,7 +30,7 @@ class TestData(unittest.TestCase):
         data = dt.Data.from_hex("a68656c6c6fa")
         data.pop(4)
         text = data.pop(5 * 8)
-        self.assertEqual('hello', str(text))
+        self.assertEqual('hello', text.bytes())
     
     def test_pop(self):
         data = dt.Data.from_hex("f0")
@@ -59,7 +59,7 @@ class TestData(unittest.TestCase):
         self.assertEqual(10000, int(data))
 
     def test_encode_not_enough_data(self):
-        self.assertEqual(chr(255), str(dt.Data.from_int_big_endian(255, 8)))
+        self.assertEqual(chr(255), dt.Data.from_int_big_endian(255, 8).bytes())
         self.assertRaises(dt.IntegerTooLongError, dt.Data.from_int_big_endian, 255, 7)
 
     def test_encode_length(self):
@@ -77,10 +77,10 @@ class TestData(unittest.TestCase):
 
     def test_to_and_from_hex(self):
         hex = dt.Data('blah blah').get_hex()
-        self.assertEqual('blah blah', str(dt.Data.from_hex(hex)))
+        self.assertEqual('blah blah', dt.Data.from_hex(hex).bytes())
 
     def test_adding_data(self):
-        self.assertEqual("chicken little", str(dt.Data("chicken ") + dt.Data("little")))
+        self.assertEqual("chicken little", (dt.Data("chicken ") + dt.Data("little")).bytes())
 
     def test_equality(self):
         self.assertEqual(dt.Data.from_binary_text('1110'), dt.Data.from_hex('e0').pop(4))
@@ -89,12 +89,12 @@ class TestData(unittest.TestCase):
         self.assertEqual(0x2d, int(dt.Data.from_binary_text("010") + dt.Data.from_binary_text("1101")))
 
     def test_hex_conversion(self):
-        self.assertEqual("\x23\x45\x67", str(dt.Data.from_hex("23 45 67")))
+        self.assertEqual("\x23\x45\x67", dt.Data.from_hex("23 45 67").bytes())
 
     def test_conversion_needs_bytes(self):
-        self.assertRaises(dt.ConversionNeedsBytesError, str, dt.Data("00", 0, 4))
+        self.assertRaises(dt.ConversionNeedsBytesError, dt.Data.bytes, dt.Data("00", 0, 4))
         data = dt.Data.from_hex('ab')
-        self.assertRaises(dt.ConversionNeedsBytesError, str, data.pop(4))
+        self.assertRaises(dt.ConversionNeedsBytesError, dt.Data.bytes, data.pop(4))
 
     def test_empty(self):
         data = dt.Data()

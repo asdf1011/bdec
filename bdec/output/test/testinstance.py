@@ -61,7 +61,7 @@ class TestInstance(unittest.TestCase):
         same data back again.
         """
         def encode(struct):
-            return str(reduce(lambda a,b:a+b, inst.encode(protocol, struct), dt.Data("")))
+            return reduce(lambda a,b:a+b, inst.encode(protocol, struct), dt.Data("")).bytes()
         data = encode(value)
 
         # Now validate that we can decode that data...

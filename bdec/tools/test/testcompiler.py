@@ -80,7 +80,7 @@ class _CompilerTests:
             if expected_xml is None:
                 # Take the xml output, and ensure the re-encoded data has the same
                 # binary value.
-                binary = str(reduce(lambda a,b:a+b, xmlout.encode(spec, xml)))
+                binary = reduce(lambda a,b:a+b, xmlout.encode(spec, xml)).bytes()
                 self.assertEqual(data, binary)
             else:
                 self._compare_xml(expected_xml, xml)

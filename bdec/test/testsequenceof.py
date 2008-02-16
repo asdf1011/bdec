@@ -42,7 +42,7 @@ class TestSequenceOf(unittest.TestCase):
         items = [value for is_starting, entry, data, value in sequenceof.decode(rawdata) if isinstance(entry, fld.Field) and not is_starting]
         self.assertEqual(4, len(items))
         self.assertEqual('date', ''.join(items))
-        self.assertEqual('unused', str(rawdata))
+        self.assertEqual('unused', rawdata.bytes())
 
     def test_run_out_of_data_greedy(self):
         sequenceof = sof.SequenceOf("blah", fld.Field("cat", 8, format=fld.Field.TEXT), None)
@@ -50,7 +50,7 @@ class TestSequenceOf(unittest.TestCase):
         items = [value for is_starting, entry, data, value in sequenceof.decode(rawdata) if isinstance(entry, fld.Field) and not is_starting]
         self.assertEqual(4, len(items))
         self.assertEqual('date', ''.join(items))
-        self.assertEqual('', str(rawdata))
+        self.assertEqual('', rawdata.bytes())
 
     def test_encoding_greedy_sequenceof(self):
         sequenceof = sof.SequenceOf("blah", fld.Field("cat", 8, format=fld.Field.INTEGER), None)
@@ -72,7 +72,7 @@ class TestSequenceOf(unittest.TestCase):
         result = ""
         for is_starting, entry, entry_data, value in sequenceof.decode(data):
             if not is_starting and entry.name == "char":
-                result += str(entry_data)
+                result += entry_data.bytes()
 
         self.assertEqual("hello", result)
         self.assertEqual("bob", data.bytes())

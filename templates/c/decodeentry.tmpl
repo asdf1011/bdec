@@ -51,7 +51,7 @@ ${_params(parent, entry, get_invoked_params, local_vars(parent))}
   %if len(entry.expected) < 32:
     if (get_integer(&actual) != ${int(entry.expected)})
   %else:
-    BitBuffer expected = {(unsigned char*)${c_string(str(expected))}, 0, ${len(entry.expected)}};
+    BitBuffer expected = {(unsigned char*)${c_string(expected.bytes())}, 0, ${len(entry.expected)}};
     int isMatch = 1;
     while (expected.num_bits > 0)
     {
@@ -125,7 +125,7 @@ ${_params(parent, entry, get_invoked_params, local_vars(parent))}
     BitBuffer actual = {${varname}.buffer, 0, ${varname}.length * 8};
     ${compare_binary_expected(entry, entry.expected)}
        %elif entry.format == entry.TEXT:
-    if (memcmp(${varname}, ${c_string(str(entry.expected))}, ${len(entry.expected) / 8}) != 0)
+    if (memcmp(${varname}, ${c_string(entry.expected.bytes())}, ${len(entry.expected) / 8}) != 0)
        %else:
 #error Field of type ${entry.format} not currently supported for an expected value!
        %endif
