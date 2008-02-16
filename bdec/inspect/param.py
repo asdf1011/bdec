@@ -53,7 +53,7 @@ class SequenceOfParamLookup:
         self._has_context_lookup.setdefault(entry, False)
 
         if isinstance(entry, sof.SequenceOf):
-            self._end_sequenceof_entries.update(end for end, offset in entry.end_entries)
+            self._end_sequenceof_entries.update(entry.end_entries)
             intermediaries = []
         else:
             intermediaries.append(entry)

@@ -155,7 +155,7 @@ class _Handler(xml.sax.handler.ContentHandler):
                 # this entry decodes.
                 for offset, (name, attrs, breaks) in enumerate(reversed(self._stack)):
                     if name == "sequenceof":
-                        breaks.append((entry, offset))
+                        breaks.append(entry)
                         break
                 else:
                     raise self._error("end-sequenceof is not surrounded by a sequenceof")

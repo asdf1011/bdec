@@ -66,7 +66,7 @@ class TestSequenceOf(unittest.TestCase):
     def test_end_entries(self):
         null = fld.Field("null", 8, expected=dt.Data('\x00'))
         char = fld.Field("char", 8)
-        sequenceof = sof.SequenceOf("null terminated string", chc.Choice('entry', [null, char]), None, end_entries=[(null, 1)])
+        sequenceof = sof.SequenceOf("null terminated string", chc.Choice('entry', [null, char]), None, end_entries=[null])
         actual = []
         data = dt.Data("hello\x00bob")
         result = ""

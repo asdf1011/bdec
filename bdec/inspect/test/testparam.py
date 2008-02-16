@@ -182,7 +182,7 @@ class TestSequenceOfParamLookup(unittest.TestCase):
         null = fld.Field("null", 8, expected=dt.Data('\x00'))
         char = fld.Field("char", 8)
         entry = chc.Choice('entry', [null, char])
-        string = sof.SequenceOf("null terminated string", entry, None, end_entries=[(null, 1)])
+        string = sof.SequenceOf("null terminated string", entry, None, end_entries=[null])
 
         lookup = prm.SequenceOfParamLookup([string])
         self.assertEqual(set([prm.Param('should end', prm.Param.OUT)]), lookup.get_params(null))
