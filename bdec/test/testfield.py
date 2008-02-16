@@ -69,15 +69,15 @@ class TestField(unittest.TestCase):
         When we specify a size for a field, what we actually encode should match it.
         """
         text = fld.Field("bob", 48, format=fld.Field.TEXT)
-        self.assertEqual("rabbit", str(text.encode(lambda name, context: "rabbit", None).next()))
+        self.assertEqual("rabbit", text.encode(lambda name, context: "rabbit", None).next().bytes())
         self.assertRaises(ent.DataLengthError, list, text.encode(lambda name, context: "boxfish", None))
 
         binary = fld.Field("bob", 8, format=fld.Field.BINARY)
-        self.assertEqual("\x39", str(binary.encode(lambda name, context: "00111001", None).next()))
+        self.assertEqual("\x39", binary.encode(lambda name, context: "00111001", None).next().bytes())
         self.assertRaises(ent.DataLengthError, list, binary.encode(lambda name, context: "1011", None))
 
         hex = fld.Field("bob", 8, format=fld.Field.HEX)
-        self.assertEqual("\xe7", str(hex.encode(lambda name, context: "e7", None).next()))
+        self.assertEqual("\xe7", hex.encode(lambda name, context: "e7", None).next().bytes())
         self.assertRaises(ent.DataLengthError, list, hex.encode(lambda name, context: "ecd", None))
 
     def test_string_conversion(self):
@@ -113,7 +113,7 @@ class TestField(unittest.TestCase):
         field = fld.Field("bob", 8, expected=dt.Data("c"))
         def no_data_query(obj, name):
             return ""
-        self.assertEqual("c", str(field.encode(no_data_query, None).next()))
+        self.assertEqual("c", field.encode(no_data_query, None).next().bytes())
 
     def test_listener(self):
         field = fld.Field("bob", 8)
@@ -121,7 +121,7 @@ class TestField(unittest.TestCase):
         field.add_listener(lambda entry, length, context: callbacks.append((entry, length)))
         self.assertEqual(0, len(callbacks))
         list(field.decode(dt.Data('a')))
-        self.assertEqual('a',  str(callbacks[0][0].data))
+        self.assertEqual('a',  callbacks[0][0].data.bytes())
         self.assertEqual(8,  callbacks[0][1])
 
     def test_range(self):

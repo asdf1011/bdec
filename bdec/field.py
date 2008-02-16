@@ -270,10 +270,7 @@ class Field(bdec.entry.Entry):
         elif self.format == self.HEX:
             result = data.get_hex()
         elif self.format == self.TEXT:
-            try:
-                result = unicode(str(data), self.encoding)
-            except UnicodeDecodeError:
-                raise BadEncodingError(self, str(data))
+            result = data.text(self.encoding)
         elif self.format == self.INTEGER:
             result = self._decode_int(data)
         else:

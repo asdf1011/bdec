@@ -21,8 +21,8 @@ class TestData(unittest.TestCase):
         self.assertEqual(0x030201, data.get_little_endian_integer())
 
     def test_string(self):
-        self.assertEqual("Some text", str(dt.Data("Some text")))
-        self.assertEqual("", str(dt.Data()))
+        self.assertEqual("Some text", dt.Data("Some text").bytes())
+        self.assertEqual("", dt.Data().bytes())
 
     def test_unaligned_string(self):
         # The first 4 bits (the 'a') will be popped, then the 5 byte
@@ -117,4 +117,4 @@ class TestData(unittest.TestCase):
         buffer.write('\x04abcd')
         data = dt.Data(buffer)
         self.assertEqual(4, int(data.pop(8)))
-        self.assertEqual('abcd', str(data))
+        self.assertEqual('abcd', data.bytes())

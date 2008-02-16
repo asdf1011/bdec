@@ -30,7 +30,7 @@ class TestSequence(unittest.TestCase):
         struct = {"blah" : {"bob" : 0x01, "cat" : 0x7a}}
         query = lambda context, child: context[child.name]
         data = reduce(lambda a,b:a+b, sequence.encode(query, struct))
-        self.assertEqual("\x01\x7a", str(data))
+        self.assertEqual("\x01\x7a", data.bytes())
 
     def test_listener(self):
         embedded = [fld.Field("bob", 8, format=fld.Field.INTEGER), fld.Field("cat", 8, format=fld.Field.INTEGER)]

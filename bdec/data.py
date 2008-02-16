@@ -133,6 +133,12 @@ class Data:
     def copy(self):
         return Data(self._buffer, self._start, self._end)
 
+    def bytes(self):
+        return "".join(chr(byte) for byte in self._get_bytes())
+
+    def text(self, encoding):
+        return self.bytes().decode(encoding)
+
     def __str__(self):
         return "".join(chr(byte) for byte in self._get_bytes())
 

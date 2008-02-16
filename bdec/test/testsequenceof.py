@@ -28,7 +28,7 @@ class TestSequenceOf(unittest.TestCase):
         data = {"blah" : [{"cat":5}, {"cat":9}, {"cat":0xf6}]}
         query = lambda context, child: context[child.name] 
         data = reduce(lambda a,b:a+b, sequenceof.encode(query, data))
-        self.assertEqual("\x05\x09\xf6", str(data))
+        self.assertEqual("\x05\x09\xf6", data.bytes())
 
     def test_invalid_encoding_count(self):
         sequenceof = sof.SequenceOf("blah", fld.Field("cat", 8, format=fld.Field.INTEGER), 3)
@@ -57,7 +57,7 @@ class TestSequenceOf(unittest.TestCase):
         data = {"blah" : [{"cat":5}, {"cat":9}, {"cat":0xf6}]}
         query = lambda context, child: context[child.name] 
         data = reduce(lambda a,b:a+b, sequenceof.encode(query, data))
-        self.assertEqual("\x05\x09\xf6", str(data))
+        self.assertEqual("\x05\x09\xf6", data.bytes())
 
     def test_negative_count(self):
         sequenceof = sof.SequenceOf("blah", fld.Field("cat", 8, format=fld.Field.INTEGER), -1)
@@ -75,4 +75,4 @@ class TestSequenceOf(unittest.TestCase):
                 result += str(entry_data)
 
         self.assertEqual("hello", result)
-        self.assertEqual("bob", str(data))
+        self.assertEqual("bob", data.bytes())

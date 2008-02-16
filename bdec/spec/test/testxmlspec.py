@@ -287,7 +287,7 @@ class TestXml(unittest.TestCase):
             if not is_starting and entry.name == "char":
                 result += value
         self.assertEqual("hello world", result)
-        self.assertEqual("boo", str(data))
+        self.assertEqual("boo", data.bytes())
         
     def test_missing_reference_error(self):
         text = """
@@ -320,7 +320,7 @@ class TestXml(unittest.TestCase):
             if not is_starting and entry.name == "data":
                 result = value
         self.assertEqual("run for your lives!", result)
-        self.assertEqual("boo", str(data))
+        self.assertEqual("boo", data.bytes())
 
     def test_match_choice_entry(self):
         text = """
@@ -427,7 +427,7 @@ class TestXml(unittest.TestCase):
         self.assertEqual("6", result.object.array.values[2].array.values[2].array.values[1].integer)
         self.assertEqual("7", result.object.array.values[2].array.values[3].integer)
         self.assertEqual("8", result.object.array.values[3].integer)
-        self.assertEqual("unused", str(data))
+        self.assertEqual("unused", data.bytes())
 
     def test_all_entries_in_lookup_tree(self):
         text = """
@@ -522,7 +522,7 @@ class TestXml(unittest.TestCase):
             if not is_starting and entry.name == "char":
                 result += value
         self.assertEqual("rabbit", result)
-        self.assertEqual("legs", str(data))
+        self.assertEqual("legs", data.bytes())
 
     def test_string_constants(self):
         text = """
