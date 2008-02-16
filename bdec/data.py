@@ -140,7 +140,10 @@ class Data:
         return self.bytes().decode(encoding)
 
     def __str__(self):
-        return "".join(chr(byte) for byte in self._get_bytes())
+        if len(self) % 8 == 0:
+            return 'hex (%i bytes): %s' % (len(self) / 8, self.get_hex())
+        else:
+            return 'bin (%i bits): %s' % (len(self), self.get_binary_text())
 
     def _get_bits(self):
         """
