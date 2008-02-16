@@ -22,7 +22,7 @@ class _BaseTest:
 
     def _decode(self, filename):
         self._load_spec()
-        if os.path.splitext(filename)[1] == "gz":
+        if os.path.splitext(filename)[1] == ".gz":
             import gzip
             datafile = gzip.GzipFile(filename, 'rb')
         else:
