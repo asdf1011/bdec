@@ -17,7 +17,7 @@ class XmlSpecError(bdec.spec.LoadError):
         self.column = locator.getColumnNumber()
 
     def _src(self):
-        return "%s[%s]: " % (filename, line)
+        return "%s[%s]: " % (self.filename, self.line)
 
 class XmlError(XmlSpecError):
     """
