@@ -137,7 +137,6 @@ class Entry(object):
 
         self._params = None
         self._parent_param_lookup = {}
-        self._is_end_of_sequenceof = False
 
     def validate(self):
         """
