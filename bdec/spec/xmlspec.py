@@ -156,6 +156,8 @@ class _Handler(xml.sax.handler.ContentHandler):
                 for name, attrs, breaks in self._stack:
                     if name == "sequenceof":
                         breaks.append(entry)
+                        if isinstance(entry, _ReferencedEntry):
+                            raise self._error("end-sequenceof cannot be used within a referenced item. Wrap the reference in a sequence (which has the end-sequenceof).")
                         break
                 else:
                     raise self._error("end-sequenceof is not surrounded by a sequenceof")

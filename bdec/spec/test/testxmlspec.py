@@ -547,3 +547,23 @@ class TestXml(unittest.TestCase):
               <reference name="hey" />
             </protocol>"""
         self.assertRaises(xml.XmlExpressionError, xml.loads, text)
+
+    def test_end_sequenceof_in_reference(self):
+        # There was a problem with using 'end-sequenceof' with common items...
+        text = """
+            <protocol>
+               <common>
+                  <field name="a" type="text" length="8" value="a" />
+               </common>
+               <sequenceof name="c">
+                  <choice name="entry">
+                     <reference name="a"><end-sequenceof /></reference>
+                     <field name="data" length="8" />
+                  </choice>
+               </sequenceof>
+           </protocol>
+               """
+        try:
+            xml.loads(text)
+        except xml.XmlError, ex:
+            self.assertTrue("end-sequenceof cannot be used within a referenced item" in str(ex))

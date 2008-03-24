@@ -37,6 +37,11 @@ class SequenceOf(bdec.entry.Entry):
         self.count = count
         self.end_entries = end_entries
 
+    def validate(self):
+        bdec.entry.Entry.validate(self)
+        for entry in self.end_entries:
+            assert isinstance(entry, bdec.entry.Entry), "%s isn't an entry instance!" % str(entry)
+
     def _loop(self, context, data):
         context['should end'] = False
         if self.count is not None:
