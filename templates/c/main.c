@@ -5,11 +5,19 @@
 
 #include "${protocol.name |filename}.h"
 
+void usage(char* program)
+{
+    fprintf(stderr, "Usage:\n");
+    fprintf(stderr, "\t%s <binary file>\n", program);
+}
+
 int main(int argc, char* argv[])
 {
     if (argc != 2)
     {
         /* Bad number of arguments */
+        fprintf(stderr, "Bad number of arguments!\n");
+        usage(argv[0]);
         return 1;
     }
     char* filename = argv[1];
@@ -17,6 +25,7 @@ int main(int argc, char* argv[])
     if (datafile == 0)
     {
         /* Failed to open file */
+        fprintf(stderr, "Failed to open file!\n");
         return 2;
     }
     fseek(datafile, 0, SEEK_END);
@@ -34,6 +43,7 @@ int main(int argc, char* argv[])
     if (!${ctype.decode_name(protocol)}(&buffer, &result))
     {
         /* Decode failed! */
+        fprintf(stderr, "Decode failed!\n");
         return 3;
     }
 
