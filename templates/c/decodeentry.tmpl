@@ -41,7 +41,7 @@ ${_params(parent, entry, get_invoked_params, local_vars(parent))}
     def c_repr(char):
         if char in _PRINTABLE:
             return char
-        return '\\x00%02x' % ord(char)
+        return '\\%03o' % ord(char)
 
     def c_string(data):
         return '"%s"' % ''.join(c_repr(char) for char in data)
