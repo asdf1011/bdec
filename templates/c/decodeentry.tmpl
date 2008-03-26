@@ -141,7 +141,7 @@ ${_params(parent, entry, get_invoked_params, local_vars(parent))}
     }
     %endif
     %if entry.max is not None:
-    if (get_integer(&field_data) >= ${expr.length(entry.max)})
+    if (get_integer(&field_data) > ${expr.length(entry.max)})
     {
         return 0;
     }

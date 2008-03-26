@@ -330,17 +330,13 @@ class _CompilerTests:
 
     def test_min(self):
         a = fld.Field('a', 8, fld.Field.INTEGER, min=8)
-        b = fld.Field('b', 8, fld.Field.INTEGER)
-        blah = chc.Choice('blah', [a,b])
-        self._decode(blah, '\x08')
-        self._decode(blah, '\x07')
+        self._decode(a, '\x08')
+        self._decode_failure(a, '\x07')
 
     def test_max(self):
         a = fld.Field('a', 8, fld.Field.INTEGER, max=8)
-        b = fld.Field('b', 8, fld.Field.INTEGER)
-        blah = chc.Choice('blah', [a,b])
-        self._decode(blah, '\x08')
-        self._decode(blah, '\x09')
+        self._decode(a, '\x08')
+        self._decode_failure(a, '\x09')
 
     def test_recursive_entries(self):
         # There was a problem with creating include files for items that cross
