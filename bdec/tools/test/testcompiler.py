@@ -361,7 +361,7 @@ class TestC(_CompilerTests, unittest.TestCase):
 
 
     def _decode_file(self, filename):
-        decode = subprocess.Popen([self.EXECUTABLE, filename], stdout=subprocess.PIPE)
+        decode = subprocess.Popen([self.EXECUTABLE, filename], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         xml = decode.stdout.read()
         return decode.wait(), xml
 
