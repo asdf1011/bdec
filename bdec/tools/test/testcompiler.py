@@ -76,8 +76,6 @@ class _CompilerTests:
         b = seq.Sequence('b', [a])
         spec = seq.Sequence('blah', [a, b])
         self._decode(spec, 'abcd', common=[a])
-        self.assertTrue(os.path.exists(os.path.join(self.TEST_DIR, 'blah.%s' % self.FILE_TYPE)))
-        self.assertTrue(os.path.exists(os.path.join(self.TEST_DIR, 'a.%s' % self.FILE_TYPE)))
 
     def test_decode_string(self):
         spec = seq.Sequence('blah', [fld.Field('bob', 48, fld.Field.TEXT)])
@@ -329,4 +327,4 @@ class _CompilerTests:
         self._decode_failure(b, 'bac', common=[a,b])
 
 
-globals().update(create_decoder_classes([_CompilerTests], 'SimpleDecode'))
+globals().update(create_decoder_classes([_CompilerTests], 'SimpleDecode', __name__))

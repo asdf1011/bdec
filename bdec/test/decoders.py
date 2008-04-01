@@ -10,7 +10,11 @@ import os
 import unittest
 import shutil
 import subprocess
+import StringIO
 
+import bdec
+import bdec.data as dt
+import bdec.output.xmlout as xmlout
 import bdec.tools.compiler as comp
 
 class _CompiledDecoder:
@@ -51,7 +55,17 @@ class _CDecoder(_CompiledDecoder):
     TEMPLATE_PATH = os.path.join(os.path.dirname(__file__), '..', '..', 'templates', 'c')
 
 
-def create_decoder_classes(base_classes, name_prefix):
+class _PythonDecoder:
+    """Use the builtin python decoder for the tests."""
+    def _decode_file(self, spec, common, sourcefile):
+        data = dt.Data(sourcefile)
+        xml = StringIO.StringIO()
+        try:
+            return 0, xmlout.to_string(spec, data, verbose=True)
+        except bdec.DecodeError:
+            return 3, ""
+
+def create_decoder_classes(base_classes, name_prefix, module):
     """
     Return a dictionary of classes derived from unittest.TestCase.
 
@@ -64,10 +78,11 @@ def create_decoder_classes(base_classes, name_prefix):
     
     Can be used by globals().update(create_decoder_classes(...))
     """
-    decoders = [(_CDecoder, 'C')]
+    decoders = [(_CDecoder, 'C'), (_PythonDecoder, 'Python')]
     result = {}
     for base in base_classes:
         for decoder, name in decoders:
             test_name = "Test%s%s" % (name_prefix, name)
             result[test_name] = type(test_name, (unittest.TestCase, decoder, base), {})
+            result[test_name].__module__ = module
     return result
