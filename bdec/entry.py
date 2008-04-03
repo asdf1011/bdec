@@ -33,13 +33,13 @@ class DataLengthError(bdec.DecodeError):
     """
     Encoded data has the wrong length
     """
-    def __init__(self, entry, length, data):
+    def __init__(self, entry, expected, actual):
         bdec.DecodeError.__init__(self, entry)
-        self.length = length
-        self.data = data
+        self.expected = expected
+        self.actual = actual
 
     def __str__(self):
-        return "%s expected length %i, got length %i (%s)" % (self.entry, self.length, len(self.data), self.data.get_binary_text())
+        return "%s expected length %i, got length %i" % (self.entry, self.expected, self.actual)
 
 class MissingExpressionReferenceError(bdec.DecodeError):
     """
@@ -315,7 +315,7 @@ class Entry(object):
             yield data
 
         if self.length is not None and encode_length != int(self.length):
-            raise DataLengthError(self, int(self.length), data)
+            raise DataLengthError(self, int(self.length), encode_length)
 
     def is_hidden(self):
         """
