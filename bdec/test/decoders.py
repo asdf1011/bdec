@@ -34,13 +34,16 @@ class _CompiledDecoder:
         if subprocess.call([self.COMPILER] + self.COMPILER_FLAGS + [self.EXECUTABLE] + files) != 0:
             self.fail('Failed to compile!')
 
-    def _decode_file(self, spec, common, sourcefile):
+    def _decode_file(self, spec, common, data):
         """Return a tuple containing the exit code and the decoded xml."""
         self._compile(spec, common)
 
         filename = os.path.join(self.TEST_DIR, 'data.bin')
         datafile = open(filename, 'wb')
-        datafile.write(sourcefile.read())
+        if isinstance(data, str):
+            datafile.write(data)
+        else:
+            datafile.write(data.read())
         datafile.close()
 
         decode = subprocess.Popen([self.EXECUTABLE, filename], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -65,7 +68,7 @@ class _PythonDecoder:
         except bdec.DecodeError:
             return 3, ""
 
-def create_decoder_classes(base_classes, name_prefix, module):
+def create_decoder_classes(base_classes, module):
     """
     Return a dictionary of classes derived from unittest.TestCase.
 
@@ -75,14 +78,18 @@ def create_decoder_classes(base_classes, name_prefix, module):
     
     Each class will have a _decode_file method which can be used to perform
     the decode.
-    
+
     Can be used by globals().update(create_decoder_classes(...))
+
+    Arguments:
+    base_classes -- a tuple containing (base class, name)
+    module -- the module name the generated classes will part of
     """
     decoders = [(_CDecoder, 'C'), (_PythonDecoder, 'Python')]
     result = {}
-    for base in base_classes:
+    for base, prefix in base_classes:
         for decoder, name in decoders:
-            test_name = "Test%s%s" % (name_prefix, name)
+            test_name = "Test%s%s" % (prefix, name)
             result[test_name] = type(test_name, (unittest.TestCase, decoder, base), {})
             result[test_name].__module__ = module
     return result
