@@ -146,10 +146,14 @@ class _Utils:
 
 def _crange(start, end):
     return [chr(i) for i in range(ord(start), ord(end)+1)] 
-_VALID_CHARS = _crange('0', '9') + _crange('a', 'z') + _crange('A', 'Z') + ['_', ' ']
+_NUMBERS = _crange('0', '9')
+_VALID_CHARS = _NUMBERS + _crange('a', 'z') + _crange('A', 'Z') + ['_', ' ']
 
 def _escape_name(name):
-    return "".join(char for char in name if char in _VALID_CHARS)
+    result = "".join(char for char in name if char in _VALID_CHARS)
+    if result[0] in _NUMBERS:
+        result = '_' + result
+    return result
 
 def _camelcase(name):
     words = _escape_name(name).split()
