@@ -138,7 +138,7 @@ static void printWhitespace(int numChars)
     }
     printf("\n");
       %elif item.format == Field.BINARY:
-        <% copy_name = variable('copy of ' + item.name) %>
+        <% copy_name = variable('copy of ' + item.name + str(iter_postfix.next())) %>
         <% iter_name = variable(item.name + ' counter' + str(iter_postfix.next())) %>
     BitBuffer ${copy_name} = ${varname};
     int ${iter_name};
