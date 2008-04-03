@@ -1,5 +1,14 @@
+import bdec.field as fld
+import bdec.sequence as seq
 import bdec.spec
 import operator
+
+class UndecodedReferenceError(Exception):
+    """
+    Raised when a decoded entry is referenced (but unused).
+
+    We don't derive this from DecodeError, as it is an internal program error.
+    """
 
 class ExpressionError(bdec.spec.LoadError):
     def __init__(self, ex):
@@ -8,7 +17,7 @@ class ExpressionError(bdec.spec.LoadError):
     def __str__(self):
         return str(self.error)
 
-class _Delayed:
+class Delayed:
     """
     Class to delay the operation of an integer operation.
 
@@ -24,6 +33,34 @@ class _Delayed:
     def __int__(self):
         return self.op(int(self.left), int(self.right))
 
+class ValueResult:
+    """
+    Object returning the result of a entry when cast to an integer.
+    """
+    def __init__(self, name):
+        self.length = None
+        self.name = name
+
+    def __int__(self):
+        if self.length is None:
+            raise UndecodedReferenceError()
+        return self.length
+
+
+class LengthResult:
+    """
+    Object returning the length of a decoded entry.
+    """
+    def __init__(self, name):
+        self.length = None
+        self.name = name
+
+    def __int__(self):
+        if self.length is None:
+            raise UndecodedReferenceError()
+        return self.length
+
+
 def _half(op):
     """
     Create a handler to handle half of a binary expression.
@@ -32,7 +69,7 @@ def _half(op):
     of the binary expression.
     """
     def handler(s,l,t):
-        return lambda left: _Delayed(op, left, t[1])
+        return lambda left: Delayed(op, left, t[1])
     return handler
 
 def _collapse(s,l,t):
@@ -46,13 +83,7 @@ def _collapse(s,l,t):
         result = next(result)
     return result
 
-def _no_named_lookups(name):
-    raise NotImplementedError("Named lookups not supported")
-
-def _no_length_lookups(name):
-    raise NotImplementedError("Length lookups are not supported")
-
-def compile(text, name_lookup=_no_named_lookups, length_lookup=_no_length_lookups):
+def compile(text):
     """
     Compile a length expression into an integer convertible object.
 
@@ -69,8 +100,8 @@ def compile(text, name_lookup=_no_named_lookups, length_lookup=_no_length_lookup
     entry_name = Word(alphanums + ' _+:.')
     integer = Word(nums).addParseAction(lambda s,l,t: [int(t[0])])
     hex = Combine(CaselessLiteral("0x") + Word(srange("[0-9a-fA-F]"))).addParseAction(lambda s,l,t:[int(t[0][2:], 16)])
-    named_reference = ('${' + entry_name + '}').addParseAction(lambda s,l,t:name_lookup(t[1]))
-    length_reference = ('len{' + entry_name + '}').addParseAction(lambda s,l,t:length_lookup(t[1]))
+    named_reference = ('${' + entry_name + '}').addParseAction(lambda s,l,t:ValueResult(t[1]))
+    length_reference = ('len{' + entry_name + '}').addParseAction(lambda s,l,t:LengthResult(t[1]))
 
     expression = Forward()
     factor = hex | integer | named_reference | length_reference | ('(' + expression + ')').addParseAction(lambda s,l,t:t[1])

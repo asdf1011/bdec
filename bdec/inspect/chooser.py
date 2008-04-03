@@ -50,7 +50,7 @@ def _data_iter(entry):
         if entry.expected is not None:
             yield entry.expected.copy()
         else:
-            import bdec.spec.xmlspec
+            import bdec.spec.expression as expr
             length = None
             min = max = None
             try:
@@ -59,7 +59,7 @@ def _data_iter(entry):
                     min = int(entry.min)
                 if entry.max is not None:
                     max = int(entry.max)
-            except bdec.spec.xmlspec.UndecodedReferenceError:
+            except expr.UndecodedReferenceError:
                 # If the length of a  field references the decoded value of
                 # another field, we will not be able to calculate the length.
                 pass
@@ -204,7 +204,7 @@ def _differentiate(entries):
     # those that may have decoded.
     successful = []
     possible = []
-    while data_options:
+    while len(data_options) > 1:
         test_for_forks = True
         while test_for_forks:
             for option in data_options[:]:
@@ -249,6 +249,9 @@ def _differentiate(entries):
                     successful.append(entry.entry)
                 data_options.remove(entry)
         offset += length
+
+    # Unable to differentiate any more; give one more result with all
+    # of the current possible option.
     yield offset, 0, {}, [entry.entry for entry in data_options], successful, possible
 
 

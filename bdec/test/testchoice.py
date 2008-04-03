@@ -6,6 +6,7 @@ import bdec.choice as chc
 import bdec.data as dt
 import bdec.field as fld
 import bdec.sequence as seq
+import bdec.spec.expression as expr
 
 class TestChoice(unittest.TestCase):
     def test_first_successful(self):
@@ -106,5 +107,17 @@ class TestChoice(unittest.TestCase):
         self.assertEqual(4, choice.range().min)
         self.assertEqual(8, choice.range().max)
 
-if __name__ == "__main__":
-    unittest.main()
+    def test_variable_length(self):
+        byte = seq.Sequence('8 bit:', [fld.Field('id', 8, expected=dt.Data('\x00')), fld.Field('length', 8)])
+        word = seq.Sequence('16 bit:', [fld.Field('id', 8, expected=dt.Data('\x01')), fld.Field('length', 16)])
+        length = chc.Choice('variable integer', [byte, word])
+        length_value = expr.ValueResult('variable integer.length')
+        data = fld.Field('data', length_value, fld.Field.TEXT)
+        spec = seq.Sequence('spec', [length, data])
+
+        results = dict((entry, value)for is_starting, entry, entry_data, value in spec.decode(dt.Data('\x00\x20abcde')) if not is_starting)
+        self.assertEqual('abcd', results[data])
+
+        results = dict((entry, value)for is_starting, entry, entry_data, value in spec.decode(dt.Data('\x01\x00\x20abcde')) if not is_starting)
+        self.assertEqual('abcd', results[data])
+

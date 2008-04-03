@@ -7,9 +7,10 @@ import xml.sax.xmlreader
 
 import bdec.entry as ent
 import bdec.field as fld
+import bdec.sequenceof as sof
 
-def _escape_name(name):
-    return name.replace(' ', '-').replace('(', '_').replace(')', '_').replace(':', '_')
+def escape_name(name):
+    return name.replace(' ', '-').replace('(', '_').replace(')', '_').replace(':', '_').replace('/', '_')
 
 class _XMLGenerator(xml.sax.saxutils.XMLGenerator):
     def comment(self, text):
@@ -24,7 +25,7 @@ def to_file(decoder, binary, output, encoding="utf-8", verbose=False):
 
         if is_starting:
             handler.ignorableWhitespace(' ' * offset)
-            handler.startElement(_escape_name(entry.name), xml.sax.xmlreader.AttributesImpl({}))
+            handler.startElement(escape_name(entry.name), xml.sax.xmlreader.AttributesImpl({}))
             handler.ignorableWhitespace('\n')
             offset = offset + 4
         else:
@@ -38,21 +39,37 @@ def to_file(decoder, binary, output, encoding="utf-8", verbose=False):
 
                 if verbose:
                     handler.ignorableWhitespace(' ' * offset)
-                    if len(entry.data) % 8 == 0:
-                        handler.comment('hex (%i bytes): %s' % (len(entry.data) / 8, entry.data.get_hex()))
-                    else:
-                        handler.comment('bin (%i bits): %s' % (len(entry.data), entry.data.get_binary_text()))
+                    handler.comment(str(entry.data))
                     handler.ignorableWhitespace('\n')
                     
             offset = offset - 4
             handler.ignorableWhitespace(' ' * offset)
-            handler.endElement(_escape_name(entry.name))
+            handler.endElement(escape_name(entry.name))
             handler.ignorableWhitespace('\n')
 
 def to_string(decoder, binary, verbose=False):
     buffer  = StringIO.StringIO()
     to_file(decoder, binary, buffer, verbose=verbose)
     return buffer.getvalue()
+
+class _DummyElement:
+    """Class to workaround the fact that entries of a sequenceof are asked for themselves. """
+    def __init__(self, child):
+        self.childNodes = [child]
+
+class _SequenceOfIter:
+    """A class to iterate over xml children entries from a sequenceof. """
+    def __init__(self, child_nodes, child):
+        self._child_nodes = child_nodes
+        self._child = child
+
+    def __iter__(self):
+        for node in self._child_nodes:
+            if node.nodeType == xml.dom.Node.ELEMENT_NODE:
+                # The object we return now will get asked for the child object,
+                # but we allready have the child object. To work around this we
+                # will create a 'dummy' element, with just this one node.
+                yield _DummyElement(node)
 
 
 def _query_element(obj, child):
@@ -61,14 +78,19 @@ def _query_element(obj, child):
 
     If the child has no sub-elements itself, return the element text contents.
     """
-    name = _escape_name(child.name)
-    for child in obj.childNodes:
-        if child.nodeType == xml.dom.Node.ELEMENT_NODE and child.tagName == name:
+    name = escape_name(child.name)
+    for child_node in obj.childNodes:
+        if child_node.nodeType == xml.dom.Node.ELEMENT_NODE and child_node.tagName == name:
+            if isinstance(child, sof.SequenceOf):
+                # This element represents a sequence of, so we'll return an
+                # object to iterate over the children.
+                return _SequenceOfIter(child_node.childNodes, child.children[0])
+
             text = ""
-            for subchild in child.childNodes:
+            for subchild in child_node.childNodes:
                 if subchild.nodeType == xml.dom.Node.ELEMENT_NODE:
                     # This element has sub-elements, so return the element itself.
-                    return child
+                    return child_node
                 elif subchild.nodeType == xml.dom.Node.TEXT_NODE:
                     # NOTE: We have to strip to avoid getting all of the extra whitespace,
                     # but if there was leading or trailing whitespace on the original

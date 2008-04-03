@@ -2,14 +2,14 @@ import bdec.data as dt
 import bdec.entry
 
 class InvalidSequenceOfCount(bdec.DecodeError):
-    def __init__(self, seq, count, data):
+    def __init__(self, seq, expected, actual):
         bdec.DecodeError.__init__(self, seq)
         self.sequenceof = seq
-        self.count = count
-        self.data = data
+        self.expected = expected
+        self.actual = actual
 
     def __str__(self):
-        return "%s expected count of %i, got %i (%s)" % (self.sequenceof, self.count, len(self.data), self.data)
+        return "%s expected count of %i, got %i" % (self.sequenceof, self.expected, self.actual)
 
 class NegativeSequenceofLoop(bdec.DecodeError):
     def __init__(self, seq, count):
@@ -34,53 +34,51 @@ class SequenceOf(bdec.entry.Entry):
         of data.
         """
         bdec.entry.Entry.__init__(self, name, length, [child])
-        self._count = count
-        self._end_entries = end_entries
-        assert isinstance(child, bdec.entry.Entry)
+        self.count = count
+        self.end_entries = end_entries
 
-    def _loop(self, child_context, data):
-        # At the moment this 'listener' is never removed, and it doesn't work
-        # for stack based notifications (eg: recursive sequenceof entries,
-        # where only the outer entry wants to be notified).
-        stop = [False]
-        for entry, offset in self._end_entries:
-            def break_sequence(entry, length, context):
-                # The entry we have been waiting for has triggered. In the event
-                # that we are a recursive entry, we need to make sure that is
-                # the _correct_ instance of the entry that we are waiting on.
-                if context - child_context == offset:
-                    stop[0] = True
-            entry.add_listener(break_sequence)
+    def validate(self):
+        bdec.entry.Entry.validate(self)
+        for entry in self.end_entries:
+            assert isinstance(entry, bdec.entry.Entry), "%s isn't an entry instance!" % str(entry)
 
-        self._stop = False
-        if self._count is not None:
-            count = int(self._count)
+    def _loop(self, context, data):
+        context['should end'] = False
+        if self.count is not None:
+            count = int(bdec.entry.hack_calculate_expression(self.count, context))
             if count < 0:
                 raise NegativeSequenceofLoop(self, count)
 
             for i in range(count):
                 yield i
-        else:
+        elif self.length is not None:
             while 1:
-                if stop[0]:
-                    break
                 if data.empty():
                     # We ran out of data on a greedy sequence...
                     break
                 yield None
+        else:
+            while 1:
+                if context['should end']:
+                    break
+                yield None
 
-    def _decode(self, data, child_context):
+    def _decode(self, data, context):
         yield (True, self, data, None)
-        for i in self._loop(child_context, data):
-            for item in self.children[0].decode(data, child_context):
+        for i in self._loop(context, data):
+            for item in self._decode_child(self.children[0], data, context):
                 yield item
         yield (False, self, dt.Data(), None)
 
     def _encode(self, query, parent):
-        sequenceof = self._get_context(query, parent)
-        if self._count is not None and int(self._count) != len(sequenceof):
-            raise InvalidSequenceOfCount(self, self._count, sequenceof)
+        children = self._get_context(query, parent)
 
-        for child in sequenceof:
+        count = 0
+        for child in children:
+            count += 1
             for data in self.children[0].encode(query, child):
                 yield data
+
+        if self.count is not None and int(self.count) != count:
+            raise InvalidSequenceOfCount(self, self.count, count)
+

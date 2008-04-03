@@ -28,7 +28,7 @@ class TestSequenceOf(unittest.TestCase):
         data = {"blah" : [{"cat":5}, {"cat":9}, {"cat":0xf6}]}
         query = lambda context, child: context[child.name] 
         data = reduce(lambda a,b:a+b, sequenceof.encode(query, data))
-        self.assertEqual("\x05\x09\xf6", str(data))
+        self.assertEqual("\x05\x09\xf6", data.bytes())
 
     def test_invalid_encoding_count(self):
         sequenceof = sof.SequenceOf("blah", fld.Field("cat", 8, format=fld.Field.INTEGER), 3)
@@ -42,22 +42,22 @@ class TestSequenceOf(unittest.TestCase):
         items = [value for is_starting, entry, data, value in sequenceof.decode(rawdata) if isinstance(entry, fld.Field) and not is_starting]
         self.assertEqual(4, len(items))
         self.assertEqual('date', ''.join(items))
-        self.assertEqual('unused', str(rawdata))
+        self.assertEqual('unused', rawdata.bytes())
 
     def test_run_out_of_data_greedy(self):
-        sequenceof = sof.SequenceOf("blah", fld.Field("cat", 8, format=fld.Field.TEXT), None)
+        sequenceof = sof.SequenceOf("blah", fld.Field("cat", 8, format=fld.Field.TEXT), None, length=32)
         rawdata = dt.Data("date")
         items = [value for is_starting, entry, data, value in sequenceof.decode(rawdata) if isinstance(entry, fld.Field) and not is_starting]
         self.assertEqual(4, len(items))
         self.assertEqual('date', ''.join(items))
-        self.assertEqual('', str(rawdata))
+        self.assertEqual('', rawdata.bytes())
 
     def test_encoding_greedy_sequenceof(self):
         sequenceof = sof.SequenceOf("blah", fld.Field("cat", 8, format=fld.Field.INTEGER), None)
         data = {"blah" : [{"cat":5}, {"cat":9}, {"cat":0xf6}]}
         query = lambda context, child: context[child.name] 
         data = reduce(lambda a,b:a+b, sequenceof.encode(query, data))
-        self.assertEqual("\x05\x09\xf6", str(data))
+        self.assertEqual("\x05\x09\xf6", data.bytes())
 
     def test_negative_count(self):
         sequenceof = sof.SequenceOf("blah", fld.Field("cat", 8, format=fld.Field.INTEGER), -1)
@@ -66,16 +66,13 @@ class TestSequenceOf(unittest.TestCase):
     def test_end_entries(self):
         null = fld.Field("null", 8, expected=dt.Data('\x00'))
         char = fld.Field("char", 8)
-        sequenceof = sof.SequenceOf("null terminated string", chc.Choice('entry', [null, char]), None, end_entries=[(null, 1)])
+        sequenceof = sof.SequenceOf("null terminated string", chc.Choice('entry', [null, char]), None, end_entries=[null])
         actual = []
         data = dt.Data("hello\x00bob")
         result = ""
         for is_starting, entry, entry_data, value in sequenceof.decode(data):
             if not is_starting and entry.name == "char":
-                result += str(entry_data)
+                result += entry_data.bytes()
 
         self.assertEqual("hello", result)
-        self.assertEqual("bob", str(data))
-
-if __name__ == "__main__":
-    unittest.main()
+        self.assertEqual("bob", data.bytes())

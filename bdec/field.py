@@ -45,7 +45,7 @@ class BadRangeError(FieldError):
         if self.field.max is not None:
             result += "%i]" % int(self.field.max)
         else:
-            result = "inf)"
+            result += "inf)"
         return result
 
     def __str__(self):
@@ -69,7 +69,7 @@ class BadFormatError(FieldError):
         self.expected_type = expected_type
 
     def __str__(self):
-        return "BadFormatError: %s expected %s got %s" % (self.field, self.expected_type, self.data)
+        return "BadFormatError: %s expected %s got '%s'" % (self.field, self.expected_type, self.data)
 
 
 class FieldDataError(FieldError):
@@ -110,7 +110,7 @@ class Field(bdec.entry.Entry):
                 encoding = self.BIG_ENDIAN
 
         self.format = format
-        self._encoding = encoding
+        self.encoding = encoding
         self.data = None
         self.expected = expected
         self.min = min
@@ -119,21 +119,21 @@ class Field(bdec.entry.Entry):
     def _set_expected(self, expected):
         assert expected is None or isinstance(expected, dt.Data)
         if expected is not None and self.length is not None:
-            import bdec.spec.xmlspec
+            import bdec.spec.expression
             try:
                 length = int(self.length)
                 if length != len(expected):
                     raise FieldDataError(self, 'Expected data should have a length of %i, got %i' % (length, len(expected)))
-            except bdec.spec.xmlspec.UndecodedReferenceError:
+            except bdec.spec.expression.UndecodedReferenceError:
                 pass
         self._expected = expected
     expected = property(lambda self: self._expected, _set_expected)
 
-    def _decode(self, data, child_context):
+    def _decode(self, data, context):
         """ see bdec.entry.Entry._decode """
         yield (True, self, data, None)
 
-        field_data = data.pop(int(self.length))
+        field_data = data.pop(bdec.entry.hack_calculate_expression(self.length, context))
         # As this popped data is not guaranteed to be available, we have to
         # wrap all access to it in an exception handler.
         try:
@@ -164,13 +164,13 @@ class Field(bdec.entry.Entry):
         elif self.format == self.TEXT:
             text = self._convert_type(data, str)
             try:
-                result = dt.Data(text.encode(self._encoding))
+                result = dt.Data(text.encode(self.encoding))
             except UnicodeDecodeError:
                 raise BadEncodingError(self, data)
         elif self.format == self.INTEGER:
             
-            assert self._encoding in [self.BIG_ENDIAN, self.LITTLE_ENDIAN]
-            if self._encoding == self.BIG_ENDIAN:
+            assert self.encoding in [self.BIG_ENDIAN, self.LITTLE_ENDIAN]
+            if self.encoding == self.BIG_ENDIAN:
                 result = dt.Data.from_int_big_endian(self._convert_type(data, int), length)
             else:
                 result = dt.Data.from_int_little_endian(self._convert_type(data, int), length)
@@ -232,7 +232,7 @@ class Field(bdec.entry.Entry):
         yield result
 
     def __str__(self):
-        return "%s '%s' (%s)" % (self.format, self.name, self._encoding)
+        return "%s '%s' (%s)" % (self.format, self.name, self.encoding)
 
     def _validate_range(self, data):
         """
@@ -251,7 +251,7 @@ class Field(bdec.entry.Entry):
         return self._decode_int(self.data)
 
     def _decode_int(self, data):
-        if self._encoding == self.LITTLE_ENDIAN:
+        if self.encoding == self.LITTLE_ENDIAN:
             result = data.get_little_endian_integer()
         else:
             # If we aren't explicitly little endian, we become big endian.
@@ -270,21 +270,10 @@ class Field(bdec.entry.Entry):
         elif self.format == self.HEX:
             result = data.get_hex()
         elif self.format == self.TEXT:
-            try:
-                result = unicode(str(data), self._encoding)
-            except UnicodeDecodeError:
-                raise BadEncodingError(self, str(data))
+            result = data.text(self.encoding)
         elif self.format == self.INTEGER:
             result = self._decode_int(data)
         else:
             raise Exception("Unknown field format of '%s'!" % self.format)
         return result
 
-    def range(self):
-        import bdec.spec.xmlspec
-        try:
-            min = max = int(self.length)
-        except bdec.spec.xmlspec.UndecodedReferenceError:
-            min = 0
-            max = bdec.entry.Range.MAX
-        return bdec.entry.Range(min, max)

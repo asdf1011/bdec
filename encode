@@ -8,7 +8,7 @@ import bdec.output.xmlout as xmlout
 
 spec = sys.argv[1]
 try:
-    decoder, lookup = xmlspec.load(spec)
+    decoder, lookup, common = xmlspec.load(spec)
 except bdec.spec.LoadError, ex:
     sys.exit(str(ex))
 

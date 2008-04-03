@@ -1,7 +1,3 @@
-try:
-    import cPickle as pickle
-except ImportError:
-    import pickle
 import StringIO
 import xml.sax
 
@@ -34,14 +30,6 @@ class XmlError(XmlSpecError):
     def __str__(self):
         return self._src() + str(self.error)
 
-class EmptySequenceError(XmlSpecError):
-    def __init__(self, name, filename, locator):
-        XmlSpecError.__init__(self, filename, locator)
-        self.name = name
-
-    def __str__(self):
-        return self._src() + "Sequence '%s' must have children! Should this be a 'reference' entry?" % self.name
-
 class EntryHasNoValueError(exp.ExpressionError):
     def __init__(self, entry):
         self.entry = entry
@@ -58,13 +46,6 @@ class NonSequenceError(exp.ExpressionError):
 
     def __str__(self):
         return "Expressions can only reference children of sequences (%s)" % self.entry
-
-class MissingReferenceError(exp.ExpressionError):
-    def __init__(self, name):
-        self.name = name
-
-    def __str__(self):
-        return "Expression references unknown field '%s'" % self.name
 
 class OptionMissingNameError(exp.ExpressionError):
     def __init__(self, entry, name, lookup):
@@ -83,75 +64,27 @@ class XmlExpressionError(XmlSpecError):
     def __str__(self):
         return self._src() + "Expression error - " + str(self.ex)
 
-class UndecodedReferenceError(Exception):
+
+class _ReferencedEntry:
     """
-    Raised when a decoded entry is referenced (but unused).
-
-    We don't derive this from DecodeError, as it is an internal program error.
-    """
-
-class _ValueResult:
-    """
-    Object returning the result of a entry when cast to an integer.
-    """
-    def __init__(self):
-        self.length = None
-
-    def add_entry(self, entry):
-        entry.add_listener(self)
-
-    def __call__(self, entry, length, context):
-        if isinstance(entry, fld.Field):
-            self.length = int(entry)
-        elif isinstance(entry, seq.Sequence):
-            self.length = int(entry.value)
-        else:
-            raise Exception("Don't know how to get the result of %s" % entry)
-
-    def __int__(self):
-        if self.length is None:
-            raise UndecodedReferenceError()
-        return self.length
-
-class _LengthResult:
-    """
-    Object returning the length of a decoded entry.
-    """
-    def __init__(self, entries):
-        for entry in entries:
-            entry.add_listener(self)
-        self.length = None
-
-    def __call__(self, entry, length, context):
-        self.length = length
-
-    def __int__(self):
-        if self.length is None:
-            raise UndecodedReferenceError()
-        return self.length
-
-class _ReferencedEntry(ent.Entry):
-    """
-    A mock decoder entry to forward all decoder calls onto another entry.
+    A entry to insert into child lists when referencing a common entry.
 
     Used to 'delay' referencing of decoder entries, for the case where a
     decoder entry has been referenced (but has not yet been defined).
     """
     def __init__(self, name):
-        ent.Entry.__init__(self, name, None, [])
-        self._reference = None
+        self.name = name
+        self._parent = None
 
     def resolve(self, entry):
-        assert self._reference is None
-        self._reference = entry
+        assert self._parent is not None
+        assert isinstance(entry, ent.Entry)
+        self._parent.children[self._parent.children.index(self)] = entry
+     
+    def set_parent(self, parent):
+        assert self._parent is None
+        self._parent = parent
 
-    def _decode(self, data, child_context):
-        assert self._reference is not None, "Asked to decode unresolved entry '%s'!" % self.name
-        return self._reference.decode(data, child_context - 1)
-
-    def _encode(self, query, context):
-        assert self._reference is not None, "Asked to encode unresolved entry '%s'!" % self.name
-        return self._reference.encode(data)
 
 class _Handler(xml.sax.handler.ContentHandler):
     """
@@ -173,7 +106,7 @@ class _Handler(xml.sax.handler.ContentHandler):
             "sequenceof" : self._sequenceof,
             }
         self.decoder = None
-        self._common_entries = {}
+        self.common_entries = {}
 
         self.lookup = {}
         self.locator = None
@@ -200,33 +133,6 @@ class _Handler(xml.sax.handler.ContentHandler):
         self._stack.append((name, attrs, []))
         self._children.append([])
 
-    def _walk(self, entry):
-        yield entry
-        for embedded in entry.children:
-            for child in self._walk(embedded):
-                yield child
-
-    def _get_common_entry(self, name):
-        if name not in self._common_entries:
-            result = _ReferencedEntry(name)
-            self._unresolved_references.append(result)
-            return result
-
-        # There is a problem where listeners to common entries will be  called
-        # for all common decodes (see the 
-        # test_common_elements_are_independent testcase). We attempt to work
-        # around this problem be copying common elements.
-        entry = self._common_entries[name]
-        result = pickle.loads(pickle.dumps(entry))
-
-        # For all of the copied elements, we need to update the lookup table
-        # so that the copied elements can be found.
-        for original, copy in zip(self._walk(entry), self._walk(result)):
-            if isinstance(original, _ReferencedEntry):
-                self._unresolved_references.append(copy)
-            self.lookup[copy] = self.lookup[original]
-        return result
-
     def endElement(self, name):
         assert self._stack[-1][0] == name
         (name, attrs, breaks) = self._stack.pop()
@@ -237,166 +143,79 @@ class _Handler(xml.sax.handler.ContentHandler):
         length = None
         if attrs.has_key('length'):
             length = self._parse_expression(attrs['length'])
-        child = self._handlers[name](attrs, children, length, breaks)
+        entry = self._handlers[name](attrs, children, length, breaks)
+        for child in children:
+            if isinstance(child, _ReferencedEntry):
+                child.set_parent(entry)
         self._children.pop()
 
-        if child is not None:
+        if entry is not None:
             if self._end_sequenceof:
                 # There is a parent sequence of object that must stop when
                 # this entry decodes.
-                for offset, (name, attrs, breaks) in enumerate(reversed(self._stack)):
+                for name, attrs, breaks in reversed(self._stack):
                     if name == "sequenceof":
-                        breaks.append((child, offset))
+                        breaks.append(entry)
+                        if isinstance(entry, _ReferencedEntry):
+                            raise self._error("end-sequenceof cannot be used within a referenced item. Wrap the reference in a sequence (which has the end-sequenceof).")
                         break
                 else:
                     raise self._error("end-sequenceof is not surrounded by a sequenceof")
                 self._end_sequenceof = False
-            self._children[-1].append(child)
+            self._children[-1].append(entry)
 
-            self.lookup[child] = (self._filename, self.locator.getLineNumber(), self.locator.getColumnNumber())
+            self.lookup[entry] = (self._filename, self.locator.getLineNumber(), self.locator.getColumnNumber())
 
         if len(self._stack) == 2 and self._stack[1][0] == 'common':
             # We have to handle common entries _before_ the end of the
             # 'common' element, as common entries can reference other
             # common entries.
-            assert child is not None
-            self._common_entries[child.name] = child
+            assert entry is not None
+            self.common_entries[entry.name] = entry
 
     def _common(self, attributes, children, length, breaks):
         pass
+
+    def _get_common_entry(self, name):
+        try:
+            return self.common_entries[name]
+        except KeyError:
+            raise self._error("Referenced element '%s' is not found!" % name)
 
     def _protocol(self, attributes, children, length, breaks):
         if len(children) != 1:
             raise self._error("Protocol should have a single entry to be decoded!")
 
-        for entry in self._unresolved_references:
-            try:
-                # TODO: Instead of a keeping a pseudo protocol entry in the final
-                # loaded protcol, when resolving we should simply substitute the
-                # loaded item.
-                item = self._common_entries[entry.name]
-            except KeyError:
-                raise self._error("Referenced element '%s' is not found!" % entry.name)
-            entry.resolve(item)
-        self._unresolved_references = []
+        if isinstance(children[0], _ReferencedEntry):
+            # If the 'top level' item is a reference, it won't have had a
+            # parent set to allow it to resolve. We'll do this by hand.
+            del self._unresolved_references[self._unresolved_references.index(children[0])]
+            children[0] = self._get_common_entry(children[0].name)
+
+        # Note the we don't iterate over the unresolved references, as the
+        # list can change as we iterate over it (in _get_common_entry).
+        while self._unresolved_references:
+            entry = self._unresolved_references.pop()
+            # Problem: We are copying the entry while we still have the referenced item in the tree...
+            #  we'll have to insert it in the tree before copying it!
+            entry.resolve(self._get_common_entry(entry.name))
 
         self.decoder = children[0]
 
     def _parse_expression(self, text):
         try:
-            return exp.compile(text, self._query_entry_value, self._query_length)
+            return exp.compile(text)
         except exp.ExpressionError, ex:
             raise XmlExpressionError(ex, self._filename, self.locator)
-
-    def _get_entry_children(self, entry, name):
-        """
-        Get an iterator to all children of an entity matching a given
-        name.
-        """
-        if isinstance(entry, seq.Sequence):
-            for child in self._get_children(entry.children, name):
-                yield child
-        elif isinstance(entry, chc.Choice):
-            found_name = None
-            for option in entry.children:
-                option_matches = False
-                for child in self._get_children([option], name):
-                    option_matches = True
-                    yield child
-
-                if found_name is None:
-                    found_name = option_matches
-                else:
-                    if found_name != option_matches:
-                        # Not all of the choice entries agree; for some the
-                        # name matches, but not for others.
-                        if option_matches:
-                            # This option has the named entry, but the
-                            # previous one didn't.
-                            missing = entry.children[entry.children.index(option) - 1]
-                        else:
-                            missing = option
-                        raise OptionMissingNameError(missing, name, self.lookup)
-
-    def _get_children(self, items, name):
-        """
-        Get an iterator to all children matching the given name.
-
-        There may be more then one in the event children of a 
-        'choice' entry are selected.
-        """
-        for entry in items:
-            if name == entry.name:
-                yield entry
-                return
-
-            if ent.is_hidden(entry.name):
-                # If an entry is hidden, look into its children for the name.
-                match = False
-                for child in self._get_entry_children(entry, name):
-                    match = True
-                    yield child
-                if match:
-                    return
-
-    def _query_length(self, fullname):
-        """
-        Create an object that returns the length of decoded data in an entry.
-        """
-        return _LengthResult(self._get_entries(fullname))
-
-    def _query_entry_value(self, fullname):
-        """
-        Get an object that returns the decoded value of a protocol entry.
-
-        The fullname is the qualified name of the entry with respect to
-        the current entry. 'Hidden' entries may or may not be included.
-
-        Typically only fields have a value, but sequences may also be assigned
-        values.
-        """
-        result = _ValueResult()
-        for entry in self._get_entries(fullname):
-            if isinstance(entry, fld.Field):
-                result.add_entry(entry)
-            elif isinstance(entry, seq.Sequence) and entry.value is not None:
-                result.add_entry(entry)
-            else:
-                raise EntryHasNoValueError(entry)
         return result
-
-    def _get_entries(self, fullname):
-        """
-        Get a list of all entries that match a given name.
-        """
-        names = fullname.split('.')
-
-        # Find the first name by walking up the stack
-        for i, children in enumerate(reversed(self._children)):
-            if i + 2 == len(self._children) and len(self._stack) > 1 and self._stack[1][0] == 'common':
-                # Note that we don't want to select the 'common' children
-                continue
-
-            matches = list(self._get_children(children, names[0]))
-            if matches:
-                for name in names[1:]:
-                    # We've found items that match the top name. Each of
-                    # these items _must_ support the requested names.
-                    subitems = [list(self._get_entry_children(child, name)) for child in matches]
-                    matches = []
-                    for items in subitems:
-                        if len(items) == 0:
-                            raise MissingReferenceError(name)
-                        matches.extend(items)
-
-                return matches
-        raise MissingReferenceError(fullname)
 
     def _reference(self, attributes, children, length, breaks):
         if attributes.getNames() != ["name"]:
             raise self._error("Reference entries must have a single 'name' attribute!")
         name = attributes.getValue('name')
-        return self._get_common_entry(name)
+        result = _ReferencedEntry(name)
+        self._unresolved_references.append(result)
+        return result
 
     def _field(self, attributes, children, length, breaks):
         name = attributes['name']
@@ -439,7 +258,7 @@ class _Handler(xml.sax.handler.ContentHandler):
             if result.length is not None:
                 try:
                     expected_length = int(result.length)
-                except UndecodedReferenceError:
+                except exp.UndecodedReferenceError:
                     pass
 
             if len(expected) < expected_length:
@@ -454,8 +273,6 @@ class _Handler(xml.sax.handler.ContentHandler):
         return result
 
     def _sequence(self, attributes, children, length, breaks):
-        if len(children) == 0:
-            raise EmptySequenceError(attributes['name'], self._filename, self.locator)
         value = None
         if attributes.has_key('value'):
             # A sequence can have a value derived from its children...
@@ -485,8 +302,9 @@ def _load_from_file(file, filename):
     Read a string from open file and interpret it as an
     xml data stream identifying a protocol entity.
 
-    @return Returns a tuple containing the decoder entry, and a dictionary
-        of decoder entries to (filename, line number, column number)
+    @return Returns a tuple containing the decoder entry, a dictionary
+        of decoder entries to (filename, line number, column number), and
+        a list of common entries.
     """
     parser = xml.sax.make_parser()
     handler = _Handler(filename)
@@ -496,7 +314,18 @@ def _load_from_file(file, filename):
     except xml.sax.SAXParseException, ex:
         # The sax parse exception object can operate as a locator
         raise XmlError(ex.args[0], filename, ex)
-    return (handler.decoder, handler.lookup)
+    try:
+        handler.decoder.validate()
+        for entry in handler.common_entries.itervalues():
+            entry.validate()
+    except ent.MissingExpressionReferenceError, ex:
+        class Locator:
+            def getLineNumber(self):
+                return handler.lookup[ex.entry][1]
+            def getColumnNumber(self):
+                return handler.lookup[ex.entry][2]
+        raise XmlExpressionError(ex, filename, Locator())
+    return (handler.decoder, handler.lookup, handler.common_entries)
 
 def loads(xml):
     """

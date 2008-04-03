@@ -18,14 +18,11 @@ class Sequence(bdec.entry.Entry):
     def __init__(self, name, children, value=None, length=None):
         bdec.entry.Entry.__init__(self, name, length, children)
         self.value = value
-        assert len(children) > 0
-        for child in children:
-            assert isinstance(child, bdec.entry.Entry)
 
-    def _decode(self, data, child_context):
+    def _decode(self, data, context):
         yield (True, self, data, None)
         for child in self.children:
-            for embedded in child.decode(data, child_context):
+            for embedded in self._decode_child(child, data, context):
                 yield embedded
         yield (False, self, dt.Data(), None)
 
@@ -35,5 +32,5 @@ class Sequence(bdec.entry.Entry):
             for data in child.encode(query, structure):
                 yield data
             
-    def range(self):
-        return sum((child.range() for child in self.children), bdec.entry.Range(0, 0))
+    def _range(self, ignore_entries):
+        return sum((child.range(ignore_entries) for child in self.children), bdec.entry.Range(0, 0))

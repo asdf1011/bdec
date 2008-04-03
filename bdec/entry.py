@@ -33,13 +33,25 @@ class DataLengthError(bdec.DecodeError):
     """
     Encoded data has the wrong length
     """
-    def __init__(self, entry, length, data):
+    def __init__(self, entry, expected, actual):
         bdec.DecodeError.__init__(self, entry)
-        self.length = length
-        self.data = data
+        self.expected = expected
+        self.actual = actual
 
     def __str__(self):
-        return "%s expected length %i, got length %i (%s)" % (self.entry, self.length, len(self.data), self.data.get_binary_text())
+        return "%s expected length %i, got length %i" % (self.entry, self.expected, self.actual)
+
+class MissingExpressionReferenceError(bdec.DecodeError):
+    """
+    An expression references an unknown entry.
+    """
+    def __init__(self, entry, missing):
+        bdec.DecodeError.__init__(self, entry)
+        self.missing_context = missing
+
+    def __str__(self):
+        return "%s needs '%s' to decode" % (self.entry, self.missing_context)
+
 
 def is_hidden(name):
     """
@@ -50,6 +62,28 @@ def is_hidden(name):
     which the decode would fail).
     """
     return name.endswith(':')
+
+def _hack_recursive_replace_values(expression, context):
+    # Walk the expression tree, and replace context items as appropriate.
+    import bdec.spec.expression as expr
+    if isinstance(expression, expr.ValueResult):
+        name = expression.name
+        expression.length = context[name]
+    elif isinstance(expression, expr.LengthResult):
+        expression.length = context[expression.name + " length"]
+    elif isinstance(expression, expr.Delayed):
+        _hack_recursive_replace_values(expression.left, context)
+        _hack_recursive_replace_values(expression.right, context)
+
+def hack_calculate_expression(expression, context):
+    """
+    A temporary hack to calculate expression values given a context.
+
+    Will be removed in a future commit.
+    """
+    _hack_recursive_replace_values(expression, context)
+    return int(expression)
+
 
 class Range:
     """
@@ -71,6 +105,22 @@ class Range:
             max = self.max + other.max
         return Range(min, max)
 
+def _hack_on_end_sequenceof(entry, length, context):
+    context['should end'] = True
+def _hack_on_length_referenced(entry, length, context):
+    context[entry.name + ' length'] = length
+def _hack_create_value_listener(name):
+    def _on_value_referenced(entry, length, context):
+        import bdec.field as fld
+        import bdec.sequence as seq
+        if isinstance(entry, fld.Field):
+            context[name] = int(entry)
+        elif isinstance(entry, seq.Sequence):
+            context[name] = hack_calculate_expression(entry.value, context)
+        else:
+            raise Exception("Don't know how to read value of %s" % entry)
+    return _on_value_referenced
+
 class Entry(object):
     """
     A decoder entry is an item in a protocol that can be decoded.
@@ -84,6 +134,55 @@ class Entry(object):
         self._listeners = []
         self.length = length
         self.children = embedded
+
+        self._params = None
+        self._parent_param_lookup = {}
+
+    def validate(self):
+        """
+        Validate all expressions contained within the entries.
+
+        Throws MissingReferenceError if any expressions reference unknown instances.
+        """
+        if self._params is not None:
+            return
+
+        import bdec.inspect.param
+        params = bdec.inspect.param.ParamLookup([self])
+        self._set_params(params)
+
+        # We need to raise an error as to missing parameters
+        for param in params.get_params(self):
+            if param.direction is param.IN:
+                # TODO: We should instead raise the error from the context of the
+                # child that needs the data.
+                raise MissingExpressionReferenceError(self, param.name)
+
+    def _set_params(self, lookup):
+        """
+        Set the parameters needed to decode this entry.
+        """
+        if self._params is not None:
+            return
+        self._params = list(lookup.get_params(self))
+        for child in self.children:
+            child_params = (param.name for param in lookup.get_params(child))
+            our_params = (param.name for param in lookup.get_invoked_params(self, child))
+            self._parent_param_lookup[child] = dict(zip(child_params, our_params))
+
+        if lookup.is_end_sequenceof(self):
+            self.add_listener(_hack_on_end_sequenceof)
+        if lookup.is_value_referenced(self):
+            # This is a bit of a hack... we need to use the correct (fully
+            # specified) name. We'll lookup the parameter to get it.
+            for param in self._params:
+                if param.direction is param.OUT:
+                    self.add_listener(_hack_create_value_listener(param.name))
+        if lookup.is_length_referenced(self):
+            self.add_listener(_hack_on_length_referenced)
+
+        for child in self.children:
+            child._set_params(lookup)
 
     def add_listener(self, listener):
         """
@@ -100,6 +199,35 @@ class Entry(object):
         """
         self._listeners.append(listener)
 
+    def _decode_child(self, child, data, context):
+        """
+        Decode a child entry.
+
+        Creates a new context for the child, and after the decode completes,
+        will update this entry's context.
+        """
+        # Create the childs context from our data
+        child_context = {}
+        for param in child._params:
+            if param.direction is param.IN:
+                child_context[param.name] = context[self._parent_param_lookup[child][param.name]]
+
+        # Do the decode
+        for result in child.decode(data, child_context):
+            yield result
+
+        # Update our context with the output values from the childs context
+        for param in child._params:
+            if param.direction is param.OUT:
+                if param.name == "should end":
+                    try:
+                        context[param.name] = child_context[param.name]
+                    except KeyError:
+                        # 'should end' is a hacked special case, as it may not always be set.
+                        pass
+                else:
+                    context[self._parent_param_lookup[child][param.name]] = child_context[param.name]
+
     def _decode(self, data, child_context):
         """
         Decode the given protocol entry.
@@ -109,26 +237,34 @@ class Entry(object):
         """
         raise NotImplementedError()
 
-    def decode(self, data, context=0):
+    def decode(self, data, context={}):
         """
         Decode this entry from input data.
 
         @param data The data to decode
-        @param context The depth of this protocol entry. Any child entries
-            will have a context of 'context + 1'.
-        @return An iterator that returns (is_starting, Entry, data, value) 
-            tuples. The data when the decode is starting is the data available
-            to be decoded, and the data when the decode is finished is the
-            data from this entry only (no embedded entries).
+        @param context The context of our decode. Is a lookup of names to
+            intger values.
+        @return An iterator that returns (is_starting, Entry, data) tuples. The
+            data when the decode is starting is the data available to be 
+            decoded, and the data when the decode is finished is the data from
+            this entry only (not including embedded entries).
         """
+        self.validate()
+
+        # Validate our context
+        for param in self._params:
+            if param.direction is param.IN:
+                assert param.name in context, "Context to '%s' must include %s!" % (self, param.name)
+
         if self.length is not None:
             try:
-                data = data.pop(int(self.length))
+                data = data.pop(hack_calculate_expression(self.length, context))
             except dt.DataError, ex:
                 raise EntryDataError(self, ex)
 
+        # Do the actual decode of this entry (and all embedded entries).
         length = 0
-        for is_starting, entry, entry_data, value in self._decode(data, context + 1):
+        for is_starting, entry, entry_data, value in self._decode(data, context):
             if not is_starting:
                 length += len(entry_data)
             yield is_starting, entry, entry_data, value
@@ -171,7 +307,7 @@ class Entry(object):
         object. This query should raise a MissingInstanceError if the instance
         could not be found.
         
-        Returns an iterator object for a series of data objects.
+        Should return an iterable object for SequenceOf entries.
         """
         encode_length = 0
         for data in self._encode(query, parent_context):
@@ -179,7 +315,7 @@ class Entry(object):
             yield data
 
         if self.length is not None and encode_length != int(self.length):
-            raise DataLengthError(self, int(self.length), data)
+            raise DataLengthError(self, int(self.length), encode_length)
 
     def is_hidden(self):
         """
@@ -193,5 +329,32 @@ class Entry(object):
     def __repr__(self):
         return "%s '%s'" % (self.__class__, self.name)
 
-    def range(self):
-        return Range()
+    def _range(self, ignore_entries):
+        """
+        Can be implemented by derived classes to detect ranges.
+        """
+        return bdec.entry.Range()
+
+    def range(self, ignore_entries=set()):
+        """
+        Return a Range instance indicating the length of this entry.
+
+        If 'entry' is in 'ignore_entries', the length will be ignored.
+        """
+        if self in ignore_entries:
+            # If an entry is recursive, we cannot predict how long it will be.
+            return Range()
+
+        import bdec.spec.expression
+        result = None
+        if self.length is not None:
+            try:
+                min = max = int(self.length)
+                result = bdec.entry.Range(min, max)
+            except bdec.spec.expression.UndecodedReferenceError:
+                pass
+        if result is None:
+            ignore_entries.add(self)
+            result = self._range(ignore_entries)
+            ignore_entries.remove(self)
+        return result

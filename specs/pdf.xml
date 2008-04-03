@@ -52,7 +52,10 @@
             <field name="id:" length="8" value="0x25" />
             <sequenceof name="text">
                 <choice name="entry:">
-                    <reference name="end of line"><end-sequenceof /></reference>
+                    <sequence name="end of comment:">
+                        <reference name="end of line" />
+                        <end-sequenceof />
+                    </sequence>
                     <field name="char" length="8" type="hex" />
                 </choice>
             </sequenceof>
@@ -99,6 +102,11 @@
             </sequenceof>
         </sequence>
 
+        <choice name="boolean">
+            <field name="true" type="text" length="32" value="true" />
+            <field name="false" type="text" length="40" value="false" />
+        </choice>
+
         <sequence name="string">
             <choice name="string type:">
                 <sequence name="text">
@@ -119,7 +127,9 @@
                     <sequenceof name="chars">
                         <choice name="entry:">
                             <field name="closer:" length="8" type="text" value="&gt;" ><end-sequenceof/></field>
-                            <field name="char" length="8" type="text" />
+                            <field name="char" length="8" type="text" min="97" max="102" />
+                            <field name="char" length="8" type="text" min="65" max="70" />
+                            <field name="char" length="8" type="text" min="48" max="57" />
                         </choice>
                     </sequenceof>
                 </sequence>
@@ -203,6 +213,7 @@
                 <reference name="stream object" />
                 <reference name="dictionary object" />
                 <reference name="array object" />
+                <reference name="boolean" />
                 <reference name="integer" />
                 <reference name="string" />
                 <field name="null" length="32" type="text" value="null" />

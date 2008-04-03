@@ -131,10 +131,6 @@ class TestXml(unittest.TestCase):
         self.assertEqual(3, len(result))
         self.assertEqual("hello", result[1])
 
-    def test_empty_sequence_error(self):
-        text = """<protocol><sequence name="bob"></sequence></protocol>"""
-        self.assertRaises(xml.EmptySequenceError, xml.loads, text)
-
     def test_expression_references_sub_field(self):
         text = """
             <protocol>
@@ -159,7 +155,8 @@ class TestXml(unittest.TestCase):
                 result[entry.name] = value
         return result
 
-    def test_expression_reference_choice_field(self):
+    def test_expression_references_choice_field(self):
+        # FIXME: We cannot reference the variable length using multiple names. See issue 37.
         text = """
             <protocol>
                 <sequence name="rabbit">
@@ -174,8 +171,7 @@ class TestXml(unittest.TestCase):
                        </sequence>
                     </choice>
                     <field name="bob" length="${variable length:.length:} * 8" type="text" />
-                    <!-- Now try matching the length without specifying the hidden choice -->
-                    <field name="sue" length="${length:} * 8" type="text" />
+                    <field name="sue" length="${variable length:.length:} * 8" type="text" />
                 </sequence>
             </protocol>"""
         decoder = xml.loads(text)[0]
@@ -208,11 +204,7 @@ class TestXml(unittest.TestCase):
                     <field name="bob" length="${variable length:.length:} * 8" type="text" />
                 </sequence>
             </protocol>"""
-        try:
-            xml.loads(text)
-            self.fail("Exception not thrown!")
-        except xml.XmlExpressionError, ex:
-            self.assertTrue(isinstance(ex.ex, xml.OptionMissingNameError))
+        self.assertRaises(xml.XmlExpressionError, xml.loads, text)
 
     def test_sequenceof_break(self):
         text = """
@@ -290,18 +282,14 @@ class TestXml(unittest.TestCase):
             if not is_starting and entry.name == "char":
                 result += value
         self.assertEqual("hello world", result)
-        self.assertEqual("boo", str(data))
+        self.assertEqual("boo", data.bytes())
         
     def test_missing_reference_error(self):
         text = """
             <protocol>
                 <field name="bob" length="${missing}" />
             </protocol>"""
-        try:
-            xml.loads(text)
-            self.fail("Exception not thrown!")
-        except xml.XmlExpressionError, ex:
-            self.assertEqual(xml.MissingReferenceError, type(ex.ex))
+        self.assertRaises(xml.XmlExpressionError, xml.loads, text)
 
     def test_sequence_value(self):
         text = """
@@ -323,17 +311,17 @@ class TestXml(unittest.TestCase):
             if not is_starting and entry.name == "data":
                 result = value
         self.assertEqual("run for your lives!", result)
-        self.assertEqual("boo", str(data))
+        self.assertEqual("boo", data.bytes())
 
     def test_match_choice_entry(self):
         text = """
             <protocol>
                 <sequence name="bob">
                     <choice name="valid items:">
-                        <field name="length:" length="8" value="0x5" />
-                        <field name="length:" length="8" value="0x7" />
+                        <sequence name="option a:"><field name="length:" length="8" value="0x5" /></sequence>
+                        <sequence name="option b:"><field name="length:" length="8" value="0x7" /></sequence>
                     </choice>
-                    <field name="data" length="${length:} * 8" type="text" />
+                    <field name="data" length="${valid items:.length:} * 8" type="text" />
                 </sequence>
             </protocol>
             """
@@ -430,7 +418,7 @@ class TestXml(unittest.TestCase):
         self.assertEqual("6", result.object.array.values[2].array.values[2].array.values[1].integer)
         self.assertEqual("7", result.object.array.values[2].array.values[3].integer)
         self.assertEqual("8", result.object.array.values[3].integer)
-        self.assertEqual("unused", str(data))
+        self.assertEqual("unused", data.bytes())
 
     def test_all_entries_in_lookup_tree(self):
         text = """
@@ -452,7 +440,7 @@ class TestXml(unittest.TestCase):
                 </sequence>
             </protocol>
             """
-        protocol, lookup = xml.loads(text)
+        protocol, lookup, common = xml.loads(text)
         entries = [protocol]
         names = set()
         while entries:
@@ -461,6 +449,22 @@ class TestXml(unittest.TestCase):
             self.assertTrue(entry in lookup, "%s isn't in the lookup tree!" % entry)
             entries.extend(entry.children)
         self.assertEqual(set(['dog', 'rabbit', 'hole', 'length a', 'length:', 'bob', 'data a']), names)
+
+    def test_referenced_common_entry(self):
+        text = """
+          <protocol>
+             <common>
+                 <field name="a" type="integer" length="8" />
+             </common>
+             <sequence name="b">
+                <reference name="a" />
+                <field name="b value" length="${a} * 8" type="integer" />
+             </sequence>
+          </protocol> """
+        protocol, lookup, common = xml.loads(text)
+        items = [value for is_starting, entry, entry_data, value in protocol.decode(dt.Data("\x01\x07"))]
+        self.assertEqual(1, items[2])
+        self.assertEqual(7, items[4])
 
     def test_out_of_order_references(self):
         text = """
@@ -481,7 +485,7 @@ class TestXml(unittest.TestCase):
                 <reference name="dog" />
             </protocol>
             """
-        protocol, lookup = xml.loads(text)
+        protocol, lookup, common = xml.loads(text)
         for is_starting, entry, entry_data, value in protocol.decode(dt.Data('a')):
             if not is_starting and entry.name == "length":
                 result = value
@@ -502,14 +506,14 @@ class TestXml(unittest.TestCase):
                 <reference name="null terminating string:" />
             </protocol>
             """
-        protocol, lookup = xml.loads(text)
+        protocol, lookup, common = xml.loads(text)
         data = dt.Data('rabbit\0legs')
         result = ""
         for is_starting, entry, entry_data, value in protocol.decode(data):
             if not is_starting and entry.name == "char":
                 result += value
         self.assertEqual("rabbit", result)
-        self.assertEqual("legs", str(data))
+        self.assertEqual("legs", data.bytes())
 
     def test_string_constants(self):
         text = """
@@ -544,5 +548,50 @@ class TestXml(unittest.TestCase):
             </protocol>"""
         self.assertRaises(xml.XmlExpressionError, xml.loads, text)
 
-if __name__ == "__main__":
-    unittest.main()
+    def test_cannot_use_end_sequenceof_in_reference(self):
+        # There was a problem with using 'end-sequenceof' with common items...
+        text = """
+            <protocol>
+               <common>
+                  <field name="a" type="text" length="8" value="a" />
+               </common>
+               <sequenceof name="c">
+                  <choice name="entry">
+                     <reference name="a"><end-sequenceof /></reference>
+                     <field name="data" length="8" />
+                  </choice>
+               </sequenceof>
+           </protocol>
+               """
+        try:
+            xml.loads(text)
+        except xml.XmlError, ex:
+            self.assertTrue("end-sequenceof cannot be used within a referenced item" in str(ex))
+
+    def test_break_in_break(self):
+        # There was a bug in the xml loader when an end-sequenceof was under two sequenceofs.
+        text = """
+           <protocol>
+               <sequenceof name="strings">
+                  <choice name="entry">
+                     <field name="null" length="8" value="0x0" ><end-sequenceof/></field>
+                     <sequenceof name="null terminated string">
+                        <choice name="text char">
+                            <field name="null" length="8" value="0x0"><end-sequenceof/></field>
+                            <field name="char" length="8" type="text" />
+                        </choice>
+                     </sequenceof>
+                  </choice>
+               </sequenceof>
+            </protocol> """
+        decoder = xml.loads(text)[0]
+
+        data = dt.Data("chicken\x00bob\x00\00")
+        list(decoder.decode(data))
+        self.assertEquals(0, len(data))
+
+        data = dt.Data("chicken\x00bob\x00")
+        try:
+            list(decoder.decode(dt.Data("chicken\x00bob\x00")))
+        except fld.FieldDataError, ex:
+            self.assertEquals(dt.NotEnoughDataError, type(ex.error))

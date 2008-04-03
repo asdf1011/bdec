@@ -1,0 +1,76 @@
+## vim:set syntax=mako:
+
+## Create the C 'type' of each protocol entry
+<%!
+    from bdec.choice import Choice
+    from bdec.field import Field
+    from bdec.sequence import Sequence
+    from bdec.sequenceof import SequenceOf
+%>
+
+
+<%def name="ctype(entry)">
+  %if isinstance(entry, Field):
+    %if entry.format == Field.INTEGER:
+int
+    %elif entry.format == Field.TEXT:
+char*
+    %elif entry.format == Field.HEX:
+Buffer
+    %elif entry.format == Field.BINARY:
+BitBuffer
+    %else:
+#error Unhandled field format '${entry}'!
+    %endif
+  %else:
+struct ${esc_name(iter_entries().index(entry), iter_entries())|typename}
+  %endif
+</%def>
+
+<%def name="c_define(entry)" >
+  %if isinstance(entry, Sequence):
+${ctype(entry)}
+{
+  %for i, child in enumerate(entry.children):
+    ${ctype(child)} ${var_name(i, entry.children)};
+  %endfor
+};
+  %elif isinstance(entry, Field):
+typedef ${ctype(entry)} ${entry.name |typename};
+  %elif isinstance(entry, Choice):
+${ctype(entry)}
+{
+    %for i, child in enumerate(entry.children):
+    ${ctype(child)}* ${var_name(i, entry.children)};
+    %endfor
+};
+  %elif isinstance(entry, SequenceOf):
+${ctype(entry)}
+{
+    ${ctype(entry.children[0])}* items;
+    unsigned int count;
+};
+  %else:
+#error Unsupported entry ${entry}
+  %endif
+</%def>
+
+<%def name="define(entry)" >
+    %for e in iter_inner_entries(entry):
+      %if not isinstance(e, Field):
+${c_define(e)}
+      %endif
+    %endfor
+</%def>
+
+<%def name="decode_name(entry)">
+${'decode ' + esc_name(iter_entries().index(entry), iter_entries())|function}
+</%def>
+
+<%def name="print_name(entry)">
+${'print xml ' + esc_name(iter_entries().index(entry), iter_entries())|function}
+</%def>
+
+<%def name="var_name(i, other_vars)">
+${esc_name(i, other_vars)|variable}
+</%def>

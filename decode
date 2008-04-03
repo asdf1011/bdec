@@ -30,7 +30,7 @@ if log:
 if spec is None:
     sys.exit('Specification not set!')
 try:
-    decoder, lookup = xmlspec.load(spec)
+    decoder, lookup, common = xmlspec.load(spec)
 except bdec.spec.LoadError, ex:
     sys.exit(str(ex))
 
@@ -43,6 +43,23 @@ except bdec.DecodeError, ex:
     (filename, line_number, column_number) = lookup[ex.entry]
     sys.exit("%s[%i]: %s" % (filename, line_number, str(ex)))
 
-undecoded = str(data)
-if len(undecoded) > 0:
-    sys.stderr.write('%i bytes undecoded!\n' % len(undecoded))
+try:
+    # Test to see if we have data undecoded...
+    remaining = data.pop(1)
+
+    try:
+        # Only attempt to display the first 8 bytes; more isn't particularly
+        # useful.
+        remaining = remaining + data.pop(8 * 8 - 1)
+        sys.stderr.write('Over 8 bytes undecoded!\n')
+    except dt.NotEnoughDataError:
+        remaining = remaining + data
+        sys.stderr.write('Data is still undecoded!')
+    sys.stderr.write(str(remaining) + '\n')
+except dt.NotEnoughDataError:
+    # All the data has been decoded.
+    pass
+
+if len(data) > 0:
+    sys.stderr.write('%i bytes undecoded!\n' % len(data))
+

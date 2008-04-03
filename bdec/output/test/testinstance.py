@@ -61,7 +61,7 @@ class TestInstance(unittest.TestCase):
         same data back again.
         """
         def encode(struct):
-            return str(reduce(lambda a,b:a+b, inst.encode(protocol, struct), dt.Data("")))
+            return reduce(lambda a,b:a+b, inst.encode(protocol, struct), dt.Data("")).bytes()
         data = encode(value)
 
         # Now validate that we can decode that data...
@@ -120,5 +120,3 @@ class TestInstance(unittest.TestCase):
                 self.data = 0x5f
         self.assertEqual("\x5f", self._encode(hidden_seq, Blah()))
 
-if __name__ == "__main__":
-    unittest.main()

@@ -1,10 +1,12 @@
 #!/usr/bin/env python
 import unittest
 
+import bdec.choice as chc
 import bdec.data as dt
 import bdec.field as fld
 import bdec.output.xmlout as xml
 import bdec.sequence as seq
+import bdec.sequenceof as sof
 
 class TestXml(unittest.TestCase):
     def test_field(self):
@@ -25,7 +27,7 @@ class TestXml(unittest.TestCase):
             fld.Field("cat", 8, fld.Field.INTEGER),
             fld.Field("dog", 8, fld.Field.INTEGER)])
         data = reduce(lambda a,b:a+b, xml.encode(sequence, text))
-        self.assertEqual("\x05\x12", str(data))
+        self.assertEqual("\x05\x12", data.bytes())
 
     def test_encoded_text_length_ignores_whitespace(self):
         """
@@ -34,7 +36,15 @@ class TestXml(unittest.TestCase):
         text = "<blah><cat>\n    rabbit\n</cat></blah>"
         sequence = seq.Sequence("blah", [fld.Field("cat", 48, fld.Field.TEXT)])
         data = reduce(lambda a,b:a+b, xml.encode(sequence, text))
-        self.assertEqual("rabbit", str(data))
+        self.assertEqual("rabbit", data.bytes())
+
+    def test_choice_encode(self):
+        a = fld.Field('a', 8, expected=dt.Data('a'))
+        b = fld.Field('b', 8, expected=dt.Data('b'))
+        choice = chc.Choice('blah', [a, b])
+        text = "<blah><b /></blah>"
+        data = reduce(lambda a,b:a+b, xml.encode(choice, text))
+        self.assertEqual("b", data.bytes())
 
     def test_verbose(self):
         sequence = seq.Sequence("bob", [
@@ -56,7 +66,10 @@ class TestXml(unittest.TestCase):
 
         # Now test that we can re-encode verbose generated xml...
         data = reduce(lambda a,b:a+b, xml.encode(sequence, text))
-        self.assertEqual("mzip", str(data))
+        self.assertEqual("mzip", data.bytes())
 
-if __name__ == "__main__":
-    unittest.main()
+    def test_encode_sequenceof(self):
+        spec = sof.SequenceOf('cat', fld.Field('dog', 8, fld.Field.TEXT), 4)
+        text = "<cat> <dog>a</dog> <dog>b</dog> <dog>c</dog> <dog>d</dog> </cat>"
+        data = reduce(lambda a,b:a+b, xml.encode(spec, text))
+        self.assertEqual("abcd", data.bytes())

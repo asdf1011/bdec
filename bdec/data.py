@@ -47,6 +47,14 @@ class InvalidBinaryTextError(DataError):
 class InvalidHexTextError(DataError):
     pass
 
+class BadTextEncodingError(DataError):
+    def __init__(self, data, encoding):
+        self.data = data
+        self.encoding = encoding
+
+    def __str__(self):
+        return "'%s' can't convert '%s'" % (self.encoding, self.data)
+
 class _OutOfDataError(Exception):
     """Not derived from DataError as this is an internal error."""
 
@@ -133,8 +141,20 @@ class Data:
     def copy(self):
         return Data(self._buffer, self._start, self._end)
 
-    def __str__(self):
+    def bytes(self):
         return "".join(chr(byte) for byte in self._get_bytes())
+
+    def text(self, encoding):
+        try:
+            return unicode(self.bytes(), encoding)
+        except UnicodeDecodeError:
+            raise BadTextEncodingError(self, encoding)
+
+    def __str__(self):
+        if len(self) % 8 == 0:
+            return 'hex (%i bytes): %s' % (len(self) / 8, self.get_hex())
+        else:
+            return 'bin (%i bits): %s' % (len(self), self.get_binary_text())
 
     def _get_bits(self):
         """
