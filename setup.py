@@ -2,13 +2,15 @@
 
 from setuptools import setup, find_packages
 
+import bdec
+
 long_description = """\
 Write specifications for existing binary formats in a flexible xml based
 syntax, and have decoders automatically generated for you. Written in Python,
 it currently supports decoding to xml or python objects.
 """
 
-version='0.3.0'
+version=bdec.__version__
 
 setup(name='bdec',
       version=version,

@@ -5,3 +5,5 @@ class DecodeError(Exception):
         import bdec.entry as ent
         assert isinstance(entry, ent.Entry)
         self.entry = entry
+
+__version__ = "0.3.0"
