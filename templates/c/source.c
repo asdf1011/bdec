@@ -28,14 +28,15 @@
 </%def>
 
 ## Recursively create functions for decoding the entries contained within this protocol specification.
-<%def name="recursiveDecode(entry)">
+<%def name="recursiveDecode(entry, is_static=True)">
 %for child in entry.children:
   %if child not in common:
 ${recursiveDecode(child)}
   %endif
 %endfor
 
-int ${ctype.decode_name(entry)}(BitBuffer* buffer, ${ctype.ctype(entry)}* result${decodeentry.define_params(entry)})
+<% static = "static " if is_static else "" %>
+${static}int ${ctype.decode_name(entry)}(BitBuffer* buffer, ${ctype.ctype(entry)}* result${decodeentry.define_params(entry)})
 {
   %for local in local_vars(entry):
       int ${local} = 0;
@@ -109,7 +110,7 @@ int ${ctype.decode_name(entry)}(BitBuffer* buffer, ${ctype.ctype(entry)}* result
 }
 </%def>
 
-${recursiveDecode(entry)}
+${recursiveDecode(entry, False)}
 
 static void printWhitespace(int numChars)
 {
