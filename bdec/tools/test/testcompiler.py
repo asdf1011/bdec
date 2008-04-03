@@ -326,5 +326,8 @@ class _CompilerTests:
         self._decode(b, 'b\00', common=[a,b])
         self._decode_failure(b, 'bac', common=[a,b])
 
+    def test_sequenceof_with_length(self):
+        buffer = sof.SequenceOf('databuffer', fld.Field('data', 8), None, length=32)
+        self._decode(buffer, 'baba')
 
-globals().update(create_decoder_classes([_CompilerTests], 'SimpleDecode', __name__))
+globals().update(create_decoder_classes([(_CompilerTests, 'SimpleDecode')], __name__))

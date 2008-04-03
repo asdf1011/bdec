@@ -70,7 +70,11 @@ int ${ctype.decode_name(entry)}(BitBuffer* buffer, ${ctype.ctype(entry)}* result
     %else:
     result->items = 0;
     result->count = 0;
+      %if entry.length is not None:
+    while (buffer->num_bits > 0)
+      %else:
     while (!${'should end' |variable})
+      %endif
     {
         i = result->count;
         ++result->count;
