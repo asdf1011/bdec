@@ -8,7 +8,7 @@ syntax, and have decoders automatically generated for you. Written in Python,
 it currently supports decoding to xml or python objects.
 """
 
-version='0.2.0'
+version='0.3.0'
 
 setup(name='bdec',
       version=version,
