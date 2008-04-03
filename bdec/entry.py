@@ -200,6 +200,12 @@ class Entry(object):
         self._listeners.append(listener)
 
     def _decode_child(self, child, data, context):
+        """
+        Decode a child entry.
+
+        Creates a new context for the child, and after the decode completes,
+        will update this entry's context.
+        """
         # Create the childs context from our data
         child_context = {}
         for param in child._params:
