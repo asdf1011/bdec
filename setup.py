@@ -18,7 +18,7 @@ setup(name='bdec',
       author_email='misc@hl.id.au',
       url='http://www.hl.id.au/Projects/bdec/',
       download_url='http://www.hl.id.au/Projects/bdec/files/bdec-%s.tar.gz' % version,
-      packages=find_packages(exclude=["examples", "examples.*"]),
+      packages=find_packages(exclude=["specs", "specs.*"]),
       install_requires=['pyparsing'],
       license="BSD",
       classifiers=[

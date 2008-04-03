@@ -122,7 +122,7 @@ if len(sys.argv) != 2:
 
 # Load the specificiations
 filename = sys.argv[1]
-spec_dir = os.path.join(os.path.dirname(__file__), '..', 'examples')
+spec_dir = os.path.join(os.path.dirname(__file__), '..', 'specs')
 specs = load_specs(spec_dir)
 
 # Load the data to choose from

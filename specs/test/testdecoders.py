@@ -1,5 +1,5 @@
 """
-A script for testing all of the example specifications.
+Unit tests for testing all of the provided specifications.
 
 It attempts to load each example specification, and will attempt to decode all
 of the supplied sample files.
