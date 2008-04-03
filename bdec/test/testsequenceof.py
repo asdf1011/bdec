@@ -45,7 +45,7 @@ class TestSequenceOf(unittest.TestCase):
         self.assertEqual('unused', rawdata.bytes())
 
     def test_run_out_of_data_greedy(self):
-        sequenceof = sof.SequenceOf("blah", fld.Field("cat", 8, format=fld.Field.TEXT), None)
+        sequenceof = sof.SequenceOf("blah", fld.Field("cat", 8, format=fld.Field.TEXT), None, length=32)
         rawdata = dt.Data("date")
         items = [value for is_starting, entry, data, value in sequenceof.decode(rawdata) if isinstance(entry, fld.Field) and not is_starting]
         self.assertEqual(4, len(items))

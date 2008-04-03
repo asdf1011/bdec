@@ -589,3 +589,9 @@ class TestXml(unittest.TestCase):
         data = dt.Data("chicken\x00bob\x00\00")
         list(decoder.decode(data))
         self.assertEquals(0, len(data))
+
+        data = dt.Data("chicken\x00bob\x00")
+        try:
+            list(decoder.decode(dt.Data("chicken\x00bob\x00")))
+        except fld.FieldDataError, ex:
+            self.assertEquals(dt.NotEnoughDataError, type(ex.error))

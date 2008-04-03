@@ -51,12 +51,15 @@ class SequenceOf(bdec.entry.Entry):
 
             for i in range(count):
                 yield i
+        elif self.length is not None:
+            while 1:
+                if data.empty():
+                    # We ran out of data on a greedy sequence...
+                    break
+                yield None
         else:
             while 1:
                 if context['should end']:
-                    break
-                if data.empty():
-                    # We ran out of data on a greedy sequence...
                     break
                 yield None
 
