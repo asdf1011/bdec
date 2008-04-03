@@ -153,7 +153,7 @@ class _Handler(xml.sax.handler.ContentHandler):
             if self._end_sequenceof:
                 # There is a parent sequence of object that must stop when
                 # this entry decodes.
-                for name, attrs, breaks in self._stack:
+                for name, attrs, breaks in reversed(self._stack):
                     if name == "sequenceof":
                         breaks.append(entry)
                         if isinstance(entry, _ReferencedEntry):

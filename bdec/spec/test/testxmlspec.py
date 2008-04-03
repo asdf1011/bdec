@@ -548,7 +548,7 @@ class TestXml(unittest.TestCase):
             </protocol>"""
         self.assertRaises(xml.XmlExpressionError, xml.loads, text)
 
-    def test_end_sequenceof_in_reference(self):
+    def test_cannot_use_end_sequenceof_in_reference(self):
         # There was a problem with using 'end-sequenceof' with common items...
         text = """
             <protocol>
@@ -567,3 +567,25 @@ class TestXml(unittest.TestCase):
             xml.loads(text)
         except xml.XmlError, ex:
             self.assertTrue("end-sequenceof cannot be used within a referenced item" in str(ex))
+
+    def test_break_in_break(self):
+        # There was a bug in the xml loader when an end-sequenceof was under two sequenceofs.
+        text = """
+           <protocol>
+               <sequenceof name="strings">
+                  <choice name="entry">
+                     <field name="null" length="8" value="0x0" ><end-sequenceof/></field>
+                     <sequenceof name="null terminated string">
+                        <choice name="text char">
+                            <field name="null" length="8" value="0x0"><end-sequenceof/></field>
+                            <field name="char" length="8" type="text" />
+                        </choice>
+                     </sequenceof>
+                  </choice>
+               </sequenceof>
+            </protocol> """
+        decoder = xml.loads(text)[0]
+
+        data = dt.Data("chicken\x00bob\x00\00")
+        list(decoder.decode(data))
+        self.assertEquals(0, len(data))

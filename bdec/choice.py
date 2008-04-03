@@ -63,7 +63,7 @@ class Choice(bdec.entry.Entry):
                         best_guess_bits = bits_decoded
 
         # Decode the best option.
-        for is_starting, entry, data, value in best_guess.decode(data, context):
+        for is_starting, entry, data, value in self._decode_child(best_guess, data, context):
             yield is_starting, entry, data, value
 
         assert not failure_expected
