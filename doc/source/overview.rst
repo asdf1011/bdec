@@ -16,8 +16,8 @@ generated.
 .. _specifications: `bdec specifications`_
 
 
-Format specifications
-=====================
+Why specifications are needed
+=============================
 
 Most binary file formats do not use a standardised format for specifying
 the data layout in the file; instead, the format specification is usually a
@@ -50,8 +50,8 @@ difficulties;
 These problems make it difficult to read and write decoders.
 
 
-Standardised binary specifications
-==================================
+Existing binary specifications
+==============================
 
 There are existing specifications for binary formats, such as `ASN.1`_ and
 `CSN.1`_. These specifications have the problem that they cannot be retrofitted
@@ -64,10 +64,11 @@ to existing binary formats.
 bdec specifications
 ===================
 
-The bdec format specification is machine readable, and is capable of
+The `bdec format specification`_ is machine readable, and is capable of
 describing multiple existing binary formats.
 
 The bdec decoder is capable of loading the specification, and creates
 a decoder that can produce either python instances or xml output 
 representing the data encoded in the binary files.
 
+.. _bdec format specification: format
