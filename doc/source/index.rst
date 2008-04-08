@@ -3,6 +3,9 @@
 Welcome to bdec's documentation!
 ================================
 
+Bdec is a library to create decoders and encoders for binary files given a 
+specification.
+
 Contents:
 
 .. toctree::
@@ -10,12 +13,4 @@ Contents:
 
    overview
    format
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
 
