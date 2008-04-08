@@ -12,4 +12,13 @@ The bdec decoder is capable of loading the specification, and creates a
 decoder that can produce either python instances or xml output representing
 the data encoded in the binary files.
 
-Bdec specifications are written in xml.
+The four types of objects in a specification are;
+
+.. toctree::
+    :maxdepth: 2
+
+    field
+    sequence
+    sequenceof
+    choice
+

@@ -9,7 +9,7 @@ information that is directly accessible by a human reader.
 
 Some binary formats include jpg pictures, mp3 audio files, or pdf documents.
 
-The bdec library allows machine readable :ref:`specifications <format>`
+The bdec library allows machine readable :ref:`specifications <bdec-specification>`
 to be written for existing binary formats, allowing high quality decoders to
 be automatically generated.
 

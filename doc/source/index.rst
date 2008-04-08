@@ -12,5 +12,5 @@ Contents:
    :maxdepth: 2
 
    overview
-   format
+   format/index
 
