@@ -22,8 +22,9 @@ Bdec sequence entries can have 3 attributes;
   * A length_ (optional)
   * A value_ (optional)
 
-Sequence attributes can contain any other type of entry (eg: fields,
-sequences...).
+Sequence attributes can contain any other type of entry (ie: 
+:ref:`fields <format-field>`, sequences, :ref:`sequenceofs <format-sequenceof>`,
+and :ref:`choices <format-choice>`).
 
 .. _length: `Sequence length`_
 .. _value: `Sequence value`_

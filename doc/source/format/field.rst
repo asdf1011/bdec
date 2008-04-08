@@ -1,4 +1,6 @@
 
+.. _format-field:
+
 =============
 Field entries
 =============
