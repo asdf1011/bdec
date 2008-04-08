@@ -1,4 +1,4 @@
 
 ==================
-Sequenceof entries
+SequenceOf entries
 ==================

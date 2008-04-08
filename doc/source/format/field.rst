@@ -25,7 +25,7 @@ Bdec fields can have 4 attributes;
   * A value_ (optional)
 
 .. _type: `Field types`_
-.. _value: `Field value`_
+.. _value: `Expected value`_
 
 
 Field types
@@ -65,8 +65,8 @@ Binary
 Binary fields represent binary data of any length. It has no encoding.
 
 
-Field value
-===========
+Expected value
+==============
 
 Fields can have a value which specifies the value it expects to find on disk.
 If the value doesn't match, the decode will fail.
