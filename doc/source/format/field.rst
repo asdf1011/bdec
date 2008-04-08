@@ -16,12 +16,12 @@ data that is found in the binary file. Some characteristics of this data are;
 Specification
 =============
 
-Bdec fields have 4 attributes;
+Bdec fields can have 4 attributes;
 
   * A name
-  * A :ref:`length <bdec-expressions>`
-  * A type_
-  * An encoding
+  * A :ref:`length <bdec-expressions>` in bits
+  * A type_ (optional)
+  * An encoding (optional)
 
 .. _type: `Field types`_
 
