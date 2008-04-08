@@ -22,8 +22,10 @@ Bdec fields can have 4 attributes;
   * A :ref:`length <bdec-expressions>` in bits
   * A type_ (optional)
   * An encoding (optional)
+  * A value_ (optional)
 
 .. _type: `Field types`_
+.. _value: `Field value`_
 
 
 Field types
@@ -63,6 +65,16 @@ Binary
 Binary fields represent binary data of any length. It has no encoding.
 
 
+Field value
+===========
+
+Fields can have a value which specifies the value it expects to find on disk.
+If the value doesn't match, the decode will fail.
+
+The decode attribute can be either in hex (ie: value="0xf3"), or in the type
+of the field (eg: type="text" value="expected string").
+
+
 Examples
 ========
 
@@ -77,3 +89,7 @@ A utf-16 text field that is 8 bytes long::
 A single bit boolean flag::
 
    <field name="is header present" length="1" />
+
+A two byte field that has an expected value::
+
+   <field name="id" length="16" value="0x00f3" />
