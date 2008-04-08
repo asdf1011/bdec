@@ -21,4 +21,5 @@ The four types of objects in a specification are;
     sequence
     sequenceof
     choice
+    expressions
 
