@@ -25,9 +25,13 @@ Bdec fields can have 4 attributes;
   * A type_ (optional)
   * An encoding (optional)
   * A value_ (optional)
+  * A min_ value (optional)
+  * A max_ value (optional)
 
 .. _type: `Field types`_
 .. _value: `Expected value`_
+.. _min: `Value ranges`_
+.. _max: `Value ranges`_
 
 
 Field types
@@ -77,6 +81,22 @@ The decode attribute can be either in hex (ie: value="0xf3"), or in the type
 of the field (eg: type="text" value="expected string").
 
 
+Value ranges
+============
+
+It is often desirable to set a minimum and a maximum value for fields. For 
+example, you may want to accept all numerical text entries '0' .. '9'. The min
+and max attributes can be used to set a range of valid numerical values for the
+field.
+
+Both min and max are inclusive; ie::
+
+    min <= value <= max
+
+If the decode value falls outside the minimum or maximum, the field fails to
+decode.
+
+
 Examples
 ========
 
@@ -95,3 +115,7 @@ A single bit boolean flag::
 A two byte field that has an expected value::
 
    <field name="id" length="16" value="0x00f3" />
+
+A single numerical character (eg: characters '0'..'9')::
+
+   <field name="number" length="8" min="48" max="57" />

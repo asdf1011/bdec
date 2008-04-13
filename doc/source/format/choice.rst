@@ -59,3 +59,11 @@ Choose between two entry types::
          <field name="value" length="32" type="integer" />
       </sequence>
   </choice>
+
+Allow only hex characters (eg: characters 'a' .. 'f', 'A' .. 'F', '0' .. '9')::
+
+  <choice name="char">
+      <field name="lowercase char" length="8" min="97" max="102" />
+      <field name="uppercase char" length="8" min="65" max="70" />
+      <field name="number" length="8" min="48" max="57" />
+  </choice>
