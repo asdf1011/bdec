@@ -5,9 +5,9 @@
 Reference entries
 =================
 
-Reference entries are used to mark that a child entry is a reference to a top
-level entry. This allows the specification to be broken up into logical 
-boundaries.
+Reference entries are used to mark that a child entry is a reference to a 
+:ref:`top level entry <common-elements>`. This allows the specification to be 
+broken up into logical boundaries.
 
 References are identified by name, and cannot include modifications to the top
 level entry (eg: no changing the type of fields, changing the children of a 
