@@ -20,7 +20,8 @@ Choice entries can have up to two attributes.
 
 The choice must have multiple child entries specifying the different possible
 options (ie: :ref:`fields <format-field>`, :ref:`sequences <format-sequence>`,
-:ref:`sequenceofs <format-sequenceof>`, or other choices).
+:ref:`sequenceofs <format-sequenceof>`, other choices, or 
+:ref:`references <format-reference>`).
 
 .. _length: `Choice length`_
 

@@ -29,7 +29,7 @@ A sequenceof should have either a count, a length, or have an embedded
 
 SequenceOf entries must contain one entry that is to be repeated (ie: a
 :ref:`field <format-field>`, a :ref:`sequence <format-sequence>`, a sequenceof,
-or a :ref:`choice <format-choice>`).
+a :ref:`choice <format-choice>`, or a :ref:`references <format-reference>`).
 
 .. _count: `Count loops`_
 .. _length: `Length loops`_
