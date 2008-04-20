@@ -24,6 +24,14 @@ The bdec xml specification uses constructs based on the constructs found in
 ASN.1.
 
 
+Documentation
+=============
+
+See the documentation_ page.
+
+.. _documentation: docs
+
+
 Usage
 =====
 
