@@ -1,7 +1,15 @@
+"""
+The bdec.field module contains the Field class, and all errors related to its
+use.
+"""
+
 import bdec.data as dt
 import bdec.entry
 
 class FieldError(bdec.DecodeError):
+    """
+    Base class for all field errors.
+    """
     def __init__(self, field):
         bdec.DecodeError.__init__(self, field)
         assert isinstance(field, Field)
@@ -10,11 +18,8 @@ class FieldError(bdec.DecodeError):
     def __str__(self):
         return "%s: %s" % (self.__class__, self.field)
 
-class FieldNotDecodedError(FieldError):
-    def __init__(self, field):
-        FieldError.__init__(self, field)
-
 class BadDataError(FieldError):
+    """Error raised when expected data didn't match the data found."""
     def __init__(self, field, expected, actual):
         FieldError.__init__(self, field)
         assert isinstance(expected, dt.Data)
@@ -33,6 +38,7 @@ class BadDataError(FieldError):
         return "'%s' expected %s, got %s" % (self.field.name, repr(expected), repr(actual))
 
 class BadRangeError(FieldError):
+    """Error raised when the data found wasn't within the allowable range."""
     def __init__(self, field, actual):
         FieldError.__init__(self, field)
         self.actual = actual
@@ -52,6 +58,7 @@ class BadRangeError(FieldError):
         return "'%s' value %s not in range %s" % (self.field.name, self.actual, self._range())
 
 class BadEncodingError(FieldError):
+    """Error raised when data couldn't be converted to a text fields encoding."""
     def __init__(self, field, data):
         FieldError.__init__(self, field)
         self.data = data
@@ -60,9 +67,7 @@ class BadEncodingError(FieldError):
         return "BadEncodingError: %s couldn't encode %s" % (self.field, self.data)
 
 class BadFormatError(FieldError):
-    """
-    Got the wrong sort of data type when encoding.
-    """
+    """Got the wrong sort of data type when encoding. """
     def __init__(self, field, data, expected_type):
         FieldError.__init__(self, field)
         self.data = data
@@ -73,9 +78,7 @@ class BadFormatError(FieldError):
 
 
 class FieldDataError(FieldError):
-    """
-    An error with converting the data to the specified type.
-    """
+    """An error with converting the data to or from the specified type. """
     def __init__(self, field, error):
         FieldError.__init__(self, field)
         self.error = error
@@ -84,6 +87,11 @@ class FieldDataError(FieldError):
         return "%s - %s" % (self.field, self.error)
 
 class Field(bdec.entry.Entry):
+    """A field represents data found in the binary file.
+
+    A field can be of variable length, be non-byte aligned, be in one of many
+    formats and encodings, and can reference previously decoded fields.
+    """
 
     # Field format types
     TEXT = "text"

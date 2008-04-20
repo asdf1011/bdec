@@ -130,11 +130,16 @@ class Entry(object):
     """
     A decoder entry is an item in a protocol that can be decoded.
 
-    An entry can have a length; if so, the decode size of that entry
-    must match.
+    This class designed to be derived by other classes (not instantiated 
+    directly).
     """
 
     def __init__(self, name, length, embedded):
+        """Construct an Entry instance.
+
+        An entry can have a length; if so, the decode size of that entry
+        must match.
+        """
         self.name = name
         self._listeners = []
         self.length = length
