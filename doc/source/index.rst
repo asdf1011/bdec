@@ -13,4 +13,5 @@ Contents:
 
    overview
    format/index
+   tutorial
 
