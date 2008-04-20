@@ -1,0 +1,88 @@
+     <!-- This specification decodes png image files based on the specification at
+          http://www.libpng.org/pub/png/spec/1.1/ -->
+
+  <protocol>
+     <sequence name="png">
+        <field name="signature" length="64" type="hex" value="0x89504e470d0a1a0a" />
+        <reference name="begin chunk" />
+        <sequenceof name="chunks">
+          <choice name="chunk">
+              <reference name="image data" />
+              <reference name="text chunk" />
+             <sequence name="end">
+                 <reference name="end chunk" />
+                 <end-sequenceof />
+             </sequence>
+              <reference name="unknown chunk" />
+           </choice>
+        </sequenceof>
+     </sequence>
+
+     <common>
+       <sequence name="unknown chunk">
+          <field name="length" length="32" type="integer" />
+          <field name="message type" length="32" type="hex" />
+          <field name="data" length="${length} * 8" type="hex" />
+          <field name="crc" length="32" type="hex" />
+       </sequence>
+
+       <sequence name="begin chunk">
+          <field name="length" length="32" type="integer" />
+          <field name="type" length="32" type="text" value="IHDR" />
+          <sequence name="header" length="${length} * 8">
+             <field name="width" length="32" type="integer" />
+             <field name="height" length="32" type="integer" />
+             <field name="bit depth" length="8" type="integer" />
+             <choice name="colour type">
+                <field name="greyscale" length="8" value="0x0" />
+                <field name="rgb" length="8" value="0x2" />
+                <field name="palette" length="8" value="0x3" />
+                <field name="greyscale and alpha" length="8" value="0x4" />
+                <field name="rgba" length="8" value="0x6" />
+                <field name="unknown" length="8" />
+             </choice>
+             <choice name="compression method">
+                <field name="deflate" length="8" value="0x0" />
+                <field name="unknown" length="8" />
+             </choice>
+             <choice name="filter method">
+                <field name="adaptive" length="8" value="0x0" />
+                <field name="unknown" length="8" />
+             </choice>
+             <choice name="interlace method">
+                <field name="none" length="8" value="0x0" />
+                <field name="adam 7" length="8" value="0x1" />
+                <field name="unknown" length="8" />
+             </choice>
+          </sequence>
+          <field name="crc" length="32" type="hex" />
+       </sequence>
+
+       <sequence name="end chunk">
+          <field name="length" length="32" type="integer" />
+          <field name="type" length="32" type="text" value="IEND" />
+          <field name="data" length="${length} * 8" type="hex" />
+          <field name="crc" length="32" type="hex" />
+       </sequence>
+
+       <sequence name="image data">
+          <field name="length" length="32" type="integer" />
+          <field name="type" length="32" type="text" value="IDAT" />
+          <field name="data" length="${length} * 8" type="hex" />
+          <field name="crc" length="32" type="hex" />
+       </sequence>
+
+       <sequence name="text chunk">
+          <field name="length" length="32" type="integer" />
+          <field name="type" length="32" type="text" value="tEXt" />
+          <sequenceof name="keyword">
+             <choice name="char">
+                <field name="null" length="8" value="0x0"><end-sequenceof /></field>
+                <field name="character" length="8" type="text" />
+             </choice>
+          </sequenceof>
+          <field name="value" type="text" length="${length} * 8 - len{keyword}" />
+          <field name="crc" length="32" type="hex" />
+       </sequence>
+     </common>
+  </protocol>
