@@ -9,15 +9,13 @@ information that is directly accessible by a human reader.
 
 Some binary formats include jpg pictures, mp3 audio files, or pdf documents.
 
-The bdec library allows machine readable `specifications`_ to be written for
-existing binary formats, allowing high quality decoders to be automatically 
-generated.
-
-.. _specifications: `bdec specifications`_
+The bdec library allows machine readable :ref:`specifications <bdec-specification>`
+to be written for existing binary formats, allowing high quality decoders to
+be automatically generated.
 
 
-Format specifications
-=====================
+Why specifications are needed
+=============================
 
 Most binary file formats do not use a standardised format for specifying
 the data layout in the file; instead, the format specification is usually a
@@ -50,8 +48,8 @@ difficulties;
 These problems make it difficult to read and write decoders.
 
 
-Standardised binary specifications
-==================================
+Existing binary specifications
+==============================
 
 There are existing specifications for binary formats, such as `ASN.1`_ and
 `CSN.1`_. These specifications have the problem that they cannot be retrofitted
@@ -60,14 +58,4 @@ to existing binary formats.
 .. _ASN.1: www.asn1.org
 .. _CSN.1: www.csn1.info
 
-
-bdec specifications
-===================
-
-The bdec format specification is machine readable, and is capable of
-describing multiple existing binary formats.
-
-The bdec decoder is capable of loading the specification, and creates
-a decoder that can produce either python instances or xml output 
-representing the data encoded in the binary files.
 

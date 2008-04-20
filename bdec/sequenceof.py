@@ -2,6 +2,7 @@ import bdec.data as dt
 import bdec.entry
 
 class InvalidSequenceOfCount(bdec.DecodeError):
+    """Raised during encoding when an invalid length is found."""
     def __init__(self, seq, expected, actual):
         bdec.DecodeError.__init__(self, seq)
         self.sequenceof = seq
@@ -12,6 +13,7 @@ class InvalidSequenceOfCount(bdec.DecodeError):
         return "%s expected count of %i, got %i" % (self.sequenceof, self.expected, self.actual)
 
 class NegativeSequenceofLoop(bdec.DecodeError):
+    """Error when a sequenceof is asked to loop a negative amount."""
     def __init__(self, seq, count):
         bdec.DecodeError.__init__(self, seq)
         self.count = count
@@ -22,6 +24,13 @@ class NegativeSequenceofLoop(bdec.DecodeError):
 class SequenceOf(bdec.entry.Entry):
     """
     A protocol entry representing a sequence of another protocol entry.
+
+    The number of times the child entry will loop can be set in one of three
+    ways;
+     
+     * It can loop for a specified amount of times
+     * It can loop until a buffer is empty
+     * It can loop until a child entry decodes
     """
     STOPPED = "stopped"
     ITERATING = "iterating"
@@ -29,9 +38,15 @@ class SequenceOf(bdec.entry.Entry):
 
     def __init__(self, name, child, count, length=None, end_entries=[]):
         """
-        A count of None will result in a 'greedy' sequence, which will keep on
-        decoding items until an entry in end_entries is decoded, or we run out
-        of data.
+        count -- The number of times the child will repeat. If this value is
+          None, the count will not be used.
+        length -- The size of the buffer in bits. When the buffer is empty, the
+          looping will stop. If None, the length will not be used.
+        end_entries -- A list of child entries whose successful decode
+          indicates the loop should stop.
+
+        If neither count, length, or end_entries are used, the SequenceOf will
+        fail to decode after using all of the available buffer.
         """
         bdec.entry.Entry.__init__(self, name, length, [child])
         self.count = count

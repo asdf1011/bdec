@@ -2,13 +2,15 @@
 
 from setuptools import setup, find_packages
 
+import bdec
+
 long_description = """\
 Write specifications for existing binary formats in a flexible xml based
 syntax, and have decoders automatically generated for you. Written in Python,
 it currently supports decoding to xml or python objects.
 """
 
-version='0.3.0'
+version=bdec.__version__
 
 setup(name='bdec',
       version=version,
@@ -19,8 +21,9 @@ setup(name='bdec',
       url='http://www.hl.id.au/Projects/bdec/',
       download_url='http://www.hl.id.au/Projects/bdec/files/bdec-%s.tar.gz' % version,
       packages=find_packages(exclude=["specs", "specs.*"]),
-      install_requires=['pyparsing'],
+      install_requires=['pyparsing', 'nose', 'mako'],
       license="BSD",
+      test_suite='nose.collector',
       classifiers=[
           'Development Status :: 3 - Alpha',
           'Environment :: Console',

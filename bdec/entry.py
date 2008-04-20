@@ -1,3 +1,8 @@
+"""
+The bdec.entry module defines the core entry class (bdec.entry.Entry) and 
+errors (derived from bdec.DecodeError) common to all entry types.
+"""
+
 import bdec
 import bdec.data as dt
 
@@ -14,6 +19,9 @@ class MissingInstanceError(bdec.DecodeError):
         return "object '%s' doesn't have child object '%s'" % (self.parent, self.child.name)
 
 class EntryDataError(bdec.DecodeError):
+    """Error raised when an error was found with the entries data.
+    
+    For example, not enough data was available to decode this entry."""
     def __init__(self, entry, ex):
         bdec.DecodeError.__init__(self, entry)
         self.ex = ex
@@ -22,6 +30,7 @@ class EntryDataError(bdec.DecodeError):
         return "%s - %s" % (self.entry, self.ex)
 
 class DecodeLengthError(bdec.DecodeError):
+    """An entry failed to decode all of the data that was allocated to it."""
     def __init__(self, entry, unused):
         bdec.DecodeError.__init__(self, entry)
         self.unused = unused
@@ -30,9 +39,7 @@ class DecodeLengthError(bdec.DecodeError):
         return "'%s' left %i bits of data undecoded (%s)" % (self.entry, len(self.unused), self.unused.get_binary_text())
 
 class DataLengthError(bdec.DecodeError):
-    """
-    Encoded data has the wrong length
-    """
+    """Encoded data has the wrong length."""
     def __init__(self, entry, expected, actual):
         bdec.DecodeError.__init__(self, entry)
         self.expected = expected
@@ -42,9 +49,7 @@ class DataLengthError(bdec.DecodeError):
         return "%s expected length %i, got length %i" % (self.entry, self.expected, self.actual)
 
 class MissingExpressionReferenceError(bdec.DecodeError):
-    """
-    An expression references an unknown entry.
-    """
+    """An expression references an unknown entry."""
     def __init__(self, entry, missing):
         bdec.DecodeError.__init__(self, entry)
         self.missing_context = missing
@@ -54,8 +59,7 @@ class MissingExpressionReferenceError(bdec.DecodeError):
 
 
 def is_hidden(name):
-    """
-    Is a name a 'hidden' name.
+    """Is a name a 'hidden' name.
 
     Entries may be hidden for many reasons; for example, we don't want to
     see 'expected' results (that is, fields with data we expect, without
@@ -86,8 +90,7 @@ def hack_calculate_expression(expression, context):
 
 
 class Range:
-    """
-    Class representing the possible length of a protocol entry.
+    """Class representing the possible length of a protocol entry.
     
     The possible in range is inclusive of min and max.
     """
@@ -122,14 +125,18 @@ def _hack_create_value_listener(name):
     return _on_value_referenced
 
 class Entry(object):
-    """
-    A decoder entry is an item in a protocol that can be decoded.
+    """An entry is an item in a protocol that can be decoded.
 
-    An entry can have a length; if so, the decode size of that entry
-    must match.
+    This class designed to be derived by other classes (not instantiated 
+    directly).
     """
 
     def __init__(self, name, length, embedded):
+        """Construct an Entry instance.
+
+        An entry can have a length; if so, the decode size of that entry
+        must match.
+        """
         self.name = name
         self._listeners = []
         self.length = length
@@ -238,16 +245,16 @@ class Entry(object):
         raise NotImplementedError()
 
     def decode(self, data, context={}):
-        """
-        Decode this entry from input data.
+        """Return an iterator of (is_starting, Entry, data, value) tuples.
 
-        @param data The data to decode
-        @param context The context of our decode. Is a lookup of names to
-            intger values.
-        @return An iterator that returns (is_starting, Entry, data) tuples. The
-            data when the decode is starting is the data available to be 
-            decoded, and the data when the decode is finished is the data from
-            this entry only (not including embedded entries).
+        The data returned is_starting==True the data available to be decoded,
+        and the data returned when is_starting==False is the decode decoded by
+        this entry (not including embedded entries).
+
+        data -- An instance of bdec.data.Data to decode.
+        context -- The context to decode in. Is a lookup of names to integer
+           values.
+
         """
         self.validate()
 
@@ -300,14 +307,12 @@ class Entry(object):
         raise NotImplementedError()
 
     def encode(self, query, parent_context):
-        """
-        Encode a data source.
+        """Return an iterator of bdec.data.Data instances.
 
-        Sub-items will be queried by calling 'query' with a name and the context
-        object. This query should raise a MissingInstanceError if the instance
-        could not be found.
-        
-        Should return an iterable object for SequenceOf entries.
+        query -- Function to return a value to be encoded when given an entry
+          instance and the parent entry's value. If the parent doesn't contain
+          the expected instance, MissingInstanceError should be raised.
+        parent_context -- The value of the parent of this instance.
         """
         encode_length = 0
         for data in self._encode(query, parent_context):
@@ -318,9 +323,7 @@ class Entry(object):
             raise DataLengthError(self, int(self.length), encode_length)
 
     def is_hidden(self):
-        """
-        Is this a 'hidden' entry.
-        """
+        """Is this a 'hidden' entry."""
         return is_hidden(self.name)
 
     def __str__(self):
@@ -336,10 +339,11 @@ class Entry(object):
         return bdec.entry.Range()
 
     def range(self, ignore_entries=set()):
-        """
-        Return a Range instance indicating the length of this entry.
+        """Return a Range instance indicating the length of this entry.
 
-        If 'entry' is in 'ignore_entries', the length will be ignored.
+        ignore_entries -- If self is in ignore_entries, a default Range 
+           instance will be returned. 'self' and all child entries will
+           be added to ignore_entries.
         """
         if self in ignore_entries:
             # If an entry is recursive, we cannot predict how long it will be.
