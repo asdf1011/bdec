@@ -1,3 +1,8 @@
+"""
+The bdec.entry module defines the core entry class (bdec.entry.Entry) and 
+errors (derived from bdec.DecodeError) common to all entry types.
+"""
+
 import bdec
 import bdec.data as dt
 
