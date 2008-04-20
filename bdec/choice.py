@@ -4,7 +4,7 @@ import bdec.entry
 
 class Choice(bdec.entry.Entry):
     """
-    Implement an entry that can be one of many entries.
+    An entry that can be one of many entries.
 
     The first entry to decode correctly will be used.
     """

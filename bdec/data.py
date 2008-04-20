@@ -4,12 +4,11 @@ import string
 import weakref
 
 class DataError(Exception):
-    """
-    Base class for all data errors.
-    """
+    """Base class for all data errors."""
     pass
 
 class NotEnoughDataError(DataError):
+    """Not enough data was available to fulfill the request."""
     def __init__(self, requested_length, available_length):
         self.requested = requested_length
         self.available = available_length
@@ -18,6 +17,7 @@ class NotEnoughDataError(DataError):
         return "Asked for %i bits, but only have %i bits available!" % (self.requested, self.available)
 
 class PoppedNegativeBitsError(DataError):
+    """A negative amount of data was requested."""
     def __init__(self, requested_length):
         self.requested = requested_length
         assert self.requested < 0
@@ -26,6 +26,7 @@ class PoppedNegativeBitsError(DataError):
         return "Data source asked for %i bits!" % self.requested
 
 class IntegerTooLongError(DataError):
+    """A data object was too long to be converted to an integer."""
     def __init__(self, value, length):
         self.value = value
         self.length = length
@@ -34,20 +35,24 @@ class IntegerTooLongError(DataError):
         return "Cannot encode value %i in %i bits" % (self.value, self.length)
 
 class HexNeedsFourBitsError(DataError):
-    """ Raised when attempting to convert data to hex, and we don't
+    """Raised when attempting to convert data to hex, and we don't
         have a multiple of 4 bits. """
     pass
 
 class ConversionNeedsBytesError(DataError):
+    """An operation that needed whole bytes had a data buffer with bits."""
     pass
 
 class InvalidBinaryTextError(DataError):
+    """A binary text to data conversion failed."""
     pass
 
 class InvalidHexTextError(DataError):
+    """A hex text to data conversion failed."""
     pass
 
 class BadTextEncodingError(DataError):
+    """A data object was unable to be encoded in the specified text encoding."""
     def __init__(self, data, encoding):
         self.data = data
         self.encoding = encoding
@@ -102,6 +107,15 @@ class Data:
     which stage NotEnoughDataError can be thrown.
     """
     def __init__(self, buffer="", start=None, end=None):
+        """Construct a data object.
+
+        buffer - Can be either a string or a file instance.
+        start - The bit the data starts at in the buffer. Bit 0 is the most
+           significant bit in the first byte. If None, the data starts at
+           bit zero.
+        end - The bit the data ends at. If None, the data ends at the end of
+           the buffer.
+        """
         if start is None:
             start = 0
 
@@ -123,11 +137,13 @@ class Data:
             self._buffer = _FileBuffer(buffer)
 
     def pop(self, length):
-        """
-        Pop data from this data object.
+        """Return a data instance for representing the start of this data.
 
-        The popped data will know the length it should be, but no checks will
-        be made that enough data exists until the data is used.
+        The popped data will no longer be available from this instance. If not
+        enough data is available, an error can either be raised now, or later
+        when the popped data is used.
+
+        length -- The length in bits to remove.
         """
         if length < 0:
             raise PoppedNegativeBitsError(length)
@@ -139,18 +155,31 @@ class Data:
         return result
 
     def copy(self):
+        """Create a copy of this data instance."""
         return Data(self._buffer, self._start, self._end)
 
     def bytes(self):
+        """Return a str instance representing the bytes held by this data.
+
+        If the data length isn't a multiple of 8 bits, a DataError will be
+        raised."""
         return "".join(chr(byte) for byte in self._get_bytes())
 
     def text(self, encoding):
+        """Return a unicode object that represents the data buffer.
+
+        If the data length isn't a multiple of 8 bits, a DataError will be
+        raised. If the data cannot be converted to the given encoding, a
+        BadTextEncodingError error will be raised.
+        
+        encoding -- The unicode encoding the data is in. """
         try:
             return unicode(self.bytes(), encoding)
         except UnicodeDecodeError:
             raise BadTextEncodingError(self, encoding)
 
     def __str__(self):
+        """Return a textual representation of the data."""
         if len(self) % 8 == 0:
             return 'hex (%i bytes): %s' % (len(self) / 8, self.get_hex())
         else:
@@ -216,8 +245,7 @@ class Data:
         return i
 
     def empty(self):
-        """
-        Check to see if we have data left.
+        """Check to see if we have data left.
 
         If the length of the data is known, that value will be used. If the
         length is unknown, it will see if we can read more data.
@@ -326,6 +354,9 @@ class Data:
 
     @staticmethod
     def from_int_little_endian(value, length):
+        """Create a data object from an integer.
+        
+        length -- The length in bits of the data buffer to create."""
         data = int(value)
         if length % 8 != 0:
             raise ConversionNeedsBytesError()
@@ -339,6 +370,9 @@ class Data:
 
     @staticmethod
     def from_int_big_endian(value, length):
+        """Create a data object from an integer.
+        
+        length -- The length in bits of the data buffer to create."""
         data = int(value)
         chars = []
         num_bytes = length / 8
