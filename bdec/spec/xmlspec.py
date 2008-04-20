@@ -268,7 +268,7 @@ class _Handler(xml.sax.handler.ContentHandler):
             else:
                 unused = expected.pop(len(expected) - expected_length)
                 if len(unused) and int(unused) != 0:
-                    raise self._error('Field is %i bits long, but expected data is longer!' % expected_length)
+                    raise self._error('Field is %i bits long, but expected data is longer (%i bits)!' % (expected_length, len(unused) + len(expected)))
             result.expected = expected
         return result
 
