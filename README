@@ -103,6 +103,19 @@ Download
 
 The bdec library is available under the revised BSD license (no advertising).
 
+* `Version 0.3.1`_
+  20 April 2008
+
+  Changes:
+   Docs;
+
+   * Add external documentation (and tutorial), and update internal docs
+
+   Format specifications;
+
+   * Add a png specification
+
+
 * `Version 0.3.0`_
   3 April 2008
 
