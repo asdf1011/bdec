@@ -21,7 +21,7 @@ setup(name='bdec',
       url='http://www.hl.id.au/Projects/bdec/',
       download_url='http://www.hl.id.au/Projects/bdec/files/bdec-%s.tar.gz' % version,
       packages=find_packages(exclude=["specs", "specs.*"]),
-      install_requires=['pyparsing'],
+      install_requires=['pyparsing', 'nose', 'mako'],
       license="BSD",
       test_suite='nose.collector',
       classifiers=[
