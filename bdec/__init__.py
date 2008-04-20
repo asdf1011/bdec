@@ -18,6 +18,8 @@ It can:
  * Be defined in a textual format (bdec.spec)
 """
 
+__version__ = "0.3.1"
+
 class DecodeError(Exception):
     """ An error raise when decoding fails """
     def __init__(self, entry):
@@ -25,4 +27,3 @@ class DecodeError(Exception):
         assert isinstance(entry, ent.Entry)
         self.entry = entry
 
-__version__ = "0.3.0"
