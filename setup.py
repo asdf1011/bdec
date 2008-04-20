@@ -23,6 +23,7 @@ setup(name='bdec',
       packages=find_packages(exclude=["specs", "specs.*"]),
       install_requires=['pyparsing'],
       license="BSD",
+      test_suite='nose.collector',
       classifiers=[
           'Development Status :: 3 - Alpha',
           'Environment :: Console',
