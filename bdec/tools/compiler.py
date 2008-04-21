@@ -60,8 +60,8 @@ class _EntryInfo(prm.ParamLookup):
         for param in prm.ParamLookup.get_params(self, entry):
             yield prm.Param(_variable_name(param.name), param.direction)
             
-    def get_invoked_params(self, entry, child):
-        for param in prm.ParamLookup.get_invoked_params(self, entry, child):
+    def get_passed_variables(self, entry, child):
+        for param in prm.ParamLookup.get_passed_variables(self, entry, child):
             yield prm.Param(_variable_name(param.name), param.direction)
 
 class _Utils:
@@ -193,7 +193,7 @@ def generate_code(spec, template_path, output_dir, common_entries=[]):
     lookup['common'] = entries
     lookup['esc_name'] = utils.esc_name
     lookup['get_params'] = info.get_params
-    lookup['get_invoked_params'] = info.get_invoked_params
+    lookup['get_passed_variables'] = info.get_passed_variables
     lookup['is_end_sequenceof'] = info.is_end_sequenceof
     lookup['is_value_referenced'] = info.is_value_referenced
     lookup['is_length_referenced'] = info.is_length_referenced

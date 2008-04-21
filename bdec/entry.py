@@ -174,7 +174,7 @@ class Entry(object):
         self._params = list(lookup.get_params(self))
         for child in self.children:
             child_params = (param.name for param in lookup.get_params(child))
-            our_params = (param.name for param in lookup.get_invoked_params(self, child))
+            our_params = (param.name for param in lookup.get_passed_variables(self, child))
             self._parent_param_lookup[child] = dict(zip(child_params, our_params))
 
         if lookup.is_end_sequenceof(self):

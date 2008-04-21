@@ -43,10 +43,10 @@ class TestVariableReference(unittest.TestCase):
         self.assertEqual([prm.Param('a2', prm.Param.OUT)], vars.get_params(a2))
         self.assertEqual([prm.Param('a2', prm.Param.OUT)], vars.get_params(a1))
         self.assertEqual([prm.Param('a1.a2', prm.Param.OUT)], vars.get_params(a))
-        self.assertEqual([prm.Param('a1.a2', prm.Param.OUT)], list(vars.get_invoked_params(a, a1)))
+        self.assertEqual([prm.Param('a1.a2', prm.Param.OUT)], list(vars.get_passed_variables(a, a1)))
         self.assertEqual([prm.Param('a.a1.a2', prm.Param.IN)], vars.get_params(b))
         self.assertEqual([prm.Param('a.a1.a2', prm.Param.IN)], vars.get_params(b1))
-        self.assertEqual([prm.Param('a.a1.a2', prm.Param.IN)], list(vars.get_invoked_params(b, b1)))
+        self.assertEqual([prm.Param('a.a1.a2', prm.Param.IN)], list(vars.get_passed_variables(b, b1)))
 
     def test_length_reference(self):
         a1 = fld.Field('a1', 8)
@@ -110,7 +110,7 @@ class TestVariableReference(unittest.TestCase):
         self.assertEqual([prm.Param('length', prm.Param.OUT)], vars.get_params(word))
         self.assertEqual([prm.Param('length', prm.Param.OUT)], vars.get_params(length))
         self.assertEqual([], vars.get_locals(length))
-        self.assertEqual([prm.Param('length', prm.Param.OUT)], list(vars.get_invoked_params(length, byte)))
+        self.assertEqual([prm.Param('length', prm.Param.OUT)], list(vars.get_passed_variables(length, byte)))
 
         self.assertEqual(['variable integer.length'], vars.get_locals(spec))
         self.assertEqual([prm.Param('variable integer.length', prm.Param.IN)], vars.get_params(data))
@@ -131,15 +131,15 @@ class TestVariableReference(unittest.TestCase):
         self.assertEqual([], vars.get_params(spec))
         self.assertEqual(['length:'], vars.get_locals(spec))
         self.assertEqual([prm.Param('length:', prm.Param.OUT)], vars.get_params(length))
-        self.assertEqual([prm.Param('length:', prm.Param.OUT)], list(vars.get_invoked_params(spec, spec.children[0])))
+        self.assertEqual([prm.Param('length:', prm.Param.OUT)], list(vars.get_passed_variables(spec, spec.children[0])))
 
         self.assertEqual([prm.Param('length:', prm.Param.IN)], vars.get_params(spec.children[1]))
-        self.assertEqual([prm.Param('length:', prm.Param.IN)], list(vars.get_invoked_params(spec, spec.children[1])))
+        self.assertEqual([prm.Param('length:', prm.Param.IN)], list(vars.get_passed_variables(spec, spec.children[1])))
         self.assertEqual([prm.Param('length:', prm.Param.IN)], vars.get_params(text))
-        self.assertEqual([prm.Param('length:', prm.Param.IN)], list(vars.get_invoked_params(spec.children[1], text)))
+        self.assertEqual([prm.Param('length:', prm.Param.IN)], list(vars.get_passed_variables(spec.children[1], text)))
         self.assertEqual([prm.Param('length:', prm.Param.IN)], vars.get_params(text.children[1]))
         self.assertEqual([], vars.get_params(integer))
-        self.assertEqual([], list(vars.get_invoked_params(spec.children[1], integer)))
+        self.assertEqual([], list(vars.get_passed_variables(spec.children[1], integer)))
 
     def test_unused_parameters(self):
         """
@@ -166,15 +166,15 @@ class TestVariableReference(unittest.TestCase):
         # First validate the passing of the length value within entry 'a'
         self.assertEqual([], vars.get_params(a))
         self.assertEqual(['shared.length'], vars.get_locals(a))
-        self.assertEqual([prm.Param('shared.length', prm.Param.OUT)], list(vars.get_invoked_params(a, shared)))
-        self.assertEqual([prm.Param('shared.length', prm.Param.IN)], list(vars.get_invoked_params(a, a.children[1])))
-        self.assertEqual([], list(vars.get_invoked_params(spec, a)))
+        self.assertEqual([prm.Param('shared.length', prm.Param.OUT)], list(vars.get_passed_variables(a, shared)))
+        self.assertEqual([prm.Param('shared.length', prm.Param.IN)], list(vars.get_passed_variables(a, a.children[1])))
+        self.assertEqual([], list(vars.get_passed_variables(spec, a)))
 
         # Now test the passing out (and ignoring) of the length value within 'b'
         self.assertEqual([], vars.get_params(b))
         self.assertEqual(['shared.length'], vars.get_locals(b))
-        self.assertEqual([prm.Param('shared.length', prm.Param.OUT)], list(vars.get_invoked_params(b, shared)))
-        self.assertEqual([], list(vars.get_invoked_params(spec, b)))
+        self.assertEqual([prm.Param('shared.length', prm.Param.OUT)], list(vars.get_passed_variables(b, shared)))
+        self.assertEqual([], list(vars.get_passed_variables(spec, b)))
 
 
 class TestSequenceOfParamLookup(unittest.TestCase):

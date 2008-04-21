@@ -260,9 +260,9 @@ class VariableReference:
         result.sort(key=lambda a:a.name)
         return result
 
-    def get_invoked_params(self, entry, child):
+    def get_passed_variables(self, entry, child):
         """
-        Get a iterator to all parameters passed from a parent to a child entry.
+        Get an iterator to all variables passed from a parent to a child entry.
         """
         for param in self.get_params(child):
             local = self._get_local_name(entry, child, param)
@@ -299,10 +299,10 @@ class ParamLookup:
         for param in self._variable_references.get_params(entry):
             yield param
 
-    def get_invoked_params(self, entry, child):
+    def get_passed_variables(self, entry, child):
         for param in self._sequenceof_lookup.get_params(child):
             yield param
-        for param in self._variable_references.get_invoked_params(entry, child):
+        for param in self._variable_references.get_passed_variables(entry, child):
             yield param
 
     def is_end_sequenceof(self, entry):
