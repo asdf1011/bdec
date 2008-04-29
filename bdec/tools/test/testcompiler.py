@@ -330,4 +330,20 @@ class _CompilerTests:
         buffer = sof.SequenceOf('databuffer', fld.Field('data', 8), None, length=32)
         self._decode(buffer, 'baba')
 
+    def test_sequence_value(self):
+        digit = seq.Sequence('digit', [fld.Field('text digit', 8, fld.Field.INTEGER, min=48, max=57)], value=expr.compile("${text digit} - 48"))
+        two_digits = seq.Sequence('two digits',
+                [seq.Sequence('digit 1', [digit]), seq.Sequence('digit 2', [digit])],
+                value=expr.compile("${digit 1.digit} * 10 + ${digit 2.digit}"))
+        buffer = fld.Field('buffer', expr.compile("${two digits} * 8"), fld.Field.TEXT)
+        a = seq.Sequence('a', [two_digits, buffer])
+        expected = """<a>
+            <two-digits>
+              <digit-1><digit><text-digit>50</text-digit></digit></digit-1>
+              <digit-2><digit><text-digit>49</text-digit></digit></digit-2>
+            </two-digits>
+            <buffer>xxxxxxxxxxxxxxxxxxxxx</buffer>
+          </a>"""
+        self._decode(a, '21' + 'x' * 21, expected_xml=expected, common=[digit, two_digits, a])
+
 globals().update(create_decoder_classes([(_CompilerTests, 'SimpleDecode')], __name__))

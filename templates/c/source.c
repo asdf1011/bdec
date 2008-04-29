@@ -60,6 +60,12 @@ ${static}int ${ctype.decode_name(entry)}(BitBuffer* buffer, ${ctype.ctype(entry)
     %if is_end_sequenceof(entry):
     *${'should end' |variable} = 1;
     %endif
+    %if entry.value is not None:
+    result->value = ${expr.length(entry.value)};
+      %if is_value_referenced(entry):
+    *${entry.name |variable} = result->value;
+      %endif
+    %endif
     ${success(entry)}
   %elif isinstance(entry, SequenceOf):
     int i;
