@@ -166,6 +166,9 @@ static void printWhitespace(int numChars)
       %for i, child in enumerate(item.children):
     ${recursivePrint(child, '%s.%s' % (varname, variable(esc_name(i, item.children))), offset+3, iter_postfix)}
       %endfor
+      %if item.value is not None:
+    printf("${' ' * (offset+3)}%i\n", ${varname}.value); 
+      %endif
     %elif isinstance(item, SequenceOf):
       <% iter_name = variable(item.name + ' counter' + str(iter_postfix.next())) %>
     int ${iter_name};

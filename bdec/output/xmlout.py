@@ -29,7 +29,7 @@ def to_file(decoder, binary, output, encoding="utf-8", verbose=False):
             handler.ignorableWhitespace('\n')
             offset = offset + 4
         else:
-            if isinstance(entry, fld.Field):
+            if value is not None:
                 handler.ignorableWhitespace(' ' * offset)
                 text = unicode(value)
                 if len(text) > 0 and (text[0] in string.whitespace or text[-1] in string.whitespace):
@@ -37,7 +37,7 @@ def to_file(decoder, binary, output, encoding="utf-8", verbose=False):
                 handler.characters(text)
                 handler.ignorableWhitespace('\n')
 
-                if verbose:
+                if verbose and isinstance(entry, fld.Field):
                     handler.ignorableWhitespace(' ' * offset)
                     handler.comment(str(entry.data))
                     handler.ignorableWhitespace('\n')
