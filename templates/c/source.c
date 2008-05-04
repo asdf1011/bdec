@@ -36,6 +36,38 @@ ${recursiveDecode(child)}
 %endfor
 
 <% static = "static " if is_static else "" %>
+${static}void ${ctype.free_name(entry)}(${ctype.ctype(entry)}* value)
+{
+  %if isinstance(entry, Field):
+    %if entry.format == Field.TEXT:
+    free(*value);
+    %elif entry.format == Field.HEX:
+    free(value->buffer);
+    %endif
+  %elif isinstance(entry, Sequence):
+    %for i, child in enumerate(entry.children):
+    ${ctype.free_name(child)}(&value->${ctype.var_name(i, entry.children)});
+    %endfor
+  %elif isinstance(entry, SequenceOf):
+    int i;
+    for (i = 0; i < value->count; ++i)
+    {
+        ${ctype.free_name(entry.children[0])}(&value->items[i]);
+    }
+    free(value->items);
+  %elif isinstance(entry, Choice):
+    %for i, child in enumerate(entry.children):
+    if (value->${ctype.var_name(i, entry.children)} != 0)
+    {
+        ${ctype.free_name(child)}(value->${ctype.var_name(i, entry.children)});
+        free(value->${ctype.var_name(i, entry.children)});
+    }
+    %endfor
+  %else:
+    <% raise Exception("Don't know how to free objects of type '%s'" % entry) %>
+  %endif
+}
+
 ${static}int ${ctype.decode_name(entry)}(BitBuffer* buffer, ${ctype.ctype(entry)}* result${decodeentry.define_params(entry)})
 {
   %for local in local_vars(entry):
@@ -54,6 +86,9 @@ ${static}int ${ctype.decode_name(entry)}(BitBuffer* buffer, ${ctype.ctype(entry)
     %for i, child in enumerate(entry.children):
     if (!${ctype.decode_name(child)}(buffer, &result->${ctype.var_name(i, entry.children)}${decodeentry.params(entry, child)}))
     {
+        %for j, previous in enumerate(entry.children[:i]):
+        ${ctype.free_name(previous)}(&result->${ctype.var_name(j, entry.children)});
+        %endfor
         return 0;
     }
     %endfor
@@ -89,6 +124,10 @@ ${static}int ${ctype.decode_name(entry)}(BitBuffer* buffer, ${ctype.ctype(entry)
     %endif
         if (!${ctype.decode_name(entry.children[0])}(buffer, &result->items[i]${decodeentry.params(entry, entry.children[0])}))
         {
+            for (i=0; i<result->count-1; ++i)
+            {
+                ${ctype.free_name(entry.children[0])}(&result->items[i]);
+            }
             return 0;
         }
       %if is_end_sequenceof(entry):
@@ -109,6 +148,7 @@ ${static}int ${ctype.decode_name(entry)}(BitBuffer* buffer, ${ctype.ctype(entry)
         result->${ctype.var_name(i, entry.children)} = ${temp_name};
         ${success(entry)}
     }
+    free(${temp_name});
     %endfor
     // Decode failed, no options succeeded...
     return 0;

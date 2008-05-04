@@ -49,6 +49,7 @@ int main(int argc, char* argv[])
 
     /* Print the decoded data */
     ${ctype.print_name(protocol)}(&result, 0);
+    ${ctype.free_name(protocol)}(&result);
 
     return 0;
 }

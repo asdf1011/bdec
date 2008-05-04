@@ -1,5 +1,6 @@
 ## vim:set syntax=mako:
 <%namespace file="/expression.tmpl" name="expr" />
+<%namespace file="/type.tmpl" name="ctype" />
 <%!
     from bdec.data import Data
     from bdec.field import Field
@@ -131,18 +132,21 @@ ${_params(parent, entry, get_passed_variables, local_vars(parent))}
 #error Field of type ${entry.format} not currently supported for an expected value!
        %endif
     {
+        ${ctype.free_name(entry)}(result);
         return 0;
     }
      %endif
     %if entry.min is not None:
     if (get_integer(&field_data) < ${expr.length(entry.min)})
     {
+        ${ctype.free_name(entry)}(result);
         return 0;
     }
     %endif
     %if entry.max is not None:
     if (get_integer(&field_data) > ${expr.length(entry.max)})
     {
+        ${ctype.free_name(entry)}(result);
         return 0;
     }
     %endif
