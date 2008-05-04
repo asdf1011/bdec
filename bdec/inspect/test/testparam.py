@@ -183,6 +183,33 @@ class TestVariableReference(unittest.TestCase):
 
         self.assertRaises(prm.BadReferenceError, prm.VariableReference, [c])
 
+    def test_name_ends_in_length(self):
+        a = fld.Field('data length', 8, fld.Field.INTEGER)
+        b = fld.Field('data', expr.compile('${data length} * 8'))
+        c = seq.Sequence('c', [a, b])
+        params = prm.VariableReference([c])
+        self.assertEqual(['data length'], params.get_locals(c))
+        self.assertEqual([], params.get_params(c))
+        self.assertEqual([prm.Param('data length', prm.Param.OUT)], params.get_params(a))
+        self.assertEqual([prm.Param('data length', prm.Param.IN)], params.get_params(b))
+        self.assertEqual(True, params.is_value_referenced(a))
+        self.assertEqual(False, params.is_length_referenced(a))
+
+    def test_param_ordering(self):
+        # Test that we order the parameters consistently
+        a = fld.Field('a', 8)
+        b = fld.Field('b', 8)
+        c = fld.Field('c', 8)
+        d = seq.Sequence('d', [a,b,c])
+
+        e = fld.Field('e', expr.compile('${d.a} + ${d.b} + ${d.c}'))
+        f = seq.Sequence('f', [d, e])
+
+        params = prm.VariableReference([f])
+        self.assertEqual(['d.a', 'd.b', 'd.c'], params.get_locals(f))
+        self.assertEqual([prm.Param('a', prm.Param.OUT), prm.Param('b', prm.Param.OUT), prm.Param('c', prm.Param.OUT)], params.get_params(d))
+        self.assertEqual([prm.Param('d.a', prm.Param.OUT), prm.Param('d.b', prm.Param.OUT), prm.Param('d.c', prm.Param.OUT)], list(params.get_passed_variables(f, d)))
+
 class TestSequenceOfParamLookup(unittest.TestCase):
     def test_end_entry_lookup(self):
         null = fld.Field("null", 8, expected=dt.Data('\x00'))

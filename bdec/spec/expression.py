@@ -38,6 +38,7 @@ class ValueResult:
     Object returning the result of a entry when cast to an integer.
     """
     def __init__(self, name):
+        assert isinstance(name, basestring)
         self.length = None
         self.name = name
 
@@ -52,6 +53,7 @@ class LengthResult:
     Object returning the length of a decoded entry.
     """
     def __init__(self, name):
+        assert isinstance(name, basestring)
         self.length = None
         self.name = name
 

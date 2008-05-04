@@ -51,6 +51,7 @@ class _CompilerTests:
         exit_code, xml = self._decode_file(spec, common, StringIO.StringIO(data))
         self.assertEqual(expected_exit_code, exit_code)
 
+        print xml
         if exit_code == 0:
             if expected_xml is None:
                 # Take the xml output, and ensure the re-encoded data has the same

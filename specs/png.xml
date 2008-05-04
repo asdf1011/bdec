@@ -20,9 +20,9 @@
 
      <common>
        <sequence name="unknown chunk">
-          <field name="length" length="32" type="integer" />
+          <field name="data length" length="32" type="integer" />
           <field name="message type" length="32" type="hex" />
-          <field name="data" length="${length} * 8" type="hex" />
+          <field name="data" length="${data length} * 8" type="hex" />
           <field name="crc" length="32" type="hex" />
        </sequence>
 
