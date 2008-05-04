@@ -19,33 +19,33 @@ class _XMLGenerator(xml.sax.saxutils.XMLGenerator):
 def to_file(decoder, binary, output, encoding="utf-8", verbose=False):
     handler = _XMLGenerator(output, encoding)
     offset = 0
+    is_first = True
     for is_starting, entry, data, value in decoder.decode(binary):
         if not verbose and entry.is_hidden():
             continue
 
-        if is_starting:
-            handler.ignorableWhitespace(' ' * offset)
-            handler.startElement(escape_name(entry.name), xml.sax.xmlreader.AttributesImpl({}))
-            handler.ignorableWhitespace('\n')
-            offset = offset + 4
-        else:
-            if value is not None:
-                handler.ignorableWhitespace(' ' * offset)
-                text = unicode(value)
-                if len(text) > 0 and (text[0] in string.whitespace or text[-1] in string.whitespace):
-                    logging.warning('%s has leading/trailing whitespace (%s); it will not re-encode exactly. Consider changing the format to hex.', entry, text)
-                handler.characters(text)
-                handler.ignorableWhitespace('\n')
-
-                if verbose and isinstance(entry, fld.Field):
-                    handler.ignorableWhitespace(' ' * offset)
-                    handler.comment(str(entry.data))
-                    handler.ignorableWhitespace('\n')
-                    
+        if not is_starting:
             offset = offset - 4
+        if value is None:
+            if not is_first:
+                handler.ignorableWhitespace('\n')
             handler.ignorableWhitespace(' ' * offset)
+        is_first = False
+
+        if is_starting:
+            handler.startElement(escape_name(entry.name), xml.sax.xmlreader.AttributesImpl({}))
+            offset = offset + 4
+
+        if value is not None:
+            text = unicode(value)
+            handler.characters(text)
+
+            if verbose and isinstance(entry, fld.Field):
+                handler.comment(str(entry.data))
+
+        if not is_starting:
             handler.endElement(escape_name(entry.name))
-            handler.ignorableWhitespace('\n')
+    handler.ignorableWhitespace('\n')
 
 def to_string(decoder, binary, verbose=False):
     buffer  = StringIO.StringIO()
@@ -92,10 +92,7 @@ def _query_element(obj, child):
                     # This element has sub-elements, so return the element itself.
                     return child_node
                 elif subchild.nodeType == xml.dom.Node.TEXT_NODE:
-                    # NOTE: We have to strip to avoid getting all of the extra whitespace,
-                    # but if there was leading or trailing whitespace on the original
-                    # data, it'll get lost (which can cause encoding to fail).
-                    text += subchild.data.strip()
+                    text += subchild.data
             # No sub-elements; just return the text of the element.
             return text
 

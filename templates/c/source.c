@@ -172,17 +172,15 @@ static void printWhitespace(int numChars)
     ${ctype.print_name(item)}(&${varname}, offset + ${offset});
   %else:
     printWhitespace(offset);
-    printf("${' ' * offset}<${item.name |xmlname}>\n");
     %if isinstance(item, Field):
-    printWhitespace(offset);
+    printf("${' ' * offset}<${item.name |xmlname}>");
       %if item.format == Field.INTEGER:
-    printf("${' ' * (offset+3)}%i\n", ${varname}); 
+    printf("%i", ${varname}); 
       %elif item.format == Field.TEXT:
-    printf("${' ' * (offset+3)}%s\n", ${varname});
+    printf("%s", ${varname});
       %elif item.format == Field.HEX:
         <% iter_name = variable(item.name + ' counter' + str(iter_postfix.next())) %>
     int ${iter_name};
-    printf("${' ' * (offset+3)}");
     for (${iter_name} = 0; ${iter_name} < ${varname}.length; ++${iter_name})
     {
         printf("%x", ${varname}.buffer[${iter_name}]);
@@ -193,41 +191,44 @@ static void printWhitespace(int numChars)
         <% iter_name = variable(item.name + ' counter' + str(iter_postfix.next())) %>
     BitBuffer ${copy_name} = ${varname};
     int ${iter_name};
-    printf("${' ' * (offset+3)}");
     for (${iter_name} = 0; ${iter_name} < ${varname}.num_bits; ++${iter_name})
     {
         printf("%i", decode_integer(&${copy_name}, 1));
     }
-    printf("\n");
       %else:
     #error Don't know how to print ${item}
       %endif
-    %elif isinstance(item, Sequence):
-      %for i, child in enumerate(item.children):
+    printf("</${item.name |xmlname}>\n");
+    %else:
+    ## Print everything other than fields
+    printf("${' ' * offset}<${item.name |xmlname}>\n");
+      %if isinstance(item, Sequence):
+        %for i, child in enumerate(item.children):
     ${recursivePrint(child, '%s.%s' % (varname, variable(esc_name(i, item.children))), offset+3, iter_postfix)}
-      %endfor
-      %if item.value is not None:
+        %endfor
+        %if item.value is not None:
     printf("${' ' * (offset+3)}%i\n", ${varname}.value); 
-      %endif
-    %elif isinstance(item, SequenceOf):
-      <% iter_name = variable(item.name + ' counter' + str(iter_postfix.next())) %>
+        %endif
+      %elif isinstance(item, SequenceOf):
+        <% iter_name = variable(item.name + ' counter' + str(iter_postfix.next())) %>
     int ${iter_name};
     for (${iter_name} = 0; ${iter_name} < ${varname}.count; ++${iter_name})
     {
         ${recursivePrint(item.children[0], '%s.items[%s]' % (varname, iter_name), offset+3, iter_postfix)}
     }
-    %elif isinstance(item, Choice):
-      %for i, child in enumerate(item.children):
+      %elif isinstance(item, Choice):
+        %for i, child in enumerate(item.children):
     if (${'%s.%s' % (varname, variable(esc_name(i, item.children)))} != 0)
     {
         ${recursivePrint(child, "(*%s.%s)" % (varname, variable(esc_name(i, item.children))), offset+3, iter_postfix)}
     }
-      %endfor
-    %else:
+        %endfor
+      %else:
     #error Don't know how to print ${item}
-    %endif
+      %endif
     printWhitespace(offset);
     printf("${' ' * offset}</${item.name |xmlname}>\n");
+    %endif
   %endif
 </%def>
 
