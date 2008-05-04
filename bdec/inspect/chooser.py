@@ -192,7 +192,7 @@ def _differentiate(entries):
     """
     Differentiate between protocol entries.
 
-    Returns a list of (offset, length, lookup, undistinguished, decoded, 
+    Returns an iterator to (offset, length, lookup, undistinguished, decoded, 
     possibles) entries, where lookup is a dictionary mapping 
     value -> entries, and undistinguished is a list of entries that don't
     distinguish themselves on this entry.
@@ -270,6 +270,13 @@ class _Options:
         self._initialise = lambda: self._generate(unique_options, start_bit, order)
 
     def _generate(self, options, start_bit, order):
+        """Generate the tables required to distinguish between the different options.
+
+        options -- The options the be distinguished
+        start_bit -- Where we should start differentiating
+        order -- The order the options should be attempted to be decoded. May
+            include items not in 'options'.
+        """
         for offset, length, lookup, undistinguished, successful, possible in _differentiate(options):
             if offset >= start_bit and lookup and length:
                 # We found a range of bits that can be used to distinguish
