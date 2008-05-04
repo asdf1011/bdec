@@ -16,6 +16,12 @@ class BadReferenceError(bdec.DecodeError):
     def __str__(self):
         return "Cannot reference '%s' in %s" % (self.name, self.entry)
 
+class BadReferenceTypeError(bdec.DecodeError):
+    def __init__(self, entry):
+        bdec.DecodeError.__init__(self, referenced)
+
+    def __str__(self):
+        return "Cannot reference non integer field '%s'" % self.entry
 
 class Param(object):
     """Class to represent parameters passed into and out of decodes. """
@@ -235,8 +241,13 @@ class VariableReference:
                     self._params[child].add(_VariableParam(reference, Param.OUT))
                     was_child_found = True
                     if isinstance(reference, expr.ValueResult):
-                        if isinstance(child, fld.Field) or \
-                           (isinstance(child, seq.Sequence) and child.value is not None):
+                        if isinstance(child, fld.Field):
+                            if child.format not in [fld.Field.INTEGER, fld.Field.BINARY]:
+                                # We currently only allow integers and binary
+                                # strings in integer expressions.
+                                raise BadReferenceTypeError(child)
+                            self._referenced_values.add(child)
+                        elif isinstance(child, seq.Sequence) and child.value is not None:
                             self._referenced_values.add(child)
                         else:
                             raise BadReferenceError(entry, reference.name)
