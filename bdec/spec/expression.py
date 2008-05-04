@@ -99,7 +99,7 @@ def compile(text):
 
     # We have a complicated expression; we'll have to parse it.
     from pyparsing import Word, alphanums, nums, Forward, StringEnd, ZeroOrMore, ParseException, Combine, CaselessLiteral, srange
-    entry_name = Word(alphanums + ' _+:.')
+    entry_name = Word(alphanums + ' _+:.-')
     integer = Word(nums).addParseAction(lambda s,l,t: [int(t[0])])
     hex = Combine(CaselessLiteral("0x") + Word(srange("[0-9a-fA-F]"))).addParseAction(lambda s,l,t:[int(t[0][2:], 16)])
     named_reference = ('${' + entry_name + '}').addParseAction(lambda s,l,t:ValueResult(t[1]))
