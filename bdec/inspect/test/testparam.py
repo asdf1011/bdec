@@ -176,6 +176,12 @@ class TestVariableReference(unittest.TestCase):
         self.assertEqual([prm.Param('shared.length', prm.Param.OUT)], list(vars.get_passed_variables(b, shared)))
         self.assertEqual([], list(vars.get_passed_variables(spec, b)))
 
+    def test_referencing_sequence_without_value(self):
+        a = seq.Sequence('a', [])
+        b = fld.Field('b', expr.compile('${a}'), fld.Field.INTEGER)
+        c = seq.Sequence('c', [a, b])
+
+        self.assertRaises(prm.BadReferenceError, prm.VariableReference, [c])
 
 class TestSequenceOfParamLookup(unittest.TestCase):
     def test_end_entry_lookup(self):

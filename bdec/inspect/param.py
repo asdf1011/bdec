@@ -225,7 +225,11 @@ class VariableReference:
                     self._params[child].add(Param(name, Param.OUT))
                     was_child_found = True
                     if name == child.name:
-                        self._referenced_values.add(child)
+                        if isinstance(child, fld.Field) or \
+                           (isinstance(child, seq.Sequence) and child.value is not None):
+                            self._referenced_values.add(child)
+                        else:
+                            raise BadReferenceError(entry, name)
                     else:
                         self._referenced_lengths.add(child)
                 else:
