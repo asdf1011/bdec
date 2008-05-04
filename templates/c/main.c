@@ -44,13 +44,14 @@ int main(int argc, char* argv[])
     {
         /* Decode failed! */
         fprintf(stderr, "Decode failed!\n");
+        free(data);
         return 3;
     }
 
     /* Print the decoded data */
     ${ctype.print_name(protocol)}(&result, 0);
     ${ctype.free_name(protocol)}(&result);
-
+    free(data);
     return 0;
 }
 
