@@ -204,6 +204,7 @@ def _differentiate(entries):
     # those that may have decoded.
     successful = []
     possible = []
+    have_new_success = False
     while len(data_options) > 1:
         test_for_forks = True
         while test_for_forks:
@@ -238,14 +239,17 @@ def _differentiate(entries):
             else:
                 lookup.setdefault(int(data), []).append(entry.entry)
 
-        if _can_differentiate(lookup, undistinguished + successful + possible):
+        if have_new_success or _can_differentiate(lookup, undistinguished + successful + possible):
+            # We also should notify if we have a new item in the successful (or possible) list...
             yield offset, length, lookup, undistinguished, successful, possible
+        have_new_success = False
 
         for entry in data_options[:]:
             if entry._data is None:
                 if entry.entry not in possible:
                     # This entry has finished decoding. If we _know_ it has
                     # finished decoding, blah blah blah
+                    have_new_success = True
                     successful.append(entry.entry)
                 data_options.remove(entry)
         offset += length
@@ -255,117 +259,58 @@ def _differentiate(entries):
     yield offset, 0, {}, [entry.entry for entry in data_options], successful, possible
 
 
-class _Options:
-    """
-    A class to recursively drill down into data, identifying potential options.
-    """
-    def __init__(self, options, start_bit, order):
-        # Identify unique entries in the available options starting
-        # at the bit offset.
-        self._options = None
-        self._lookup = None
-        self._fallback = None
+class Chooser:
+    def __init__(self, entries):
+        self._entries = entries
+        self._iter = _differentiate(list(entries))
+        self._cached = []
 
-        unique_options = list(set(options))
-        self._initialise = lambda: self._generate(unique_options, start_bit, order)
-
-    def _generate(self, options, start_bit, order):
-        """Generate the tables required to distinguish between the different options.
-
-        options -- The options the be distinguished
-        start_bit -- Where we should start differentiating
-        order -- The order the options should be attempted to be decoded. May
-            include items not in 'options'.
-        """
-        for offset, length, lookup, undistinguished, successful, possible in _differentiate(options):
-            if offset >= start_bit and lookup and length:
-                # We found a range of bits that can be used to distinguish
-                # between the diffent options.
-                fallback_entries = undistinguished + successful + possible
-
-                self._start_bit = offset
-                self._length = length
-                self._lookup = {}
-                self._fallback = _Options(fallback_entries, start_bit + length, order)
-                for value, entries in lookup.iteritems():
-                    self._lookup[value] = _Options(entries + fallback_entries, offset + length, order)
-                break
-        else:
-            # We were unable to differentiate between the protocol entries. Note
-            # that we want to maintain the original ordering.
-            self._options = [option for option in order if option in set(options)]
-
-            for index, option in enumerate(self._options[:]):
-                if option in successful:
-                    # We know this option successfully decoded; should any 
-                    # subsequent options exist, they will never be chosen.
-                    #
-                    # The exception is when subsequent options are smaller
-                    # than this option (and so will decode when there isn't
-                    # as much data available).
-                    for entry in self._options[index + 1:]:
-                        if option.range().max <= entry.range().min:
-                            self._options.remove(entry)
-                    break
-
-            if len(self._options) > 1:
-                logging.info("Failed to differentiate between %s", self._options)
+    def _differentiate(self):
+        for i in self._cached:
+            yield i
+        while 1:
+            i = self._iter.next()
+            offset, length, lookup, undistinguished, successful, possible = i
+            self._cached.append((offset, length, lookup.copy(), undistinguished[:], successful[:], possible[:]))
+            yield i
 
     def choose(self, data):
-        """
-        Return a list of possible entries that matches the input data.
-
-        The possible entries will be in the same order as the entries passed
-        into the constructor.
-        """
-        if self._initialise is not None:
-            self._initialise()
-            self._initialise = None
-
-        if self._options is not None:
-            # We are unable to narrow down the possibilities further.
-            return self._options
-
-        # We are able to potentially narrow down the possibilities based
-        # on the input values.
-        assert self._lookup
+        options = list(self._entries)
+        current_offset = 0
         copy = data.copy()
-        try:
-            copy.pop(self._start_bit)
-            value = int(copy.pop(self._length))
-        except dt.NotEnoughDataError:
-            # We can't read this data to be keyed on, so we'll leave it
-            # to one of the fallbacks.
-            value = None
-            options = self._fallback
+        for offset, length, lookup, undistinguished, successful, possible in self._differentiate():
+            if len(options) <= 1:
+                break
 
-        if value is not None:
+            # Get the value of the data at this location
+            assert offset >= current_offset
             try:
-                options = self._lookup[value]
-            except KeyError:
-                # The value present isn't one of the expected values; we'll
-                # fallback to the options that could handle any value for
-                # this bit offset.
-                options = self._fallback
-        return options.choose(data)
+                copy.pop(offset - current_offset)
+                value = int(copy.pop(length))
+                current_offset = offset + length
+            except dt.NotEnoughDataError:
+                # We don't have enough data left for this option; reduce
+                # the possibles to those that have finished decoding.
+                options = [option for option in options if option in set(successful + possible)]
+                break
 
-    def __repr__(self):
-        # We have a representation option as it greatly simplifies debugging;
-        # just print the option object to look at the tree.
-        if self._initialise is not None:
-            self._initialise()
-            self._initialise = None
+            # Check to see if we have a successful item, and remove any items
+            # after that item (as they cannot succeed).
+            for i, option in enumerate(options):
+                if option in successful:
+                    # We found a successful item; no options after this can 
+                    # succeed (as they are a lower priority).
+                    del options[i+1:]
+                    break
 
-        if self._options is not None:
-            return str(self._options)
-        return "bits [%i, %i) key=%s fallback=%s" % (self._start_bit, self._start_bit + self._length, repr(self._lookup), repr(self._fallback))
-
-class Chooser(_Options):
-    """
-    Choose a protocol entry from a list of protocol entries that matches input data.
-
-    This class attempts to quickly determine the type of protocol entry that can be
-    decoded.
-    """
-    def __init__(self, entries):
-        _Options.__init__(self, entries, 0, entries)
+            if lookup and length:
+                # We found a range of bits that can be used to distinguish
+                # between the diffent options.
+                fallback_entries = set(undistinguished + successful + possible)
+                filter = successful + possible + undistinguished
+                try:
+                    filter += lookup[value]
+                except KeyError:
+                    pass
+                options = [option for option in options if option in filter]
+        return options

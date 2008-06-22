@@ -90,54 +90,19 @@ class TestChooser(unittest.TestCase):
         self.assertEqual([a], chooser.choose(dt.Data("\x00")))
         self.assertEqual([b], chooser.choose(dt.Data("\x01")))
 
-    def test_ignores_undistinuished_fields(self):
-        # This tests an implementation issue that affects speed; we test that
-        # it doesn't key on fields that cannot be used to distinguish bewteen
-        # the different options.
-        a = seq.Sequence("a", [fld.Field("unknown", 8), fld.Field("a id", 8, expected=dt.Data('y'))])
-        b = seq.Sequence("b", [fld.Field("unknown", 8), fld.Field("b id", 8, expected=dt.Data('z'))])
-        chooser = chsr.Chooser([a, b])
+#    def test_string_representation(self):
+#        a = seq.Sequence("a", [fld.Field("common", 8, expected=dt.Data('c')), fld.Field("a id", 8, expected=dt.Data('y'))])
+#        b = seq.Sequence("b", [fld.Field("common", 8, expected=dt.Data('c')), fld.Field("b id", 8, expected=dt.Data('z'))])
+#        chooser = chsr.Chooser([a, b])
+#        self.assertEqual("bits [8, 16) key={121: [<class 'bdec.sequence.Sequence'> 'a'], 122: [<class 'bdec.sequence.Sequence'> 'b']} fallback=[]", str(chooser))
 
-        self.assertEqual([a], chooser.choose(dt.Data("?y")))
-        self.assertEqual([b], chooser.choose(dt.Data("?z")))
-
-        # Now test that internally it isn't keying on the first 8 bits (as they
-        # cannot be used to differentiate between the options)
-        self.assertEqual(8, chooser._start_bit)
-        self.assertEqual(8, chooser._length)
-        self.assertTrue(ord('y') in chooser._lookup)
-        self.assertTrue(ord('z') in chooser._lookup)
-
-    def test_ignores_same_distinguished_field(self):
-        a = seq.Sequence("a", [fld.Field("common", 8, expected=dt.Data('c')), fld.Field("a id", 8, expected=dt.Data('y'))])
-        b = seq.Sequence("b", [fld.Field("common", 8, expected=dt.Data('c')), fld.Field("b id", 8, expected=dt.Data('z'))])
-        chooser = chsr.Chooser([a, b])
-
-        self.assertEqual([a], chooser.choose(dt.Data("cy")))
-        self.assertEqual([b], chooser.choose(dt.Data("cz")))
-
-        # Now test that internally it isn't keying on the first byte (as it
-        # cannot be used to differentiate between the options)
-        self.assertEqual(8, chooser._start_bit)
-        self.assertEqual(8, chooser._length)
-        self.assertTrue(ord('y') in chooser._lookup)
-        self.assertTrue(ord('z') in chooser._lookup)
-
-    def test_string_representation(self):
-        a = seq.Sequence("a", [fld.Field("common", 8, expected=dt.Data('c')), fld.Field("a id", 8, expected=dt.Data('y'))])
-        b = seq.Sequence("b", [fld.Field("common", 8, expected=dt.Data('c')), fld.Field("b id", 8, expected=dt.Data('z'))])
-        chooser = chsr.Chooser([a, b])
-        self.assertEqual("bits [8, 16) key={121: [<class 'bdec.sequence.Sequence'> 'a'], 122: [<class 'bdec.sequence.Sequence'> 'b']} fallback=[]", str(chooser))
-
-# Tests for selecting based on amount of data available (not implemented)
-#
-#    def test_only_valid_sizes_selected(self):
-#        a = fld.Field("blah", 24)
-#        b = fld.Field("blah", 8)
-#        c = fld.Field("blah", 32)
-#        d = fld.Field("blah", 16)
-#        chooser = chsr.Chooser([a, b, c, d])
-#        self.assertEqual([b], chooser.choose(dt.Data("a")))
-#        self.assertEqual([b], chooser.choose(dt.Data("ab")))
-#        self.assertEqual([a], chooser.choose(dt.Data("abc")))
-#        self.assertEqual([a], chooser.choose(dt.Data("abcd")))
+    def test_only_valid_sizes_selected(self):
+        a = fld.Field("a", 24)
+        b = fld.Field("b", 8)
+        c = fld.Field("c", 32)
+        d = fld.Field("d", 16)
+        chooser = chsr.Chooser([a, b, c, d])
+        self.assertEqual([b], chooser.choose(dt.Data("a")))
+        self.assertEqual([b], chooser.choose(dt.Data("ab")))
+        self.assertEqual([a], chooser.choose(dt.Data("abc")))
+        self.assertEqual([a], chooser.choose(dt.Data("abcd")))
