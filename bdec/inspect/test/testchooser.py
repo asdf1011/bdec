@@ -130,12 +130,6 @@ class TestChooser(unittest.TestCase):
         self.assertEqual([a], chooser.choose(dt.Data("\x00")))
         self.assertEqual([b], chooser.choose(dt.Data("\x01")))
 
-#    def test_string_representation(self):
-#        a = seq.Sequence("a", [fld.Field("common", 8, expected=dt.Data('c')), fld.Field("a id", 8, expected=dt.Data('y'))])
-#        b = seq.Sequence("b", [fld.Field("common", 8, expected=dt.Data('c')), fld.Field("b id", 8, expected=dt.Data('z'))])
-#        chooser = chsr.Chooser([a, b])
-#        self.assertEqual("bits [8, 16) key={121: [<class 'bdec.sequence.Sequence'> 'a'], 122: [<class 'bdec.sequence.Sequence'> 'b']} fallback=[]", str(chooser))
-
     def test_only_valid_sizes_selected(self):
         a = fld.Field("a", 24)
         b = fld.Field("b", 8)
