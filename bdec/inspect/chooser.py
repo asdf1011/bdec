@@ -4,6 +4,7 @@ import bdec.choice as chc
 import bdec.data as dt
 import bdec.field as fld
 import bdec.sequence as seq
+import bdec.sequenceof as sof
 
 class _UnknownData:
     """
@@ -33,141 +34,88 @@ class _AnyData(_UnknownData):
     def __init__(self, length):
         _UnknownData.__init__(self, length)
 
-class _ChoiceData:
-    """A class representing a fork in the data stream. """
-    def __init__(self, options):
-        self.options = options
+class _EntryPosition:
+    """Class to track the position of an entry in the data stream."""
+    def __init__(self, parent, offset):
+        self.parent = entry
+        self.offset = offset
 
-    def copy(self):
-        return self
+class _ProtocolStream:
+    def __init__(self, entry, parent=None, parent_offset=None):
+        self.entry = entry
+        self.data = self._create_data()
+        self._parent = parent
+        self._parent_offset = parent_offset
 
+    def _next(self, offset):
+        """Walk up the tree looking for the next child.
+        
+        Takes the child offset to walk into. """
+        if isinstance(self.entry, seq.Sequence):
+            if offset < len(self.entry.children):
+                # There are still child items in this sequence, so return the
+                # next child.
+                return [_ProtocolStream(self.entry.children[offset], self, offset)]
+            assert offset == len(self.entry.children)
+        elif isinstance(self.entry, chc.Choice):
+            # The next entry of the choice is all of its children. After that
+            # we must go back up to the parent.
+            if offset == 0:
+                return [_ProtocolStream(child, self, 0) for child in self.entry.children]
 
-def _data_iter(entry):
-    """
-    Return an iterator to data objects in this protocol entry.
-    """
-    if isinstance(entry, fld.Field):
-        if entry.expected is not None:
-            yield entry.expected.copy()
-        else:
-            import bdec.spec.expression as expr
-            length = None
-            min = max = None
-            try:
-                length = int(entry.length)
-                if entry.min is not None:
-                    min = int(entry.min)
-                if entry.max is not None:
-                    max = int(entry.max)
-            except expr.UndecodedReferenceError:
-                # If the length of a  field references the decoded value of
-                # another field, we will not be able to calculate the length.
-                pass
+        # We don't have any more embedded items; go back up to the parent.
+        if self._parent is None:
+            return []
+        return self._parent._next(self._parent_offset+1)
 
-            MAX_RANGE_HANDLED = 100
-            if (length is not None and min is not None and 
-               max is not None and max - min < MAX_RANGE_HANDLED):
-                # This field has a bit range; instead of just treating it as
-                # unknown, handle every value in the range individually. This
-                # allows us to lookup valid values for this field in a 
-                # dictionary.
-                options = [fld.Field("temp", length, expected=dt.Data.from_int_big_endian(value, length)) for value in xrange(min, max + 1)]
-                yield _ChoiceData(options)
+    def next(self):
+        """Return an iterator to _ProtocolStream items"""
+        return self._next(0)
+
+    def _create_data(self):
+        """Return a data instance, or None if one doesn't exist for this entry."""
+        if isinstance(self.entry, fld.Field):
+            if self.entry.expected is not None:
+                return self.entry.expected.copy()
             else:
+                import bdec.spec.expression as expr
+                length = None
+                min = max = None
+                try:
+                    length = int(self.entry.length)
+                    if self.entry.min is not None:
+                        min = int(self.entry.min)
+                    if self.entry.max is not None:
+                        max = int(self.entry.max)
+                except expr.UndecodedReferenceError:
+                    # If the length of a  field references the decoded value of
+                    # another field, we will not be able to calculate the length.
+                    pass
+
+                # FIXME: Disabled 'range' logic... doesn't work well with the _ProtocolStream classes.
+                #MAX_RANGE_HANDLED = 100
+                #if (length is not None and min is not None and 
+                #   max is not None and max - min < MAX_RANGE_HANDLED):
+                    # This field has a bit range; instead of just treating it as
+                    # unknown, handle every value in the range individually. This
+                    # allows us to lookup valid values for this field in a 
+                    # dictionary.
+                #    options = [fld.Field("temp", length, expected=dt.Data.from_int_big_endian(value, length)) for value in xrange(min, max + 1)]
+                #    yield _ChoiceData(options)
+                #else:
                 if length is not None and min is None and max is None:
                     # When we know a field can accept any type of data, we are
                     # able to know that some entries _will_ decode (not just
                     # possibly decode).
-                    yield _AnyData(length)
+                    return _AnyData(length)
                 else:
-                    yield _UnknownData(length)
-    elif isinstance(entry, seq.Sequence):
-        for child in entry.children:
-            for child_entry in _data_iter(child):
-                yield child_entry
-    elif isinstance(entry, chc.Choice):
-        yield _ChoiceData(entry.children)
-    else:
-        # We don't attempt to use other entry types when differentiating, as
-        # earlier fields should have been enough.
-        yield _UnknownData()
+                    return _UnknownData(length)
+        elif isinstance(self.entry, sof.SequenceOf):
+            return _UnknownData()
+        else:
+            # This entry contains no data (but its children might)...
+            return dt.Data()
 
-class _IterCache:
-    """A class to cache results from an iterator."""
-    def __init__(self, iter):
-        self._iter = iter
-        self._cache = []
-
-    def __iter__(self):
-        i = 0
-        while 1:
-            if i == len(self._cache):
-                if self._iter is None:
-                    break
-                try:
-                    self._cache.append(self._iter.next())
-                except StopIteration:
-                    self._iter = None
-                    break
-
-            assert 0 <= i < len(self._cache)
-            yield self._cache[i].copy()
-            i = i + 1
-
-
-class _JoinIters:
-    """A class to join two iterator results into one."""
-    def __init__(self, a, b):
-        self._a = a
-        self._b = b
-
-    def __iter__(self):
-        for a in self._a:
-            yield a
-        for b in self._b:
-            yield b
-
-
-class _EntryData:
-    """
-    Class to walk over a protcol entry's expected data stream.
-    """
-    def __init__(self, entry, data_iter):
-        self._data_iter = iter(data_iter)
-        self._data = self._data_iter.next()
-        self.entry = entry
-
-    def data_length(self):
-        return len(self._data)
-
-    def pop_data(self, length):
-        result = self._data.pop(length)
-        if len(self._data) == 0:
-            try:
-                self._data = self._data_iter.next()
-            except StopIteration:
-                # When an option has no more data to be matched, we use
-                # an unknown data object so it will still fall into
-                # the 'undistinguished' categories in later matches.
-                #self._data = _UnknownData()
-                self._data = None
-        return result
-
-    def should_fork(self):
-        return isinstance(self._data, _ChoiceData)
-
-    def fork(self):
-        """
-        Handle a fork in the data stream.
-
-        Returns a list of _EntryData objects representing the different
-        possible paths in the data stream.
-        """
-        assert self.should_fork()
-        post_choice_iter = _IterCache(self._data_iter)
-        for option in self._data.options:
-            iter = _JoinIters(_data_iter(option), post_choice_iter)
-            yield _EntryData(self.entry, iter)
 
 def _can_differentiate(lookup, fallback):
     """Test to see if a lookup differentiates itself from other options."""
@@ -198,27 +146,18 @@ def _differentiate(entries):
     distinguish themselves on this entry.
     """
     offset = 0
-    data_options = [_EntryData(entry, _data_iter(entry)) for entry in entries]
 
     # We need to keep track of entries that have successfully decoded, and
     # those that may have decoded.
     successful = []
     possible = []
     have_new_success = False
-    while len(data_options) > 1:
-        test_for_forks = True
-        while test_for_forks:
-            for option in data_options[:]:
-                if option.should_fork():
-                    data_options.remove(option)
-                    data_options.extend(option.fork())
-                    break
-            else:
-                test_for_forks = False
+    options = [(entry, _ProtocolStream(entry)) for entry in entries]
+    while len(options) > 1:
+        length = min(len(option.data) for entry, option in options)
 
         # Calculate the length of the next section of 'differentiable' protocol
         # section.
-        length = min(entry.data_length() for entry in data_options)
         if length == _UnknownData.UNKNOWN_LENGTH:
             # We cannot differentiate any more...
             break
@@ -226,37 +165,39 @@ def _differentiate(entries):
         # Get the values of all of the options for this data section
         lookup = {}
         undistinguished = []
-        for entry in data_options:
-            data = entry.pop_data(length)
-
+        for entry, option in options:
+            data = option.data.pop(length)
             if isinstance(data, _AnyData):
-                undistinguished.append(entry.entry)
+                undistinguished.append(entry)
             elif isinstance(data, _UnknownData):
-                # This entry _may_ have been successfuly...
-                undistinguished.append(entry.entry)
-                if entry.entry not in possible:
-                    possible.append(entry.entry)
+                # This entry _may_ have been successfuly decoded...
+                undistinguished.append(entry)
+                if entry not in possible:
+                    possible.append(entry)
             else:
-                lookup.setdefault(int(data), []).append(entry.entry)
+                lookup.setdefault(int(data), []).append(entry)
 
         if have_new_success or _can_differentiate(lookup, undistinguished + successful + possible):
             # We also should notify if we have a new item in the successful (or possible) list...
             yield offset, length, lookup, undistinguished, successful, possible
         have_new_success = False
 
-        for entry in data_options[:]:
-            if entry._data is None:
-                if entry.entry not in possible:
+        for entry, option in options[:]:
+            if len(option.data) == 0:
+                next = list((entry, next) for next in option.next())
+                options.remove((entry, option))
+                options.extend(next)
+                if len(next) == 0 and entry not in possible:
                     # This entry has finished decoding. If we _know_ it has
-                    # finished decoding, blah blah blah
+                    # finished decoding, we know that anything after this
+                    # entry will not get a chance to decode (ie: early out).
                     have_new_success = True
-                    successful.append(entry.entry)
-                data_options.remove(entry)
+                    successful.append(entry)
         offset += length
 
     # Unable to differentiate any more; give one more result with all
     # of the current possible option.
-    yield offset, 0, {}, [entry.entry for entry in data_options], successful, possible
+    yield offset, 0, {}, [entry for entry, option in options], successful, possible
 
 
 class Chooser:
