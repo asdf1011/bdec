@@ -107,19 +107,19 @@ class TestChooser(unittest.TestCase):
         self.assertEqual([alphanum], chooser.choose(dt.Data("a")))
         self.assertEqual([other], chooser.choose(dt.Data("%")))
 
-    #def test_min_max_differentiation(self):
-    #    # Some entries have a valid range of values, and so it is convenient
-    #    # to offer them as a choice of fields with a min and max value (eg:
-    #    # for pdf 'names' only certain characters are valid). It would be
-    #    # good to differentiate on these.
-    #    a = fld.Field("a", 8, min=0x10, max=0x20)
-    #    b = fld.Field("b", 8, min=0x25, max=0x35)
-    #    chooser = chsr.Chooser([a, b])
-    #    self.assertEqual([], chooser.choose(dt.Data("\x0f")))
-    #    self.assertEqual([a], chooser.choose(dt.Data("\x10")))
-    #    self.assertEqual([a], chooser.choose(dt.Data("\x20")))
-    #    self.assertEqual([], chooser.choose(dt.Data("\x21")))
-    #    self.assertEqual([b], chooser.choose(dt.Data("\x25")))
+    def test_min_max_differentiation(self):
+        # Some entries have a valid range of values, and so it is convenient
+        # to offer them as a choice of fields with a min and max value (eg:
+        # for pdf 'names' only certain characters are valid). It would be
+        # good to differentiate on these.
+        a = fld.Field("a", 8, min=0x10, max=0x20)
+        b = fld.Field("b", 8, min=0x25, max=0x35)
+        chooser = chsr.Chooser([a, b])
+        self.assertEqual([], chooser.choose(dt.Data("\x0f")))
+        self.assertEqual([a], chooser.choose(dt.Data("\x10")))
+        self.assertEqual([a], chooser.choose(dt.Data("\x20")))
+        self.assertEqual([], chooser.choose(dt.Data("\x21")))
+        self.assertEqual([b], chooser.choose(dt.Data("\x25")))
 
     def test_ignores_later_options_when_option_fully_decodes(self):
         # If we get an option that we believe fully decodes, don't list any items
@@ -152,4 +152,4 @@ class TestChooser(unittest.TestCase):
         b = fld.Field('b', 8, expected=dt.Data('['))
         chooser = chsr.Chooser([a, b])
         self.assertEqual([a], chooser.choose(dt.Data("0")))
-        self.assertEqual([a, b], chooser.choose(dt.Data("[")))
+        self.assertEqual([b], chooser.choose(dt.Data("[")))

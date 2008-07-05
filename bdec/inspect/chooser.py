@@ -41,8 +41,17 @@ class _EntryPosition:
         self.offset = offset
 
 class _ProtocolStream:
+    _MAX_FIELD_RANGE = 100
     def __init__(self, entry, parent=None, parent_offset=None):
-        self.entry = entry
+        if isinstance(entry, fld.Field) and entry.min is not None and entry.max is not None and entry.max - entry.min < self._MAX_FIELD_RANGE:
+            # When we have a ranged field, it can be conveniant to 'key' on the
+            # possible values. This allows early outs...
+            options = []
+            for i in range(entry.min, entry.max + 1):
+                options.append(fld.Field(entry.name, entry.length, expected=dt.Data.from_int_big_endian(i, entry.length)))
+            self.entry = chc.Choice('mock %s' % entry.name, options)
+        else:
+            self.entry = entry
         self.data = self._create_data()
         self._parent = parent
         self._parent_offset = parent_offset
@@ -92,17 +101,6 @@ class _ProtocolStream:
                     # another field, we will not be able to calculate the length.
                     pass
 
-                # FIXME: Disabled 'range' logic... doesn't work well with the _ProtocolStream classes.
-                #MAX_RANGE_HANDLED = 100
-                #if (length is not None and min is not None and 
-                #   max is not None and max - min < MAX_RANGE_HANDLED):
-                    # This field has a bit range; instead of just treating it as
-                    # unknown, handle every value in the range individually. This
-                    # allows us to lookup valid values for this field in a 
-                    # dictionary.
-                #    options = [fld.Field("temp", length, expected=dt.Data.from_int_big_endian(value, length)) for value in xrange(min, max + 1)]
-                #    yield _ChoiceData(options)
-                #else:
                 if length is not None and min is None and max is None:
                     # When we know a field can accept any type of data, we are
                     # able to know that some entries _will_ decode (not just
