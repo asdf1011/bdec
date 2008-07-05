@@ -147,3 +147,15 @@ class TestChooser(unittest.TestCase):
         chooser = chsr.Chooser([a, b])
         self.assertEqual([a], chooser.choose(dt.Data("0")))
         self.assertEqual([b], chooser.choose(dt.Data("[")))
+
+    def test_scaling_of_embedded_choice(self):
+        # There was a problem where choosing between items that had multiple 
+        # embedded choice items didn't scale.
+        char = chc.Choice('character', [fld.Field('lowercase', 8, min=97, max=122), fld.Field('uppercase', 8, min=65, max=90)])
+        text = seq.Sequence('text', [char, char, char, char, char])
+
+        a = seq.Sequence('a', [fld.Field('a type', 16, expected=dt.Data("BC")), text, text, text, text])
+        b = seq.Sequence('b', [fld.Field('b type', 16), text, text, text, text])
+        chooser = chsr.Chooser([a, b])
+        self.assertEqual([a], chooser.choose(dt.Data('BC' + 'a' * 20)))
+        self.assertEqual([b], chooser.choose(dt.Data('CD' + 'a' * 20)))

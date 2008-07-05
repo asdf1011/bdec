@@ -71,6 +71,15 @@ class _ProtocolStream:
             return []
         return self._parent._next(self._parent_offset+1)
 
+    def __eq__(self, other):
+        if self.entry is not other.entry:
+            return False
+        if self._parent is not other._parent:
+            return False
+        if self._parent_offset != other._parent_offset:
+            return False
+        return self.data == other.data
+
     def next(self):
         """Return an iterator to _ProtocolStream items"""
         return self._next(0)
@@ -178,13 +187,18 @@ def _differentiate(entries):
             if len(option.data) == 0:
                 next = list((entry, next) for next in option.next())
                 options.remove((entry, option))
-                options.extend(next)
+                for item in next:
+                    if item not in options:
+                        # We found a unique item!
+                        options.append(item)
+
                 if len(next) == 0 and entry not in possible:
                     # This entry has finished decoding. If we _know_ it has
                     # finished decoding, we know that anything after this
                     # entry will not get a chance to decode (ie: early out).
                     have_new_success = True
                     successful.append(entry)
+
         offset += length
 
     # Unable to differentiate any more; give one more result with all
