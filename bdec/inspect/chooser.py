@@ -203,23 +203,12 @@ def _differentiate(entries):
 class Chooser:
     def __init__(self, entries):
         self._entries = entries
-        self._iter = _differentiate(list(entries))
-        self._cached = []
-
-    def _differentiate(self):
-        for i in self._cached:
-            yield i
-        while 1:
-            i = self._iter.next()
-            offset, length, lookup, undistinguished, successful, possible = i
-            self._cached.append((offset, length, lookup.copy(), undistinguished[:], successful[:], possible[:]))
-            yield i
 
     def choose(self, data):
         options = list(self._entries)
         current_offset = 0
         copy = data.copy()
-        for offset, length, lookup, undistinguished, successful, possible in self._differentiate():
+        for offset, length, lookup, undistinguished, successful, possible in _differentiate(self._entries):
             if len(options) <= 1:
                 break
 
