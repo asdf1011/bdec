@@ -34,12 +34,6 @@ class _AnyData(_UnknownData):
     def __init__(self, length):
         _UnknownData.__init__(self, length)
 
-class _EntryPosition:
-    """Class to track the position of an entry in the data stream."""
-    def __init__(self, parent, offset):
-        self.parent = entry
-        self.offset = offset
-
 class _ProtocolStream:
     _MAX_FIELD_RANGE = 100
     def __init__(self, entry, parent=None, parent_offset=None):
