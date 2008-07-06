@@ -51,7 +51,6 @@ class _CompilerTests:
         exit_code, xml = self._decode_file(spec, common, StringIO.StringIO(data))
         self.assertEqual(expected_exit_code, exit_code)
 
-        print xml
         if exit_code == 0:
             if expected_xml is None:
                 # Take the xml output, and ensure the re-encoded data has the same
@@ -330,6 +329,12 @@ class _CompilerTests:
     def test_sequenceof_with_length(self):
         buffer = sof.SequenceOf('databuffer', fld.Field('data', 8), None, length=32)
         self._decode(buffer, 'baba')
+
+    def test_sequenceof_failure(self):
+        text = sof.SequenceOf('a', fld.Field('data', 8, expected=dt.Data('a')), count=2)
+        buffer = sof.SequenceOf('databuffer', text, count=3)
+        other = fld.Field('fallback', length=48)
+        self._decode(chc.Choice('blah', [buffer, other]), 'aaabaa')
 
     def test_sequence_value(self):
         digit = seq.Sequence('digit', [fld.Field('text digit', 8, fld.Field.INTEGER, min=48, max=57)], value=expr.compile("${text digit} - 48"))

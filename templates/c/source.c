@@ -124,9 +124,10 @@ ${static}int ${ctype.decode_name(entry)}(BitBuffer* buffer, ${ctype.ctype(entry)
     %endif
         if (!${ctype.decode_name(entry.children[0])}(buffer, &result->items[i]${decodeentry.params(entry, entry.children[0])}))
         {
-            for (i=0; i<result->count-1; ++i)
+            int j;
+            for (j=0; j<i; ++j)
             {
-                ${ctype.free_name(entry.children[0])}(&result->items[i]);
+                ${ctype.free_name(entry.children[0])}(&result->items[j]);
             }
             return 0;
         }
