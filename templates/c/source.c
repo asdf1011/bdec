@@ -131,6 +131,7 @@ ${static}int ${ctype.decode_name(entry)}(BitBuffer* buffer, ${ctype.ctype(entry)
             {
                 ${ctype.free_name(entry.children[0])}(&result->items[j]);
             }
+            free(result->items);
             return 0;
         }
       %if is_end_sequenceof(entry):
