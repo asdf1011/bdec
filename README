@@ -103,6 +103,21 @@ Download
 
 The bdec library is available under the revised BSD license (no advertising).
 
+* `Version 0.3.2`_
+  Features
+  * The c decoder memory is now freed
+  * Decoders are validated with valgrind
+  * A new 'release' script to simplify making new releases
+
+  Bugfixes
+  * Handle sequence values in the C decoder
+  * Print sequence values in the c decoder output
+  * Xml output no longer includes whitespace around decoded values
+  * Allow entry names to use the '-' character
+  * Improve speed when choosing between embedded choices
+  * Bit buffers now allocate their own memory (instead of reusing the input)
+
+
 * `Version 0.3.1`_
   20 April 2008
 
