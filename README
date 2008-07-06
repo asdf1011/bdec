@@ -104,6 +104,8 @@ Download
 The bdec library is available under the revised BSD license (no advertising).
 
 * `Version 0.3.2`_
+  2008-07-06
+
   Features
   * The c decoder memory is now freed
   * Decoders are validated with valgrind
