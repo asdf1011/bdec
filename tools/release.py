@@ -5,9 +5,10 @@
 import datetime
 import os.path
 import re
+import shutil
 import sys
 
-root_path = os.path.join(os.path.dirname(__file__), '..')
+root_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), '..')
 sys.path.append(root_path)
 
 import bdec
@@ -22,6 +23,7 @@ _RELEASE_FOCUS = {
         }
 
 _README = filename = os.path.join(root_path, 'README')
+website_dir = os.path.join(root_path, '..', 'website', 'website.integ')
 
 def get_changelog():
     "Returns the a (offset, version, changelog) tuple"
@@ -95,6 +97,29 @@ def insert_date_into_changelog(changelog_offset):
     readme.write(contents[changelog_offset:])
     readme.close()
 
+def update_website():
+    website_build = os.path.join(website_dir, 'build')
+    rst2doc = os.path.join(website_build, 'rst2doc.py')
+    project_dir = os.path.join(website_dir, 'html', 'projects', 'bdec')
+    print 'Updating project index...'
+    os.chdir(project_dir)
+    command = "%s %s" % (rst2doc, _README)
+    if os.system(command) != 0:
+        sys.exit('Failed to update project html index!')
+
+    print 'Updating project documentation...'
+    html_doc_dir = os.path.join(project_dir, 'docs')
+    os.chdir(os.path.join(root_path, 'docs'))
+    command = 'PYTHONPATH=%s sphinx-build -a source tempdir' % (root_path) 
+    if not os.path.exists('tempdir'):
+        os.mkdir('tempdir')
+    if os.system(command) != 0:
+        sys.exit('Failed to update project html documentation!')
+    if os.path.exists(html_doc_dir):
+        shutil.rmtree(html_doc_dir)
+    os.rename('tempdir', html_doc_dir)
+    if os.system('bzr add "%s"' % html_doc_dir) != 0:
+        sys.exit('Failed to add the updated html_doc_dir')
 
 if __name__ == '__main__':
     offset, version, changelog = get_changelog()
@@ -109,11 +134,26 @@ if __name__ == '__main__':
 
     update_bdec_version(version)
     insert_date_into_changelog(offset)
-    os.system('bzr diff')
+    update_website()
+    os.chdir(root_path)
+    os.system('bzr diff | less')
+    os.chdir(website_dir)
+    os.system('bzr diff | less')
 
     text = raw_input('Commit changes and tag release? [y]')
     if text and text != 'y':
         sys.exit('Not committed.')
-    os.system('bzr commit -m "Updated version to %s"' % version)
-    os.system('bzr tag "bdec %s"' % version)
+
+    # Commit the bdec changes
+    os.chdir(root_path)
+    if os.system('echo bzr commit -m "Updated version to %s"' % version) != 0:
+        sys.exit('Failed to commit!')
+    if os.system('bzr tag "bdec %s"' % version) != 0:
+        sys.exit('Failed to tag!')
+
+    # Commit the website changes
+    os.chdir(website_dir)
+    if os.system('echo bzr commit -m "Updated bdec project to version %s"' % version) != 0:
+        sys.exit('Failed to commit!')
+
 
