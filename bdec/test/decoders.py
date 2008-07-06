@@ -7,9 +7,11 @@ See the create_decoder_classes function.
 
 import glob
 import os
+import re
 import unittest
 import shutil
 import subprocess
+import stat
 import StringIO
 
 import bdec
@@ -17,10 +19,29 @@ import bdec.data as dt
 import bdec.output.xmlout as xmlout
 import bdec.tools.compiler as comp
 
+
+def _find_executable(name):
+    for path in os.environ['PATH'].split(os.pathsep):
+        full_path = os.path.join(path, name)
+        try:
+            statinfo = os.stat(full_path)
+            if stat.S_ISREG(statinfo[stat.ST_MODE]):
+                return full_path
+        except OSError:
+            pass
+    return None
+
+def _get_valgrind():
+    path =  _find_executable('valgrind')
+    if path is None:
+        print 'Failed to find valgrind executable! Compiled tests will run without valgrind.'
+    return path
+
 class _CompiledDecoder:
     """Base class for testing decoders that are compiled."""
     TEST_DIR = os.path.join(os.path.dirname(__file__), 'temp')
     EXECUTABLE = os.path.join(TEST_DIR, 'decode')
+    VALGRIND = _get_valgrind()
 
     def _compile(self, spec, common):
         """Create a compiled decoder."""
@@ -31,7 +52,8 @@ class _CompiledDecoder:
         comp.generate_code(spec, self.TEMPLATE_PATH, self.TEST_DIR, common)
 
         files = glob.glob(os.path.join(self.TEST_DIR, '*.%s' % self.FILE_TYPE))
-        if subprocess.call([self.COMPILER] + self.COMPILER_FLAGS + [self.EXECUTABLE] + files) != 0:
+        command = [self.COMPILER] + self.COMPILER_FLAGS + [self.EXECUTABLE] + files
+        if subprocess.call(command) != 0:
             self.fail('Failed to compile!')
 
     def _decode_file(self, spec, common, data):
@@ -46,8 +68,15 @@ class _CompiledDecoder:
             datafile.write(data.read())
         datafile.close()
 
-        decode = subprocess.Popen([self.EXECUTABLE, filename], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        command = [self.EXECUTABLE, filename]
+        if self.VALGRIND is not None:
+            command = [self.VALGRIND, '--tool=memcheck', '--leak-check=full'] + command
+        decode = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         xml = decode.stdout.read()
+        stderr = decode.stderr.read()
+        match = re.search('lost: [^0]', stderr)
+        if match is not None:
+            self.fail(stderr)
         return decode.wait(), xml
 
 
