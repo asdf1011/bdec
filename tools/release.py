@@ -146,14 +146,14 @@ if __name__ == '__main__':
 
     # Commit the bdec changes
     os.chdir(root_path)
-    if os.system('echo bzr commit -m "Updated version to %s"' % version) != 0:
+    if os.system('bzr commit -m "Updated version to %s"' % version) != 0:
         sys.exit('Failed to commit!')
     if os.system('bzr tag "bdec %s"' % version) != 0:
         sys.exit('Failed to tag!')
 
     # Commit the website changes
     os.chdir(website_dir)
-    if os.system('echo bzr commit -m "Updated bdec project to version %s"' % version) != 0:
+    if os.system('bzr commit -m "Updated bdec project to version %s"' % version) != 0:
         sys.exit('Failed to commit!')
 
 
