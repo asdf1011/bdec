@@ -25,11 +25,13 @@ _RELEASE_FOCUS = {
 _README = filename = os.path.join(root_path, 'README')
 website_dir = os.path.join(root_path, '..', 'website', 'website.integ')
 
-def get_changelog():
-    "Returns the a (offset, version, changelog) tuple"
+def _read_changelog():
     readme = file(_README, 'r')
     contents = readme.read()
     readme.close()
+
+def get_changelog(contents=_read_changelog()):
+    "Returns the a (offset, version, changelog) tuple"
 
     match = re.search('^Download', contents, re.M)
     if match is None:
