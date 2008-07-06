@@ -32,7 +32,7 @@ def _read_changelog():
     return contents
 
 def get_changelog(contents=_read_changelog()):
-    "Returns the a (offset, version, changelog) tuple"
+    "Returns the a (offset, version, prevous_version, changelog) tuple"
 
     match = re.search('^Download', contents, re.M)
     if match is None:
@@ -52,8 +52,6 @@ def get_changelog(contents=_read_changelog()):
     if match is None:
         sys.exit('Failed to find previous version')
     previous_version = match.group(1)
-    if previous_version != bdec.__version__:
-        sys.exit("Previous version from README (%s) doesn't match bdec (%s)! Have you updated the README?" % (previous_version, bdec.__version__))
 
     # Get the changelog, and strip off any leading whitespace
     changelog = contents[changelog_offset:changelog_offset + match.start()]
@@ -66,7 +64,7 @@ def get_changelog(contents=_read_changelog()):
     changelog = ''.join(line[i:] for line in changelog.splitlines(True)).strip()
 
 
-    return (changelog_offset, version, changelog)
+    return (changelog_offset, version, previous_version, changelog)
 
 def get_focus():
     print 'Focus options are:'
@@ -147,10 +145,6 @@ def commit_changes(version):
         sys.exit('Failed to commit!')
 
 def notify(version, changelog, focus, system=os.system):
-    text = raw_input('Notify freshmeat and pypi? [y]')
-    if text and text != 'y':
-        return
-
     # Notify freshmeat
     freshmeat = os.path.join(website_dir, 'build', 'freshmeat-submit-1.6', 'freshmeat-submit')
     command = '%s -n --project bdec --version %s --changes "%s" --release-focus "%s" --gzipped-tar-url http://www.hl.id.au/projects/bdec/files/bdec-%s.tar.gz' % (freshmeat, version, changelog, focus, version)
@@ -171,26 +165,32 @@ def upload():
         sys.exit('Failed to upload to the server!')
 
 if __name__ == '__main__':
-    offset, version, changelog = get_changelog()
-    print "Next version will be", version
-    print "Changes are;"
-    print changelog
-    print
-    focus = get_focus()
+    offset, version, changelog, previous_version = get_changelog()
 
-    update_bdec_version(version)
-    insert_date_into_changelog(offset)
-    update_website()
-    os.chdir(root_path)
-    os.system('bzr diff | less')
-    os.chdir(website_dir)
-    os.system('bzr diff | less')
+    if previous_version != bdec.__version__:
+        print "Next version will be", version
+        print "Changes are;"
+        print changelog
+        print
+        focus = get_focus()
 
-    text = raw_input('Commit changes and tag release? [y]')
-    if text and text != 'y':
-        sys.exit('Not committed.')
+        update_bdec_version(version)
+        insert_date_into_changelog(offset)
+        update_website()
+        os.chdir(root_path)
+        os.system('bzr diff | less')
+        os.chdir(website_dir)
+        os.system('bzr diff | less')
 
-    commit_changes(version)
-    upload()
-    notify(version, changelog, focus)
+        text = raw_input('Commit changes and tag release? [y]')
+        if text and text != 'y':
+            sys.exit('Not committed.')
+
+        commit_changes(version)
+        upload()
+        notify(version, changelog, focus)
+    else:
+        print "The version hasn't changed, so only updating documentation and uploading..."
+        update_website()
+        upload()
 

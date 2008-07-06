@@ -19,12 +19,13 @@ Download
    * Did this
    * Did that
 
-* `Version %s`_
+* `Version 1.2.3`_
 
    This is the current version
-   """ % bdec.__version__
-        offset, version, changelog = get_changelog(text)
+   """
+        offset, version, previous_version, changelog = get_changelog(text)
         self.assertEqual('9.9.9', version)
+        self.assertEqual('1.2.3', previous_version)
         self.assertEqual('Blah blah:\n* Did this\n* Did that', changelog)
 
     def test_notify(self):
