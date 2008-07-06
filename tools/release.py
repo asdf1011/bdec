@@ -131,13 +131,24 @@ def update_website():
     if os.system('bzr add "%s"' % html_doc_dir) != 0:
         sys.exit('Failed to add the updated html_doc_dir')
 
-def commit_changes(version):
+def tag_changes(version):
+    if os.system('bzr tag "bdec %s"' % version) != 0:
+        sys.exit('Failed to tag!')
+
+def commit_bdec(version):
+    os.chdir(root_path)
+    if os.system('bzr diff | less') != 0:
+        sys.exit('Stopped after reviewing changes.')
+
     # Commit the bdec changes
     os.chdir(root_path)
     if os.system('bzr commit -m "Updated version to %s"' % version) != 0:
         sys.exit('Failed to commit!')
-    if os.system('bzr tag "bdec %s"' % version) != 0:
-        sys.exit('Failed to tag!')
+
+def commit_website(version):
+    os.chdir(website_dir)
+    if os.system('bzr diff | less') != 0:
+        sys.exit('Stopped after reviewing changes.')
 
     # Commit the website changes
     os.chdir(website_dir)
@@ -179,20 +190,19 @@ if __name__ == '__main__':
         update_bdec_version(version)
         insert_date_into_changelog(offset)
         update_website()
-        os.chdir(root_path)
-        os.system('bzr diff | less')
-        os.chdir(website_dir)
-        os.system('bzr diff | less')
 
         text = raw_input('Commit changes and tag release? [y]')
         if text and text != 'y':
             sys.exit('Not committed.')
 
-        commit_changes(version)
+        commit_bdec(version)
+        commit_website(version)
+        tag_changes(version)
         upload()
         notify(version, changelog, focus)
     else:
         print "The version hasn't changed, so only updating documentation and uploading..."
         update_website()
+        commit_website(version)
         upload()
 
