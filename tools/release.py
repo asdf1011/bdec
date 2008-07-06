@@ -24,6 +24,7 @@ _RELEASE_FOCUS = {
 
 _README = filename = os.path.join(root_path, 'README')
 website_dir = os.path.join(root_path, '..', 'website', 'website.integ')
+project_dir = os.path.join(website_dir, 'html', 'projects', 'bdec')
 
 def _read_changelog():
     readme = file(_README, 'r')
@@ -110,7 +111,6 @@ def insert_date_into_changelog(changelog_offset):
 def update_website():
     website_build = os.path.join(website_dir, 'build')
     rst2doc = os.path.join(website_build, 'rst2doc.py')
-    project_dir = os.path.join(website_dir, 'html', 'projects', 'bdec')
     print 'Updating project index...'
     os.chdir(project_dir)
     command = "%s %s" % (rst2doc, _README)
@@ -130,6 +130,16 @@ def update_website():
     os.rename('tempdir', html_doc_dir)
     if os.system('bzr add "%s"' % html_doc_dir) != 0:
         sys.exit('Failed to add the updated html_doc_dir')
+
+def update_release(version):
+    os.chdir(root_path)
+    destination = os.path.join(project_dir, 'files', 'bdec-%s.tar.gz' % version)
+    command = 'bzr export %s' % destination
+    if os.system(command) != 0:
+        sys.exit('Failed to export new tar.gz!')
+    os.chdir(project_dir)
+    if os.system('bzr add %s' % destination) != 0:
+        sys.exit('Failed to add new tar.gz!')
 
 def tag_changes(version):
     if os.system('bzr tag "bdec %s"' % version) != 0:
@@ -190,6 +200,7 @@ if __name__ == '__main__':
         update_bdec_version(version)
         insert_date_into_changelog(offset)
         update_website()
+        update_release(version)
 
         text = raw_input('Commit changes and tag release? [y]')
         if text and text != 'y':
