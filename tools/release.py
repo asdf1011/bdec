@@ -146,22 +146,23 @@ def commit_changes(version):
     if os.system('bzr commit -m "Updated bdec project to version %s"' % version) != 0:
         sys.exit('Failed to commit!')
 
-def notify(version, changelog, focus):
+def notify(version, changelog, focus, system=os.system):
     # Notify freshmeat
     freshmeat = os.path.join(website_dir, 'build', 'freshmeat-submit')
-    command = "%s -n --project bdec --version %s --changes %s  --release-focus %s --gzipped-tar-url http://www.hl.id.au/projects/bdec/files/bdec-%s.tar.gz" % (freshmeat, version, focus, version)
-    if os.system(command) != 0:
+    command = '%s -n --project bdec --version %s --changes "%s" --release-focus %s --gzipped-tar-url http://www.hl.id.au/projects/bdec/files/bdec-%s.tar.gz' % (freshmeat, version, changelog, focus, version)
+    if system(command) != 0:
         sys.exit('Failed to submit to freshmeat! (%s)' % command)
 
     # Notify the python package index
     os.chdir(root_path)
     command = "setup.py register"
-    if os.system(command) != 0:
+    if system(command) != 0:
         sys.exit('Failed to update python package index!')
 
 def upload():
     print "Uploading to the server..."
-    command = "%s ftp://ftp.hl.id.au/" % os.path.join(website_dir, 'upload')
+    os.chdir(website_dir)
+    command = "./upload ftp://ftp.hl.id.au"
     if os.system(command) != 0:
         sys.exit('Failed to upload to the server!')
 
