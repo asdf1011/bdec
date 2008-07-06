@@ -140,6 +140,12 @@ def notify(version, changelog, focus):
     if os.system(command) != 0:
         sys.exit('Failed to submit to freshmeat! (%s)' % command)
 
+def upload():
+    print "Uploading to the server..."
+    command = "%s ftp://ftp.hl.id.au/" % os.path.join(website_dir, 'upload')
+    if os.system(command) != 0:
+        sys.exit('Failed to upload to the server!')
+
 if __name__ == '__main__':
     offset, version, changelog = get_changelog()
     print "Next version will be", version
@@ -164,5 +170,6 @@ if __name__ == '__main__':
         sys.exit('Not committed.')
 
     commit_changes(version)
+    upload()
     notify(version, changelog, focus)
 
