@@ -165,9 +165,11 @@ def upload():
         sys.exit('Failed to upload to the server!')
 
 if __name__ == '__main__':
-    offset, version, changelog, previous_version = get_changelog()
+    offset, version, previous_version, changelog = get_changelog()
 
-    if previous_version != bdec.__version__:
+    if version != bdec.__version__:
+        if previous_version != bdec.__version__:
+            sys.exit("Neither the documented current version (%s) nor the previous version (%s) match the actual version (%s)!" % (version, previous_version, bdec.__version__))
         print "Next version will be", version
         print "Changes are;"
         print changelog
