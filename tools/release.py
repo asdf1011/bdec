@@ -121,6 +121,19 @@ def update_website():
     if os.system('bzr add "%s"' % html_doc_dir) != 0:
         sys.exit('Failed to add the updated html_doc_dir')
 
+def commit_changes(version):
+    # Commit the bdec changes
+    os.chdir(root_path)
+    if os.system('bzr commit -m "Updated version to %s"' % version) != 0:
+        sys.exit('Failed to commit!')
+    if os.system('bzr tag "bdec %s"' % version) != 0:
+        sys.exit('Failed to tag!')
+
+    # Commit the website changes
+    os.chdir(website_dir)
+    if os.system('bzr commit -m "Updated bdec project to version %s"' % version) != 0:
+        sys.exit('Failed to commit!')
+
 if __name__ == '__main__':
     offset, version, changelog = get_changelog()
     print "Next version will be", version
@@ -144,16 +157,5 @@ if __name__ == '__main__':
     if text and text != 'y':
         sys.exit('Not committed.')
 
-    # Commit the bdec changes
-    os.chdir(root_path)
-    if os.system('bzr commit -m "Updated version to %s"' % version) != 0:
-        sys.exit('Failed to commit!')
-    if os.system('bzr tag "bdec %s"' % version) != 0:
-        sys.exit('Failed to tag!')
-
-    # Commit the website changes
-    os.chdir(website_dir)
-    if os.system('bzr commit -m "Updated bdec project to version %s"' % version) != 0:
-        sys.exit('Failed to commit!')
-
+    commit_changes(version)
 
