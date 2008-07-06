@@ -69,6 +69,7 @@ def get_changelog(contents=_read_changelog()):
     return (changelog_offset, version, changelog)
 
 def get_focus():
+    print 'Focus options are:'
     for id, text in _RELEASE_FOCUS.iteritems():
         print id, text
     default = [7]
@@ -169,6 +170,7 @@ if __name__ == '__main__':
     print "Next version will be", version
     print "Changes are;"
     print changelog
+    print
     focus = get_focus()
 
     text = raw_input('Make new version %s with focus %s? [y]' % (version, ", ".join(_RELEASE_FOCUS[i] for i in focus)))
