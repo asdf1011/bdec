@@ -135,10 +135,17 @@ def commit_changes(version):
         sys.exit('Failed to commit!')
 
 def notify(version, changelog, focus):
+    # Notify freshmeat
     freshmeat = os.path.join(website_dir, 'build', 'freshmeat-submit')
     command = "%s -n --project bdec --version %s --changes %s  --release-focus %s --gzipped-tar-url http://www.hl.id.au/projects/bdec/files/bdec-%s.tar.gz" % (freshmeat, version, focus, version)
     if os.system(command) != 0:
         sys.exit('Failed to submit to freshmeat! (%s)' % command)
+
+    # Notify the python package index
+    os.chdir(root_path)
+    command = "setup.py register"
+    if os.system(command) != 0:
+        sys.exit('Failed to update python package index!')
 
 def upload():
     print "Uploading to the server..."
