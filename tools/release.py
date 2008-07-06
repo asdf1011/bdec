@@ -60,7 +60,7 @@ def get_changelog():
 def get_focus():
     for id, text in _RELEASE_FOCUS.iteritems():
         print id, text
-    default = [4,6]
+    default = [7]
     focus = raw_input('What is the release focus? %s ' % default)
     if focus:
         items = [int(text.strip()) for text in focus.split(',')]
@@ -134,6 +134,12 @@ def commit_changes(version):
     if os.system('bzr commit -m "Updated bdec project to version %s"' % version) != 0:
         sys.exit('Failed to commit!')
 
+def notify(version, changelog, focus):
+    freshmeat = os.path.join(website_dir, 'build', 'freshmeat-submit')
+    command = "%s -n --project bdec --version %s --changes %s  --release-focus %s --gzipped-tar-url http://www.hl.id.au/projects/bdec/files/bdec-%s.tar.gz" % (freshmeat, version, focus, version)
+    if os.system(command) != 0:
+        sys.exit('Failed to submit to freshmeat! (%s)' % command)
+
 if __name__ == '__main__':
     offset, version, changelog = get_changelog()
     print "Next version will be", version
@@ -158,4 +164,5 @@ if __name__ == '__main__':
         sys.exit('Not committed.')
 
     commit_changes(version)
+    notify(version, changelog, focus)
 
