@@ -43,6 +43,8 @@ ${static}void ${ctype.free_name(entry)}(${ctype.ctype(entry)}* value)
     free(*value);
     %elif entry.format == Field.HEX:
     free(value->buffer);
+    %elif entry.format == Field.BINARY:
+    free(value->buffer);
     %endif
   %elif isinstance(entry, Sequence):
     %for i, child in enumerate(entry.children):
