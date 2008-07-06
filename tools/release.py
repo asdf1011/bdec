@@ -29,6 +29,7 @@ def _read_changelog():
     readme = file(_README, 'r')
     contents = readme.read()
     readme.close()
+    return contents
 
 def get_changelog(contents=_read_changelog()):
     "Returns the a (offset, version, changelog) tuple"
