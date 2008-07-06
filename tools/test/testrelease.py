@@ -39,6 +39,6 @@ Download
         args = commands[0][len(command):].strip()
         expected = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'website', 'website.integ', 'build', 'freshmeat-submit-1.6', "freshmeat-submit")
         self.assertEqual(os.path.normpath(expected), os.path.normpath(command))
-        self.assertEqual('-n --project bdec --version 9.9.9 --changes "%s" --release-focus 7 --gzipped-tar-url http://www.hl.id.au/projects/bdec/files/bdec-9.9.9.tar.gz' % message, args)
+        self.assertEqual('-n --project bdec --version 9.9.9 --changes "%s" --release-focus "7" --gzipped-tar-url http://www.hl.id.au/projects/bdec/files/bdec-9.9.9.tar.gz' % message, args)
 
-        self.assertEqual('setup.py register', commands[1])
+        self.assertEqual('./setup.py register', commands[1])

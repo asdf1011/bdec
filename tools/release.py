@@ -72,13 +72,13 @@ def get_focus():
     print 'Focus options are:'
     for id, text in _RELEASE_FOCUS.iteritems():
         print id, text
-    default = [7]
+    default = 7
     focus = raw_input('What is the release focus? %s ' % default)
     if focus:
-        items = [int(text.strip()) for text in focus.split(',')]
+        item = text.strip()
     else:
-        items = default
-    return items
+        item = default
+    return _RELEASE_FOCUS[item]
 
 def update_bdec_version(version):
     filename = os.path.join(root_path, 'bdec', '__init__.py')
@@ -149,13 +149,13 @@ def commit_changes(version):
 def notify(version, changelog, focus, system=os.system):
     # Notify freshmeat
     freshmeat = os.path.join(website_dir, 'build', 'freshmeat-submit-1.6', 'freshmeat-submit')
-    command = '%s -n --project bdec --version %s --changes "%s" --release-focus %s --gzipped-tar-url http://www.hl.id.au/projects/bdec/files/bdec-%s.tar.gz' % (freshmeat, version, changelog, focus, version)
+    command = '%s -n --project bdec --version %s --changes "%s" --release-focus "%s" --gzipped-tar-url http://www.hl.id.au/projects/bdec/files/bdec-%s.tar.gz' % (freshmeat, version, changelog, focus, version)
     if system(command) != 0:
         sys.exit('Failed to submit to freshmeat! (%s)' % command)
 
     # Notify the python package index
     os.chdir(root_path)
-    command = "setup.py register"
+    command = "./setup.py register"
     if system(command) != 0:
         sys.exit('Failed to update python package index!')
 
@@ -173,10 +173,6 @@ if __name__ == '__main__':
     print changelog
     print
     focus = get_focus()
-
-    text = raw_input('Make new version %s with focus %s? [y]' % (version, ", ".join(_RELEASE_FOCUS[i] for i in focus)))
-    if text and text != 'y':
-        sys.exit('Not making new version.')
 
     update_bdec_version(version)
     insert_date_into_changelog(offset)
