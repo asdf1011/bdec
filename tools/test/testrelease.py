@@ -37,7 +37,7 @@ Download
         self.assertEqual(2,  len(commands))
         command = commands[0][:commands[0].index(' ')]
         args = commands[0][len(command):].strip()
-        expected = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'website', 'website.integ', 'build', "freshmeat-submit")
+        expected = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'website', 'website.integ', 'build', 'freshmeat-submit-1.6', "freshmeat-submit")
         self.assertEqual(os.path.normpath(expected), os.path.normpath(command))
         self.assertEqual('-n --project bdec --version 9.9.9 --changes "%s" --release-focus 7 --gzipped-tar-url http://www.hl.id.au/projects/bdec/files/bdec-9.9.9.tar.gz' % message, args)
 

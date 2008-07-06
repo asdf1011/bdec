@@ -148,7 +148,7 @@ def commit_changes(version):
 
 def notify(version, changelog, focus, system=os.system):
     # Notify freshmeat
-    freshmeat = os.path.join(website_dir, 'build', 'freshmeat-submit')
+    freshmeat = os.path.join(website_dir, 'build', 'freshmeat-submit-1.6', 'freshmeat-submit')
     command = '%s -n --project bdec --version %s --changes "%s" --release-focus %s --gzipped-tar-url http://www.hl.id.au/projects/bdec/files/bdec-%s.tar.gz' % (freshmeat, version, changelog, focus, version)
     if system(command) != 0:
         sys.exit('Failed to submit to freshmeat! (%s)' % command)
