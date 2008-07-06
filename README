@@ -107,11 +107,13 @@ The bdec library is available under the revised BSD license (no advertising).
   2008-07-06
 
   Features
+
   * The c decoder memory is now freed
   * Decoders are validated with valgrind
   * A new 'release' script to simplify making new releases
 
   Bugfixes
+
   * Handle sequence values in the C decoder
   * Print sequence values in the c decoder output
   * Xml output no longer includes whitespace around decoded values
