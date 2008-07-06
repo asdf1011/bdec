@@ -147,6 +147,10 @@ def commit_changes(version):
         sys.exit('Failed to commit!')
 
 def notify(version, changelog, focus, system=os.system):
+    text = raw_input('Notify freshmeat and pypi? [y]')
+    if text and text != 'y':
+        return
+
     # Notify freshmeat
     freshmeat = os.path.join(website_dir, 'build', 'freshmeat-submit-1.6', 'freshmeat-submit')
     command = '%s -n --project bdec --version %s --changes "%s" --release-focus "%s" --gzipped-tar-url http://www.hl.id.au/projects/bdec/files/bdec-%s.tar.gz' % (freshmeat, version, changelog, focus, version)
