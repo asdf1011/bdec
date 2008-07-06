@@ -48,7 +48,7 @@ def get_changelog():
         sys.exit('Failed to find previous version')
     previous_version = match.group(1)
     if previous_version != bdec.__version__:
-        sys.exit("Previous version from README (%s) doesn't match bdec (%s)!" % (previous_version, bdec.__version__))
+        sys.exit("Previous version from README (%s) doesn't match bdec (%s)! Have you updated the README?" % (previous_version, bdec.__version__))
 
     # Get the changelog
     changelog = contents[changelog_offset:changelog_offset + match.start()]
