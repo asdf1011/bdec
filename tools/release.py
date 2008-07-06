@@ -54,8 +54,16 @@ def get_changelog(contents=_read_changelog()):
     if previous_version != bdec.__version__:
         sys.exit("Previous version from README (%s) doesn't match bdec (%s)! Have you updated the README?" % (previous_version, bdec.__version__))
 
-    # Get the changelog
+    # Get the changelog, and strip off any leading whitespace
     changelog = contents[changelog_offset:changelog_offset + match.start()]
+    for line in changelog.splitlines():
+        if line.strip():
+            for i, char in enumerate(line):
+                if char != ' ':
+                    break
+            break
+    changelog = ''.join(line[i:] for line in changelog.splitlines(True)).strip()
+
 
     return (changelog_offset, version, changelog)
 
