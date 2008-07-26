@@ -67,27 +67,6 @@ def is_hidden(name):
     """
     return name.endswith(':')
 
-def _hack_recursive_replace_values(expression, context):
-    # Walk the expression tree, and replace context items as appropriate.
-    import bdec.spec.expression as expr
-    if isinstance(expression, expr.ValueResult):
-        name = expression.name
-        expression.length = context[name]
-    elif isinstance(expression, expr.LengthResult):
-        expression.length = context[expression.name + " length"]
-    elif isinstance(expression, expr.Delayed):
-        _hack_recursive_replace_values(expression.left, context)
-        _hack_recursive_replace_values(expression.right, context)
-
-def hack_calculate_expression(expression, context):
-    """
-    A temporary hack to calculate expression values given a context.
-
-    Will be removed in a future commit.
-    """
-    _hack_recursive_replace_values(expression, context)
-    return int(expression)
-
 
 class Range:
     """Class representing the possible length of a protocol entry.
@@ -119,7 +98,7 @@ def _hack_create_value_listener(name):
         if isinstance(entry, fld.Field):
             context[name] = int(entry)
         elif isinstance(entry, seq.Sequence):
-            context[name] = hack_calculate_expression(entry.value, context)
+            context[name] = entry.value.evaluate(context)
         else:
             raise Exception("Don't know how to read value of %s" % entry)
     return _on_value_referenced
@@ -134,9 +113,14 @@ class Entry(object):
     def __init__(self, name, length, embedded):
         """Construct an Entry instance.
 
-        An entry can have a length; if so, the decode size of that entry
-        must match.
+        length -- Optionally specify the size in bits of the entry. Must be an
+            instance of bdec.spec.expression.Expression or an integer.
         """
+        from bdec.spec.expression import Expression, Constant
+        if length is not None:
+            if isinstance(length, int):
+                length = Constant(length)
+            assert isinstance(length, Expression)
         self.name = name
         self._listeners = []
         self.length = length
@@ -265,7 +249,7 @@ class Entry(object):
 
         if self.length is not None:
             try:
-                data = data.pop(hack_calculate_expression(self.length, context))
+                data = data.pop(self.length.evaluate(context))
             except dt.DataError, ex:
                 raise EntryDataError(self, ex)
 
@@ -319,8 +303,8 @@ class Entry(object):
             encode_length += len(data)
             yield data
 
-        if self.length is not None and encode_length != int(self.length):
-            raise DataLengthError(self, int(self.length), encode_length)
+        if self.length is not None and encode_length != self.length.evaluate({}):
+            raise DataLengthError(self, self.length.evaluate({}), encode_length)
 
     def is_hidden(self):
         """Is this a 'hidden' entry."""
@@ -353,7 +337,7 @@ class Entry(object):
         result = None
         if self.length is not None:
             try:
-                min = max = int(self.length)
+                min = max = self.length.evaluate({})
                 result = bdec.entry.Range(min, max)
             except bdec.spec.expression.UndecodedReferenceError:
                 pass

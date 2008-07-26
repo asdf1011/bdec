@@ -95,7 +95,7 @@ class TestXml(unittest.TestCase):
         text = """<protocol> <common> <field name="bob" length="8" /> </common> <reference name="bob" /> </protocol>"""
         decoder = xml.loads(text)[0]
         self.assertEqual("bob", decoder.name)
-        self.assertEqual(8, decoder.length)
+        self.assertEqual(8, decoder.length.value)
         result = list(decoder.decode(dt.Data.from_hex("7a")))
         self.assertEqual(2, len(result))
         self.assertEqual(0x7a, int(result[1][1]))

@@ -1,6 +1,6 @@
 ## vim:set syntax=mako:
 <%!
-    from bdec.spec.expression import Delayed, ValueResult, LengthResult
+    from bdec.spec.expression import Delayed, ValueResult, LengthResult, Constant
     import operator
 %>
 
@@ -21,6 +21,8 @@
 <%def name="recursive_expr(length)">
   %if isinstance(length, int):
 ${length}
+  %elif isinstance(length, Constant):
+${length.value}
   %elif isinstance(length, ValueResult):
 ${length.name|variable}
   %elif isinstance(length, LengthResult):

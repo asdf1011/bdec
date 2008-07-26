@@ -42,7 +42,8 @@ class _ProtocolStream:
             # possible values. This allows early outs...
             options = []
             for i in range(entry.min, entry.max + 1):
-                options.append(fld.Field(entry.name, entry.length, expected=dt.Data.from_int_big_endian(i, entry.length)))
+                length = entry.length.evaluate({})
+                options.append(fld.Field(entry.name, entry.length, expected=dt.Data.from_int_big_endian(i, length)))
             self.entry = chc.Choice('mock %s' % entry.name, options)
         else:
             self.entry = entry
@@ -94,7 +95,7 @@ class _ProtocolStream:
                 length = None
                 min = max = None
                 try:
-                    length = int(self.entry.length)
+                    length = self.entry.length.evaluate({})
                     if self.entry.min is not None:
                         min = int(self.entry.min)
                     if self.entry.max is not None:

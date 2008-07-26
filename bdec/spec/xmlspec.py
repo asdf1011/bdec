@@ -239,10 +239,10 @@ class _Handler(xml.sax.handler.ContentHandler):
                     raise self._error("Invalid integer encoding '%s'! Valid values are: %s" % (encoding, ", ".join(_integer_encodings)))
         min = None
         if attributes.has_key('min'):
-            min = self._parse_expression(attributes['min'])
+            min = self._parse_expression(attributes['min']).evaluate({})
         max = None
         if attributes.has_key('max'):
-            max = self._parse_expression(attributes['max'])
+            max = self._parse_expression(attributes['max']).evaluate({})
 
         # We'll create the field, then use it to create the expected value.
         result = fld.Field(name, length, format, encoding, None, min, max)
@@ -256,7 +256,7 @@ class _Handler(xml.sax.handler.ContentHandler):
             expected_length = len(expected)
             if result.length is not None:
                 try:
-                    expected_length = int(result.length)
+                    expected_length = result.length.evaluate({})
                 except exp.UndecodedReferenceError:
                     pass
 

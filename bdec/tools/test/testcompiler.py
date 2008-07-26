@@ -146,7 +146,7 @@ class _CompilerTests:
     def test_variable_length_integer(self):
         a = fld.Field('a', 8, fld.Field.INTEGER)
         value = expr.ValueResult('a')
-        b = fld.Field('b', expr.Delayed(operator.__mul__, value, 8), fld.Field.INTEGER)
+        b = fld.Field('b', expr.Delayed(operator.__mul__, value, expr.Constant(8)), fld.Field.INTEGER)
         spec = seq.Sequence('blah', [a,b])
         expected_xml = """
            <blah>
@@ -221,9 +221,9 @@ class _CompilerTests:
         total_length_expr = expr.ValueResult('length total')
         header_length = fld.Field('length header', 8, fld.Field.INTEGER)
         header_length_expr = expr.ValueResult('length header')
-        header = fld.Field('header', expr.Delayed(operator.__mul__, header_length_expr, 8), fld.Field.TEXT)
+        header = fld.Field('header', expr.Delayed(operator.__mul__, header_length_expr, expr.Constant(8)), fld.Field.TEXT)
         header_data_length = expr.LengthResult('header')
-        data_length = expr.Delayed(operator.__sub__, expr.Delayed(operator.__mul__, total_length_expr, 8), header_data_length)
+        data_length = expr.Delayed(operator.__sub__, expr.Delayed(operator.__mul__, total_length_expr, expr.Constant(8)), header_data_length)
         data = fld.Field('data', data_length, fld.Field.TEXT)
         spec = seq.Sequence('blah', [length_total, header_length, header, data])
         expected_xml = """

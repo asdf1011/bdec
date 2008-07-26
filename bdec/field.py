@@ -121,6 +121,8 @@ class Field(bdec.entry.Entry):
         self.encoding = encoding
         self.data = None
         self.expected = expected
+        assert min is None or isinstance(min, int)
+        assert max is None or isinstance(max, int)
         self.min = min
         self.max = max
 
@@ -129,7 +131,7 @@ class Field(bdec.entry.Entry):
         if expected is not None and self.length is not None:
             import bdec.spec.expression
             try:
-                length = int(self.length)
+                length = self.length.evaluate({})
                 if length != len(expected):
                     raise FieldDataError(self, 'Expected data should have a length of %i, got %i' % (length, len(expected)))
             except bdec.spec.expression.UndecodedReferenceError:
@@ -141,7 +143,7 @@ class Field(bdec.entry.Entry):
         """ see bdec.entry.Entry._decode """
         yield (True, self, data, None)
 
-        field_data = data.pop(bdec.entry.hack_calculate_expression(self.length, context))
+        field_data = data.pop(self.length.evaluate(context))
         # As this popped data is not guaranteed to be available, we have to
         # wrap all access to it in an exception handler.
         try:
@@ -164,7 +166,7 @@ class Field(bdec.entry.Entry):
             raise BadFormatError(self, data, expected_type)
 
     def _encode_data(self, data):
-        length = int(self.length)
+        length = self.length.evaluate({})
         if self.format == self.BINARY:
             result = dt.Data.from_binary_text(self._convert_type(data, str))
         elif self.format == self.HEX:

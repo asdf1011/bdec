@@ -17,7 +17,11 @@ class ExpressionError(bdec.spec.LoadError):
     def __str__(self):
         return str(self.error)
 
-class Delayed:
+class Expression:
+    def evaluate(self, context):
+        raise NotImplementedError
+
+class Delayed(Expression):
     """
     Class to delay the operation of an integer operation.
 
@@ -27,49 +31,51 @@ class Delayed:
     """
     def __init__(self, op, left, right):
         self.op = op
+        assert isinstance(left, Expression)
+        assert isinstance(right, Expression)
         self.left = left
         self.right = right
 
-    def __int__(self):
-        return self.op(int(self.left), int(self.right))
+    def evaluate(self, context):
+        return self.op(self.left.evaluate(context), self.right.evaluate(context))
 
 
-class Constant:
+class Constant(Expression):
     def __init__(self, value):
         self.value = value
-
-    def __int__(self):
+        
+    def evaluate(self, context):
         return self.value
 
 
-class ValueResult:
+class ValueResult(Expression):
     """
     Object returning the result of a entry when cast to an integer.
     """
     def __init__(self, name):
         assert isinstance(name, basestring)
-        self.length = None
         self.name = name
 
-    def __int__(self):
-        if self.length is None:
+    def evaluate(self, context):
+        try:
+            return context[self.name]
+        except KeyError:
             raise UndecodedReferenceError()
-        return self.length
 
 
-class LengthResult:
+class LengthResult(Expression):
     """
     Object returning the length of a decoded entry.
     """
     def __init__(self, name):
         assert isinstance(name, basestring)
-        self.length = None
         self.name = name
 
-    def __int__(self):
-        if self.length is None:
+    def evaluate(self, context):
+        try:
+            return context[self.name + ' length']
+        except KeyError:
             raise UndecodedReferenceError()
-        return self.length
 
 
 def _half(op):
@@ -100,16 +106,11 @@ def compile(text):
 
     :param name_lookup: A object to call to query a named integer 
         convertible object.
+    return -- An Expression instance
     """
-    try:
-        return int(text)
-    except ValueError:
-        pass
-
-    # We have a complicated expression; we'll have to parse it.
     from pyparsing import Word, alphanums, nums, Forward, StringEnd, ZeroOrMore, ParseException, Combine, CaselessLiteral, srange
     entry_name = Word(alphanums + ' _+:.-')
-    integer = Word(nums).addParseAction(lambda s,l,t: [int(t[0])])
+    integer = Word(nums).addParseAction(lambda s,l,t: [Constant(int(t[0]))])
     hex = Combine(CaselessLiteral("0x") + Word(srange("[0-9a-fA-F]"))).addParseAction(lambda s,l,t:[Constant(int(t[0][2:], 16))])
     named_reference = ('${' + entry_name + '}').addParseAction(lambda s,l,t:ValueResult(t[1]))
     length_reference = ('len{' + entry_name + '}').addParseAction(lambda s,l,t:LengthResult(t[1]))

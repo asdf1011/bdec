@@ -49,6 +49,10 @@ class SequenceOf(bdec.entry.Entry):
         fail to decode after using all of the available buffer.
         """
         bdec.entry.Entry.__init__(self, name, length, [child])
+        from bdec.spec.expression import Constant, Expression
+        if isinstance(count, int):
+            count = Constant(count)
+        assert count is None or isinstance(count, Expression)
         self.count = count
         self.end_entries = end_entries
 
@@ -60,7 +64,7 @@ class SequenceOf(bdec.entry.Entry):
     def _loop(self, context, data):
         context['should end'] = False
         if self.count is not None:
-            count = int(bdec.entry.hack_calculate_expression(self.count, context))
+            count = int(self.count.evaluate(context))
             if count < 0:
                 raise NegativeSequenceofLoop(self, count)
 
@@ -94,6 +98,6 @@ class SequenceOf(bdec.entry.Entry):
             for data in self.children[0].encode(query, child):
                 yield data
 
-        if self.count is not None and int(self.count) != count:
+        if self.count is not None and self.count.evaluate({}) != count:
             raise InvalidSequenceOfCount(self, self.count, count)
 

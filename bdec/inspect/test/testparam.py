@@ -69,7 +69,7 @@ class TestVariableReference(unittest.TestCase):
         ignored = fld.Field('ignored', 8)
         upper = fld.Field('upper byte', 8)
         upper_value = expr.ValueResult('upper byte')
-        value = expr.Delayed(operator.__add__, expr.Delayed(operator.__mul__, upper_value, 256), lower_value)
+        value = expr.Delayed(operator.__add__, expr.Delayed(operator.__mul__, upper_value, expr.Constant(256)), lower_value)
         length = seq.Sequence('length', [lower, ignored, upper], value)
         header = seq.Sequence('header', [length])
 
