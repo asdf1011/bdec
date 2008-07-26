@@ -1,3 +1,4 @@
-bdec/tools/test/temp
+*.pyc
 bdec/test/temp
+*.swp
 docs/output
