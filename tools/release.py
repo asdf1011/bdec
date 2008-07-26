@@ -152,7 +152,7 @@ def commit_bdec(version):
 
     # Commit the bdec changes
     os.chdir(root_path)
-    if os.system('git commit -m "Updated version to %s"' % version) != 0:
+    if os.system('git commit --edit -m "Updated version to %s"' % version) != 0:
         sys.exit('Failed to commit!')
 
 def commit_website(version):
@@ -173,16 +173,22 @@ def commit_website(version):
 
 def notify(version, changelog, focus, system=os.system):
     # Notify freshmeat
-    freshmeat = os.path.join(website_dir, 'build', 'freshmeat-submit-1.6', 'freshmeat-submit')
-    command = '%s -n --project bdec --version %s --changes "%s" --release-focus "%s" --gzipped-tar-url http://www.hl.id.au/projects/bdec/files/bdec-%s.tar.gz' % (freshmeat, version, changelog, focus, version)
-    if system(command) != 0:
-        sys.exit('Failed to submit to freshmeat! (%s)' % command)
+    if raw_input('Should freshmeat be notified? [y]') in ['', 'y', 'Y']:
+        freshmeat = os.path.join(website_dir, 'build', 'freshmeat-submit-1.6', 'freshmeat-submit')
+        command = '%s -n --project bdec --version %s --changes "%s" --release-focus "%s" --gzipped-tar-url http://www.hl.id.au/projects/bdec/files/bdec-%s.tar.gz' % (freshmeat, version, changelog, focus, version)
+        if system(command) != 0:
+            sys.exit('Failed to submit to freshmeat! (%s)' % command)
+    else:
+        print 'Not notifying freshmeat.'
 
     # Notify the python package index
-    os.chdir(root_path)
-    command = "./setup.py register"
-    if system(command) != 0:
-        sys.exit('Failed to update python package index!')
+    if raw_input('Should pypi be notified? [y]') in ['', 'y', 'Y']:
+        os.chdir(root_path)
+        command = "./setup.py register"
+        if system(command) != 0:
+            sys.exit('Failed to update python package index!')
+    else:
+        print 'Not notifying pypi.'
 
 def upload():
     print "Uploading to the server..."
