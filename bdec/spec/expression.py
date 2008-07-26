@@ -33,6 +33,15 @@ class Delayed:
     def __int__(self):
         return self.op(int(self.left), int(self.right))
 
+
+class Constant:
+    def __init__(self, value):
+        self.value = value
+
+    def __int__(self):
+        return self.value
+
+
 class ValueResult:
     """
     Object returning the result of a entry when cast to an integer.
@@ -101,7 +110,7 @@ def compile(text):
     from pyparsing import Word, alphanums, nums, Forward, StringEnd, ZeroOrMore, ParseException, Combine, CaselessLiteral, srange
     entry_name = Word(alphanums + ' _+:.-')
     integer = Word(nums).addParseAction(lambda s,l,t: [int(t[0])])
-    hex = Combine(CaselessLiteral("0x") + Word(srange("[0-9a-fA-F]"))).addParseAction(lambda s,l,t:[int(t[0][2:], 16)])
+    hex = Combine(CaselessLiteral("0x") + Word(srange("[0-9a-fA-F]"))).addParseAction(lambda s,l,t:[Constant(int(t[0][2:], 16))])
     named_reference = ('${' + entry_name + '}').addParseAction(lambda s,l,t:ValueResult(t[1]))
     length_reference = ('len{' + entry_name + '}').addParseAction(lambda s,l,t:LengthResult(t[1]))
 
