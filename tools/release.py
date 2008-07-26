@@ -142,7 +142,7 @@ def update_release(version):
         sys.exit('Failed to add new tar.gz!')
 
 def tag_changes(version):
-    if os.system('bzr tag "bdec-%s"' % version) != 0:
+    if os.system('git tag "bdec-%s"' % version) != 0:
         sys.exit('Failed to tag!')
 
 def commit_bdec(version):
