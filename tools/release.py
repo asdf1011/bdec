@@ -134,7 +134,7 @@ def update_website():
 def update_release(version):
     os.chdir(root_path)
     destination = os.path.join(project_dir, 'files', 'bdec-%s.tar.gz' % version)
-    command = 'git archive --format=tar prefix=bdec-%s | gzip > %s' % (version, version, destination)
+    command = 'git archive --format=tar --prefix=bdec-%s/ HEAD | gzip > %s' % (version, destination)
     if os.system(command) != 0:
         sys.exit('Failed to export new tar.gz!')
     os.chdir(project_dir)
