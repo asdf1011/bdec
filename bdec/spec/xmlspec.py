@@ -207,7 +207,6 @@ class _Handler(xml.sax.handler.ContentHandler):
             return exp.compile(text)
         except exp.ExpressionError, ex:
             raise XmlExpressionError(ex, self._filename, self.locator)
-        return result
 
     def _reference(self, attributes, children, length, breaks):
         if attributes.getNames() != ["name"]:
