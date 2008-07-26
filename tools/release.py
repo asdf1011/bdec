@@ -171,9 +171,10 @@ def commit_website(version):
         sys.exit('Failed to commit!')
     os.remove('.commitmsg')
 
-def notify(version, changelog, focus, system=os.system):
+def notify(version, changelog, get_focus=get_focus,  system=os.system, confirm=raw_input):
     # Notify freshmeat
-    if raw_input('Should freshmeat be notified? [y]') in ['', 'y', 'Y']:
+    if confirm('Should freshmeat be notified? [y]') in ['', 'y', 'Y']:
+        focus = get_focus()
         freshmeat = os.path.join(website_dir, 'build', 'freshmeat-submit-1.6', 'freshmeat-submit')
         command = '%s -n --project bdec --version %s --changes "%s" --release-focus "%s" --gzipped-tar-url http://www.hl.id.au/projects/bdec/files/bdec-%s.tar.gz' % (freshmeat, version, changelog, focus, version)
         if system(command) != 0:
@@ -182,7 +183,7 @@ def notify(version, changelog, focus, system=os.system):
         print 'Not notifying freshmeat.'
 
     # Notify the python package index
-    if raw_input('Should pypi be notified? [y]') in ['', 'y', 'Y']:
+    if confirm('Should pypi be notified? [y]') in ['', 'y', 'Y']:
         os.chdir(root_path)
         command = "./setup.py register"
         if system(command) != 0:
@@ -207,7 +208,6 @@ if __name__ == '__main__':
         print "Changes are;"
         print changelog
         print
-        focus = get_focus()
 
         update_bdec_version(version)
         insert_date_into_changelog(offset)
@@ -222,7 +222,7 @@ if __name__ == '__main__':
         commit_website(version)
         tag_changes(version)
         upload()
-        notify(version, changelog, focus)
+        notify(version, changelog)
     else:
         print "The version hasn't changed, so only updating documentation and uploading..."
         update_website()
