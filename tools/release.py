@@ -134,7 +134,7 @@ def update_website():
 def update_release(version):
     os.chdir(root_path)
     destination = os.path.join(project_dir, 'files', 'bdec-%s.tar.gz' % version)
-    command = 'bzr export %s' % destination
+    command = 'git archive --format=tar prefix=bdec-%s | gzip > %s' % (version, version, destination)
     if os.system(command) != 0:
         sys.exit('Failed to export new tar.gz!')
     os.chdir(project_dir)
@@ -142,17 +142,17 @@ def update_release(version):
         sys.exit('Failed to add new tar.gz!')
 
 def tag_changes(version):
-    if os.system('bzr tag "bdec %s"' % version) != 0:
+    if os.system('bzr tag "bdec-%s"' % version) != 0:
         sys.exit('Failed to tag!')
 
 def commit_bdec(version):
     os.chdir(root_path)
-    if os.system('bzr diff | less') != 0:
+    if os.system('git diff') != 0:
         sys.exit('Stopped after reviewing changes.')
 
     # Commit the bdec changes
     os.chdir(root_path)
-    if os.system('bzr commit -m "Updated version to %s"' % version) != 0:
+    if os.system('git commit -m "Updated version to %s"' % version) != 0:
         sys.exit('Failed to commit!')
 
 def commit_website(version):
