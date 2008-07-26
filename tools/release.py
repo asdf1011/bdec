@@ -162,8 +162,14 @@ def commit_website(version):
 
     # Commit the website changes
     os.chdir(website_dir)
-    if os.system('bzr commit -m "Updated bdec project to version %s"' % version) != 0:
+    data = file('.commitmsg', 'w')
+    data.write('Updated bdec project to version %s' % version)
+    data.close()
+    if os.system('vi .commitmsg') != 0:
+        sys.exit('Stopping due to edit commit message failure')
+    if os.system('bzr commit -F .commitmsg') != 0:
         sys.exit('Failed to commit!')
+    os.remove('.commitmsg')
 
 def notify(version, changelog, focus, system=os.system):
     # Notify freshmeat
