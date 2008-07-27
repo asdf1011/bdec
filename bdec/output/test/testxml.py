@@ -64,3 +64,15 @@ class TestXml(unittest.TestCase):
         text = xml.to_string(spec, dt.Data('  bob   '))
         data = reduce(lambda a,b:a+b, xml.encode(spec, text))
         self.assertEqual("  bob   ", data.bytes())
+
+    def test_nameless_entry(self):
+        hidden = fld.Field('', 8, fld.Field.INTEGER, expected=dt.Data('\x00'))
+        spec = seq.Sequence('blah', [hidden])
+        text = xml.to_string(spec, dt.Data('\x00'))
+        self.assertEqual('<blah>\n</blah>\n', text)
+
+    def test_verbose_nameless_entry(self):
+        hidden = fld.Field('', 8, fld.Field.INTEGER, expected=dt.Data('\x00'))
+        spec = seq.Sequence('blah', [hidden])
+        text = xml.to_string(spec, dt.Data('\x00'), verbose=True)
+        self.assertEqual('<blah>\n    <integer>0<!-- hex (1 bytes): 00 --></integer>\n</blah>\n', text)

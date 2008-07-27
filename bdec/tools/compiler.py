@@ -150,6 +150,8 @@ _NUMBERS = _crange('0', '9')
 _VALID_CHARS = _NUMBERS + _crange('a', 'z') + _crange('A', 'Z') + ['_', ' ']
 
 def _escape_name(name):
+    if not name:
+        return "_hidden"
     result = "".join(char for char in name if char in _VALID_CHARS)
     if result[0] in _NUMBERS:
         result = '_' + result

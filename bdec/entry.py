@@ -65,7 +65,7 @@ def is_hidden(name):
     see 'expected' results (that is, fields with data we expect, without
     which the decode would fail).
     """
-    return name.endswith(':')
+    return len(name) == 0 or name.endswith(':')
 
 
 class Range:

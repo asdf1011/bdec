@@ -352,4 +352,10 @@ class _CompilerTests:
           </a>"""
         self._decode(a, '21' + 'x' * 21, expected_xml=expected, common=[digit, two_digits, a])
 
+    def test_empty_name(self):
+        a = fld.Field('', 8, fld.Field.INTEGER, expected=dt.Data('\x00'))
+        b = fld.Field('b', 8, fld.Field.INTEGER)
+        c = seq.Sequence('c', [a, b])
+        self._decode(c, '\x00\x10')
+
 globals().update(create_decoder_classes([(_CompilerTests, 'SimpleDecode')], __name__))
