@@ -175,22 +175,23 @@ static void printWhitespace(int numChars)
   %if item in common and item is not entry:
     ${ctype.print_name(item)}(&${varname}, offset + ${offset});
   %else:
-    printWhitespace(offset);
-    %if isinstance(item, Field):
+    %if not item.is_hidden():
     printf("${' ' * offset}<${item.name |xmlname}>");
-      %if item.format == Field.INTEGER:
+    %endif
+    %if isinstance(item, Field):
+      %if not item.is_hidden():
+        %if item.format == Field.INTEGER:
     printf("%i", ${varname}); 
-      %elif item.format == Field.TEXT:
+        %elif item.format == Field.TEXT:
     printf("%s", ${varname});
-      %elif item.format == Field.HEX:
+        %elif item.format == Field.HEX:
         <% iter_name = variable(item.name + ' counter' + str(iter_postfix.next())) %>
     int ${iter_name};
     for (${iter_name} = 0; ${iter_name} < ${varname}.length; ++${iter_name})
     {
         printf("%x", ${varname}.buffer[${iter_name}]);
     }
-    printf("\n");
-      %elif item.format == Field.BINARY:
+        %elif item.format == Field.BINARY:
         <% copy_name = variable('copy of ' + item.name + str(iter_postfix.next())) %>
         <% iter_name = variable(item.name + ' counter' + str(iter_postfix.next())) %>
     BitBuffer ${copy_name} = ${varname};
@@ -199,18 +200,21 @@ static void printWhitespace(int numChars)
     {
         printf("%i", decode_integer(&${copy_name}, 1));
     }
-      %else:
+        %else:
     #error Don't know how to print ${item}
+        %endif
       %endif
-    printf("</${item.name |xmlname}>\n");
     %else:
     ## Print everything other than fields
-    printf("${' ' * offset}<${item.name |xmlname}>\n");
+      %if not item.is_hidden():
+    printf("\n");
+      %endif
+      <% next_offset = (offset + 3) if not item.is_hidden() else offset %>
       %if isinstance(item, Sequence):
         %for i, child in enumerate(item.children):
-    ${recursivePrint(child, '%s.%s' % (varname, variable(esc_name(i, item.children))), offset+3, iter_postfix)}
+    ${recursivePrint(child, '%s.%s' % (varname, variable(esc_name(i, item.children))), next_offset, iter_postfix)}
         %endfor
-        %if item.value is not None:
+        %if item.value is not None and not item.is_hidden():
     printf("${' ' * (offset+3)}%i\n", ${varname}.value); 
         %endif
       %elif isinstance(item, SequenceOf):
@@ -218,20 +222,24 @@ static void printWhitespace(int numChars)
     int ${iter_name};
     for (${iter_name} = 0; ${iter_name} < ${varname}.count; ++${iter_name})
     {
-        ${recursivePrint(item.children[0], '%s.items[%s]' % (varname, iter_name), offset+3, iter_postfix)}
+        ${recursivePrint(item.children[0], '%s.items[%s]' % (varname, iter_name), next_offset, iter_postfix)}
     }
       %elif isinstance(item, Choice):
         %for i, child in enumerate(item.children):
     if (${'%s.%s' % (varname, variable(esc_name(i, item.children)))} != 0)
     {
-        ${recursivePrint(child, "(*%s.%s)" % (varname, variable(esc_name(i, item.children))), offset+3, iter_postfix)}
+        ${recursivePrint(child, "(*%s.%s)" % (varname, variable(esc_name(i, item.children))), next_offset, iter_postfix)}
     }
         %endfor
       %else:
     #error Don't know how to print ${item}
       %endif
-    printWhitespace(offset);
-    printf("${' ' * offset}</${item.name |xmlname}>\n");
+      %if not item.is_hidden():
+    printf("${' ' * offset}");
+      %endif
+    %endif
+    %if not item.is_hidden():
+    printf("</${item.name |xmlname}>\n");
     %endif
   %endif
 </%def>
