@@ -595,3 +595,21 @@ class TestXml(unittest.TestCase):
             list(decoder.decode(dt.Data("chicken\x00bob\x00")))
         except fld.FieldDataError, ex:
             self.assertEquals(dt.NotEnoughDataError, type(ex.error))
+
+    def test_nameless_entry(self):
+        text = """
+           <protocol>
+             <sequence name="a">
+               <sequence> 
+                 <field name="b" length="8" type="integer" />
+                 <field length="8" value="0x3" type="integer" />
+               </sequence>
+             </sequence>
+           </protocol>"""
+        spec = xml.loads(text)[0]
+        self.assertEqual(None, spec.children[0].name)
+        data = dt.Data("f\x03")
+        items = list(value for is_starting, entry, data, value in spec.decode(data) if not is_starting)
+        self.assertEqual(4, len(items))
+        self.assertEqual(ord('f'), items[0])
+        self.assertEqual(3, items[1])

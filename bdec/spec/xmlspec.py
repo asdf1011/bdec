@@ -116,7 +116,7 @@ class _Handler(xml.sax.handler.ContentHandler):
     def setDocumentLocator(self, locator):
         self.locator = locator
 
-    def _break(self, attrs, children, length, breaks):
+    def _break(self, attrs, children, name, length, breaks):
         if len(attrs) != 0 or len(children) != 0:
             raise self._error("end-sequenceof cannot have attributes or sub-elements")
 
@@ -143,7 +143,10 @@ class _Handler(xml.sax.handler.ContentHandler):
         length = None
         if attrs.has_key('length'):
             length = self._parse_expression(attrs['length'])
-        entry = self._handlers[name](attrs, children, length, breaks)
+        entry_name = None
+        if attrs.has_key('name'):
+            entry_name = attrs['name']
+        entry = self._handlers[name](attrs, children, entry_name, length, breaks)
         for child in children:
             if isinstance(child, _ReferencedEntry):
                 child.set_parent(entry)
@@ -173,7 +176,7 @@ class _Handler(xml.sax.handler.ContentHandler):
             assert entry is not None
             self.common_entries[entry.name] = entry
 
-    def _common(self, attributes, children, length, breaks):
+    def _common(self, attributes, children, name, length, breaks):
         pass
 
     def _get_common_entry(self, name):
@@ -182,7 +185,7 @@ class _Handler(xml.sax.handler.ContentHandler):
         except KeyError:
             raise self._error("Referenced element '%s' is not found!" % name)
 
-    def _protocol(self, attributes, children, length, breaks):
+    def _protocol(self, attributes, children, name, length, breaks):
         if len(children) != 1:
             raise self._error("Protocol should have a single entry to be decoded!")
 
@@ -208,16 +211,14 @@ class _Handler(xml.sax.handler.ContentHandler):
         except exp.ExpressionError, ex:
             raise XmlExpressionError(ex, self._filename, self.locator)
 
-    def _reference(self, attributes, children, length, breaks):
-        if attributes.getNames() != ["name"]:
+    def _reference(self, attributes, children, name, length, breaks):
+        if not name:
             raise self._error("Reference entries must have a single 'name' attribute!")
-        name = attributes.getValue('name')
         result = _ReferencedEntry(name)
         self._unresolved_references.append(result)
         return result
 
-    def _field(self, attributes, children, length, breaks):
-        name = attributes['name']
+    def _field(self, attributes, children, name, length, breaks):
         format = fld.Field.BINARY
         if length is None:
             raise self._error("Field entries required a 'length' attribute")
@@ -271,19 +272,19 @@ class _Handler(xml.sax.handler.ContentHandler):
             result.expected = expected
         return result
 
-    def _sequence(self, attributes, children, length, breaks):
+    def _sequence(self, attributes, children, name, length, breaks):
         value = None
         if attributes.has_key('value'):
             # A sequence can have a value derived from its children...
             value = self._parse_expression(attributes['value'])
-        return seq.Sequence(attributes['name'], children, value, length)
+        return seq.Sequence(name, children, value, length)
 
-    def _choice(self, attributes, children, length, breaks):
+    def _choice(self, attributes, children, name, length, breaks):
         if len(children) == 0:
             raise self._error("Choice '%s' must have children! Should this be a 'reference' entry?" % attributes['name'])
-        return chc.Choice(attributes['name'], children, length)
+        return chc.Choice(name, children, length)
 
-    def _sequenceof(self, attributes, children, length, breaks):
+    def _sequenceof(self, attributes, children, name, length, breaks):
         if len(children) == 0:
             raise self._error("SequenceOf '%s' must have a single child! Should this be a 'reference' entry?" % attributes['name'])
         if len(children) != 1:
@@ -293,7 +294,7 @@ class _Handler(xml.sax.handler.ContentHandler):
         count = None
         if attributes.has_key('count'):
             count = self._parse_expression(attributes['count'])
-        result = sof.SequenceOf(attributes['name'], children[0], count, length, breaks)
+        result = sof.SequenceOf(name, children[0], count, length, breaks)
         return result
 
 def _load_from_file(file, filename):
