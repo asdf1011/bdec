@@ -132,9 +132,11 @@ class Data:
             self._buffer = _MemoryBuffer(buffer)
         elif isinstance(buffer, _ByteBuffer):
             self._buffer = buffer
-        else:
+        elif hasattr(buffer, 'seek'):
             # Treat the buffer as a file object.
             self._buffer = _FileBuffer(buffer)
+        else:
+            raise Exception("Unknown data source '%s'" % type(buffer)) 
 
     def pop(self, length):
         """Return a data instance for representing the start of this data.
