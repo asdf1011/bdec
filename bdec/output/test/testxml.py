@@ -75,4 +75,4 @@ class TestXml(unittest.TestCase):
         hidden = fld.Field('', 8, fld.Field.INTEGER, expected=dt.Data('\x00'))
         spec = seq.Sequence('blah', [hidden])
         text = xml.to_string(spec, dt.Data('\x00'), verbose=True)
-        self.assertEqual('<blah>\n    <integer>0<!-- hex (1 bytes): 00 --></integer>\n</blah>\n', text)
+        self.assertEqual('<blah>\n    <_hidden>0<!-- hex (1 bytes): 00 --></_hidden>\n</blah>\n', text)
