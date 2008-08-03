@@ -82,7 +82,7 @@ class _CompiledDecoder:
 
 class _CDecoder(_CompiledDecoder):
     COMPILER = "gcc"
-    COMPILER_FLAGS = ["-Wall", '-g', '-o']
+    COMPILER_FLAGS = ["-Wall", "-Werror", '-g', '-o']
     FILE_TYPE = "c"
     TEMPLATE_PATH = os.path.join(os.path.dirname(__file__), '..', '..', 'templates', 'c')
 
