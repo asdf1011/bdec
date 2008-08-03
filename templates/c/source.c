@@ -226,7 +226,7 @@ ${recursiveDecode(entry, False)}
       %else:
     #error Don't know how to print ${item}
       %endif
-      %if not item.is_hidden():
+      %if not item.is_hidden() and offset > 0:
     printf("${' ' * offset}");
       %endif
     %endif
