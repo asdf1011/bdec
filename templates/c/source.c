@@ -162,14 +162,6 @@ ${static}int ${ctype.decode_name(entry)}(BitBuffer* buffer, ${ctype.ctype(entry)
 
 ${recursiveDecode(entry, False)}
 
-static void printWhitespace(int numChars)
-{
-    int i = 0;
-    for (i = 0; i < numChars; ++i) {
-        printf(" ");
-    }
-}
-
 ## Recursively create functions for printing the entries contained within this protocol specification.
 <%def name="recursivePrint(item, varname, offset, iter_postfix)">
   %if item in common and item is not entry:
