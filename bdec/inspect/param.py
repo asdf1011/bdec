@@ -42,7 +42,28 @@ class Param(object):
         return "%s param '%s'" % (self.direction, self.name)
 
 
-class EndEntryParameters:
+class _Parameters:
+    """Interface for querying information about passed parameters"""
+    def get_locals(self, entry):
+        raise NotImplementedError()
+
+    def get_params(self, entry):
+        raise NotImplementedError()
+
+    def get_passed_variables(self, entry, child):
+        raise NotImplementedError()
+
+    def is_end_sequenceof(self, entry):
+        return False
+
+    def is_value_referenced(self, entry):
+        return False
+
+    def is_length_referenced(self, entry):
+        return False
+
+
+class EndEntryParameters(_Parameters):
     """
     Class to allow querying of parameters used when decoding a sequence of.
     """
@@ -98,6 +119,11 @@ class EndEntryParameters:
             return set([Param('should end', Param.OUT)])
         return set()
 
+    def get_passed_variables(self, entry, child):
+        # The passed parameter names don't change for 'should end' variables;
+        # the name is the same in both parent & child.
+        return self.get_params(child)
+
     def is_end_sequenceof(self, entry):
         return entry in self._end_sequenceof_entries
 
@@ -114,7 +140,7 @@ class _VariableParam:
         return self.reference.name == other.reference.name and self.direction == other.direction
 
 
-class ExpressionParamters:
+class ExpressionParamters(_Parameters):
     """
     A class to calculate parameters passed between entries.
 
