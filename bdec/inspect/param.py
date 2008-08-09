@@ -352,40 +352,44 @@ class ExpressionParamters(_Parameters):
         return entry in self._referenced_lengths
 
 
-class ParamLookup:
+class CompoundParameters:
     """
-    Class to detect parameter information about all entries in a tree.
+    Class to return the results of several other parameter query classes
+    through one instance.
     """
-    def __init__(self, entries):
-        self._sequenceof_lookup = EndEntryParameters(entries)
-        self._variable_references = ExpressionParamters(entries)
+    def __init__(self, parameter_queries):
+        self._queries - parameter_queries
 
     def get_locals(self, entry):
-        result = self._sequenceof_lookup.get_locals(entry)
-        result.extend(self._variable_references.get_locals(entry))
-        return result
+        for query in self._queries:
+            for local in query.get_locals(entry):
+                yield local
 
     def get_params(self, entry):
-        """
-        Return an iterator to Param objects for the given entry.
-        """
-        for param in self._sequenceof_lookup.get_params(entry):
-            yield param
-        for param in self._variable_references.get_params(entry):
-            yield param
+        for query in self._queries:
+            for param in query.get_params(entry):
+                yield param
 
     def get_passed_variables(self, entry, child):
-        for param in self._sequenceof_lookup.get_params(child):
-            yield param
-        for param in self._variable_references.get_passed_variables(entry, child):
-            yield param
+        for query in self._queries:
+            for param in query.get_passed_variables(entry, child):
+                yield param
 
     def is_end_sequenceof(self, entry):
-        return self._sequenceof_lookup.is_end_sequenceof(entry)
+        for query in self._queries:
+            if query.is_end_sequenceof(entry):
+                return True
+        return False
 
     def is_value_referenced(self, entry):
-        return self._variable_references.is_value_referenced(entry)
+        for query in self._queries:
+            if query.is_value_referenced(entry):
+                return True
+        return False
 
     def is_length_referenced(self, entry):
-        return self._variable_references.is_length_referenced(entry)
+        for query in self._queries:
+            if query.is_length_referenced(entry):
+                return True
+        return False
 

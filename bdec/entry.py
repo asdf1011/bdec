@@ -139,7 +139,9 @@ class Entry(object):
             return
 
         import bdec.inspect.param
-        params = bdec.inspect.param.ParamLookup([self])
+        end_entry_params = bdec.inspect.param.EndEntryParameters([self])
+        expression_params = bdec.inspect.param.ExpressionParameters([self])
+        params = bdec.inspect.param.CompoundParameters([end_entry_params, expression_params])
         self._set_params(params)
 
         # We need to raise an error as to missing parameters
