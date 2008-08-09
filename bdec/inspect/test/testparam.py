@@ -228,3 +228,13 @@ class TestEndEntryParameters(unittest.TestCase):
         self.assertEqual(set([prm.Param('should end', prm.Param.OUT, int)]), lookup.get_params(entry))
         self.assertEqual(['should end'], lookup.get_locals(string))
         self.assertTrue(lookup.is_end_sequenceof(null))
+
+class TestResultParameters(unittest.TestCase):
+    def test_field_output(self):
+        a = fld.Field('a', 8)
+        b = seq.Sequence('b', [a])
+        lookup = prm.ResultParameters([b])
+        self.assertEqual([prm.Param('result', prm.Param.OUT, a)], lookup.get_params(a))
+        self.assertEqual([prm.Param('unknown', prm.Param.OUT, a)], lookup.get_passed_variables(b, a))
+        self.assertEqual([prm.Param('result', prm.Param.OUT, b)], lookup.get_params(b))
+

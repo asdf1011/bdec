@@ -354,6 +354,25 @@ class ExpressionParamters(_Parameters):
         return entry in self._referenced_lengths
 
 
+class ResultParameters(_Parameters):
+    """
+    A class that generates the parameters used when passing the decode result
+    out of the decode function as a parameter.
+    """
+    def __init__(self, entries):
+        pass
+
+    def get_locals(self, entry):
+        # Result items are never stored as locals; they are always passed out.
+        return []
+
+    def get_params(self, entry):
+        return [Param('result', Param.OUT, entry)]
+
+    def get_passed_variables(self, entry, child):
+        return [Param('unknown', Param.OUT, child)]
+
+
 class CompoundParameters(_Parameters):
     """
     Class to return the results of several other parameter query classes
