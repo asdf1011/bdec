@@ -115,6 +115,13 @@ class _VariableParam:
 
 
 class VariableReference:
+    """
+    A class to calculate parameters passed between entries.
+
+    All entries that have expressions can reference other entries; this class
+    is responsible for detecting the parameters that must be passed between
+    those entries to supply the data the expression requires.
+    """
     def __init__(self, entries):
         self._params = {}
         self._locals = {}
