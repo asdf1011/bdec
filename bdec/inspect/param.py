@@ -142,8 +142,6 @@ class VariableReference:
         elif isinstance(expression, expr.Delayed):
             result = self._collect_references(expression.left) + self._collect_references(expression.right)
         else:
-            print repr(expression)
-            print expression
             raise Exception("Unable to collect references from unhandled expression type '%s'!" % expression)
         return result
 
