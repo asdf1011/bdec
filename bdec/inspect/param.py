@@ -28,18 +28,20 @@ class Param(object):
     IN = "in"
     OUT = "out"
 
-    def __init__(self, name, direction):
+    def __init__(self, name, direction, type):
         self.name = name
         self.direction = direction
+        self.type = type
 
     def __eq__(self, other):
-        return self.name == other.name and self.direction == other.direction
+        return self.name == other.name and self.direction == other.direction \
+                and self.type == other.type
 
     def __hash__(self):
         return hash(self.name)
 
     def __repr__(self):
-        return "%s param '%s'" % (self.direction, self.name)
+        return "%s %s '%s'" % (self.type, self.direction, self.name)
 
 
 class _Parameters:
@@ -116,7 +118,7 @@ class EndEntryParameters(_Parameters):
         should pass an output 'should_end' context item.
         """
         if self._has_context_lookup[entry]:
-            return set([Param('should end', Param.OUT)])
+            return set([Param('should end', Param.OUT,  int)])
         return set()
 
     def get_passed_variables(self, entry, child):
@@ -323,7 +325,7 @@ class ExpressionParamters(_Parameters):
         """
         params = list(self._params[entry])
         params.sort(key=lambda a:a.reference.name)
-        result = list(Param(self._get_reference_name(param.reference), param.direction) for param in params)
+        result = list(Param(self._get_reference_name(param.reference), param.direction, int) for param in params)
         return result
 
     def _get_reference_name(self, reference):
@@ -341,7 +343,7 @@ class ExpressionParamters(_Parameters):
         child_params.sort(key=lambda a:a.reference.name)
         for param in child_params:
             local = self._get_local_reference(entry, child, param)
-            yield Param(self._get_reference_name(local), param.direction)
+            yield Param(self._get_reference_name(local), param.direction, int)
 
     def is_value_referenced(self, entry):
         """ Is the decoded value of an entry used elsewhere. """
