@@ -354,7 +354,7 @@ class ExpressionParamters(_Parameters):
         return entry in self._referenced_lengths
 
 
-class CompoundParameters:
+class CompoundParameters(_Parameters):
     """
     Class to return the results of several other parameter query classes
     through one instance.
