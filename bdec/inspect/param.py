@@ -42,7 +42,7 @@ class Param(object):
         return "%s param '%s'" % (self.direction, self.name)
 
 
-class SequenceOfParamLookup:
+class EndEntryParameters:
     """
     Class to allow querying of parameters used when decoding a sequence of.
     """
@@ -331,7 +331,7 @@ class ParamLookup:
     Class to detect parameter information about all entries in a tree.
     """
     def __init__(self, entries):
-        self._sequenceof_lookup = SequenceOfParamLookup(entries)
+        self._sequenceof_lookup = EndEntryParameters(entries)
         self._variable_references = ExpressionParamters(entries)
 
     def get_locals(self, entry):

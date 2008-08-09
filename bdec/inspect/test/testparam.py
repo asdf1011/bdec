@@ -210,14 +210,14 @@ class TestExpressionParamters(unittest.TestCase):
         self.assertEqual([prm.Param('a', prm.Param.OUT), prm.Param('b', prm.Param.OUT), prm.Param('c', prm.Param.OUT)], params.get_params(d))
         self.assertEqual([prm.Param('d.a', prm.Param.OUT), prm.Param('d.b', prm.Param.OUT), prm.Param('d.c', prm.Param.OUT)], list(params.get_passed_variables(f, d)))
 
-class TestSequenceOfParamLookup(unittest.TestCase):
+class TestEndEntryParameters(unittest.TestCase):
     def test_end_entry_lookup(self):
         null = fld.Field("null", 8, expected=dt.Data('\x00'))
         char = fld.Field("char", 8)
         entry = chc.Choice('entry', [null, char])
         string = sof.SequenceOf("null terminated string", entry, None, end_entries=[null])
 
-        lookup = prm.SequenceOfParamLookup([string])
+        lookup = prm.EndEntryParameters([string])
         self.assertEqual(set([prm.Param('should end', prm.Param.OUT)]), lookup.get_params(null))
         self.assertEqual(set([prm.Param('should end', prm.Param.OUT)]), lookup.get_params(entry))
         self.assertEqual(['should end'], lookup.get_locals(string))
