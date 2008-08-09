@@ -44,7 +44,7 @@ class Param(object):
 
 class SequenceOfParamLookup:
     """
-    Class to allow querying of paremeters used when decoding a sequence of.
+    Class to allow querying of parameters used when decoding a sequence of.
     """
     def __init__(self, entries):
         self._has_context_lookup = {}
@@ -114,7 +114,7 @@ class _VariableParam:
         return self.reference.name == other.reference.name and self.direction == other.direction
 
 
-class VariableReference:
+class ExpressionParamters:
     """
     A class to calculate parameters passed between entries.
 
@@ -332,7 +332,7 @@ class ParamLookup:
     """
     def __init__(self, entries):
         self._sequenceof_lookup = SequenceOfParamLookup(entries)
-        self._variable_references = VariableReference(entries)
+        self._variable_references = ExpressionParamters(entries)
 
     def get_locals(self, entry):
         result = self._sequenceof_lookup.get_locals(entry)

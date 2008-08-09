@@ -9,14 +9,14 @@ import bdec.sequence as seq
 import bdec.sequenceof as sof
 import bdec.spec.expression as expr
 
-class TestVariableReference(unittest.TestCase):
+class TestExpressionParamters(unittest.TestCase):
     def test_direct_children(self):
         a = fld.Field('a', 8)
         value = expr.ValueResult('a')
         b = fld.Field('b', value)
         spec = seq.Sequence('blah', [a,b])
 
-        vars = prm.VariableReference([spec])
+        vars = prm.ExpressionParamters([spec])
         self.assertEqual(['a'], vars.get_locals(spec))
         self.assertTrue(vars.is_value_referenced(a))
         self.assertFalse(vars.is_value_referenced(b))
@@ -31,7 +31,7 @@ class TestVariableReference(unittest.TestCase):
         b = seq.Sequence('b', [b1])
         spec = seq.Sequence('blah', [a,b])
 
-        vars = prm.VariableReference([spec])
+        vars = prm.ExpressionParamters([spec])
         self.assertEqual(['a.a1.a2'], vars.get_locals(spec))
         # Note that despite containing a referenced entry, it isn't a local (as
         # it is passed up to the parent entry).
@@ -55,7 +55,7 @@ class TestVariableReference(unittest.TestCase):
         b = seq.Sequence('b', [b1])
         spec = seq.Sequence('blah', [a,b])
 
-        vars = prm.VariableReference([spec])
+        vars = prm.ExpressionParamters([spec])
         self.assertEqual(['a length'], vars.get_locals(spec))
         self.assertFalse(vars.is_length_referenced(a1))
         self.assertTrue(vars.is_length_referenced(a))
@@ -77,7 +77,7 @@ class TestVariableReference(unittest.TestCase):
         data = fld.Field('data', int_value)
         spec = seq.Sequence('blah', [length, data])
 
-        vars = prm.VariableReference([spec])
+        vars = prm.ExpressionParamters([spec])
         self.assertEquals([], vars.get_params(spec))
         self.assertTrue(vars.is_value_referenced(lower))
         self.assertFalse(vars.is_value_referenced(ignored))
@@ -100,7 +100,7 @@ class TestVariableReference(unittest.TestCase):
         length_value = expr.ValueResult('variable integer.length')
         data = fld.Field('data', length_value)
         spec = seq.Sequence('spec', [length, data])
-        vars = prm.VariableReference([spec])
+        vars = prm.ExpressionParamters([spec])
 
         self.assertFalse(vars.is_value_referenced(byte))
         self.assertTrue(vars.is_value_referenced(byte.children[1]))
@@ -126,7 +126,7 @@ class TestVariableReference(unittest.TestCase):
         integer = seq.Sequence('integer', [fld.Field('id:',  8, expected=dt.Data('\x01')), fld.Field('value', 16, fld.Field.INTEGER)])
         spec = seq.Sequence('spec', [length, chc.Choice('data', [text, integer])])
 
-        vars = prm.VariableReference([spec])
+        vars = prm.ExpressionParamters([spec])
         self.assertTrue(vars.is_value_referenced(length))
         self.assertEqual([], vars.get_params(spec))
         self.assertEqual(['length:'], vars.get_locals(spec))
@@ -153,7 +153,7 @@ class TestVariableReference(unittest.TestCase):
         a = seq.Sequence('a', [shared, fld.Field('a data', length_value)])
         b = seq.Sequence('b', [shared])
         spec = seq.Sequence('spec', [a,b])
-        vars = prm.VariableReference([spec])
+        vars = prm.ExpressionParamters([spec])
         self.assertEqual([], list(vars.get_params(spec)))
         self.assertTrue(vars.is_value_referenced(length))
         self.assertFalse(vars.is_value_referenced(shared))
@@ -181,13 +181,13 @@ class TestVariableReference(unittest.TestCase):
         b = fld.Field('b', expr.compile('${a}'), fld.Field.INTEGER)
         c = seq.Sequence('c', [a, b])
 
-        self.assertRaises(prm.BadReferenceError, prm.VariableReference, [c])
+        self.assertRaises(prm.BadReferenceError, prm.ExpressionParamters, [c])
 
     def test_name_ends_in_length(self):
         a = fld.Field('data length', 8, fld.Field.INTEGER)
         b = fld.Field('data', expr.compile('${data length} * 8'))
         c = seq.Sequence('c', [a, b])
-        params = prm.VariableReference([c])
+        params = prm.ExpressionParamters([c])
         self.assertEqual(['data length'], params.get_locals(c))
         self.assertEqual([], params.get_params(c))
         self.assertEqual([prm.Param('data length', prm.Param.OUT)], params.get_params(a))
@@ -205,7 +205,7 @@ class TestVariableReference(unittest.TestCase):
         e = fld.Field('e', expr.compile('${d.a} + ${d.b} + ${d.c}'))
         f = seq.Sequence('f', [d, e])
 
-        params = prm.VariableReference([f])
+        params = prm.ExpressionParamters([f])
         self.assertEqual(['d.a', 'd.b', 'd.c'], params.get_locals(f))
         self.assertEqual([prm.Param('a', prm.Param.OUT), prm.Param('b', prm.Param.OUT), prm.Param('c', prm.Param.OUT)], params.get_params(d))
         self.assertEqual([prm.Param('d.a', prm.Param.OUT), prm.Param('d.b', prm.Param.OUT), prm.Param('d.c', prm.Param.OUT)], list(params.get_passed_variables(f, d)))
