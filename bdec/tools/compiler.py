@@ -55,18 +55,25 @@ def _generate_template(output_dir, filename, lookup, template):
         output.close()
 
 
-class _EntryInfo(prm.ParamLookup):
+class _EntryInfo(prm.CompoundParameters):
+    def __init__(self, entries):
+        queries = []
+        queries.append(prm.ResultParameters(entries))
+        queries.append(prm.ExpressionParamters(entries))
+        queries.append(prm.EndEntryParameters(entries))
+        prm.CompoundParameters.__init__(self, queries)
+
     def get_locals(self, entry):
-        for local in prm.ParamLookup.get_locals(self, entry):
+        for local in prm.CompoundParameters.get_locals(self, entry):
             yield _variable_name(local)
 
     def get_params(self, entry):
-        for param in prm.ParamLookup.get_params(self, entry):
-            yield prm.Param(_variable_name(param.name), param.direction)
+        for param in prm.CompoundParameters.get_params(self, entry):
+            yield prm.Param(_variable_name(param.name), param.direction, param.type)
             
     def get_passed_variables(self, entry, child):
-        for param in prm.ParamLookup.get_passed_variables(self, entry, child):
-            yield prm.Param(_variable_name(param.name), param.direction)
+        for param in prm.CompoundParameters.get_passed_variables(self, entry, child):
+            yield prm.Param(_variable_name(param.name), param.direction, param.type)
 
 class _Utils:
     _REQUIRED_SETTINGS = ['keywords']
