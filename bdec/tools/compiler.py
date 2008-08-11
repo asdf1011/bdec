@@ -14,6 +14,10 @@ import bdec.choice as chc
 import bdec.inspect.param as prm
 import bdec.output.xmlout
 
+class SettingsError(Exception):
+    "An error raised when the settings file is incorrect."
+    pass
+
 _template_cache = {}
 def _load_templates(directory):
     """
@@ -65,14 +69,19 @@ class _EntryInfo(prm.ParamLookup):
             yield prm.Param(_variable_name(param.name), param.direction)
 
 class _Utils:
+    _REQUIRED_SETTINGS = ['keywords']
     def __init__(self, common, template_path):
         self._common = common
         self._entries = self._detect_entries()
 
-        config_file = os.path.join(template_path, '.settings')
-        settings = ConfigParser.ConfigParser()
-        settings.read([config_file])
-        self._keywords = list(self._get_keywords(settings))
+        config_file = os.path.join(template_path, 'settings.py')
+        self.settings = execfile(config_file)
+
+        for keyword in self._REQUIRED_SETTINGS:
+            try:
+                getattr(self.settings, keyword)
+            except AttributeError:
+                raise SettingsError("'%s' must have a '%s' entry!" % (config_file, keyword))
 
     def _detect_entries(self):
         """
@@ -82,12 +91,6 @@ class _Utils:
         for entry in self._common:
             entries.extend(self.iter_inner_entries(entry))
         return entries
-
-    def _get_keywords(self, config):
-        text = config.get('general', 'keywords')
-        keywords = text.split(',')
-        for word in keywords:
-            yield word.strip()
 
     def iter_inner_entries(self, entry):
         """
@@ -137,7 +140,7 @@ class _Utils:
         assert matching_index != None
         assert len(matching_entries) > 0
 
-        if len(matching_entries) == 1 and name not in self._keywords:
+        if len(matching_entries) == 1 and name not in self.settings.keywords:
             # No need to escape the name
             result = entry_name 
         else:
