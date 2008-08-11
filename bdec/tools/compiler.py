@@ -58,7 +58,6 @@ def _generate_template(output_dir, filename, lookup, template):
 class _EntryInfo(prm.CompoundParameters):
     def __init__(self, entries):
         queries = []
-        queries.append(prm.ResultParameters(entries))
         queries.append(prm.ExpressionParamters(entries))
         queries.append(prm.EndEntryParameters(entries))
         prm.CompoundParameters.__init__(self, queries)
