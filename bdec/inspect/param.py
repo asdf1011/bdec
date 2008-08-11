@@ -379,7 +379,7 @@ class CompoundParameters(_Parameters):
     through one instance.
     """
     def __init__(self, parameter_queries):
-        self._queries - parameter_queries
+        self._queries = parameter_queries
 
     def get_locals(self, entry):
         for query in self._queries:
