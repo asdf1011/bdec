@@ -2,7 +2,6 @@
 Library to generate source code in various languages for decoding specifications.
 """
 
-import ConfigParser
 import mako.lookup
 import mako.template
 import mako.runtime
@@ -74,20 +73,32 @@ class _EntryInfo(prm.CompoundParameters):
         for param in prm.CompoundParameters.get_passed_variables(self, entry, child):
             yield prm.Param(_variable_name(param.name), param.direction, param.type)
 
-class _Utils:
+class _Settings:
     _REQUIRED_SETTINGS = ['keywords']
+
+    @staticmethod
+    def load(filename):
+        locals = {}
+        execfile(filename, {}, locals)
+
+        settings = _Settings()
+        for key in locals:
+            setattr(settings, key, locals[key])
+
+        for keyword in _Settings._REQUIRED_SETTINGS:
+            try:
+                getattr(settings, keyword)
+            except AttributeError:
+                raise SettingsError("'%s' must have a '%s' entry!" % (config_file, keyword))
+        return settings
+
+class _Utils:
     def __init__(self, common, template_path):
         self._common = common
         self._entries = self._detect_entries()
 
         config_file = os.path.join(template_path, 'settings.py')
-        self.settings = execfile(config_file)
-
-        for keyword in self._REQUIRED_SETTINGS:
-            try:
-                getattr(self.settings, keyword)
-            except AttributeError:
-                raise SettingsError("'%s' must have a '%s' entry!" % (config_file, keyword))
+        self.settings = _Settings.load(config_file)
 
     def _detect_entries(self):
         """
