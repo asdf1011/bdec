@@ -77,13 +77,11 @@ class _Settings:
     _REQUIRED_SETTINGS = ['keywords']
 
     @staticmethod
-    def load(filename):
-        locals = {}
-        execfile(filename, {}, locals)
-
+    def load(filename, globals):
+        execfile(filename, globals)
         settings = _Settings()
-        for key in locals:
-            setattr(settings, key, locals[key])
+        for key in globals:
+            setattr(settings, key, globals[key])
 
         for keyword in _Settings._REQUIRED_SETTINGS:
             try:
@@ -93,12 +91,10 @@ class _Settings:
         return settings
 
 class _Utils:
-    def __init__(self, common, template_path):
+    def __init__(self, common, template_path, settings):
         self._common = common
         self._entries = self._detect_entries()
-
-        config_file = os.path.join(template_path, 'settings.py')
-        self.settings = _Settings.load(config_file)
+        self._settings = settings
 
     def _detect_entries(self):
         """
@@ -157,7 +153,7 @@ class _Utils:
         assert matching_index != None
         assert len(matching_entries) > 0
 
-        if len(matching_entries) == 1 and name not in self.settings.keywords:
+        if len(matching_entries) == 1 and name not in self._settings.keywords:
             # No need to escape the name
             result = entry_name 
         else:
@@ -208,9 +204,11 @@ def generate_code(spec, template_path, output_dir, common_entries=[]):
     entries = set(common_entries)
     entries.add(spec)
     info = _EntryInfo(entries)
-    utils = _Utils(entries, template_path)
 
     lookup = {}
+    config_file = os.path.join(template_path, 'settings.py')
+    lookup['settings'] = _Settings.load(config_file, lookup)
+    utils = _Utils(entries, template_path, lookup['settings'])
     lookup['protocol'] = spec
     lookup['common'] = entries
     lookup['esc_name'] = utils.esc_name
