@@ -245,7 +245,7 @@ class _CompilerTests:
 
     def test_name_escaping(self):
         a = fld.Field('a with spaces', 8, fld.Field.INTEGER)
-        b = seq.Sequence('b with a :', [a])
+        b = seq.Sequence('b with a ', [a])
         c = fld.Field('c', 8, fld.Field.INTEGER)
         d = seq.Sequence('d', [c])
         blah = seq.Sequence('blah', [b, d])

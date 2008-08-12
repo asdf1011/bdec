@@ -367,9 +367,13 @@ class ResultParameters(_Parameters):
         return []
 
     def get_params(self, entry):
+        if entry.is_hidden():
+            return []
         return [Param('result', Param.OUT, entry)]
 
     def get_passed_variables(self, entry, child):
+        if child.is_hidden():
+            return []
         return [Param('unknown', Param.OUT, child)]
 
 

@@ -48,7 +48,9 @@ ${static}void ${ctype.free_name(entry)}(${settings.ctype(entry)}* value)
     %endif
   %elif isinstance(entry, Sequence):
     %for i, child in enumerate(entry.children):
+        %if not child.is_hidden():
     ${ctype.free_name(child)}(&value->${ctype.var_name(i, entry.children)});
+        %endif
     %endfor
   %elif isinstance(entry, SequenceOf):
     int i;
@@ -79,7 +81,10 @@ ${static}int ${ctype.decode_name(entry)}(BitBuffer* buffer${settings.define_para
       int ${'initial length' |variable} = buffer->num_bits;
   %endif
   %if isinstance(entry, Field):
-    ${decodeentry.decodeField(entry, "(*result)")}
+    ${decodeentry.decodeField(entry)}
+    %if not entry.is_hidden():
+    (*result) = value;
+    %endif
     %if is_end_sequenceof(entry):
     *${'should end' |variable} = 1;
     %endif
@@ -89,7 +94,9 @@ ${static}int ${ctype.decode_name(entry)}(BitBuffer* buffer${settings.define_para
     if (!${ctype.decode_name(child)}(buffer${settings.params(entry, i, '&result->%s' % variable(esc_name(i, entry.children)))}))
     {
         %for j, previous in enumerate(entry.children[:i]):
+            %if not previous.is_hidden():
         ${ctype.free_name(previous)}(&result->${ctype.var_name(j, entry.children)});
+            %endif
         %endfor
         return 0;
     }
