@@ -7,34 +7,6 @@
     from bdec.sequence import Sequence
 %>
 
-<%!
-def _define_params(entry, get_params):
-    result = ""
-    for param in get_params(entry):
-        if param.direction is param.IN:
-            result += ", int %s" % param.name
-        else:
-            result += ", int* %s" % param.name
-    return result
-
-def _params(parent, entry, get_passed_variables, local_variables):
-    result = ""
-    locals = list(local_variables)
-    for param in get_passed_variables(parent, entry):
-        if param.direction is param.OUT and param.name in locals:
-            result += ", &%s" % param.name
-        else:
-            result += ", %s" % param.name
-    return result
-%>
-
-<%def name="define_params(entry)">
-${_define_params(entry, get_params)}
-</%def>
-
-<%def name="params(parent, entry)">
-${_params(parent, entry, get_passed_variables, local_vars(parent))}
-</%def>
 
 <%!
     import string

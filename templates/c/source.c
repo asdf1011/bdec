@@ -70,7 +70,7 @@ ${static}void ${ctype.free_name(entry)}(${settings.ctype(entry)}* value)
   %endif
 }
 
-${static}int ${ctype.decode_name(entry)}(BitBuffer* buffer, ${settings.ctype(entry)}* result${decodeentry.define_params(entry)})
+${static}int ${ctype.decode_name(entry)}(BitBuffer* buffer${settings.define_params(entry)})
 {
   %for local in local_vars(entry):
       int ${local} = 0;
@@ -86,7 +86,7 @@ ${static}int ${ctype.decode_name(entry)}(BitBuffer* buffer, ${settings.ctype(ent
     ${success(entry)}
   %elif isinstance(entry, Sequence):
     %for i, child in enumerate(entry.children):
-    if (!${ctype.decode_name(child)}(buffer, &result->${ctype.var_name(i, entry.children)}${decodeentry.params(entry, child)}))
+    if (!${ctype.decode_name(child)}(buffer${settings.params(entry, i, '&result->%s' % variable(esc_name(i, entry.children)))}))
     {
         %for j, previous in enumerate(entry.children[:i]):
         ${ctype.free_name(previous)}(&result->${ctype.var_name(j, entry.children)});
@@ -124,7 +124,7 @@ ${static}int ${ctype.decode_name(entry)}(BitBuffer* buffer, ${settings.ctype(ent
         ++result->count;
         result->items = realloc(result->items, sizeof(${settings.ctype(entry.children[0])}) * (result->count + 1));
     %endif
-        if (!${ctype.decode_name(entry.children[0])}(buffer, &result->items[i]${decodeentry.params(entry, entry.children[0])}))
+        if (!${ctype.decode_name(entry.children[0])}(buffer${settings.params(entry, 0, '&result->items[i]')}))
         {
             int j;
             for (j=0; j<i; ++j)
@@ -146,7 +146,7 @@ ${static}int ${ctype.decode_name(entry)}(BitBuffer* buffer, ${settings.ctype(ent
     temp = *buffer;
     <% temp_name = variable('temp ' + esc_name(i, entry.children)) %>
     ${settings.ctype(child)}* ${temp_name} = malloc(sizeof(${settings.ctype(child)}));
-    if (${ctype.decode_name(child)}(&temp, ${temp_name}${decodeentry.params(entry, child)}))
+    if (${ctype.decode_name(child)}(&temp${params(entry, i, temp_name)}))
     {
         *buffer = temp;
         result->${ctype.var_name(i, entry.children)} = ${temp_name};

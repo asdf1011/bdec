@@ -19,7 +19,7 @@ ${ctype.define(entry)}
 //      decoded successfully, to free any allocated structures you should call
 //      the entry free function. Do not call for decode failures.
 //   return -- 0 for decode failure, non-zero for success.
-int ${ctype.decode_name(entry)}( BitBuffer* buffer, ${settings.ctype(entry)}* result${decodeentry.define_params(entry)});
+int ${ctype.decode_name(entry)}( BitBuffer* buffer${settings.define_params(entry)});
 
 // Free a previously decoded object.
 // Do not attempt to free an object that has not been decoded, or was only
