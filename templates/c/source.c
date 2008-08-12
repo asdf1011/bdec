@@ -36,7 +36,7 @@ ${recursiveDecode(child)}
 %endfor
 
 <% static = "static " if is_static else "" %>
-${static}void ${ctype.free_name(entry)}(${ctype.ctype(entry)}* value)
+${static}void ${ctype.free_name(entry)}(${settings.ctype(entry)}* value)
 {
   %if isinstance(entry, Field):
     %if entry.format == Field.TEXT:
@@ -70,7 +70,7 @@ ${static}void ${ctype.free_name(entry)}(${ctype.ctype(entry)}* value)
   %endif
 }
 
-${static}int ${ctype.decode_name(entry)}(BitBuffer* buffer, ${ctype.ctype(entry)}* result${decodeentry.define_params(entry)})
+${static}int ${ctype.decode_name(entry)}(BitBuffer* buffer, ${settings.ctype(entry)}* result${decodeentry.define_params(entry)})
 {
   %for local in local_vars(entry):
       int ${local} = 0;
@@ -108,7 +108,7 @@ ${static}int ${ctype.decode_name(entry)}(BitBuffer* buffer, ${ctype.ctype(entry)
     int i;
     %if entry.count is not None:
     result->count = ${expr.length(entry.count)};
-    result->items = malloc(sizeof(${ctype.ctype(entry.children[0])}) * result->count);
+    result->items = malloc(sizeof(${settings.ctype(entry.children[0])}) * result->count);
     for (i = 0; i < result->count; ++i)
     {
     %else:
@@ -122,7 +122,7 @@ ${static}int ${ctype.decode_name(entry)}(BitBuffer* buffer, ${ctype.ctype(entry)
     {
         i = result->count;
         ++result->count;
-        result->items = realloc(result->items, sizeof(${ctype.ctype(entry.children[0])}) * (result->count + 1));
+        result->items = realloc(result->items, sizeof(${settings.ctype(entry.children[0])}) * (result->count + 1));
     %endif
         if (!${ctype.decode_name(entry.children[0])}(buffer, &result->items[i]${decodeentry.params(entry, entry.children[0])}))
         {
@@ -140,12 +140,12 @@ ${static}int ${ctype.decode_name(entry)}(BitBuffer* buffer, ${ctype.ctype(entry)
     }
     ${success(entry)}
   %elif isinstance(entry, Choice):
-    memset(result, 0, sizeof(${ctype.ctype(entry)}));
+    memset(result, 0, sizeof(${settings.ctype(entry)}));
     BitBuffer temp;
     %for i, child in enumerate(entry.children):
     temp = *buffer;
     <% temp_name = variable('temp ' + esc_name(i, entry.children)) %>
-    ${ctype.ctype(child)}* ${temp_name} = malloc(sizeof(${ctype.ctype(child)}));
+    ${settings.ctype(child)}* ${temp_name} = malloc(sizeof(${settings.ctype(child)}));
     if (${ctype.decode_name(child)}(&temp, ${temp_name}${decodeentry.params(entry, child)}))
     {
         *buffer = temp;
@@ -236,7 +236,7 @@ ${recursiveDecode(entry, False)}
   %endif
 </%def>
 
-void ${ctype.print_name(entry)}(${ctype.ctype(entry)}* data, int offset)
+void ${ctype.print_name(entry)}(${settings.ctype(entry)}* data, int offset)
 {
 ${recursivePrint(entry, '(*data)', 0, iter(xrange(100)))}
 }

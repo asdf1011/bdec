@@ -8,49 +8,30 @@
     from bdec.sequenceof import SequenceOf
 %>
 
-
-<%def name="ctype(entry)">
-  %if isinstance(entry, Field):
-    %if entry.format == Field.INTEGER:
-int
-    %elif entry.format == Field.TEXT:
-char*
-    %elif entry.format == Field.HEX:
-Buffer
-    %elif entry.format == Field.BINARY:
-BitBuffer
-    %else:
-#error Unhandled field format '${entry}'!
-    %endif
-  %else:
-struct ${esc_name(iter_entries().index(entry), iter_entries())|typename}
-  %endif
-</%def>
-
 <%def name="c_define(entry)" >
   %if isinstance(entry, Sequence):
-${ctype(entry)}
+${settings.ctype(entry)}
 {
   %for i, child in enumerate(entry.children):
-    ${ctype(child)} ${var_name(i, entry.children)};
+    ${settings.ctype(child)} ${var_name(i, entry.children)};
   %endfor
   %if entry.value is not None:
     int value;
   %endif
 };
   %elif isinstance(entry, Field):
-typedef ${ctype(entry)} ${entry.name |typename};
+typedef ${settings.ctype(entry)} ${entry.name |typename};
   %elif isinstance(entry, Choice):
-${ctype(entry)}
+${settings.ctype(entry)}
 {
     %for i, child in enumerate(entry.children):
-    ${ctype(child)}* ${var_name(i, entry.children)};
+    ${settings.ctype(child)}* ${var_name(i, entry.children)};
     %endfor
 };
   %elif isinstance(entry, SequenceOf):
-${ctype(entry)}
+${settings.ctype(entry)}
 {
-    ${ctype(entry.children[0])}* items;
+    ${settings.ctype(entry.children[0])}* items;
     unsigned int count;
 };
   %else:

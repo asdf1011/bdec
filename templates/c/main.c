@@ -39,7 +39,7 @@ int main(int argc, char* argv[])
 
     /* Attempt to decode the file */
     BitBuffer buffer = {data, 0, length * 8};
-    ${ctype.ctype(protocol)} result;
+    ${settings.ctype(protocol)} result;
     if (!${ctype.decode_name(protocol)}(&buffer, &result))
     {
         /* Decode failed! */
