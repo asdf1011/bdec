@@ -142,7 +142,7 @@ class _VariableParam:
         return self.reference.name == other.reference.name and self.direction == other.direction
 
 
-class ExpressionParamters(_Parameters):
+class ExpressionParameters(_Parameters):
     """
     A class to calculate parameters passed between entries.
 
