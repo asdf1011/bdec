@@ -238,3 +238,8 @@ class TestResultParameters(unittest.TestCase):
         self.assertEqual([prm.Param('unknown', prm.Param.OUT, a)], lookup.get_passed_variables(b, a))
         self.assertEqual([prm.Param('result', prm.Param.OUT, b)], lookup.get_params(b))
 
+    def test_hidden_field(self):
+        a = fld.Field('', 8)
+        lookup = prm.ResultParameters([a])
+        self.assertEqual([], lookup.get_params(a))
+
