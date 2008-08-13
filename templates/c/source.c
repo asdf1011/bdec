@@ -173,7 +173,7 @@ ${recursiveDecode(entry, False)}
 <%def name="recursivePrint(item, varname, offset, iter_postfix)">
   %if item in common and item is not entry:
     ${ctype.print_name(item)}(&${varname}, offset + ${offset});
-  %else:
+  %elif not item.is_hidden():
     %if not item.is_hidden():
     printf("${' ' * offset}<${item.name |xmlname}>");
     %endif
