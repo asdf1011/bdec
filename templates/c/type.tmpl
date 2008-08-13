@@ -13,7 +13,9 @@
 ${settings.ctype(entry)}
 {
   %for i, child in enumerate(entry.children):
+    %if not child.is_hidden():
     ${settings.ctype(child)} ${var_name(i, entry.children)};
+    %endif
   %endfor
   %if entry.value is not None:
     int value;
