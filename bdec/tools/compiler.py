@@ -17,6 +17,12 @@ class SettingsError(Exception):
     "An error raised when the settings file is incorrect."
     pass
 
+_SETTINGS = "settings.py"
+
+def is_template(filename):
+    return not filename.endswith('.tmpl') and not filename.startswith('.') and \
+                filename != _SETTINGS
+
 _template_cache = {}
 def _load_templates(directory):
     """
@@ -32,7 +38,7 @@ def _load_templates(directory):
     common_templates  = []
     entry_templates = []
     for filename in os.listdir(directory):
-        if not filename.endswith('.tmpl') and not filename.startswith('.'):
+        if is_template(filename):
             path = os.path.join(directory, filename)
             lookup = mako.lookup.TemplateLookup(directories=[directory])
             template = mako.template.Template(filename=path, lookup=lookup)
@@ -207,7 +213,7 @@ def generate_code(spec, template_path, output_dir, common_entries=[]):
     info = _EntryInfo(entries)
 
     lookup = {}
-    config_file = os.path.join(template_path, 'settings.py')
+    config_file = os.path.join(template_path, _SETTINGS)
     lookup['settings'] = _Settings.load(config_file, lookup)
     utils = _Utils(entries, template_path, lookup['settings'])
     lookup['protocol'] = spec
