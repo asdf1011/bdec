@@ -1,6 +1,5 @@
 ## vim:set syntax=mako:
 <%namespace file="/decodeentry.tmpl" name="decodeentry" />
-<%namespace file="/expression.tmpl" name="expr" />
 <%namespace file="/type.tmpl" name="ctype" />
 <%! 
   from bdec.choice import Choice
@@ -105,7 +104,7 @@ ${static}int ${ctype.decode_name(entry)}(BitBuffer* buffer${settings.define_para
     *${'should end' |variable} = 1;
     %endif
     %if entry.value is not None:
-    result->value = ${expr.length(entry.value)};
+    result->value = ${settings.value(entry.value)};
       %if is_value_referenced(entry):
     *${entry.name |variable} = result->value;
       %endif
@@ -114,7 +113,7 @@ ${static}int ${ctype.decode_name(entry)}(BitBuffer* buffer${settings.define_para
   %elif isinstance(entry, SequenceOf):
     int i;
     %if entry.count is not None:
-    result->count = ${expr.length(entry.count)};
+    result->count = ${settings.value(entry.count)};
     result->items = malloc(sizeof(${settings.ctype(entry.children[0])}) * result->count);
     for (i = 0; i < result->count; ++i)
     {

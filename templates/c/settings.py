@@ -1,4 +1,6 @@
 import bdec.field as fld
+from bdec.spec.expression import Delayed, ValueResult, LengthResult, Constant
+import operator
 
 keywords=['char', 'int', 'float', 'if', 'then', 'else', 'struct', 'for']
 
@@ -43,4 +45,26 @@ def params(parent, i, result_name):
         else:
             result += ", %s" % param.name
     return result
+
+
+_OPERATORS = {
+        operator.__div__ : '/', 
+        operator.__mul__ : '*',
+        operator.__sub__ : '-',
+        operator.__add__ : '+',
+        }
+
+def value(expr):
+  if isinstance(expr, int):
+      return str(expr)
+  elif isinstance(expr, Constant):
+      return str(expr.value)
+  elif isinstance(expr, ValueResult):
+      return variable(expr.name)
+  elif isinstance(expr, LengthResult):
+      return variable(expr.name + ' length')
+  elif isinstance(expr, Delayed):
+      return "(%s %s %s)" % (value(expr.left), _OPERATORS[expr.op], value(expr.right)) 
+  else:
+      raise Exception('Unknown length value', expression)
 
