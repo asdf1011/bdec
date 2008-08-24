@@ -47,7 +47,7 @@ ${static}void ${ctype.free_name(entry)}(${settings.ctype(entry)}* value)
     %endif
   %elif isinstance(entry, Sequence):
     %for i, child in enumerate(entry.children):
-        %if not child.is_hidden():
+        %if not is_structure_hidden(child):
     ${ctype.free_name(child)}(&value->${ctype.var_name(i, entry.children)});
         %endif
     %endfor
@@ -93,7 +93,7 @@ ${static}int ${ctype.decode_name(entry)}(BitBuffer* buffer${settings.define_para
     if (!${ctype.decode_name(child)}(buffer${settings.params(entry, i, '&result->%s' % variable(esc_name(i, entry.children)))}))
     {
         %for j, previous in enumerate(entry.children[:i]):
-            %if not previous.is_hidden():
+            %if not is_structure_hidden(previous):
         ${ctype.free_name(previous)}(&result->${ctype.var_name(j, entry.children)});
             %endif
         %endfor
@@ -172,7 +172,7 @@ ${recursiveDecode(entry, False)}
 <%def name="recursivePrint(item, varname, offset, iter_postfix)">
   %if item in common and item is not entry:
     ${ctype.print_name(item)}(&${varname}, offset + ${offset});
-  %elif not item.is_hidden():
+  %else:
     %if not item.is_hidden():
     printf("${' ' * offset}<${item.name |xmlname}>");
     %endif

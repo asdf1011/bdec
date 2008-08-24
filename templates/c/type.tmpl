@@ -13,7 +13,7 @@
 ${settings.ctype(entry)}
 {
   %for i, child in enumerate(entry.children):
-    %if not child.is_hidden():
+    %if not is_structure_hidden(child):
     ${settings.ctype(child)} ${var_name(i, entry.children)};
     %endif
   %endfor

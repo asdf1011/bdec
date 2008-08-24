@@ -214,6 +214,7 @@ def generate_code(spec, template_path, output_dir, common_entries=[]):
 
     lookup = {}
     config_file = os.path.join(template_path, _SETTINGS)
+    data_checker = prm.DataChecker(entries)
     lookup['settings'] = _Settings.load(config_file, lookup)
     utils = _Utils(entries, template_path, lookup['settings'])
     lookup['protocol'] = spec
@@ -224,6 +225,7 @@ def generate_code(spec, template_path, output_dir, common_entries=[]):
     lookup['is_end_sequenceof'] = info.is_end_sequenceof
     lookup['is_value_referenced'] = info.is_value_referenced
     lookup['is_length_referenced'] = info.is_length_referenced
+    lookup['is_structure_hidden'] = lambda entry: not data_checker.contains_data(entry)
     lookup['iter_inner_entries'] = utils.iter_inner_entries
     lookup['iter_required_common'] = utils.iter_required_common
     lookup['iter_optional_common'] = utils.iter_optional_common

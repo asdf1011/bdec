@@ -358,4 +358,9 @@ class _CompilerTests:
         c = seq.Sequence('c', [a, b])
         self._decode(c, '\x00\x10')
 
+    def test_hidden_sequence_with_visible_children(self):
+        a = fld.Field('a', 8, fld.Field.INTEGER)
+        b = seq.Sequence('', [a])
+        self._decode(b, '\x08')
+
 globals().update(create_decoder_classes([(_CompilerTests, 'SimpleDecode')], __name__))
