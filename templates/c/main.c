@@ -34,7 +34,7 @@ int main(int argc, char* argv[])
 
     /* Load the data file into memory */
     unsigned char* data = malloc(length);
-    fread(data, length, length, datafile);
+    fread(data, length, 1, datafile);
     fclose(datafile);
 
     /* Attempt to decode the file */
