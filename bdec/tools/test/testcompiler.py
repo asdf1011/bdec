@@ -373,4 +373,10 @@ class _CompilerTests:
         b = seq.Sequence('', [a])
         self._decode(b, '\x08')
 
+    def test_hidden_sequence(self):
+        a = fld.Field('', 8, fld.Field.INTEGER)
+        b = seq.Sequence('', [a])
+        c = seq.Sequence('c', [b])
+        self._decode(c, '\x08', expected_xml="<c/>")
+
 globals().update(create_decoder_classes([(_CompilerTests, 'SimpleDecode')], __name__))

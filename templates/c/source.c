@@ -35,7 +35,7 @@ ${recursiveDecode(child)}
 %endfor
 
 <% static = "static " if is_static else "" %>
-%if not is_structure_hidden(entry) or entry.format != Field.INTEGER:
+%if not is_structure_hidden(entry) or (isinstance(entry, Field) and entry.format != Field.INTEGER):
 ${static}void ${ctype.free_name(entry)}(${settings.ctype(entry)}* value)
 {
   %if isinstance(entry, Field):
