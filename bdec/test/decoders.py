@@ -93,7 +93,7 @@ class _PythonDecoder:
         data = dt.Data(sourcefile)
         xml = StringIO.StringIO()
         try:
-            return 0, xmlout.to_string(spec, data, verbose=True)
+            return 0, xmlout.to_string(spec, data)
         except bdec.DecodeError:
             return 3, ""
 

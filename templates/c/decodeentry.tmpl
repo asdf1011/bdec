@@ -107,7 +107,7 @@
 #error Field of type ${entry.format} not currently supported for an expected value!
        %endif
     {
-      %if not entry.is_hidden():
+      %if entry.format != Field.INTEGER:
         ${ctype.free_name(entry)}(&value);
       %endif
         return 0;
@@ -116,7 +116,7 @@
     %if entry.min is not None:
     if (get_integer(&field_data) < ${settings.value(entry.min)})
     {
-      %if not entry.is_hidden():
+      %if entry.format != Field.INTEGER:
         ${ctype.free_name(entry)}(&value);
       %endif
         return 0;
@@ -125,7 +125,7 @@
     %if entry.max is not None:
     if (get_integer(&field_data) > ${settings.value(entry.max)})
     {
-      %if not entry.is_hidden():
+      %if entry.format != Field.INTEGER:
         ${ctype.free_name(entry)}(&value);
       %endif
         return 0;
