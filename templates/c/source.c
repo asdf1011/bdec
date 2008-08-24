@@ -156,8 +156,10 @@ ${static}int ${ctype.decode_name(entry)}(BitBuffer* buffer${settings.define_para
     if (${ctype.decode_name(child)}(&temp${params(entry, i, temp_name)}))
     {
         *buffer = temp;
+      %if not is_structure_hidden(child):
         result->${ctype.var_name(i, entry.children)} = ${temp_name};
         ${success(entry)}
+      %endif
     }
     free(${temp_name});
     %endfor
@@ -225,10 +227,12 @@ ${recursiveDecode(entry, False)}
     }
       %elif isinstance(item, Choice):
         %for i, child in enumerate(item.children):
+          %if not is_structure_hidden(child):
     if (${'%s.%s' % (varname, variable(esc_name(i, item.children)))} != 0)
     {
         ${recursivePrint(child, "(*%s.%s)" % (varname, variable(esc_name(i, item.children))), next_offset, iter_postfix)}
     }
+          %endif
         %endfor
       %else:
     #error Don't know how to print ${item}

@@ -379,4 +379,11 @@ class _CompilerTests:
         c = seq.Sequence('c', [b])
         self._decode(c, '\x08', expected_xml="<c/>")
 
+    def test_choice_hidden_child(self):
+        a = fld.Field('', 8, fld.Field.INTEGER, expected=dt.Data('\x00'))
+        b = fld.Field('b', 8, fld.Field.TEXT)
+        c = chc.Choice('c', [a, b])
+        self._decode(c, '\x00', expected_xml="<c/>")
+        self._decode(c, 'x', expected_xml="<c><b>x</b></c>")
+
 globals().update(create_decoder_classes([(_CompilerTests, 'SimpleDecode')], __name__))
