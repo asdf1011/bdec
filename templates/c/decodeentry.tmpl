@@ -117,7 +117,7 @@
     if (get_integer(&field_data) < ${settings.value(entry.min)})
     {
       %if not entry.is_hidden():
-        ${ctype.free_name(entry)}(result);
+        ${ctype.free_name(entry)}(&value);
       %endif
         return 0;
     }
@@ -126,7 +126,7 @@
     if (get_integer(&field_data) > ${settings.value(entry.max)})
     {
       %if not entry.is_hidden():
-        ${ctype.free_name(entry)}(result);
+        ${ctype.free_name(entry)}(&value);
       %endif
         return 0;
     }

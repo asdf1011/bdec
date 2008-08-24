@@ -306,6 +306,11 @@ class _CompilerTests:
         self._decode(a, '\x08')
         self._decode_failure(a, '\x07')
 
+    def test_min_bit_buffer(self):
+        a = fld.Field('a', 8, min=8)
+        self._decode(a, '\x08')
+        self._decode_failure(a, '\x07')
+
     def test_max(self):
         a = fld.Field('a', 8, fld.Field.INTEGER, max=8)
         self._decode(a, '\x08')
