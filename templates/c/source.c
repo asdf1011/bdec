@@ -35,6 +35,7 @@ ${recursiveDecode(child)}
 %endfor
 
 <% static = "static " if is_static else "" %>
+%if not is_structure_hidden(entry):
 ${static}void ${ctype.free_name(entry)}(${settings.ctype(entry)}* value)
 {
   %if isinstance(entry, Field):
@@ -60,16 +61,19 @@ ${static}void ${ctype.free_name(entry)}(${settings.ctype(entry)}* value)
     free(value->items);
   %elif isinstance(entry, Choice):
     %for i, child in enumerate(entry.children):
+      %if not is_structure_hidden(child):
     if (value->${ctype.var_name(i, entry.children)} != 0)
     {
         ${ctype.free_name(child)}(value->${ctype.var_name(i, entry.children)});
         free(value->${ctype.var_name(i, entry.children)});
     }
+      %endif
     %endfor
   %else:
     <% raise Exception("Don't know how to free objects of type '%s'" % entry) %>
   %endif
 }
+%endif
 
 ${static}int ${ctype.decode_name(entry)}(BitBuffer* buffer${settings.define_params(entry)})
 {
