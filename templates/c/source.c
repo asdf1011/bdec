@@ -85,9 +85,6 @@ ${static}int ${ctype.decode_name(entry)}(BitBuffer* buffer${settings.define_para
   %endif
   %if isinstance(entry, Field):
     ${decodeentry.decodeField(entry)}
-    %if not entry.is_hidden():
-    (*result) = value;
-    %endif
     %if is_end_sequenceof(entry):
     *${'should end' |variable} = 1;
     %endif

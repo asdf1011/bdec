@@ -131,4 +131,15 @@
         return 0;
     }
     %endif
+    %if not entry.is_hidden():
+    (*result) = value;
+    %else:
+      %if entry.format == Field.TEXT:
+    free(value);
+      %elif entry.format == Field.BINARY:
+    free(value.buffer);
+      %elif entry.format == Field.HEX:
+    free(value.buffer);
+      %endif
+    %endif
 </%def>
