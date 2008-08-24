@@ -353,6 +353,28 @@ class ExpressionParameters(_Parameters):
         """ Is the decoded length of an entry used elsewhere. """
         return entry in self._referenced_lengths
 
+class DataChecker:
+    """A class to check whether an entry contains visible data."""
+    def __init__(self, entries):
+        """A list of entries to check for visibility.
+
+        All other entries reachable by these entries can also be checked."""
+        self._has_data = {}
+        for entry in entries:
+            self._populate(entry)
+
+    def _populate(self, entry):
+        """Walk down all entries visible from this entry, checking for data."""
+        if entry not in self._has_data:
+            self._has_data[entry] = not entry.is_hidden()
+            for child in entry.children:
+                self._populate(child)
+                if self._has_data[child]:
+                    self._has_data[entry] = True
+
+    def contains_data(self, entry):
+        return self._has_data[entry]
+
 
 class ResultParameters(_Parameters):
     """
@@ -360,19 +382,19 @@ class ResultParameters(_Parameters):
     out of the decode function as a parameter.
     """
     def __init__(self, entries):
-        pass
+        self._checker = DataChecker(entries)
 
     def get_locals(self, entry):
         # Result items are never stored as locals; they are always passed out.
         return []
 
     def get_params(self, entry):
-        if entry.is_hidden():
+        if not self._checker.contains_data(entry):
             return []
         return [Param('result', Param.OUT, entry)]
 
     def get_passed_variables(self, entry, child):
-        if child.is_hidden():
+        if not self._checker.contains_data(child):
             return []
         return [Param('unknown', Param.OUT, child)]
 

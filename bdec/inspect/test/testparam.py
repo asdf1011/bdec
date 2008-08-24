@@ -243,3 +243,9 @@ class TestResultParameters(unittest.TestCase):
         lookup = prm.ResultParameters([a])
         self.assertEqual([], lookup.get_params(a))
 
+    def test_hidden_entry_visible_child(self):
+        a = fld.Field('a', 8)
+        b = seq.Sequence('', [a])
+        lookup = prm.ResultParameters([b])
+        self.assertEqual([prm.Param('result', prm.Param.OUT, b)], lookup.get_params(b))
+
