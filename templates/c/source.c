@@ -150,7 +150,9 @@ ${static}int ${ctype.decode_name(entry)}(BitBuffer* buffer${settings.define_para
     }
     ${success(entry)}
   %elif isinstance(entry, Choice):
+    %if not is_structure_hidden(entry):
     memset(result, 0, sizeof(${settings.ctype(entry)}));
+    %endif
     BitBuffer temp;
     %for i, child in enumerate(entry.children):
     temp = *buffer;
@@ -161,8 +163,10 @@ ${static}int ${ctype.decode_name(entry)}(BitBuffer* buffer${settings.define_para
         *buffer = temp;
       %if not is_structure_hidden(child):
         result->${ctype.var_name(i, entry.children)} = ${temp_name};
-        ${success(entry)}
+      %else:
+        free(${temp_name});
       %endif
+        ${success(entry)}
     }
     free(${temp_name});
     %endfor
@@ -177,7 +181,9 @@ ${recursiveDecode(entry, False)}
 ## Recursively create functions for printing the entries contained within this protocol specification.
 <%def name="recursivePrint(item, varname, offset, iter_postfix)">
   %if item in common and item is not entry:
+    %if not is_structure_hidden(item):
     ${ctype.print_name(item)}(&${varname}, offset + ${offset});
+    %endif
   %else:
     %if not item.is_hidden():
     printf("${' ' * offset}<${item.name |xmlname}>");

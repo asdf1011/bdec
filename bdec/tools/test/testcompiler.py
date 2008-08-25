@@ -392,4 +392,13 @@ class _CompilerTests:
         self._decode(c, '\x00', expected_xml="<c/>")
         self._decode(c, 'x', expected_xml="<c><b>x</b></c>")
 
+    def test_hidden_choice(self):
+        a = fld.Field('a:', 8, fld.Field.INTEGER, expected=dt.Data('\x00'))
+        b = fld.Field('b:', 8, fld.Field.TEXT, expected=dt.Data('x'))
+        c = chc.Choice('', [a, b])
+        d = seq.Sequence('d', [c])
+        self._decode(d, '\x00', expected_xml="<d/>", common=[c, d])
+        self._decode(d, 'x', expected_xml="<d/>", common=[c, d])
+        self._decode_failure(d, 'a')
+
 globals().update(create_decoder_classes([(_CompilerTests, 'SimpleDecode')], __name__))
