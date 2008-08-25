@@ -105,9 +105,12 @@ ${static}int ${ctype.decode_name(entry)}(BitBuffer* buffer${settings.define_para
     *${'should end' |variable} = 1;
     %endif
     %if entry.value is not None:
-    result->value = ${settings.value(entry.value)};
+    int value = ${settings.value(entry.value)};
+      %if not is_structure_hidden(entry):
+    result->value = value;
+      %endif
       %if is_value_referenced(entry):
-    *${entry.name |variable} = result->value;
+    *${entry.name |variable} = value;
       %endif
     %endif
     ${success(entry)}

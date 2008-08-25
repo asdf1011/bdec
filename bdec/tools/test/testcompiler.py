@@ -362,6 +362,12 @@ class _CompilerTests:
           </a>"""
         self._decode(a, '21' + 'x' * 21, expected_xml=expected, common=[digit, two_digits, a])
 
+    def test_hidden_sequence_with_value(self):
+        digit = seq.Sequence('digit:', [fld.Field('text digit:', 8, fld.Field.INTEGER, min=48, max=57)], value=expr.compile("${text digit:} - 48"))
+        a = seq.Sequence('a', [digit], value=expr.compile('${digit:} * 2'))
+        self.assertTrue(digit.is_hidden())
+        self._decode(a, '7', expected_xml='<a>14</a>', common=[digit, a])
+
     def test_empty_name(self):
         a = fld.Field('', 8, fld.Field.INTEGER, expected=dt.Data('\x00'))
         b = fld.Field('b', 8, fld.Field.INTEGER)
