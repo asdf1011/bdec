@@ -401,4 +401,10 @@ class _CompilerTests:
         self._decode(d, 'x', expected_xml="<d/>", common=[c, d])
         self._decode_failure(d, 'a')
 
+    def test_hidden_binary_field(self):
+        a = fld.Field('', 0)
+        b = fld.Field('b', 8)
+        c = seq.Sequence('c', [a, b])
+        self._decode(c, '\x00', expected_xml='<c><b>00000000</b></c>')
+
 globals().update(create_decoder_classes([(_CompilerTests, 'SimpleDecode')], __name__))

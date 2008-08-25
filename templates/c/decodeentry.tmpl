@@ -135,11 +135,11 @@
     (*result) = value;
     %else:
       %if entry.format == Field.TEXT:
-    free(value);
+    ${ctype.free_name(entry)}(&value);
       %elif entry.format == Field.BINARY:
-    free(value.buffer);
+    ${ctype.free_name(entry)}(&value);
       %elif entry.format == Field.HEX:
-    free(value.buffer);
+    ${ctype.free_name(entry)}(&value);
       %endif
     %endif
 </%def>
