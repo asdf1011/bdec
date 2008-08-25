@@ -24,7 +24,10 @@ class Sequence(bdec.entry.Entry):
         for child in self.children:
             for embedded in self._decode_child(child, data, context):
                 yield embedded
-        yield (False, self, dt.Data(), None)
+        value = None
+        if self.value is not None:
+            value = self.value.evaluate(context)
+        yield (False, self, dt.Data(), value)
 
     def _encode(self, query, parent):
         structure = self._get_context(query, parent)
