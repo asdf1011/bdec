@@ -148,6 +148,11 @@
     ${settings.free_name(entry)}(&value);
       %endif
     %endif
+
+    %if is_end_sequenceof(entry):
+    *${'should end' |variable} = 1;
+    %endif
+    ${success(entry)}
 </%def>
 
 <%def name="decodeSequence(entry)">
@@ -171,6 +176,11 @@
     *${entry.name |variable} = value;
       %endif
     %endif
+
+    %if is_end_sequenceof(entry):
+    *${'should end' |variable} = 1;
+    %endif
+    ${success(entry)}
 </%def>
 
 <%def name="decodeSequenceOf(entry)">
@@ -204,6 +214,11 @@
             return 0;
         }
     }
+
+    %if is_end_sequenceof(entry):
+    *${'should end' |variable} = 1;
+    %endif
+    ${success(entry)}
 </%def>
 
 <%def name="decodeChoice(entry)">
@@ -291,22 +306,10 @@ ${static}int ${settings.decode_name(entry)}(BitBuffer* buffer${settings.define_p
   %endif
   %if isinstance(entry, Field):
     ${decodeField(entry)}
-    %if is_end_sequenceof(entry):
-    *${'should end' |variable} = 1;
-    %endif
-    ${success(entry)}
   %elif isinstance(entry, Sequence):
     ${decodeSequence(entry)}
-    %if is_end_sequenceof(entry):
-    *${'should end' |variable} = 1;
-    %endif
-    ${success(entry)}
   %elif isinstance(entry, SequenceOf):
     ${decodeSequenceOf(entry)}
-    %if is_end_sequenceof(entry):
-    *${'should end' |variable} = 1;
-    %endif
-    ${success(entry)}
   %elif isinstance(entry, Choice):
     ${decodeChoice(entry)}
   %endif
