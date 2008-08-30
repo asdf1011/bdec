@@ -198,6 +198,29 @@ ${static}void ${settings.free_name(entry)}(${settings.ctype(entry)}* value)
     %endif
 </%def>
 
+<%def name="decodeSequence(entry)">
+    %for i, child in enumerate(entry.children):
+    if (!${settings.decode_name(child)}(buffer${settings.params(entry, i, '&result->%s' % variable(esc_name(i, entry.children)))}))
+    {
+        %for j, previous in enumerate(entry.children[:i]):
+            %if not is_structure_hidden(previous):
+        ${settings.free_name(previous)}(&result->${settings.var_name(j, entry.children)});
+            %endif
+        %endfor
+        return 0;
+    }
+    %endfor
+    %if entry.value is not None:
+    int value = ${settings.value(entry.value)};
+      %if not is_structure_hidden(entry):
+    result->value = value;
+      %endif
+      %if is_value_referenced(entry):
+    *${entry.name |variable} = value;
+      %endif
+    %endif
+</%def>
+
 ${static}int ${settings.decode_name(entry)}(BitBuffer* buffer${settings.define_params(entry)})
 {
   %for local in local_vars(entry):
@@ -213,28 +236,8 @@ ${static}int ${settings.decode_name(entry)}(BitBuffer* buffer${settings.define_p
     %endif
     ${success(entry)}
   %elif isinstance(entry, Sequence):
-    %for i, child in enumerate(entry.children):
-    if (!${settings.decode_name(child)}(buffer${settings.params(entry, i, '&result->%s' % variable(esc_name(i, entry.children)))}))
-    {
-        %for j, previous in enumerate(entry.children[:i]):
-            %if not is_structure_hidden(previous):
-        ${settings.free_name(previous)}(&result->${settings.var_name(j, entry.children)});
-            %endif
-        %endfor
-        return 0;
-    }
-    %endfor
     %if is_end_sequenceof(entry):
     *${'should end' |variable} = 1;
-    %endif
-    %if entry.value is not None:
-    int value = ${settings.value(entry.value)};
-      %if not is_structure_hidden(entry):
-    result->value = value;
-      %endif
-      %if is_value_referenced(entry):
-    *${entry.name |variable} = value;
-      %endif
     %endif
     ${success(entry)}
   %elif isinstance(entry, SequenceOf):
