@@ -1,5 +1,4 @@
 ## vim:set syntax=mako:
-<%namespace file="/decodeentry.tmpl" name="decodeentry" />
 <%! 
   from bdec.choice import Choice
   from bdec.field import Field
@@ -74,6 +73,131 @@ ${static}void ${settings.free_name(entry)}(${settings.ctype(entry)}* value)
 }
 %endif
 
+<%def name="compare_binary_expected(entry, expected)">
+  %if len(entry.expected) < 32:
+    if (get_integer(&actual) != ${int(entry.expected)})
+  %else:
+    BitBuffer expected = {(unsigned char*)${settings.c_string(expected.bytes())}, 0, ${len(entry.expected)}};
+    int isMatch = 1;
+    while (expected.num_bits > 0)
+    {
+        if (decode_integer(&expected, 1) != decode_integer(&actual, 1))
+        {
+            isMatch = 0;
+            break;
+        }
+    }
+    if (!isMatch)
+  %endif
+</%def>
+
+<%def name="decodeField(entry)">
+    if (${settings.value(entry.length)} > buffer->num_bits)
+    {
+        return 0;
+    }
+    ${settings.ctype(entry)} value;
+  %if entry.min is not None or entry.max is not None:
+    BitBuffer field_data = *buffer;
+    field_data.num_bits = ${settings.value(entry.length)};
+  %endif
+  %if entry.format == Field.INTEGER:
+    %if entry.encoding == Field.BIG_ENDIAN:
+    value = decode_integer(buffer, ${settings.value(entry.length)});
+    %else:
+    value = decode_little_endian_integer(buffer, ${settings.value(entry.length)});
+    %endif
+    %if is_value_referenced(entry):
+    *${entry.name |variable} = value;
+    %endif
+  %elif entry.format == Field.TEXT:
+    int i;
+    int ${entry.name + ' buffer length' |variable} = ${settings.value(entry.length)} / 8;
+    value = malloc(${entry.name + ' buffer length' |variable} + 1);
+    value[${entry.name + ' buffer length' |variable}] = 0;
+    for (i = 0; i < ${entry.name + ' buffer length' |variable}; ++i)
+    {
+        value[i] = decode_integer(buffer, 8);
+    }
+  %elif entry.format == Field.HEX:
+    int i;
+    assert((${settings.value(entry.length)}) % 8 == 0);
+    value.length = ${settings.value(entry.length)} / 8;
+    value.buffer = malloc(value.length);
+    for (i = 0; i < value.length; ++i)
+    {
+        value.buffer[i] = decode_integer(buffer, 8);
+    }
+  %elif entry.format == Field.BINARY:
+    value.start_bit = buffer->start_bit;
+    value.num_bits = ${settings.value(entry.length)};
+    // 0 bits = 0 bytes, 1-8 bits = 1 byte, 9-16 bytes = 2 bytes...
+    int numBytes = (buffer->start_bit + buffer->num_bits + 7) / 8;
+    value.buffer = malloc(numBytes);
+    memcpy(value.buffer, buffer->buffer, numBytes);
+    buffer->start_bit += value.num_bits;
+    buffer->buffer += buffer->start_bit / 8;
+    buffer->start_bit %= 8;
+    buffer->num_bits -= value.num_bits;
+  %else:
+    #error Unknown field type ${entry}
+  %endif
+     %if entry.expected is not None:
+       %if entry.format == entry.INTEGER:
+    if (value != ${int(entry.expected)})
+       %elif entry.format == entry.BINARY:
+           <% 
+           extra_bits = 8 - len(entry.expected) % 8
+           expected = entry.expected + Data('\x00', start=0, end=extra_bits)
+           %>
+    BitBuffer actual = value;
+    ${compare_binary_expected(entry, expected)}
+       %elif entry.format == entry.HEX:
+    BitBuffer actual = {value.buffer, 0, value.length * 8};
+    ${compare_binary_expected(entry, entry.expected)}
+       %elif entry.format == entry.TEXT:
+    if (memcmp(value, ${settings.c_string(entry.expected.bytes())}, ${len(entry.expected) / 8}) != 0)
+       %else:
+#error Field of type ${entry.format} not currently supported for an expected value!
+       %endif
+    {
+      %if entry.format != Field.INTEGER:
+        ${settings.free_name(entry)}(&value);
+      %endif
+        return 0;
+    }
+     %endif
+    %if entry.min is not None:
+    if (get_integer(&field_data) < ${settings.value(entry.min)})
+    {
+      %if entry.format != Field.INTEGER:
+        ${settings.free_name(entry)}(&value);
+      %endif
+        return 0;
+    }
+    %endif
+    %if entry.max is not None:
+    if (get_integer(&field_data) > ${settings.value(entry.max)})
+    {
+      %if entry.format != Field.INTEGER:
+        ${settings.free_name(entry)}(&value);
+      %endif
+        return 0;
+    }
+    %endif
+    %if not entry.is_hidden():
+    (*result) = value;
+    %else:
+      %if entry.format == Field.TEXT:
+    ${settings.free_name(entry)}(&value);
+      %elif entry.format == Field.BINARY:
+    ${settings.free_name(entry)}(&value);
+      %elif entry.format == Field.HEX:
+    ${settings.free_name(entry)}(&value);
+      %endif
+    %endif
+</%def>
+
 ${static}int ${settings.decode_name(entry)}(BitBuffer* buffer${settings.define_params(entry)})
 {
   %for local in local_vars(entry):
@@ -83,7 +207,7 @@ ${static}int ${settings.decode_name(entry)}(BitBuffer* buffer${settings.define_p
       int ${'initial length' |variable} = buffer->num_bits;
   %endif
   %if isinstance(entry, Field):
-    ${decodeentry.decodeField(entry)}
+    ${decodeField(entry)}
     %if is_end_sequenceof(entry):
     *${'should end' |variable} = 1;
     %endif
