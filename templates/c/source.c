@@ -403,3 +403,4 @@ void ${settings.print_name(entry)}(${settings.ctype(entry)}* data, int offset)
 {
 ${recursivePrint(entry, '(*data)', 0, iter(xrange(100)))}
 }
+
