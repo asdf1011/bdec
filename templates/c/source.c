@@ -18,11 +18,10 @@
 %endfor
 #include "variable_integer.h"
 
-<%def name="success(entry)">
+<%def name="update_length_reference(entry)">
   %if is_length_referenced(entry):
     *${entry.name + ' length' |variable} = ${'initial length' |variable} - buffer->num_bits;
   %endif
-    return 1;
 </%def>
 
 <%def name="compare_binary_expected(entry, expected)">
@@ -152,7 +151,8 @@
     %if is_end_sequenceof(entry):
     *${'should end' |variable} = 1;
     %endif
-    ${success(entry)}
+    ${update_length_reference(entry)}
+    return 1;
 </%def>
 
 <%def name="decodeSequence(entry)">
@@ -180,7 +180,8 @@
     %if is_end_sequenceof(entry):
     *${'should end' |variable} = 1;
     %endif
-    ${success(entry)}
+    ${update_length_reference(entry)}
+    return 1;
 </%def>
 
 <%def name="decodeSequenceOf(entry)">
@@ -218,7 +219,8 @@
     %if is_end_sequenceof(entry):
     *${'should end' |variable} = 1;
     %endif
-    ${success(entry)}
+    ${update_length_reference(entry)}
+    return 1;
 </%def>
 
 <%def name="decodeChoice(entry)">
@@ -238,7 +240,8 @@
       %else:
         free(${temp_name});
       %endif
-        ${success(entry)}
+        ${update_length_reference(entry)}
+        return 1;
     }
     free(${temp_name});
     %endfor
