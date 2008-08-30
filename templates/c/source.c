@@ -221,26 +221,7 @@ ${static}void ${settings.free_name(entry)}(${settings.ctype(entry)}* value)
     %endif
 </%def>
 
-${static}int ${settings.decode_name(entry)}(BitBuffer* buffer${settings.define_params(entry)})
-{
-  %for local in local_vars(entry):
-      int ${local} = 0;
-  %endfor
-  %if is_length_referenced(entry):
-      int ${'initial length' |variable} = buffer->num_bits;
-  %endif
-  %if isinstance(entry, Field):
-    ${decodeField(entry)}
-    %if is_end_sequenceof(entry):
-    *${'should end' |variable} = 1;
-    %endif
-    ${success(entry)}
-  %elif isinstance(entry, Sequence):
-    %if is_end_sequenceof(entry):
-    *${'should end' |variable} = 1;
-    %endif
-    ${success(entry)}
-  %elif isinstance(entry, SequenceOf):
+<%def name="decodeSequenceOf(entry)">
     int i;
     %if entry.count is not None:
     result->count = ${settings.value(entry.count)};
@@ -270,10 +251,34 @@ ${static}int ${settings.decode_name(entry)}(BitBuffer* buffer${settings.define_p
             free(result->items);
             return 0;
         }
-      %if is_end_sequenceof(entry):
-      *${'should end' |variable} = 1;
-      %endif
     }
+</%def>
+
+${static}int ${settings.decode_name(entry)}(BitBuffer* buffer${settings.define_params(entry)})
+{
+  %for local in local_vars(entry):
+      int ${local} = 0;
+  %endfor
+  %if is_length_referenced(entry):
+      int ${'initial length' |variable} = buffer->num_bits;
+  %endif
+  %if isinstance(entry, Field):
+    ${decodeField(entry)}
+    %if is_end_sequenceof(entry):
+    *${'should end' |variable} = 1;
+    %endif
+    ${success(entry)}
+  %elif isinstance(entry, Sequence):
+    ${decodeSequence(entry)}
+    %if is_end_sequenceof(entry):
+    *${'should end' |variable} = 1;
+    %endif
+    ${success(entry)}
+  %elif isinstance(entry, SequenceOf):
+    ${decodeSequenceOf(entry)}
+    %if is_end_sequenceof(entry):
+    *${'should end' |variable} = 1;
+    %endif
     ${success(entry)}
   %elif isinstance(entry, Choice):
     %if not is_structure_hidden(entry):
