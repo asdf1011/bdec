@@ -1,6 +1,5 @@
 ## vim:set syntax=mako:
 <%namespace file="/decodeentry.tmpl" name="decodeentry" />
-<%namespace file="/type.tmpl" name="ctype" />
 <%! 
   from bdec.choice import Choice
   from bdec.field import Field
@@ -36,7 +35,7 @@ ${recursiveDecode(child)}
 
 <% static = "static " if is_static else "" %>
 %if not is_structure_hidden(entry) or (isinstance(entry, Field) and entry.format != Field.INTEGER):
-${static}void ${ctype.free_name(entry)}(${settings.ctype(entry)}* value)
+${static}void ${settings.free_name(entry)}(${settings.ctype(entry)}* value)
 {
   %if isinstance(entry, Field):
     %if entry.format == Field.TEXT:
@@ -49,23 +48,23 @@ ${static}void ${ctype.free_name(entry)}(${settings.ctype(entry)}* value)
   %elif isinstance(entry, Sequence):
     %for i, child in enumerate(entry.children):
         %if not is_structure_hidden(child):
-    ${ctype.free_name(child)}(&value->${ctype.var_name(i, entry.children)});
+    ${settings.free_name(child)}(&value->${settings.var_name(i, entry.children)});
         %endif
     %endfor
   %elif isinstance(entry, SequenceOf):
     int i;
     for (i = 0; i < value->count; ++i)
     {
-        ${ctype.free_name(entry.children[0])}(&value->items[i]);
+        ${settings.free_name(entry.children[0])}(&value->items[i]);
     }
     free(value->items);
   %elif isinstance(entry, Choice):
     %for i, child in enumerate(entry.children):
       %if not is_structure_hidden(child):
-    if (value->${ctype.var_name(i, entry.children)} != 0)
+    if (value->${settings.var_name(i, entry.children)} != 0)
     {
-        ${ctype.free_name(child)}(value->${ctype.var_name(i, entry.children)});
-        free(value->${ctype.var_name(i, entry.children)});
+        ${settings.free_name(child)}(value->${settings.var_name(i, entry.children)});
+        free(value->${settings.var_name(i, entry.children)});
     }
       %endif
     %endfor
@@ -75,7 +74,7 @@ ${static}void ${ctype.free_name(entry)}(${settings.ctype(entry)}* value)
 }
 %endif
 
-${static}int ${ctype.decode_name(entry)}(BitBuffer* buffer${settings.define_params(entry)})
+${static}int ${settings.decode_name(entry)}(BitBuffer* buffer${settings.define_params(entry)})
 {
   %for local in local_vars(entry):
       int ${local} = 0;
@@ -91,11 +90,11 @@ ${static}int ${ctype.decode_name(entry)}(BitBuffer* buffer${settings.define_para
     ${success(entry)}
   %elif isinstance(entry, Sequence):
     %for i, child in enumerate(entry.children):
-    if (!${ctype.decode_name(child)}(buffer${settings.params(entry, i, '&result->%s' % variable(esc_name(i, entry.children)))}))
+    if (!${settings.decode_name(child)}(buffer${settings.params(entry, i, '&result->%s' % variable(esc_name(i, entry.children)))}))
     {
         %for j, previous in enumerate(entry.children[:i]):
             %if not is_structure_hidden(previous):
-        ${ctype.free_name(previous)}(&result->${ctype.var_name(j, entry.children)});
+        ${settings.free_name(previous)}(&result->${settings.var_name(j, entry.children)});
             %endif
         %endfor
         return 0;
@@ -134,12 +133,12 @@ ${static}int ${ctype.decode_name(entry)}(BitBuffer* buffer${settings.define_para
         ++result->count;
         result->items = realloc(result->items, sizeof(${settings.ctype(entry.children[0])}) * (result->count + 1));
     %endif
-        if (!${ctype.decode_name(entry.children[0])}(buffer${settings.params(entry, 0, '&result->items[i]')}))
+        if (!${settings.decode_name(entry.children[0])}(buffer${settings.params(entry, 0, '&result->items[i]')}))
         {
             int j;
             for (j=0; j<i; ++j)
             {
-                ${ctype.free_name(entry.children[0])}(&result->items[j]);
+                ${settings.free_name(entry.children[0])}(&result->items[j]);
             }
             free(result->items);
             return 0;
@@ -158,11 +157,11 @@ ${static}int ${ctype.decode_name(entry)}(BitBuffer* buffer${settings.define_para
     temp = *buffer;
     <% temp_name = variable('temp ' + esc_name(i, entry.children)) %>
     ${settings.ctype(child)}* ${temp_name} = malloc(sizeof(${settings.ctype(child)}));
-    if (${ctype.decode_name(child)}(&temp${params(entry, i, temp_name)}))
+    if (${settings.decode_name(child)}(&temp${params(entry, i, temp_name)}))
     {
         *buffer = temp;
       %if not is_structure_hidden(child):
-        result->${ctype.var_name(i, entry.children)} = ${temp_name};
+        result->${settings.var_name(i, entry.children)} = ${temp_name};
       %else:
         free(${temp_name});
       %endif
@@ -182,7 +181,7 @@ ${recursiveDecode(entry, False)}
 <%def name="recursivePrint(item, varname, offset, iter_postfix)">
   %if item in common and item is not entry:
     %if not is_structure_hidden(item):
-    ${ctype.print_name(item)}(&${varname}, offset + ${offset});
+    ${settings.print_name(item)}(&${varname}, offset + ${offset});
     %endif
   %else:
     %if not item.is_hidden():
@@ -256,7 +255,7 @@ ${recursiveDecode(entry, False)}
   %endif
 </%def>
 
-void ${ctype.print_name(entry)}(${settings.ctype(entry)}* data, int offset)
+void ${settings.print_name(entry)}(${settings.ctype(entry)}* data, int offset)
 {
 ${recursivePrint(entry, '(*data)', 0, iter(xrange(100)))}
 }

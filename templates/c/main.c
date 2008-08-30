@@ -1,4 +1,3 @@
-<%namespace file="/type.tmpl" name="ctype" />
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -40,7 +39,7 @@ int main(int argc, char* argv[])
     /* Attempt to decode the file */
     BitBuffer buffer = {data, 0, length * 8};
     ${settings.ctype(protocol)} result;
-    if (!${ctype.decode_name(protocol)}(&buffer, &result))
+    if (!${settings.decode_name(protocol)}(&buffer, &result))
     {
         /* Decode failed! */
         fprintf(stderr, "Decode failed!\n");
@@ -49,8 +48,8 @@ int main(int argc, char* argv[])
     }
 
     /* Print the decoded data */
-    ${ctype.print_name(protocol)}(&result, 0);
-    ${ctype.free_name(protocol)}(&result);
+    ${settings.print_name(protocol)}(&result, 0);
+    ${settings.free_name(protocol)}(&result);
     free(data);
     return 0;
 }

@@ -108,7 +108,7 @@
        %endif
     {
       %if entry.format != Field.INTEGER:
-        ${ctype.free_name(entry)}(&value);
+        ${settings.free_name(entry)}(&value);
       %endif
         return 0;
     }
@@ -117,7 +117,7 @@
     if (get_integer(&field_data) < ${settings.value(entry.min)})
     {
       %if entry.format != Field.INTEGER:
-        ${ctype.free_name(entry)}(&value);
+        ${settings.free_name(entry)}(&value);
       %endif
         return 0;
     }
@@ -126,7 +126,7 @@
     if (get_integer(&field_data) > ${settings.value(entry.max)})
     {
       %if entry.format != Field.INTEGER:
-        ${ctype.free_name(entry)}(&value);
+        ${settings.free_name(entry)}(&value);
       %endif
         return 0;
     }
@@ -135,11 +135,11 @@
     (*result) = value;
     %else:
       %if entry.format == Field.TEXT:
-    ${ctype.free_name(entry)}(&value);
+    ${settings.free_name(entry)}(&value);
       %elif entry.format == Field.BINARY:
-    ${ctype.free_name(entry)}(&value);
+    ${settings.free_name(entry)}(&value);
       %elif entry.format == Field.HEX:
-    ${ctype.free_name(entry)}(&value);
+    ${settings.free_name(entry)}(&value);
       %endif
     %endif
 </%def>

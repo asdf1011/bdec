@@ -51,18 +51,3 @@ ${c_define(e)}
     %endfor
 </%def>
 
-<%def name="decode_name(entry)">
-${'decode ' + esc_name(iter_entries().index(entry), iter_entries())|function}
-</%def>
-
-<%def name="print_name(entry)">
-${'print xml ' + esc_name(iter_entries().index(entry), iter_entries())|function}
-</%def>
-
-<%def name="var_name(i, other_vars)">
-${esc_name(i, other_vars)|variable}
-</%def>
-
-<%def name="free_name(entry)">
-${'free ' + esc_name(iter_entries().index(entry), iter_entries())|function}
-</%def>

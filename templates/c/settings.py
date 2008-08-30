@@ -68,3 +68,14 @@ def value(expr):
   else:
       raise Exception('Unknown length value', expression)
 
+def decode_name(entry):
+    return function('decode ' + esc_name(iter_entries().index(entry), iter_entries()))
+
+def print_name(entry):
+    return function('print xml ' + esc_name(iter_entries().index(entry), iter_entries()))
+
+def var_name(i, other_vars):
+    return variable(esc_name(i, other_vars))
+
+def free_name(entry):
+    return function('free ' + esc_name(iter_entries().index(entry), iter_entries()))
