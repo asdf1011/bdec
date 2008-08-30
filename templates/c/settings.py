@@ -89,5 +89,5 @@ def _c_repr(char):
 
 def c_string(data):
     """Return a correctly quoted c-style string for an arbitrary binary string."""
-    return '"%s"' % ''.join(c_repr(char) for char in data)
+    return '"%s"' % ''.join(_c_repr(char) for char in data)
 
