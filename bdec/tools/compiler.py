@@ -203,6 +203,18 @@ def _type_name(name):
 def _constant_name(name):
     return _delimiter(name, '_').upper()
 
+def _whitespace(offset):
+    """Create a filter for adding leading whitespace"""
+    def filter(text):
+        if not text:
+            return text
+
+        result = ""
+        for line in text.splitlines(True):
+            result += ' ' * offset + line
+        return result
+    return filter
+
 def generate_code(spec, template_path, output_dir, common_entries=[]):
     """
     Generate code to decode the given specification.
@@ -236,6 +248,7 @@ def generate_code(spec, template_path, output_dir, common_entries=[]):
     lookup['function'] = _variable_name
     lookup['typename'] = _type_name
     lookup['variable'] = _variable_name
+    lookup['ws'] = _whitespace
     lookup['xmlname'] = bdec.output.xmlout.escape_name
 
     for filename, template in common_templates:

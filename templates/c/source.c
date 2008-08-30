@@ -321,18 +321,31 @@ ${static}int ${settings.decode_name(entry)}(BitBuffer* buffer${settings.define_p
 
 ${recursiveDecode(entry, False)}
 
-## Recursively create functions for printing the entries contained within this protocol specification.
-<%def name="recursivePrint(item, varname, offset, iter_postfix)">
+<%def name="leadingWhitespace(ws_offset)" >
+  %if ws_offset == 0:
+    if (offset + ${ws_offset} > 0)
+    {
+        printf("%*c", offset + ${ws_offset}, ' ');
+    }
+  %else:
+    printf("%*c", offset + ${ws_offset}, ' ');
+  %endif
+</%def>
+
+## Recursively create the function for printing the entries.
+##
+## We buffer the output, as the generated output will be filtered to adjust
+## the whitespace offset.
+<%def name="recursivePrint(item, varname, ws_offset, iter_postfix)" buffered="True">
   %if item in common and item is not entry:
     %if not is_structure_hidden(item):
-    ${settings.print_name(item)}(&${varname}, offset + ${offset});
+    ${settings.print_name(item)}(&${varname}, offset + ${ws_offset});
     %endif
   %else:
-    %if not item.is_hidden():
-    printf("${' ' * offset}<${item.name |xmlname}>");
-    %endif
     %if isinstance(item, Field):
       %if not item.is_hidden():
+    ${leadingWhitespace(ws_offset)}
+    printf("<${item.name |xmlname}>");
         %if item.format == Field.INTEGER:
     printf("%i", ${varname}); 
         %elif item.format == Field.TEXT:
@@ -360,40 +373,41 @@ ${recursiveDecode(entry, False)}
     %else:
     ## Print everything other than fields
       %if not item.is_hidden():
-    printf("\n");
+    ${leadingWhitespace(ws_offset)}
+    printf("<${item.name |xmlname}>\n");
       %endif
-      <% next_offset = (offset + 3) if not item.is_hidden() else offset %>
+      <% next_offset = (ws_offset + 4) if not item.is_hidden() else ws_offset %>
       %if isinstance(item, Sequence):
         %for i, child in enumerate(item.children):
-    ${recursivePrint(child, '%s.%s' % (varname, variable(esc_name(i, item.children))), next_offset, iter_postfix)}
+${recursivePrint(child, '%s.%s' % (varname, variable(esc_name(i, item.children))), next_offset, iter_postfix)}
         %endfor
         %if item.value is not None and not item.is_hidden():
-    printf("${' ' * (offset+3)}%i\n", ${varname}.value); 
+    printf("%*%i\n", offset + ${ws_offset+4}, ${varname}.value); 
         %endif
       %elif isinstance(item, SequenceOf):
         <% iter_name = variable(item.name + ' counter' + str(iter_postfix.next())) %>
     int ${iter_name};
     for (${iter_name} = 0; ${iter_name} < ${varname}.count; ++${iter_name})
     {
-        ${recursivePrint(item.children[0], '%s.items[%s]' % (varname, iter_name), next_offset, iter_postfix)}
+${recursivePrint(item.children[0], '%s.items[%s]' % (varname, iter_name), next_offset, iter_postfix) | ws(4)}
     }
       %elif isinstance(item, Choice):
         %for i, child in enumerate(item.children):
           %if not is_structure_hidden(child):
     if (${'%s.%s' % (varname, variable(esc_name(i, item.children)))} != 0)
     {
-        ${recursivePrint(child, "(*%s.%s)" % (varname, variable(esc_name(i, item.children))), next_offset, iter_postfix)}
+${recursivePrint(child, "(*%s.%s)" % (varname, variable(esc_name(i, item.children))), next_offset, iter_postfix) | ws(4)}
     }
           %endif
         %endfor
       %else:
     #error Don't know how to print ${item}
       %endif
-      %if not item.is_hidden() and offset > 0:
-    printf("${' ' * offset}");
-      %endif
     %endif
     %if not item.is_hidden():
+        %if not isinstance(item, Field):
+    ${leadingWhitespace(ws_offset)}
+        %endif
     printf("</${item.name |xmlname}>\n");
     %endif
   %endif
