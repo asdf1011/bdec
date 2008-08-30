@@ -5,24 +5,11 @@
     from bdec.sequence import Sequence
 %>
 
-
-<%!
-    import string
-    _PRINTABLE = string.ascii_letters + string.digits
-    def c_repr(char):
-        if char in _PRINTABLE:
-            return char
-        return '\\%03o' % ord(char)
-
-    def c_string(data):
-        return '"%s"' % ''.join(c_repr(char) for char in data)
-%>
-
 <%def name="compare_binary_expected(entry, expected)">
   %if len(entry.expected) < 32:
     if (get_integer(&actual) != ${int(entry.expected)})
   %else:
-    BitBuffer expected = {(unsigned char*)${c_string(expected.bytes())}, 0, ${len(entry.expected)}};
+    BitBuffer expected = {(unsigned char*)${settings.c_string(expected.bytes())}, 0, ${len(entry.expected)}};
     int isMatch = 1;
     while (expected.num_bits > 0)
     {
@@ -101,7 +88,7 @@
     BitBuffer actual = {value.buffer, 0, value.length * 8};
     ${compare_binary_expected(entry, entry.expected)}
        %elif entry.format == entry.TEXT:
-    if (memcmp(value, ${c_string(entry.expected.bytes())}, ${len(entry.expected) / 8}) != 0)
+    if (memcmp(value, ${settings.c_string(entry.expected.bytes())}, ${len(entry.expected) / 8}) != 0)
        %else:
 #error Field of type ${entry.format} not currently supported for an expected value!
        %endif

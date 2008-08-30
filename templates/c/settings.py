@@ -1,6 +1,7 @@
 import bdec.field as fld
 from bdec.spec.expression import Delayed, ValueResult, LengthResult, Constant
 import operator
+import string
 
 keywords=['char', 'int', 'float', 'if', 'then', 'else', 'struct', 'for']
 
@@ -79,3 +80,14 @@ def var_name(i, other_vars):
 
 def free_name(entry):
     return function('free ' + esc_name(iter_entries().index(entry), iter_entries()))
+
+_PRINTABLE = string.ascii_letters + string.digits
+def _c_repr(char):
+    if char in _PRINTABLE:
+        return char
+    return '\\%03o' % ord(char)
+
+def c_string(data):
+    """Return a correctly quoted c-style string for an arbitrary binary string."""
+    return '"%s"' % ''.join(c_repr(char) for char in data)
+
