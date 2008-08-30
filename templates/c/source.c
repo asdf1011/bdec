@@ -375,7 +375,7 @@ ${recursiveDecode(entry, False)}
     %else:
     ## Print everything other than fields
       %if not item.is_hidden():
-    ${printText("<%s>\n" % xmlname(item.name), ws_offset)}
+    ${printText("<%s>\\n" % xmlname(item.name), ws_offset)}
       %endif
       <% next_offset = (ws_offset + 4) if not item.is_hidden() else ws_offset %>
       %if isinstance(item, Sequence):
