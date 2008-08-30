@@ -254,6 +254,31 @@ ${static}void ${settings.free_name(entry)}(${settings.ctype(entry)}* value)
     }
 </%def>
 
+<%def name="decodeChoice(entry)">
+    %if not is_structure_hidden(entry):
+    memset(result, 0, sizeof(${settings.ctype(entry)}));
+    %endif
+    BitBuffer temp;
+    %for i, child in enumerate(entry.children):
+    temp = *buffer;
+    <% temp_name = variable('temp ' + esc_name(i, entry.children)) %>
+    ${settings.ctype(child)}* ${temp_name} = malloc(sizeof(${settings.ctype(child)}));
+    if (${settings.decode_name(child)}(&temp${params(entry, i, temp_name)}))
+    {
+        *buffer = temp;
+      %if not is_structure_hidden(child):
+        result->${settings.var_name(i, entry.children)} = ${temp_name};
+      %else:
+        free(${temp_name});
+      %endif
+        ${success(entry)}
+    }
+    free(${temp_name});
+    %endfor
+    // Decode failed, no options succeeded...
+    return 0;
+<%/def>
+
 ${static}int ${settings.decode_name(entry)}(BitBuffer* buffer${settings.define_params(entry)})
 {
   %for local in local_vars(entry):
@@ -281,28 +306,7 @@ ${static}int ${settings.decode_name(entry)}(BitBuffer* buffer${settings.define_p
     %endif
     ${success(entry)}
   %elif isinstance(entry, Choice):
-    %if not is_structure_hidden(entry):
-    memset(result, 0, sizeof(${settings.ctype(entry)}));
-    %endif
-    BitBuffer temp;
-    %for i, child in enumerate(entry.children):
-    temp = *buffer;
-    <% temp_name = variable('temp ' + esc_name(i, entry.children)) %>
-    ${settings.ctype(child)}* ${temp_name} = malloc(sizeof(${settings.ctype(child)}));
-    if (${settings.decode_name(child)}(&temp${params(entry, i, temp_name)}))
-    {
-        *buffer = temp;
-      %if not is_structure_hidden(child):
-        result->${settings.var_name(i, entry.children)} = ${temp_name};
-      %else:
-        free(${temp_name});
-      %endif
-        ${success(entry)}
-    }
-    free(${temp_name});
-    %endfor
-    // Decode failed, no options succeeded...
-    return 0;
+    ${decodeChoice(entry)}
   %endif
 }
 </%def>
