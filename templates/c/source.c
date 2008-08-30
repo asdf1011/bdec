@@ -1,6 +1,7 @@
 ## vim:set syntax=mako:
 <%! 
   from bdec.choice import Choice
+  from bdec.data import Data
   from bdec.field import Field
   from bdec.sequence import Sequence
   from bdec.sequenceof import SequenceOf
@@ -23,55 +24,6 @@
   %endif
     return 1;
 </%def>
-
-## Recursively create functions for decoding the entries contained within this protocol specification.
-<%def name="recursiveDecode(entry, is_static=True)">
-%for child in entry.children:
-  %if child not in common:
-${recursiveDecode(child)}
-  %endif
-%endfor
-
-<% static = "static " if is_static else "" %>
-%if not is_structure_hidden(entry) or (isinstance(entry, Field) and entry.format != Field.INTEGER):
-${static}void ${settings.free_name(entry)}(${settings.ctype(entry)}* value)
-{
-  %if isinstance(entry, Field):
-    %if entry.format == Field.TEXT:
-    free(*value);
-    %elif entry.format == Field.HEX:
-    free(value->buffer);
-    %elif entry.format == Field.BINARY:
-    free(value->buffer);
-    %endif
-  %elif isinstance(entry, Sequence):
-    %for i, child in enumerate(entry.children):
-        %if not is_structure_hidden(child):
-    ${settings.free_name(child)}(&value->${settings.var_name(i, entry.children)});
-        %endif
-    %endfor
-  %elif isinstance(entry, SequenceOf):
-    int i;
-    for (i = 0; i < value->count; ++i)
-    {
-        ${settings.free_name(entry.children[0])}(&value->items[i]);
-    }
-    free(value->items);
-  %elif isinstance(entry, Choice):
-    %for i, child in enumerate(entry.children):
-      %if not is_structure_hidden(child):
-    if (value->${settings.var_name(i, entry.children)} != 0)
-    {
-        ${settings.free_name(child)}(value->${settings.var_name(i, entry.children)});
-        free(value->${settings.var_name(i, entry.children)});
-    }
-      %endif
-    %endfor
-  %else:
-    <% raise Exception("Don't know how to free objects of type '%s'" % entry) %>
-  %endif
-}
-%endif
 
 <%def name="compare_binary_expected(entry, expected)">
   %if len(entry.expected) < 32:
@@ -277,7 +229,57 @@ ${static}void ${settings.free_name(entry)}(${settings.ctype(entry)}* value)
     %endfor
     // Decode failed, no options succeeded...
     return 0;
-<%/def>
+</%def>
+
+## Recursively create functions for decoding the entries contained within this protocol specification.
+<%def name="recursiveDecode(entry, is_static=True)">
+%for child in entry.children:
+  %if child not in common:
+${recursiveDecode(child)}
+  %endif
+%endfor
+
+<% static = "static " if is_static else "" %>
+%if not is_structure_hidden(entry) or (isinstance(entry, Field) and entry.format != Field.INTEGER):
+${static}void ${settings.free_name(entry)}(${settings.ctype(entry)}* value)
+{
+  %if isinstance(entry, Field):
+    %if entry.format == Field.TEXT:
+    free(*value);
+    %elif entry.format == Field.HEX:
+    free(value->buffer);
+    %elif entry.format == Field.BINARY:
+    free(value->buffer);
+    %endif
+  %elif isinstance(entry, Sequence):
+    %for i, child in enumerate(entry.children):
+        %if not is_structure_hidden(child):
+    ${settings.free_name(child)}(&value->${settings.var_name(i, entry.children)});
+        %endif
+    %endfor
+  %elif isinstance(entry, SequenceOf):
+    int i;
+    for (i = 0; i < value->count; ++i)
+    {
+        ${settings.free_name(entry.children[0])}(&value->items[i]);
+    }
+    free(value->items);
+  %elif isinstance(entry, Choice):
+    %for i, child in enumerate(entry.children):
+      %if not is_structure_hidden(child):
+    if (value->${settings.var_name(i, entry.children)} != 0)
+    {
+        ${settings.free_name(child)}(value->${settings.var_name(i, entry.children)});
+        free(value->${settings.var_name(i, entry.children)});
+    }
+      %endif
+    %endfor
+  %else:
+    <% raise Exception("Don't know how to free objects of type '%s'" % entry) %>
+  %endif
+}
+%endif
+
 
 ${static}int ${settings.decode_name(entry)}(BitBuffer* buffer${settings.define_params(entry)})
 {
