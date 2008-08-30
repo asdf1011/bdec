@@ -321,14 +321,17 @@ ${static}int ${settings.decode_name(entry)}(BitBuffer* buffer${settings.define_p
 
 ${recursiveDecode(entry, False)}
 
-<%def name="leadingWhitespace(ws_offset)" >
+<%def name="printText(text, ws_offset)">
   %if ws_offset == 0:
+    ## We have to print in two runs, as we cannot print zero space characters 
+    ## in a single print statement.
     if (offset + ${ws_offset} > 0)
     {
         printf("%*c", offset + ${ws_offset}, ' ');
     }
+    printf("${text}");
   %else:
-    printf("%*c", offset + ${ws_offset}, ' ');
+    printf("%*c${text}", offset + ${ws_offset}, ' ');
   %endif
 </%def>
 
@@ -344,8 +347,7 @@ ${recursiveDecode(entry, False)}
   %else:
     %if isinstance(item, Field):
       %if not item.is_hidden():
-    ${leadingWhitespace(ws_offset)}
-    printf("<${item.name |xmlname}>");
+    ${printText("<%s>" % xmlname(item.name), ws_offset)}
         %if item.format == Field.INTEGER:
     printf("%i", ${varname}); 
         %elif item.format == Field.TEXT:
@@ -373,8 +375,7 @@ ${recursiveDecode(entry, False)}
     %else:
     ## Print everything other than fields
       %if not item.is_hidden():
-    ${leadingWhitespace(ws_offset)}
-    printf("<${item.name |xmlname}>\n");
+    ${printText("<%s>\n" % xmlname(item.name), ws_offset)}
       %endif
       <% next_offset = (ws_offset + 4) if not item.is_hidden() else ws_offset %>
       %if isinstance(item, Sequence):
@@ -405,10 +406,11 @@ ${recursivePrint(child, "(*%s.%s)" % (varname, variable(esc_name(i, item.childre
       %endif
     %endif
     %if not item.is_hidden():
-        %if not isinstance(item, Field):
-    ${leadingWhitespace(ws_offset)}
-        %endif
+      %if not isinstance(item, Field):
+    ${printText("</%s>\\n" % xmlname(item.name), ws_offset)}
+      %else:
     printf("</${item.name |xmlname}>\n");
+      %endif
     %endif
   %endif
 </%def>
