@@ -1,6 +1,10 @@
 ## vim:set syntax=mako:
-<%namespace file="/type.tmpl" name="ctype" />
-<%namespace file="/decodeentry.tmpl" name="decodeentry" />
+<%! 
+  from bdec.choice import Choice
+  from bdec.field import Field
+  from bdec.sequence import Sequence
+  from bdec.sequenceof import SequenceOf
+ %>
 
 #ifndef ${entry.name + 'header guard' |constant}
 #define ${entry.name + 'header guard' |constant}
@@ -10,7 +14,47 @@
 #include "${e.name |filename}.h"
 %endfor
 
-${ctype.define(entry)}
+<%def name="c_define(entry)" >
+  %if isinstance(entry, Sequence):
+${settings.ctype(entry)}
+{
+  %for i, child in enumerate(entry.children):
+    %if not is_structure_hidden(child):
+    ${settings.ctype(child)} ${var_name(i, entry.children)};
+    %endif
+  %endfor
+  %if entry.value is not None:
+    int value;
+  %endif
+};
+  %elif isinstance(entry, Field):
+typedef ${settings.ctype(entry)} ${entry.name |typename};
+  %elif isinstance(entry, Choice):
+${settings.ctype(entry)}
+{
+    %for i, child in enumerate(entry.children):
+      %if not is_structure_hidden(child):
+    ${settings.ctype(child)}* ${var_name(i, entry.children)};
+      %endif
+    %endfor
+};
+  %elif isinstance(entry, SequenceOf):
+${settings.ctype(entry)}
+{
+    ${settings.ctype(entry.children[0])}* items;
+    unsigned int count;
+};
+  %else:
+#error Unsupported entry ${entry}
+  %endif
+</%def>
+
+%for e in iter_inner_entries(entry):
+  %if not isinstance(e, Field):
+${c_define(e)}
+  %endif
+%endfor
+
 
 // Decode a ${entry.name} instance.
 // Any values already present in result will be ignored and overwritten.
@@ -33,3 +77,4 @@ void ${settings.free_name(entry)}(${settings.ctype(entry)}* value);
 void ${settings.print_name(entry)}(${settings.ctype(entry)}* data, int offset);
 
 #endif
+
