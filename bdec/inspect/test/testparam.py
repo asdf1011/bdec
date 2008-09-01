@@ -1,6 +1,7 @@
 import operator
 import unittest
 
+import bdec
 import bdec.choice as chc
 import bdec.data as dt
 import bdec.field as fld
@@ -248,4 +249,31 @@ class TestResultParameters(unittest.TestCase):
         b = seq.Sequence('', [a])
         lookup = prm.ResultParameters([b])
         self.assertEqual([prm.Param('result', prm.Param.OUT, b)], lookup.get_params(b))
+
+    def test_hidden_common(self):
+        # There was a bug where a common entry was temporarily marked as having
+        # no visible children (ie: no results), despite finally resolving to 
+        # being visible. The bug is that any use of this intermediate check 
+        # will use the incorrect 'not visible' state.
+        #
+        # To test this we create an entry that can either be a a number character, or
+        # an embedded instance of the same entry (surrounded by '<' and '>').
+
+        embedded = seq.Sequence('embedded:', [])
+        item = chc.Choice('item:', [embedded, fld.Field('data', 8, min=ord('0'), max=ord('9'))])
+        embedded.children = [
+                fld.Field('', length=8, expected=dt.Data('<')),
+                item,
+                fld.Field('', length=8, expected=dt.Data('>'))]
+
+        # Lets just test that we can decode things correctly...
+        list(item.decode(dt.Data('8')))
+        list(item.decode(dt.Data('<5>')))
+        list(item.decode(dt.Data('<<7>>')))
+        self.assertRaises(bdec.DecodeError, list, item.decode(dt.Data('a')))
+        self.assertRaises(bdec.DecodeError, list, item.decode(dt.Data('<5')))
+
+        lookup = prm.ResultParameters([item])
+        self.assertEqual([prm.Param('result', prm.Param.OUT, item)], lookup.get_params(item))
+        self.assertEqual([prm.Param('result', prm.Param.OUT, embedded)], lookup.get_params(embedded))
 

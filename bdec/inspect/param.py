@@ -360,17 +360,41 @@ class DataChecker:
 
         All other entries reachable by these entries can also be checked."""
         self._has_data = {}
-        for entry in entries:
-            self._populate(entry)
+        entries = set(entries)
+        while entries:
+            entry = entries.pop()
+            intermediates = set()
+            stack = []
+            self._populate(entry, stack, intermediates)
+            assert not stack
+            for entry in intermediates:
+                del self._has_data[entry]
+            entries.update(intermediates)
 
-    def _populate(self, entry):
-        """Walk down all entries visible from this entry, checking for data."""
-        if entry not in self._has_data:
-            self._has_data[entry] = not entry.is_hidden()
-            for child in entry.children:
-                self._populate(child)
-                if self._has_data[child]:
-                    self._has_data[entry] = True
+    def _populate(self, entry, stack, intermediates):
+        """Walk down all entries contained within this entry, checking for visibility."""
+        if entry in stack:
+            # An entry is within itself. This entry will be 'visible' either if
+            # it itself is visible, or it contains a visible child, but at this
+            # stage we don't know for sure (as all of its children haven't been
+            # processed). If so, we'll mark all of its children to a list that 
+            # requires them to be re-processed.
+            if not self._has_data[entry]:
+                for inter in stack[stack.index(entry)+1:]:
+                    intermediates.add(inter)
+            return
+
+        if entry in self._has_data:
+            return
+
+        self._has_data[entry] = not entry.is_hidden()
+
+        # This entry isn't yet calculated; do so now.
+        stack.append(entry)
+        for child in entry.children:
+            self._populate(child, stack, intermediates)
+            self._has_data[entry] |= self._has_data[child]
+        stack.remove(entry)
 
     def contains_data(self, entry):
         return self._has_data[entry]
