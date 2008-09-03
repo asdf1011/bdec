@@ -20,8 +20,7 @@ class SettingsError(Exception):
 _SETTINGS = "settings.py"
 
 def is_template(filename):
-    return not filename.endswith('.tmpl') and not filename.startswith('.') and \
-                filename != _SETTINGS
+    return filename != _SETTINGS
 
 _template_cache = {}
 def _load_templates(directory):
