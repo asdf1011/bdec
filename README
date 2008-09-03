@@ -47,18 +47,19 @@ running::
 
   dd if=/dev/sda1 bs=512 count=1 | decode bootsector.xml
 
+The 'encode' utility is extremely limited, and can only encode very simple
+specifications.
+
 .. _xml representation of a FAT bootsector: doc/files/fatbootsector.xml
 
 
 Compiler
 --------
 
-*still very rough around the edges*
-
 The 'compile' tool is capable of generating a C lanaguage decoder based on a
 specification (similar functionality to the way most ASN.1 compilers work). The
 generated code has no external dependencies, and includes a sample 'main.c' for
-decoding binary files.
+decoding files to an xml representation.
 
 
 Python module
