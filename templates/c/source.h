@@ -19,7 +19,7 @@
 ${settings.ctype(entry)}
 {
   %for i, child in enumerate(entry.children):
-    %if not is_structure_hidden(child):
+    %if contains_data(child):
     ${settings.ctype(child)} ${var_name(i, entry.children)};
     %endif
   %endfor
@@ -33,7 +33,7 @@ typedef ${settings.ctype(entry)} ${entry.name |typename};
 ${settings.ctype(entry)}
 {
     %for i, child in enumerate(entry.children):
-      %if not is_structure_hidden(child):
+      %if contains_data(child):
     ${settings.ctype(child)}* ${var_name(i, entry.children)};
       %endif
     %endfor

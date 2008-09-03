@@ -160,7 +160,7 @@
     if (!${settings.decode_name(child)}(buffer${settings.params(entry, i, '&result->%s' % variable(esc_name(i, entry.children)))}))
     {
         %for j, previous in enumerate(entry.children[:i]):
-            %if not is_structure_hidden(previous):
+            %if contains_data(previous):
         ${settings.free_name(previous)}(&result->${settings.var_name(j, entry.children)});
             %endif
         %endfor
@@ -169,7 +169,7 @@
     %endfor
     %if entry.value is not None:
     int value = ${settings.value(entry.value)};
-      %if not is_structure_hidden(entry):
+      %if contains_data(entry):
     result->value = value;
       %endif
       %if is_value_referenced(entry):
@@ -189,14 +189,14 @@
     %if entry.count is not None:
     int num_items;
     num_items = ${settings.value(entry.count)};
-      %if not is_structure_hidden(entry):
+      %if contains_data(entry):
     result->count = num_items;
     result->items = malloc(sizeof(${settings.ctype(entry.children[0])}) * result->count);
       %endif
     for (i = 0; i < num_items; ++i)
     {
     %else:
-      %if not is_structure_hidden(entry):
+      %if contains_data(entry):
     result->items = 0;
     result->count = 0;
       %endif
@@ -206,7 +206,7 @@
     while (!${'should end' |variable})
       %endif
     {
-      %if not is_structure_hidden(entry):
+      %if contains_data(entry):
         i = result->count;
         ++result->count;
         result->items = realloc(result->items, sizeof(${settings.ctype(entry.children[0])}) * (result->count + 1));
@@ -214,7 +214,7 @@
     %endif
         if (!${settings.decode_name(entry.children[0])}(buffer${settings.params(entry, 0, '&result->items[i]')}))
         {
-      %if not is_structure_hidden(entry):
+      %if contains_data(entry):
             int j;
             for (j=0; j<i; ++j)
             {
@@ -234,7 +234,7 @@
 </%def>
 
 <%def name="decodeChoice(entry)">
-    %if not is_structure_hidden(entry):
+    %if contains_data(entry):
     memset(result, 0, sizeof(${settings.ctype(entry)}));
     %endif
     BitBuffer temp;
@@ -245,7 +245,7 @@
     if (${settings.decode_name(child)}(&temp${params(entry, i, temp_name)}))
     {
         *buffer = temp;
-      %if not is_structure_hidden(child):
+      %if contains_data(child):
         result->${settings.var_name(i, entry.children)} = ${temp_name};
       %else:
         free(${temp_name});
@@ -268,7 +268,7 @@ ${recursiveDecode(child)}
 %endfor
 
 <% static = "static " if is_static else "" %>
-%if not is_structure_hidden(entry) or (isinstance(entry, Field) and entry.format != Field.INTEGER):
+%if contains_data(entry) or (isinstance(entry, Field) and entry.format != Field.INTEGER):
 ${static}void ${settings.free_name(entry)}(${settings.ctype(entry)}* value)
 {
   %if isinstance(entry, Field):
@@ -281,7 +281,7 @@ ${static}void ${settings.free_name(entry)}(${settings.ctype(entry)}* value)
     %endif
   %elif isinstance(entry, Sequence):
     %for i, child in enumerate(entry.children):
-        %if not is_structure_hidden(child):
+        %if contains_data(child):
     ${settings.free_name(child)}(&value->${settings.var_name(i, entry.children)});
         %endif
     %endfor
@@ -294,7 +294,7 @@ ${static}void ${settings.free_name(entry)}(${settings.ctype(entry)}* value)
     free(value->items);
   %elif isinstance(entry, Choice):
     %for i, child in enumerate(entry.children):
-      %if not is_structure_hidden(child):
+      %if contains_data(child):
     if (value->${settings.var_name(i, entry.children)} != 0)
     {
         ${settings.free_name(child)}(value->${settings.var_name(i, entry.children)});
@@ -351,10 +351,10 @@ ${recursiveDecode(entry, False)}
 ## the whitespace offset.
 <%def name="recursivePrint(item, varname, ws_offset, iter_postfix)" buffered="True">
   %if item in common and item is not entry:
-    %if not is_structure_hidden(item):
+    %if contains_data(item):
     ${settings.print_name(item)}(&${varname}, offset + ${ws_offset});
     %endif
-  %elif not is_structure_hidden(item):
+  %elif contains_data(item):
     %if isinstance(item, Field):
       %if not item.is_hidden():
     ${printText("<%s>" % xmlname(item.name), ws_offset)}
@@ -404,7 +404,7 @@ ${recursivePrint(item.children[0], '%s.items[%s]' % (varname, iter_name), next_o
     }
       %elif isinstance(item, Choice):
         %for i, child in enumerate(item.children):
-          %if not is_structure_hidden(child):
+          %if contains_data(child):
     if (${'%s.%s' % (varname, variable(esc_name(i, item.children)))} != 0)
     {
 ${recursivePrint(child, "(*%s.%s)" % (varname, variable(esc_name(i, item.children))), next_offset, iter_postfix) | ws(4)}
