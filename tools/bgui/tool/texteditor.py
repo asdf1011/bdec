@@ -17,7 +17,7 @@ import wx.lib.docview
 import wx.lib.multisash
 import wx.lib.pydocview
 import string
-import bdec.gui.tool.findservice
+import tools.bgui.tool.findservice
 import os
 import sys
 _ = wx.GetTranslation
@@ -268,28 +268,28 @@ class TextView(wx.lib.docview.View):
         elif id == WORD_WRAP_ID:
             self.GetCtrl().SetWordWrap(not self.GetCtrl().GetWordWrap())
             return True
-        elif id == bdec.gui.tool.findservice.FindService.FIND_ID:
+        elif id == tools.bgui.tool.findservice.FindService.FIND_ID:
             self.OnFind()
             return True
-        elif id == bdec.gui.tool.findservice.FindService.FIND_PREVIOUS_ID:
+        elif id == tools.bgui.tool.findservice.FindService.FIND_PREVIOUS_ID:
             self.DoFind(forceFindPrevious = True)
             return True
-        elif id == bdec.gui.tool.findservice.FindService.FIND_NEXT_ID:
+        elif id == tools.bgui.tool.findservice.FindService.FIND_NEXT_ID:
             self.DoFind(forceFindNext = True)
             return True
-        elif id == bdec.gui.tool.findservice.FindService.REPLACE_ID:
+        elif id == tools.bgui.tool.findservice.FindService.REPLACE_ID:
             self.OnFind(replace = True)
             return True
-        elif id == bdec.gui.tool.findservice.FindService.FINDONE_ID:
+        elif id == tools.bgui.tool.findservice.FindService.FINDONE_ID:
             self.DoFind()
             return True
-        elif id == bdec.gui.tool.findservice.FindService.REPLACEONE_ID:
+        elif id == tools.bgui.tool.findservice.FindService.REPLACEONE_ID:
             self.DoFind(replace = True)
             return True
-        elif id == bdec.gui.tool.findservice.FindService.REPLACEALL_ID:
+        elif id == tools.bgui.tool.findservice.FindService.REPLACEALL_ID:
             self.DoFind(replaceAll = True)
             return True
-        elif id == bdec.gui.tool.findservice.FindService.GOTO_LINE_ID:
+        elif id == tools.bgui.tool.findservice.FindService.GOTO_LINE_ID:
             self.OnGotoLine(event)
             return True
         else:
@@ -369,27 +369,27 @@ class TextView(wx.lib.docview.View):
             event.Enable(self.GetCtrl().CanWordWrap())
             event.Check(self.GetCtrl().CanWordWrap() and self.GetCtrl().GetWordWrap())
             return True
-        elif id == bdec.gui.tool.findservice.FindService.FIND_ID:
+        elif id == tools.bgui.tool.findservice.FindService.FIND_ID:
             hasText = self.GetCtrl().GetTextLength() > 0
             event.Enable(hasText)
             return True
-        elif id == bdec.gui.tool.findservice.FindService.FIND_PREVIOUS_ID:
+        elif id == tools.bgui.tool.findservice.FindService.FIND_PREVIOUS_ID:
             hasText = self.GetCtrl().GetTextLength() > 0
             event.Enable(hasText and
                          self._FindServiceHasString() and
                          self.GetCtrl().GetSelection()[0] > 0)
             return True
-        elif id == bdec.gui.tool.findservice.FindService.FIND_NEXT_ID:
+        elif id == tools.bgui.tool.findservice.FindService.FIND_NEXT_ID:
             hasText = self.GetCtrl().GetTextLength() > 0
             event.Enable(hasText and
                          self._FindServiceHasString() and
                          self.GetCtrl().GetSelection()[0] < self.GetCtrl().GetLength())
             return True
-        elif id == bdec.gui.tool.findservice.FindService.REPLACE_ID:
+        elif id == tools.bgui.tool.findservice.FindService.REPLACE_ID:
             hasText = self.GetCtrl().GetTextLength() > 0
             event.Enable(hasText)
             return True
-        elif id == bdec.gui.tool.findservice.FindService.GOTO_LINE_ID:
+        elif id == tools.bgui.tool.findservice.FindService.GOTO_LINE_ID:
             event.Enable(True)
             return True
         elif id == TEXT_STATUS_BAR_ID:
@@ -488,13 +488,13 @@ class TextView(wx.lib.docview.View):
     #----------------------------------------------------------------------------
 
     def OnFind(self, replace = False):
-        findService = wx.GetApp().GetService(bdec.gui.tool.findservice.FindService)
+        findService = wx.GetApp().GetService(tools.bgui.tool.findservice.FindService)
         if findService:
             findService.ShowFindReplaceDialog(findString = self.GetCtrl().GetSelectedText(), replace = replace)
 
 
     def DoFind(self, forceFindNext = False, forceFindPrevious = False, replace = False, replaceAll = False):
-        findService = wx.GetApp().GetService(bdec.gui.tool.findservice.FindService)
+        findService = wx.GetApp().GetService(tools.bgui.tool.findservice.FindService)
         if not findService:
             return
         findString = findService.GetFindString()
@@ -506,9 +506,9 @@ class TextView(wx.lib.docview.View):
 
         wholeWord = flags & wx.FR_WHOLEWORD > 0
         matchCase = flags & wx.FR_MATCHCASE > 0
-        regExp = flags & bdec.gui.tool.findservice.FindService.FR_REGEXP > 0
+        regExp = flags & tools.bgui.tool.findservice.FindService.FR_REGEXP > 0
         down = flags & wx.FR_DOWN > 0
-        wrap = flags & bdec.gui.tool.findservice.FindService.FR_WRAP > 0
+        wrap = flags & tools.bgui.tool.findservice.FindService.FR_WRAP > 0
 
         if forceFindPrevious:   # this is from function keys, not dialog box
             down = False
@@ -531,7 +531,7 @@ class TextView(wx.lib.docview.View):
                 if down:
                     startLoc += len(replText)  # advance start location past replacement string to new text
                 endLoc = startLoc
-            elif result == bdec.gui.tool.findservice.FIND_SYNTAXERROR:
+            elif result == tools.bgui.tool.findservice.FIND_SYNTAXERROR:
                 badSyntax = True
                 wx.GetApp().GetTopWindow().PushStatusText(_("Invalid regular expression \"%s\"") % findString)
 
@@ -555,7 +555,7 @@ class TextView(wx.lib.docview.View):
                 self.GetCtrl().EnsureVisible(self.GetCtrl().LineFromPosition(end))  # show bottom then scroll up to top
                 self.GetCtrl().EnsureVisible(self.GetCtrl().LineFromPosition(start)) # do this after ensuring bottom is visible
                 wx.GetApp().GetTopWindow().PushStatusText(_("Found \"%s\".") % findString)
-            elif result == bdec.gui.tool.findservice.FIND_SYNTAXERROR:
+            elif result == tools.bgui.tool.findservice.FIND_SYNTAXERROR:
                 # Dialog for this case gets popped up by the FindService.
                 wx.GetApp().GetTopWindow().PushStatusText(_("Invalid regular expression \"%s\"") % findString)
             else:
@@ -564,14 +564,14 @@ class TextView(wx.lib.docview.View):
 
 
     def _FindServiceHasString(self):
-        findService = wx.GetApp().GetService(bdec.gui.tool.findservice.FindService)
+        findService = wx.GetApp().GetService(tools.bgui.tool.findservice.FindService)
         if not findService or not findService.GetFindString():
             return False
         return True
 
 
     def OnGotoLine(self, event):
-        findService = wx.GetApp().GetService(bdec.gui.tool.findservice.FindService)
+        findService = wx.GetApp().GetService(tools.bgui.tool.findservice.FindService)
         if findService:
             line = findService.GetLineNumber(self.GetDocumentManager().FindSuitableParent())
             if line > -1:

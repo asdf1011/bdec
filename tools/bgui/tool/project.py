@@ -13,8 +13,8 @@
 import copy
 import os
 import os.path
-import bdec.gui.util.xmlutils as xmlutils
-import bdec.gui.util.aglogging as aglogging
+import tools.bgui.util.xmlutils as xmlutils
+import tools.bgui.util.aglogging as aglogging
 
 #----------------------------------------------------------------------------
 # Constants
@@ -473,7 +473,7 @@ class ProjectFile(object):
 
     def getExternalPackage(self):
         # HACK: temporary solution to getting custom code filename from wsdlag file.
-        import bdec.gui.model.projectmodel as projectmodel
+        import tools.bgui.model.projectmodel as projectmodel
         import wx
         import ProjectEditor
 

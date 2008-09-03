@@ -16,8 +16,8 @@ import wx.lib.pydocview
 import sys
 import wx.grid
 import os.path
-import bdec.gui.util.sysutils as sysutilslib
-import bdec.gui.util.appdirs as appdirs
+import tools.bgui.util.sysutils as sysutilslib
+import tools.bgui.util.appdirs as appdirs
 import shutil
 
 _ = wx.GetTranslation
@@ -102,15 +102,15 @@ class IDEApplication(wx.lib.pydocview.DocApp):
         if not wx.lib.pydocview.DocApp.OnInit(self):
             return False
 
-        import bdec.gui.tool.binaryeditor
-        import bdec.gui.tool.texteditor
-        import bdec.gui.tool.markerservice
-        import bdec.gui.tool.project as projectlib
-        import bdec.gui.tool.projecteditor
-        import bdec.gui.tool.outlineservice
-        import bdec.gui.tool.xmleditor
-        import bdec.gui.tool.messageservice
-        import bdec.gui.tool.aboutdialog
+        import tools.bgui.tool.binaryeditor
+        import tools.bgui.tool.texteditor
+        import tools.bgui.tool.markerservice
+        import tools.bgui.tool.project as projectlib
+        import tools.bgui.tool.projecteditor
+        import tools.bgui.tool.outlineservice
+        import tools.bgui.tool.xmleditor
+        import tools.bgui.tool.messageservice
+        import tools.bgui.tool.aboutdialog
                             
         _EDIT_LAYOUTS = True
 
@@ -132,23 +132,23 @@ class IDEApplication(wx.lib.pydocview.DocApp):
                 _(".txt"),
                 _("Text Document"),
                 _("Text View"),
-                bdec.gui.tool.texteditor.TextDocument,
-                bdec.gui.tool.texteditor.TextView,
+                tools.bgui.tool.texteditor.TextDocument,
+                tools.bgui.tool.texteditor.TextView,
                 wx.lib.docview.TEMPLATE_INVISIBLE,
-                icon = bdec.gui.tool.texteditor.getTextIcon())
+                icon = tools.bgui.tool.texteditor.getTextIcon())
         docManager.AssociateTemplate(defaultTemplate)
 
-        projectTemplate = bdec.gui.tool.projecteditor.ProjectTemplate(docManager,
+        projectTemplate = tools.bgui.tool.projecteditor.ProjectTemplate(docManager,
                 _("Project"),
                 "*.agp",
                 _("Project"),
                 _(".agp"),
                 _("Project Document"),
                 _("Project View"),
-                bdec.gui.tool.projecteditor.ProjectDocument,
-                bdec.gui.tool.projecteditor.ProjectView,
+                tools.bgui.tool.projecteditor.ProjectDocument,
+                tools.bgui.tool.projecteditor.ProjectView,
                 wx.lib.docview.TEMPLATE_NO_CREATE,
-                icon = bdec.gui.tool.projecteditor.getProjectIcon())
+                icon = tools.bgui.tool.projecteditor.getProjectIcon())
         docManager.AssociateTemplate(projectTemplate)
 
         xmlTemplate = wx.lib.docview.DocTemplate(docManager,
@@ -158,9 +158,9 @@ class IDEApplication(wx.lib.pydocview.DocApp):
                 _(".xml"),
                 _("XML Document"),
                 _("XML View"),
-                bdec.gui.tool.xmleditor.XmlDocument,
-                bdec.gui.tool.xmleditor.XmlView,
-                icon = bdec.gui.tool.xmleditor.getXMLIcon())
+                tools.bgui.tool.xmleditor.XmlDocument,
+                tools.bgui.tool.xmleditor.XmlView,
+                icon = tools.bgui.tool.xmleditor.getXMLIcon())
         docManager.AssociateTemplate(xmlTemplate)
 
         binaryTemplate = wx.lib.docview.DocTemplate(docManager,
@@ -170,31 +170,31 @@ class IDEApplication(wx.lib.pydocview.DocApp):
                 _(".pdf"),
                 _("Binary Document"),
                 _("Binary View"),
-                bdec.gui.tool.binaryeditor.BinaryDocument,
-                bdec.gui.tool.binaryeditor.DecodeView)
+                tools.bgui.tool.binaryeditor.BinaryDocument,
+                tools.bgui.tool.binaryeditor.DecodeView)
         docManager.AssociateTemplate(binaryTemplate)
         
         # Note:  Child document types aren't displayed in "Files of type" dropdown
-        textService             = self.InstallService(bdec.gui.tool.texteditor.TextService())
-        projectService          = self.InstallService(bdec.gui.tool.projecteditor.ProjectService("Projects", embeddedWindowLocation = wx.lib.pydocview.EMBEDDED_WINDOW_TOPLEFT))
-        outlineService          = self.InstallService(bdec.gui.tool.outlineservice.OutlineService("Outline", embeddedWindowLocation = wx.lib.pydocview.EMBEDDED_WINDOW_BOTTOMLEFT))
+        textService             = self.InstallService(tools.bgui.tool.texteditor.TextService())
+        projectService          = self.InstallService(tools.bgui.tool.projecteditor.ProjectService("Projects", embeddedWindowLocation = wx.lib.pydocview.EMBEDDED_WINDOW_TOPLEFT))
+        outlineService          = self.InstallService(tools.bgui.tool.outlineservice.OutlineService("Outline", embeddedWindowLocation = wx.lib.pydocview.EMBEDDED_WINDOW_BOTTOMLEFT))
         filePropertiesService   = self.InstallService(wx.lib.pydocview.FilePropertiesService())
-        markerService           = self.InstallService(bdec.gui.tool.markerservice.MarkerService())
-        messageService          = self.InstallService(bdec.gui.tool.messageservice.MessageService("Messages", embeddedWindowLocation = wx.lib.pydocview.EMBEDDED_WINDOW_BOTTOM))
+        markerService           = self.InstallService(tools.bgui.tool.markerservice.MarkerService())
+        messageService          = self.InstallService(tools.bgui.tool.messageservice.MessageService("Messages", embeddedWindowLocation = wx.lib.pydocview.EMBEDDED_WINDOW_BOTTOM))
         optionsService          = self.InstallService(wx.lib.pydocview.DocOptionsService(supportedModes=wx.lib.docview.DOC_MDI))
-        aboutService            = self.InstallService(wx.lib.pydocview.AboutService(bdec.gui.tool.aboutdialog.AboutDialog))
+        aboutService            = self.InstallService(wx.lib.pydocview.AboutService(tools.bgui.tool.aboutdialog.AboutDialog))
         if self.GetUseTabbedMDI():
             windowService       = self.InstallService(wx.lib.pydocview.WindowMenuService())
         
         # order of these added determines display order of Options Panels
-        optionsService.AddOptionsPanel(bdec.gui.tool.projecteditor.ProjectOptionsPanel)
-        optionsService.AddOptionsPanel(bdec.gui.tool.xmleditor.XmlOptionsPanel)
-        optionsService.AddOptionsPanel(bdec.gui.tool.texteditor.TextOptionsPanel)
+        optionsService.AddOptionsPanel(tools.bgui.tool.projecteditor.ProjectOptionsPanel)
+        optionsService.AddOptionsPanel(tools.bgui.tool.xmleditor.XmlOptionsPanel)
+        optionsService.AddOptionsPanel(tools.bgui.tool.texteditor.TextOptionsPanel)
 
         filePropertiesService.AddCustomEventHandler(projectService)
 
-        outlineService.AddViewTypeForBackgroundHandler(bdec.gui.tool.projecteditor.ProjectView) # special case, don't clear outline if in project
-        outlineService.AddViewTypeForBackgroundHandler(bdec.gui.tool.messageservice.MessageView) # special case, don't clear outline if in message window
+        outlineService.AddViewTypeForBackgroundHandler(tools.bgui.tool.projecteditor.ProjectView) # special case, don't clear outline if in project
+        outlineService.AddViewTypeForBackgroundHandler(tools.bgui.tool.messageservice.MessageView) # special case, don't clear outline if in message window
         outlineService.StartBackgroundTimer()
         
         projectService.AddLogicalViewFolderDefault(".xml", _("Code"))
@@ -221,7 +221,7 @@ class IDEApplication(wx.lib.pydocview.DocApp):
         if os.path.isfile(tips_path):
             self.ShowTip(docManager.FindSuitableParent(), wx.CreateFileTipProvider(tips_path, 0))
 
-        iconPath = os.path.join(sysutilslib.mainModuleDir, "bdec", "gui", "tool", "bmp_source", "bdec.gui.ico")
+        iconPath = os.path.join(sysutilslib.mainModuleDir, "bdec", "gui", "tool", "bmp_source", "tools.bgui.ico")
         if os.path.isfile(iconPath):
             ib = wx.IconBundle()
             ib.AddIconFromFile(iconPath, wx.BITMAP_TYPE_ANY)
@@ -241,9 +241,9 @@ class IDEDocManager(wx.lib.docview.DocManager):
         #    isTemplate, object = newDialog.GetSelection()
         #    if isTemplate:
         #        object.CreateDocument('', wx.lib.docview.DOC_NEW)
-        import bdec.gui.tool.projecteditor
+        import tools.bgui.tool.projecteditor
         for temp in self.GetTemplates():
-            if isinstance(temp,bdec.gui.tool.projecteditor.ProjectTemplate):
+            if isinstance(temp,tools.bgui.tool.projecteditor.ProjectTemplate):
                 temp.CreateDocument('', wx.lib.docview.DOC_NEW)
                 break
     

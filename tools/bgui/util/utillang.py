@@ -16,7 +16,7 @@ import UserDict
 import tempfile
 import xml.sax.saxutils as saxutils
 
-import bdec.gui.util.parser as parser
+import tools.bgui.util.parser as parser
 
 PY2WEB_codepages = {
      'cp1251' : 'CP-1251',

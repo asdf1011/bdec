@@ -13,15 +13,15 @@
 
 import wx
 import string
-import bdec.gui.tool.codeeditor
+import tools.bgui.tool.codeeditor
 
 
-class XmlDocument(bdec.gui.tool.codeeditor.CodeDocument):
+class XmlDocument(tools.bgui.tool.codeeditor.CodeDocument):
 
     pass
 
 
-class XmlView(bdec.gui.tool.codeeditor.CodeView):
+class XmlView(tools.bgui.tool.codeeditor.CodeView):
 
 
     def GetCtrlClass(self):
@@ -52,18 +52,18 @@ class XmlView(bdec.gui.tool.codeeditor.CodeView):
         return XMLKEYWORDS
 
 
-class XmlService(bdec.gui.tool.codeeditor.CodeService):
+class XmlService(tools.bgui.tool.codeeditor.CodeService):
 
 
     def __init__(self):
-        bdec.gui.tool.codeeditor.CodeService.__init__(self)
+        tools.bgui.tool.codeeditor.CodeService.__init__(self)
 
 
-class XmlCtrl(bdec.gui.tool.codeeditor.CodeCtrl):
+class XmlCtrl(tools.bgui.tool.codeeditor.CodeCtrl):
 
 
     def __init__(self, parent, id=-1, style=wx.NO_FULL_REPAINT_ON_RESIZE):
-        bdec.gui.tool.codeeditor.CodeCtrl.__init__(self, parent, id, style)
+        tools.bgui.tool.codeeditor.CodeCtrl.__init__(self, parent, id, style)
         self.SetLexer(wx.stc.STC_LEX_XML)
         self.SetProperty("fold.html", "1")
 
@@ -77,15 +77,15 @@ class XmlCtrl(bdec.gui.tool.codeeditor.CodeCtrl):
 
 
     def SetViewDefaults(self):
-        bdec.gui.tool.codeeditor.CodeCtrl.SetViewDefaults(self, configPrefix = "Xml", hasWordWrap = True, hasTabs = True, hasFolding=True)
+        tools.bgui.tool.codeeditor.CodeCtrl.SetViewDefaults(self, configPrefix = "Xml", hasWordWrap = True, hasTabs = True, hasFolding=True)
 
 
     def GetFontAndColorFromConfig(self):
-        return bdec.gui.tool.codeeditor.CodeCtrl.GetFontAndColorFromConfig(self, configPrefix = "Xml")
+        return tools.bgui.tool.codeeditor.CodeCtrl.GetFontAndColorFromConfig(self, configPrefix = "Xml")
 
 
     def UpdateStyles(self):
-        bdec.gui.tool.codeeditor.CodeCtrl.UpdateStyles(self)
+        tools.bgui.tool.codeeditor.CodeCtrl.UpdateStyles(self)
         
         if not self.GetFont():
             return
@@ -111,10 +111,10 @@ class XmlCtrl(bdec.gui.tool.codeeditor.CodeCtrl):
         self.StyleSetSpec(wx.stc.STC_H_ATTRIBUTE, "face:%(font)s,fore:#007F7F,bold,size:%(size)d" % faces)
 
 
-class XmlOptionsPanel(bdec.gui.tool.texteditor.TextOptionsPanel):
+class XmlOptionsPanel(tools.bgui.tool.texteditor.TextOptionsPanel):
 
     def __init__(self, parent, id):
-        bdec.gui.tool.texteditor.TextOptionsPanel.__init__(self, parent, id, configPrefix = "Xml", label = "XML", hasWordWrap = True, hasTabs = True, hasFolding=True)
+        tools.bgui.tool.texteditor.TextOptionsPanel.__init__(self, parent, id, configPrefix = "Xml", label = "XML", hasWordWrap = True, hasTabs = True, hasFolding=True)
 
 
     def GetIcon(self):

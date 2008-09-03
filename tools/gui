@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
-import bdec.gui.tool.ide
+from tools.bgui.tool.ide import IDEApplication
 
 if __name__ == "__main__":
-    app = bdec.gui.tool.ide.IDEApplication(redirect = False)
+    app = IDEApplication(redirect = False)
     app.GetTopWindow().Raise()  # sometimes it shows up beneath other windows.  e.g. running self in debugger
     app.MainLoop()

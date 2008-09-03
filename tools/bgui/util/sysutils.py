@@ -105,7 +105,7 @@ def getUserName():
     if isWindows():
         return os.getenv('USERNAME')
     else:
-        # 06-Feb-06 stoens@bdec.gui.com --
+        # 06-Feb-06 stoens@tools.bgui.com --
         # this blows up the linux cc runs with "Inappropriate ioctl for device"
         #return os.getlogin()
         return os.getenv('USER')        

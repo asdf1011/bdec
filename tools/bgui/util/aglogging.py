@@ -16,10 +16,10 @@ import re
 import traceback
 import logging
 import logging.config
-from bdec.gui.util.lang import *
-import bdec.gui.util.objutils as objutils
-import bdec.gui.util.sysutils as sysutils
-import bdec.gui.util.appdirs as appdirs
+from tools.bgui.util.lang import *
+import tools.bgui.util.objutils as objutils
+import tools.bgui.util.sysutils as sysutils
+import tools.bgui.util.appdirs as appdirs
 
 LEVEL_FATAL = logging.FATAL
 LEVEL_ERROR = logging.ERROR
@@ -65,11 +65,11 @@ def initLogging(mode, force=False):
             handler.setFormatter(logging.Formatter("%(asctime)s %(name)s %(levelname)s: %(message)s"))
             logging.getLogger().addHandler(handler)
             logging.getLogger().setLevel(logging.WARN)
-        ag_debugLogger = logging.getLogger("bdec.gui.debug")
+        ag_debugLogger = logging.getLogger("tools.bgui.debug")
         ag_debugLogger.setLevel(logging.DEBUG)
         return configFile
     
-ag_debugLogger = logging.getLogger("bdec.gui.debug")
+ag_debugLogger = logging.getLogger("tools.bgui.debug")
 
 def log(logger, level, msg, *params):
     if (logger == None):

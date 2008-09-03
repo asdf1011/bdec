@@ -10,11 +10,11 @@
 # License:      wxWindows License
 #----------------------------------------------------------------------------
 
-from bdec.gui.util.lang import *
+from tools.bgui.util.lang import *
 import sys
 import os
 import string
-import bdec.gui.util.sysutils as sysutils
+import tools.bgui.util.sysutils as sysutils
 
 def _getSystemDir(kind):
     if (kind == AG_LOGS_DIR):

@@ -11,15 +11,15 @@
 #----------------------------------------------------------------------------
 
 
-import bdec.gui.tool.texteditor
+import tools.bgui.tool.texteditor
 import wx
 import wx.lib.docview
-import bdec.gui.tool.outlineservice
+import tools.bgui.tool.outlineservice
 import os
 import re
 import string
 import sys
-from bdec.gui.tool.uicommon import CaseInsensitiveCompare
+from tools.bgui.tool.uicommon import CaseInsensitiveCompare
 _ = wx.GetTranslation
 if wx.Platform == '__WXMSW__':
     _WINDOWS = True
@@ -45,11 +45,11 @@ SET_INDENT_WIDTH_ID = wx.NewId()
 FOLDING_ID = wx.NewId()
 
 
-class CodeDocument(bdec.gui.tool.texteditor.TextDocument):
+class CodeDocument(tools.bgui.tool.texteditor.TextDocument):
     pass    
 
 
-class CodeView(bdec.gui.tool.texteditor.TextView):
+class CodeView(tools.bgui.tool.texteditor.TextView):
 
 
     #----------------------------------------------------------------------------
@@ -110,7 +110,7 @@ class CodeView(bdec.gui.tool.texteditor.TextView):
             self.OnUncommentLines()
             return True
         else:
-            return bdec.gui.tool.texteditor.TextView.ProcessEvent(self, event)
+            return tools.bgui.tool.texteditor.TextView.ProcessEvent(self, event)
 
 
     def ProcessUpdateUIEvent(self, event):
@@ -160,7 +160,7 @@ class CodeView(bdec.gui.tool.texteditor.TextView):
             event.Check(self.GetCtrl().GetUseTabs())
             return True
         else:
-            return bdec.gui.tool.texteditor.TextView.ProcessUpdateUIEvent(self, event)
+            return tools.bgui.tool.texteditor.TextView.ProcessUpdateUIEvent(self, event)
 
 
     #----------------------------------------------------------------------------
@@ -173,7 +173,7 @@ class CodeView(bdec.gui.tool.texteditor.TextView):
         
 
     def ClearOutline(self):
-        outlineService = wx.GetApp().GetService(bdec.gui.tool.outlineservice.OutlineService)
+        outlineService = wx.GetApp().GetService(tools.bgui.tool.outlineservice.OutlineService)
         if not outlineService:
             return
 
@@ -185,14 +185,14 @@ class CodeView(bdec.gui.tool.texteditor.TextView):
 
 
     def LoadOutline(self, force=False):
-        outlineService = wx.GetApp().GetService(bdec.gui.tool.outlineservice.OutlineService)
+        outlineService = wx.GetApp().GetService(tools.bgui.tool.outlineservice.OutlineService)
         if not outlineService:
             return
         outlineService.LoadOutline(self, force=force)
 
 
     def DoLoadOutlineCallback(self, force=False):
-        outlineService = wx.GetApp().GetService(bdec.gui.tool.outlineservice.OutlineService)
+        outlineService = wx.GetApp().GetService(tools.bgui.tool.outlineservice.OutlineService)
         if not outlineService:
             return False
 
@@ -491,11 +491,11 @@ class CodeView(bdec.gui.tool.texteditor.TextView):
             self.GetCtrl().SetFontColor(color)
 
 
-class CodeService(bdec.gui.tool.texteditor.TextService):
+class CodeService(tools.bgui.tool.texteditor.TextService):
 
 
     def __init__(self):
-        bdec.gui.tool.texteditor.TextService.__init__(self)
+        tools.bgui.tool.texteditor.TextService.__init__(self)
 
 
     def InstallControls(self, frame, menuBar = None, toolBar = None, statusBar = None, document = None):
@@ -625,10 +625,10 @@ class CodeService(bdec.gui.tool.texteditor.TextService):
             event.Enable(False)
             return True
         else:
-            return bdec.gui.tool.texteditor.TextService.ProcessUpdateUIEvent(self, event)
+            return tools.bgui.tool.texteditor.TextService.ProcessUpdateUIEvent(self, event)
 
 
-class CodeCtrl(bdec.gui.tool.texteditor.TextCtrl):
+class CodeCtrl(tools.bgui.tool.texteditor.TextCtrl):
     CURRENT_LINE_MARKER_NUM = 2
     BREAKPOINT_MARKER_NUM = 1
     CURRENT_LINE_MARKER_MASK = 0x4
@@ -636,7 +636,7 @@ class CodeCtrl(bdec.gui.tool.texteditor.TextCtrl):
     
             
     def __init__(self, parent, id=-1, style = wx.NO_FULL_REPAINT_ON_RESIZE, clearTab=True):
-        bdec.gui.tool.texteditor.TextCtrl.__init__(self, parent, id, style)
+        tools.bgui.tool.texteditor.TextCtrl.__init__(self, parent, id, style)
         
         self.UsePopUp(False)
         self.Bind(wx.EVT_RIGHT_UP, self.OnRightUp)
@@ -735,7 +735,7 @@ class CodeCtrl(bdec.gui.tool.texteditor.TextCtrl):
 
 
     def OnPopSyncOutline(self, event):
-        wx.GetApp().GetService(bdec.gui.tool.outlineservice.OutlineService).LoadOutline(wx.GetApp().GetDocumentManager().GetCurrentView(), position=self._rightClickPosition)
+        wx.GetApp().GetService(tools.bgui.tool.outlineservice.OutlineService).LoadOutline(wx.GetApp().GetDocumentManager().GetCurrentView(), position=self._rightClickPosition)
           
 
     def HasSelection(self):
@@ -829,7 +829,7 @@ class CodeCtrl(bdec.gui.tool.texteditor.TextCtrl):
         elif key == wx.WXK_RETURN:
             self.DoIndent()
         else:
-            bdec.gui.tool.texteditor.TextCtrl.OnKeyPressed(self, event)
+            tools.bgui.tool.texteditor.TextCtrl.OnKeyPressed(self, event)
 
 
     def DoIndent(self):

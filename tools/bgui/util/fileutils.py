@@ -17,13 +17,13 @@ import shutil
 import sys
 import zipfile
 
-import bdec.gui.util.aglogging as aglogging
-import bdec.gui.util.sysutils as sysutils
-import bdec.gui.util.utillang as utillang
-from bdec.gui.util.lang import *
+import tools.bgui.util.aglogging as aglogging
+import tools.bgui.util.sysutils as sysutils
+import tools.bgui.util.utillang as utillang
+from tools.bgui.util.lang import *
 
 global fileutilsLogger
-fileutilsLogger = logging.getLogger("bdec.gui.util.fileutils")
+fileutilsLogger = logging.getLogger("tools.bgui.util.fileutils")
 # FATAL : No logging
 # ERROR : No logging
 # WARN  : No logging
@@ -149,7 +149,7 @@ def expandKnownAGVars(value):
 
 def expandVars(value, includeEnv=True):
     """Syntax: ${myvar,default="default value"}"""
-    import bdec.gui.runtime as runtime
+    import tools.bgui.runtime as runtime
     sx = value.find("${")
     if (sx >= 0):
         result = asString(value[:sx])

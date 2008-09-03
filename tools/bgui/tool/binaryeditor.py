@@ -17,8 +17,8 @@ import bdec.data
 import bdec.field
 import bdec.spec.xmlspec
 
-import bdec.gui.tool.messageservice
-import bdec.gui.tool.projecteditor
+import tools.bgui.tool.messageservice
+import tools.bgui.tool.projecteditor
 
 class BinaryDocument(wx.lib.docview.Document):
     def __init__(self):
@@ -72,7 +72,7 @@ class _DecodeThread:
         except bdec.DecodeError, ex:
             filename, line, column = self._lookup[ex.entry]
             error = "%s[%i]: %s" % (filename, line, ex)
-            bdec.gui.tool.messageservice.ShowMessages([error])
+            tools.bgui.tool.messageservice.ShowMessages([error])
 
     def _decode(self, protocol):
         for is_starting, entry, entry_data, value in protocol.decode(self._data):
@@ -128,7 +128,7 @@ class DecodeView(wx.lib.docview.View):
         assert self._decoder is None
         assert self._frame is not None
 
-        projectService = wx.GetApp().GetService(bdec.gui.tool.projecteditor.ProjectService)
+        projectService = wx.GetApp().GetService(tools.bgui.tool.projecteditor.ProjectService)
         for filename in projectService.GetFilesFromCurrentProject():
             if filename.endswith('.xml'):
                 break
@@ -141,7 +141,7 @@ class DecodeView(wx.lib.docview.View):
         try:
             protocol, self._lookup = bdec.spec.xmlspec.load(filename)
         except bdec.spec.LoadError, ex:
-            bdec.gui.tool.messageservice.ShowMessages([str(ex)])
+            tools.bgui.tool.messageservice.ShowMessages([str(ex)])
             return
 
         data = bdec.data.Data(self.GetDocument().data)

@@ -10,17 +10,17 @@
 # License:      wxWindows License
 #----------------------------------------------------------------------------
 
-from bdec.gui.util.lang import *
+from tools.bgui.util.lang import *
 import os
 import time
 import urllib
 import logging
-from bdec.gui.util.lang import *
-import bdec.gui.util.objutils as objutils
-import bdec.gui.util.xmlmarshaller as xmlmarshaller
-import bdec.gui.util.aglogging as aglogging
+from tools.bgui.util.lang import *
+import tools.bgui.util.objutils as objutils
+import tools.bgui.util.xmlmarshaller as xmlmarshaller
+import tools.bgui.util.aglogging as aglogging
 
-xmlLogger = logging.getLogger("bdec.gui.util.xml")
+xmlLogger = logging.getLogger("tools.bgui.util.xml")
     
 def load(fileName, knownTypes=None, knownNamespaces=None, createGenerics=False):
     loadedObject = None
@@ -102,7 +102,7 @@ def getAgVersion(fileName):
             version = xml[i+1:j]
     return version
 
-AG_NS_URL = "http://www.bdec.gui.com/ag.xsd"
+AG_NS_URL = "http://www.tools.bgui.com/ag.xsd"
 
 KNOWN_NAMESPACES = { AG_NS_URL          :  "ag",
                    }

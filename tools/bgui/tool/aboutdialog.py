@@ -12,7 +12,7 @@
 
 import wx
 import os.path
-import bdec.gui.util.sysutils as sysutilslib
+import tools.bgui.util.sysutils as sysutilslib
 _ = wx.GetTranslation
 
 #----------------------------------------------------------------------------
