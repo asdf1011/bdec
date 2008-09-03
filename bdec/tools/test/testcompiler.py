@@ -407,4 +407,13 @@ class _CompilerTests:
         c = seq.Sequence('c', [a, b])
         self._decode(c, '\x00', expected_xml='<c><b>00000000</b></c>')
 
+    def test_hidden_sequenceof(self):
+        null = fld.Field('null:', 8, expected=dt.Data('\x00'))
+        count = fld.Field('count:', 8, fld.Field.INTEGER)
+        nulls = sof.SequenceOf('nulls:', null, expr.compile("${count:}"))
+        d = seq.Sequence('d', [count, nulls])
+        self._decode(d, '\x02\x00\x00', expected_xml='<d/>')
+        self._decode(d, '\x03\x00\x00\x00', expected_xml='<d/>')
+        self._decode_failure(d, '\x03\x00\x00')
+
 globals().update(create_decoder_classes([(_CompilerTests, 'SimpleDecode')], __name__))

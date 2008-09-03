@@ -187,31 +187,41 @@
 <%def name="decodeSequenceOf(entry)">
     int i;
     %if entry.count is not None:
-    result->count = ${settings.value(entry.count)};
+    int num_items;
+    num_items = ${settings.value(entry.count)};
+      %if not is_structure_hidden(entry):
+    result->count = num_items;
     result->items = malloc(sizeof(${settings.ctype(entry.children[0])}) * result->count);
-    for (i = 0; i < result->count; ++i)
+      %endif
+    for (i = 0; i < num_items; ++i)
     {
     %else:
+      %if not is_structure_hidden(entry):
     result->items = 0;
     result->count = 0;
+      %endif
       %if entry.length is not None:
     while (buffer->num_bits > 0)
       %else:
     while (!${'should end' |variable})
       %endif
     {
+      %if not is_structure_hidden(entry):
         i = result->count;
         ++result->count;
         result->items = realloc(result->items, sizeof(${settings.ctype(entry.children[0])}) * (result->count + 1));
+      %endif
     %endif
         if (!${settings.decode_name(entry.children[0])}(buffer${settings.params(entry, 0, '&result->items[i]')}))
         {
+      %if not is_structure_hidden(entry):
             int j;
             for (j=0; j<i; ++j)
             {
                 ${settings.free_name(entry.children[0])}(&result->items[j]);
             }
             free(result->items);
+      %endif
             return 0;
         }
     }
@@ -344,7 +354,7 @@ ${recursiveDecode(entry, False)}
     %if not is_structure_hidden(item):
     ${settings.print_name(item)}(&${varname}, offset + ${ws_offset});
     %endif
-  %else:
+  %elif not is_structure_hidden(item):
     %if isinstance(item, Field):
       %if not item.is_hidden():
     ${printText("<%s>" % xmlname(item.name), ws_offset)}
