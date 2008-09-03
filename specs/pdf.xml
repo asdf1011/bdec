@@ -5,7 +5,7 @@
     -->
 <protocol>
     <common>
-        <choice name="end of line">
+        <choice name="end of line:">
             <sequence name="lf cr:">
                 <field name="cr:" length="8" value="0xd" />
                 <field name="lf:" length="8" value="0xa" />
@@ -15,17 +15,17 @@
         </choice>
 
         <choice name="non breaking whitespace:">
-            <field name="tab" length="8" value="0x09" />
-            <field name="space" length="8" value="0x20" />
+            <field name="tab:" length="8" value="0x09" />
+            <field name="space:" length="8" value="0x20" />
         </choice>
 
         <choice name="other whitespace:">
-            <field name="null" length="8" value="0x00" />
-            <field name="form feed" length="8" value="0x0c" />
+            <field name="null:" length="8" value="0x00" />
+            <field name="form feed:" length="8" value="0x0c" />
         </choice>
 
         <choice name="whitespace entry:">
-            <reference name="end of line" />
+            <reference name="end of line:" />
             <reference name="non breaking whitespace:" />
             <reference name="other whitespace:" />
         </choice>
@@ -45,7 +45,7 @@
         <sequence name="header">
             <field name="id:" length="40" type="text" value="%PDF-" />
             <field name="version" length="24" type="text" />
-            <reference name="end of line" />
+            <reference name="end of line:" />
         </sequence>
 
         <sequence name="comment">
@@ -53,7 +53,7 @@
             <sequenceof name="text">
                 <choice name="entry:">
                     <sequence name="end of comment:">
-                        <reference name="end of line" />
+                        <reference name="end of line:" />
                         <end-sequenceof />
                     </sequence>
                     <field name="char" length="8" type="hex" />
@@ -180,7 +180,7 @@
             <reference name="dictionary object" />
             <reference name="optional whitespace:" />
             <field name="stream:" length="48" type="text" value="stream" />
-            <reference name="end of line" />
+            <reference name="end of line:" />
             <!-- A programmatic decoder would look in the previous dictionary
                 object for the 'length' entry; that option isn't avaiable to 
                 us. We'll just decode until we get 'endstream' (and hope that
@@ -222,9 +222,9 @@
         </sequence>
 
         <choice name="cross reference end of line:">
-            <field name="space cr" length="16" type="text" value="0x200d" />
-            <field name="space lf" length="16" type="text" value="0x200a" />
-            <field name="cr lf" length="16" type="text" value="0x0d0a" />
+            <field name="space cr:" length="16" type="text" value="0x200d" />
+            <field name="space lf:" length="16" type="text" value="0x200a" />
+            <field name="cr lf:" length="16" type="text" value="0x0d0a" />
         </choice>
 
         <choice name="cross reference entry">
