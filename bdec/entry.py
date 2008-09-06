@@ -131,6 +131,7 @@ class Entry(object):
     def __init__(self, name, length, children):
         """Construct an Entry instance.
 
+        children -- A list of Entry instances.
         length -- Optionally specify the size in bits of the entry. Must be an
             instance of bdec.spec.expression.Expression or an integer.
         """
@@ -142,14 +143,18 @@ class Entry(object):
         self.name = name
         self._listeners = []
         self.length = length
+        self._children = ()
         self.children = children
 
         self._params = None
         self._parent_param_lookup = {}
 
-    def _get_child_names(self):
-        return [child.name for child in self.children]
-    childnames = property(_get_child_names)
+    def _get_children(self):
+        return self._children
+    def _set_children(self, children):
+        self._children = tuple(children)
+        self.childnames = [child.name for child in children]
+    children = property(_get_children, _set_children)
 
     def validate(self):
         """

@@ -97,7 +97,11 @@ class _ReferencedEntry:
     def resolve(self, entry):
         assert self._parent is not None
         assert isinstance(entry, ent.Entry)
-        self._parent.children[self._parent.children.index(self)] = entry
+
+        # Replace the child entry in the children list
+        children = list(self._parent.children)
+        children[children.index(self)] = entry
+        self._parent.children = children
      
     def set_parent(self, parent):
         assert self._parent is None
