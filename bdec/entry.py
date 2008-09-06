@@ -128,7 +128,7 @@ class Entry(object):
     directly).
     """
 
-    def __init__(self, name, length, embedded):
+    def __init__(self, name, length, children):
         """Construct an Entry instance.
 
         length -- Optionally specify the size in bits of the entry. Must be an
@@ -142,7 +142,7 @@ class Entry(object):
         self.name = name
         self._listeners = []
         self.length = length
-        self.children = embedded
+        self.children = children
 
         self._params = None
         self._parent_param_lookup = {}
@@ -243,7 +243,7 @@ class Entry(object):
         """
         Decode the given protocol entry.
 
-        Should return an iterable object for the entry (including all 'embedded'
+        Should return an iterable object for the entry (including all 'child'
         entries) in the same form as Entry.decode.
         """
         raise NotImplementedError()
@@ -253,7 +253,7 @@ class Entry(object):
 
         The data returned is_starting==True the data available to be decoded,
         and the data returned when is_starting==False is the decode decoded by
-        this entry (not including embedded entries).
+        this entry (not including child entries).
 
         data -- An instance of bdec.data.Data to decode.
         context -- The context to decode in. Is a lookup of names to integer
@@ -273,7 +273,7 @@ class Entry(object):
             except dt.DataError, ex:
                 raise EntryDataError(self, ex)
 
-        # Do the actual decode of this entry (and all embedded entries).
+        # Do the actual decode of this entry (and all child entries).
         length = 0
         for is_starting, entry, entry_data, value in self._decode(data, context):
             if not is_starting:
