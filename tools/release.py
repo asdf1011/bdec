@@ -26,19 +26,20 @@ _README = filename = os.path.join(root_path, 'README')
 website_dir = os.path.join(root_path, '..', 'website', 'website.integ')
 project_dir = os.path.join(website_dir, 'html', 'projects', 'bdec')
 
-def _check_copyright_statements():
+def _check_copyright_statements(subdirs):
     is_missing_copyright = False
-    for dir, subdirs, filenames in os.walk(os.path.join(root_path, 'bdec')):
-        for filename in filenames:
-            filename = os.path.join(dir, filename)
-            if filename.endswith('.py'):
-                data = open(filename, 'r')
-                for i, line in enumerate(data):
-                    if 'Copyright' in line:
-                        break
-                else:
-                    print "'%s' doesn't include copyright information!" % filename
-                    is_missing_copyright = True
+    for subdir in subdirs:
+        for dir, subdirs, filenames in os.walk(os.path.join(root_path, subdir)):
+            for filename in filenames:
+                filename = os.path.join(dir, filename)
+                if os.path.splitext(filename)[1] in ('.py', '.c', '.h'):
+                    data = open(filename, 'r')
+                    for i, line in enumerate(data):
+                        if 'Copyright' in line:
+                            break
+                    else:
+                        print "'%s' doesn't include copyright information!" % filename
+                        is_missing_copyright = True
     if is_missing_copyright:
         sys.exit('Copyright issues must be resolved.')
 
@@ -216,7 +217,7 @@ def upload():
 
 if __name__ == '__main__':
 
-    _check_copyright_statements()
+    _check_copyright_statements(['bdec', 'templates'])
     offset, version, previous_version, changelog = get_changelog()
 
     if version != bdec.__version__:
