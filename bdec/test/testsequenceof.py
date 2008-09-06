@@ -30,7 +30,7 @@ class TestSequenceOf(unittest.TestCase):
         sequenceof = sof.SequenceOf("blah", fld.Field("cat", 8, fld.Field.INTEGER), 3)
 
         actual = []
-        for is_starting, entry, entry_data, value in sequenceof.decode(dt.Data.from_hex("fb028c")):
+        for is_starting, name, entry, entry_data, value in sequenceof.decode(dt.Data.from_hex("fb028c")):
             if not is_starting:
                 data = value
                 actual.append((entry.name, data))
@@ -57,7 +57,7 @@ class TestSequenceOf(unittest.TestCase):
     def test_greedy_decode(self):
         sequenceof = sof.SequenceOf("blah", fld.Field("cat", 8, format=fld.Field.TEXT), None, length=32)
         rawdata = dt.Data("dateunused")
-        items = [value for is_starting, entry, data, value in sequenceof.decode(rawdata) if isinstance(entry, fld.Field) and not is_starting]
+        items = [value for is_starting, name, entry, data, value in sequenceof.decode(rawdata) if isinstance(entry, fld.Field) and not is_starting]
         self.assertEqual(4, len(items))
         self.assertEqual('date', ''.join(items))
         self.assertEqual('unused', rawdata.bytes())
@@ -65,7 +65,7 @@ class TestSequenceOf(unittest.TestCase):
     def test_run_out_of_data_greedy(self):
         sequenceof = sof.SequenceOf("blah", fld.Field("cat", 8, format=fld.Field.TEXT), None, length=32)
         rawdata = dt.Data("date")
-        items = [value for is_starting, entry, data, value in sequenceof.decode(rawdata) if isinstance(entry, fld.Field) and not is_starting]
+        items = [value for is_starting, name, entry, data, value in sequenceof.decode(rawdata) if isinstance(entry, fld.Field) and not is_starting]
         self.assertEqual(4, len(items))
         self.assertEqual('date', ''.join(items))
         self.assertEqual('', rawdata.bytes())
@@ -88,7 +88,7 @@ class TestSequenceOf(unittest.TestCase):
         actual = []
         data = dt.Data("hello\x00bob")
         result = ""
-        for is_starting, entry, entry_data, value in sequenceof.decode(data):
+        for is_starting, name, entry, entry_data, value in sequenceof.decode(data):
             if not is_starting and entry.name == "char":
                 result += entry_data.bytes()
 

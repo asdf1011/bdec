@@ -29,7 +29,7 @@ class TestField(unittest.TestCase):
         data = dt.Data.from_hex("017a")
 
         calls = []
-        for is_starting, entry, entry_data, value in field.decode(data):
+        for is_starting, name, entry, entry_data, value in field.decode(data):
             calls.append(entry)
         self.assertEqual(2, len(calls))
         self.assertEqual(field, calls[0])
@@ -41,7 +41,7 @@ class TestField(unittest.TestCase):
         field = fld.Field("bob", length, format, encoding)
         data = dt.Data.from_hex(hex)
         calls = list(field.decode(data))
-        return calls[1][3]
+        return calls[1][4]
 
     def test_binary_type(self):
         actual = self._get_decode_value("017a", 12, fld.Field.BINARY)
@@ -75,7 +75,7 @@ class TestField(unittest.TestCase):
         data = dt.Data.from_hex("fe")
         result = list(field.decode(data))
         self.assertEqual(2, len(result))
-        self.assertEqual("fe", result[1][1].data.get_hex())
+        self.assertEqual("fe", result[1][2].data.get_hex())
 
     def test_encode(self):
         field = fld.Field("bob", 8, format=fld.Field.INTEGER)

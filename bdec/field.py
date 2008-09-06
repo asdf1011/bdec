@@ -157,9 +157,9 @@ class Field(bdec.entry.Entry):
         self._expected = expected
     expected = property(lambda self: self._expected, _set_expected)
 
-    def _decode(self, data, context):
+    def _decode(self, data, context, name):
         """ see bdec.entry.Entry._decode """
-        yield (True, self, data, None)
+        yield (True, name, self, data, None)
 
         field_data = data.pop(self.length.evaluate(context))
         # As this popped data is not guaranteed to be available, we have to
@@ -175,7 +175,7 @@ class Field(bdec.entry.Entry):
 
         self.data = field_data
 
-        yield (False, self, field_data, value)
+        yield (False, name, self, field_data, value)
 
     def _convert_type(self, data, expected_type):
         try:

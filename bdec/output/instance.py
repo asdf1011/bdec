@@ -56,7 +56,7 @@ def decode(decoder, binary):
     Create a python instance representing the decoded data.
     """
     stack = [_DecodedItem(None)]
-    for is_starting, entry, data, value in decoder.decode(binary):
+    for is_starting, name, entry, data, value in decoder.decode(binary):
         if is_starting:
             stack.append(_DecodedItem(entry))
         else:

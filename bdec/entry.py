@@ -147,6 +147,10 @@ class Entry(object):
         self._params = None
         self._parent_param_lookup = {}
 
+    def _get_child_names(self):
+        return [child.name for child in self.children]
+    childnames = property(_get_child_names)
+
     def validate(self):
         """
         Validate all expressions contained within the entries.
@@ -210,7 +214,7 @@ class Entry(object):
         """
         self._listeners.append(listener)
 
-    def _decode_child(self, child, data, context):
+    def _decode_child(self, name, child, data, context):
         """
         Decode a child entry.
 
@@ -224,7 +228,7 @@ class Entry(object):
                 child_context[param.name] = context[self._parent_param_lookup[child][param.name]]
 
         # Do the decode
-        for result in child.decode(data, child_context):
+        for result in child.decode(data, child_context, name):
             yield result
 
         # Update our context with the output values from the childs context
@@ -239,7 +243,7 @@ class Entry(object):
                 else:
                     context[self._parent_param_lookup[child][param.name]] = child_context[param.name]
 
-    def _decode(self, data, child_context):
+    def _decode(self, data, child_context, name):
         """
         Decode the given protocol entry.
 
@@ -248,8 +252,8 @@ class Entry(object):
         """
         raise NotImplementedError()
 
-    def decode(self, data, context={}):
-        """Return an iterator of (is_starting, Entry, data, value) tuples.
+    def decode(self, data, context={}, name=None):
+        """Return an iterator of (is_starting, name, Entry, data, value) tuples.
 
         The data returned is_starting==True the data available to be decoded,
         and the data returned when is_starting==False is the decode decoded by
@@ -258,9 +262,11 @@ class Entry(object):
         data -- An instance of bdec.data.Data to decode.
         context -- The context to decode in. Is a lookup of names to integer
            values.
-
+        name -- The name to use for this entry. If None, uses self.name.
         """
         self.validate()
+        if name is None:
+            name = self.name
 
         # Validate our context
         for param in self._params:
@@ -275,10 +281,10 @@ class Entry(object):
 
         # Do the actual decode of this entry (and all child entries).
         length = 0
-        for is_starting, entry, entry_data, value in self._decode(data, context):
+        for is_starting, name, entry, entry_data, value in self._decode(data, context, name):
             if not is_starting:
                 length += len(entry_data)
-            yield is_starting, entry, entry_data, value
+            yield is_starting, name, entry, entry_data, value
 
         if self.length is not None and len(data) != 0:
             raise DecodeLengthError(self, data)

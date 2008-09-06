@@ -100,12 +100,12 @@ class SequenceOf(bdec.entry.Entry):
                     break
                 yield None
 
-    def _decode(self, data, context):
-        yield (True, self, data, None)
+    def _decode(self, data, context, name):
+        yield (True, name, self, data, None)
         for i in self._loop(context, data):
-            for item in self._decode_child(self.children[0], data, context):
+            for item in self._decode_child(self.childnames[0], self.children[0], data, context):
                 yield item
-        yield (False, self, dt.Data(), None)
+        yield (False, name, self, dt.Data(), None)
 
     def _encode(self, query, parent):
         children = self._get_context(query, parent)

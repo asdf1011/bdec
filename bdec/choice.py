@@ -33,13 +33,13 @@ class Choice(bdec.entry.Entry):
         assert len(children) > 0
         self._chooser = None
 
-    def _decode(self, data, context):
+    def _decode(self, data, context, name):
         if self._chooser is None:
             import bdec.inspect.chooser as chsr
             self._chooser = chsr.Chooser(self.children)
         possibles = self._chooser.choose(data)
 
-        yield (True, self, data, None)
+        yield (True, name, self, data, None)
 
         failure_expected = False
         if len(possibles) == 0:
@@ -68,7 +68,7 @@ class Choice(bdec.entry.Entry):
             for child in possibles:
                 try:
                     bits_decoded = 0
-                    for is_starting, entry, entry_data, value in self._decode_child(child, data.copy(), context.copy()):
+                    for is_starting, child_name, entry, entry_data, value in self._decode_child(child.name, child, data.copy(), context.copy()):
                         if not is_starting:
                             bits_decoded += len(entry_data)
 
@@ -81,11 +81,11 @@ class Choice(bdec.entry.Entry):
                         best_guess_bits = bits_decoded
 
         # Decode the best option.
-        for is_starting, entry, data, value in self._decode_child(best_guess, data, context):
-            yield is_starting, entry, data, value
+        for is_starting, child_name, entry, data, value in self._decode_child(best_guess.name, best_guess, data, context):
+            yield is_starting, child_name, entry, data, value
 
         assert not failure_expected
-        yield (False, self, dt.Data(), None)
+        yield (False, name, self, dt.Data(), None)
 
     def _encode(self, query, parent):
         # We attempt to encode all of the embedded items, until we find

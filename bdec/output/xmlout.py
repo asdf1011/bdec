@@ -40,7 +40,7 @@ def to_file(decoder, binary, output, encoding="utf-8", verbose=False):
     handler = _XMLGenerator(output, encoding)
     offset = 0
     is_first = True
-    for is_starting, entry, data, value in decoder.decode(binary):
+    for is_starting, name, entry, data, value in decoder.decode(binary):
         if not verbose and entry.is_hidden():
             continue
 
@@ -53,7 +53,7 @@ def to_file(decoder, binary, output, encoding="utf-8", verbose=False):
         is_first = False
 
         if is_starting:
-            handler.startElement(escape_name(entry.name), xml.sax.xmlreader.AttributesImpl({}))
+            handler.startElement(escape_name(name), xml.sax.xmlreader.AttributesImpl({}))
             offset = offset + 4
 
         if value is not None:
@@ -64,7 +64,7 @@ def to_file(decoder, binary, output, encoding="utf-8", verbose=False):
                 handler.comment(str(entry.data))
 
         if not is_starting:
-            handler.endElement(escape_name(entry.name))
+            handler.endElement(escape_name(name))
     handler.ignorableWhitespace('\n')
 
 def to_string(decoder, binary, verbose=False):
