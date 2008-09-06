@@ -412,7 +412,7 @@ ${recursiveDecode(entry, False)}
 ${recursivePrint(child, '%s.%s' % (varname, variable(esc_name(i, item.children))), next_offset, iter_postfix)}
         %endfor
         %if item.value is not None and not item.is_hidden():
-    printf("%*%i\n", offset + ${ws_offset+4}, ${varname}.value); 
+    printf("%*i\n", offset + ${ws_offset+4}, ${varname}.value); 
         %endif
       %elif isinstance(item, SequenceOf):
         <% iter_name = variable(item.name + ' counter' + str(iter_postfix.next())) %>
