@@ -38,7 +38,8 @@ class SettingsError(Exception):
 _SETTINGS = "settings.py"
 
 def is_template(filename):
-    return filename != _SETTINGS
+    # We ignore all 'hidden' files, and the setting files, when looking for templates.
+    return not filename.startswith('.') and filename != _SETTINGS
 
 _template_cache = {}
 def _load_templates(directory):
