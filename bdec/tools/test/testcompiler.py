@@ -348,7 +348,7 @@ class _CompilerTests:
 
         embed_a = chc.Choice('embed a', [fld.Field('null', 8, expected=dt.Data('\x00')), a])
         b = seq.Sequence('b', [fld.Field('id', 8, fld.Field.TEXT, expected=dt.Data('b')), embed_a])
-        embed_b.children.append(b)
+        embed_b.children = list(child.entry for child in embed_b.children) + [b]
 
         self._decode(b, 'bababa\00', common=[a,b])
         self._decode(b, 'b\00', common=[a,b])

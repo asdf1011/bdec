@@ -103,7 +103,7 @@ class SequenceOf(bdec.entry.Entry):
     def _decode(self, data, context, name):
         yield (True, name, self, data, None)
         for i in self._loop(context, data):
-            for item in self._decode_child(self.childnames[0], self.children[0], data, context):
+            for item in self._decode_child(self.children[0], data, context):
                 yield item
         yield (False, name, self, dt.Data(), None)
 
@@ -113,7 +113,7 @@ class SequenceOf(bdec.entry.Entry):
         count = 0
         for child in children:
             count += 1
-            for data in self.children[0].encode(query, child):
+            for data in self.children[0].entry.encode(query, child):
                 yield data
 
         if self.count is not None and self.count.evaluate({}) != count:

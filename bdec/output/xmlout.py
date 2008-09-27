@@ -104,7 +104,7 @@ def _query_element(obj, child):
             if isinstance(child, sof.SequenceOf):
                 # This element represents a sequence of, so we'll return an
                 # object to iterate over the children.
-                return _SequenceOfIter(child_node.childNodes, child.children[0])
+                return _SequenceOfIter(child_node.childNodes, child.children[0].entry)
 
             text = ""
             for subchild in child_node.childNodes:

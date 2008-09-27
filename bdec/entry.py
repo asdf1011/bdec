@@ -121,6 +121,15 @@ def _hack_create_value_listener(name):
             raise Exception("Don't know how to read value of %s" % entry)
     return _on_value_referenced
 
+class Child(object):
+    """ A child is embedded in another entry."""
+    def __init__(self, name, entry):
+        self.name = name
+        self.entry = entry
+
+    def __repr__(self):
+        return "%s '%s'" % (self.name, self.entry)
+
 class Entry(object):
     """An entry is an item in a protocol that can be decoded.
 
@@ -152,8 +161,7 @@ class Entry(object):
     def _get_children(self):
         return self._children
     def _set_children(self, children):
-        self._children = tuple(children)
-        self.childnames = [child.name for child in children]
+        self._children = tuple(Child(child.name, child) for child in children)
     children = property(_get_children, _set_children)
 
     def validate(self):
@@ -186,7 +194,7 @@ class Entry(object):
             return
         self._params = list(lookup.get_params(self))
         for child in self.children:
-            child_params = (param.name for param in lookup.get_params(child))
+            child_params = (param.name for param in lookup.get_params(child.entry))
             our_params = (param.name for param in lookup.get_passed_variables(self, child))
             self._parent_param_lookup[child] = dict(zip(child_params, our_params))
 
@@ -202,7 +210,7 @@ class Entry(object):
             self.add_listener(_hack_on_length_referenced)
 
         for child in self.children:
-            child._set_params(lookup)
+            child.entry._set_params(lookup)
 
     def add_listener(self, listener):
         """
@@ -219,25 +227,27 @@ class Entry(object):
         """
         self._listeners.append(listener)
 
-    def _decode_child(self, name, child, data, context):
+    def _decode_child(self, child, data, context):
         """
         Decode a child entry.
 
         Creates a new context for the child, and after the decode completes,
         will update this entry's context.
         """
+        assert isinstance(child, Child)
+
         # Create the childs context from our data
         child_context = {}
-        for param in child._params:
+        for param in child.entry._params:
             if param.direction is param.IN:
                 child_context[param.name] = context[self._parent_param_lookup[child][param.name]]
 
         # Do the decode
-        for result in child.decode(data, child_context, name):
+        for result in child.entry.decode(data, child_context, child.name):
             yield result
 
         # Update our context with the output values from the childs context
-        for param in child._params:
+        for param in child.entry._params:
             if param.direction is param.OUT:
                 if param.name == "should end":
                     try:

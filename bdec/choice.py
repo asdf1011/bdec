@@ -36,8 +36,16 @@ class Choice(bdec.entry.Entry):
     def _decode(self, data, context, name):
         if self._chooser is None:
             import bdec.inspect.chooser as chsr
-            self._chooser = chsr.Chooser(self.children)
-        possibles = self._chooser.choose(data)
+            self._chooser = chsr.Chooser([child.entry for child in self.children])
+        # Convert the list of entries to a list of children.
+        possibles = []
+        for entry in self._chooser.choose(data):
+            for child in self.children:
+                if child.entry is entry:
+                    possibles.append(child)
+                    break
+            else:
+                raise Exception('Failed to find child from possible option %s!' % entry)
 
         yield (True, name, self, data, None)
 
@@ -68,7 +76,7 @@ class Choice(bdec.entry.Entry):
             for child in possibles:
                 try:
                     bits_decoded = 0
-                    for is_starting, child_name, entry, entry_data, value in self._decode_child(child.name, child, data.copy(), context.copy()):
+                    for is_starting, child_name, entry, entry_data, value in self._decode_child(child, data.copy(), context.copy()):
                         if not is_starting:
                             bits_decoded += len(entry_data)
 
@@ -81,7 +89,7 @@ class Choice(bdec.entry.Entry):
                         best_guess_bits = bits_decoded
 
         # Decode the best option.
-        for is_starting, child_name, entry, data, value in self._decode_child(best_guess.name, best_guess, data, context):
+        for is_starting, child_name, entry, data, value in self._decode_child(best_guess, data, context):
             yield is_starting, child_name, entry, data, value
 
         assert not failure_expected
@@ -96,7 +104,7 @@ class Choice(bdec.entry.Entry):
         for child in self.children:
             try:
                 bits_encoded = 0
-                for data in child.encode(query, choice):
+                for data in child.entry.encode(query, choice):
                     bits_encoded += len(data)
 
                 # We successfully encoded the entry!
@@ -107,9 +115,9 @@ class Choice(bdec.entry.Entry):
                     best_guess = child
                     best_guess_bits = bits_encoded
 
-        return best_guess.encode(query, choice)
+        return best_guess.entry.encode(query, choice)
 
     def _range(self, ignore_entries):
-        minimum = min(child.range(ignore_entries).min for child in self.children)
-        maximum = max(child.range(ignore_entries).max for child in self.children)
+        minimum = min(child.entry.range(ignore_entries).min for child in self.children)
+        maximum = max(child.entry.range(ignore_entries).max for child in self.children)
         return bdec.entry.Range(minimum, maximum)

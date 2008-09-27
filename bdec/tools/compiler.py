@@ -137,8 +137,8 @@ class _Utils:
         Note that entry is also returned, even if it is a common entry.
         """
         for child in entry.children:
-           if child not in self._common:
-              for sub_child in self.iter_inner_entries(child):
+           if child.entry not in self._common:
+              for sub_child in self.iter_inner_entries(child.entry):
                   yield sub_child
         yield entry
 
@@ -147,20 +147,20 @@ class _Utils:
 
     def iter_required_common(self, entry):
         for child in entry.children:
-            if child in self._common:
+            if child.entry in self._common:
                 if not isinstance(entry, chc.Choice):
-                    yield child
+                    yield child.entry
             else:
-                for e in self.iter_required_common(child):
+                for e in self.iter_required_common(child.entry):
                     yield e
 
     def iter_optional_common(self, entry):
         for child in entry.children:
-            if child in self._common:
+            if child.entry in self._common:
                 if isinstance(entry, chc.Choice):
                     yield child
             else:
-                for entry in self.iter_optional_common(child):
+                for entry in self.iter_optional_common(child.entry):
                     yield entry
 
     def esc_name(self, index, iter_entries):

@@ -77,13 +77,13 @@ class _ProtocolStream:
             if offset < len(self.entry.children):
                 # There are still child items in this sequence, so return the
                 # next child.
-                return [_ProtocolStream(self.entry.children[offset], self, offset)]
+                return [_ProtocolStream(self.entry.children[offset].entry, self, offset)]
             assert offset == len(self.entry.children)
         elif isinstance(self.entry, chc.Choice):
             # The next entry of the choice is all of its children. After that
             # we must go back up to the parent.
             if offset == 0:
-                return [_ProtocolStream(child, self, 0) for child in self.entry.children]
+                return [_ProtocolStream(child.entry, self, 0) for child in self.entry.children]
 
         # We don't have any more embedded items; go back up to the parent.
         if self._parent is None:

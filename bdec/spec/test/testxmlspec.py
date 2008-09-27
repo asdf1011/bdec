@@ -465,7 +465,7 @@ class TestXml(unittest.TestCase):
             entry = entries.pop()
             names.add(entry.name)
             self.assertTrue(entry in lookup, "%s isn't in the lookup tree!" % entry)
-            entries.extend(entry.children)
+            entries.extend(child.entry for child in entry.children)
         self.assertEqual(set(['dog', 'rabbit', 'hole', 'length a', 'length:', 'bob', 'data a']), names)
 
     def test_referenced_common_entry(self):

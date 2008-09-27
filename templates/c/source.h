@@ -37,8 +37,8 @@
 ${settings.ctype(entry)}
 {
   %for i, child in enumerate(entry.children):
-    %if contains_data(child):
-    ${settings.ctype(child)} ${var_name(i, entry.children)};
+    %if contains_data(child.entry):
+    ${settings.ctype(child.entry)} ${var_name(i, entry.children)};
     %endif
   %endfor
   %if entry.value is not None:
@@ -51,15 +51,15 @@ typedef ${settings.ctype(entry)} ${entry.name |typename};
 ${settings.ctype(entry)}
 {
     %for i, child in enumerate(entry.children):
-      %if contains_data(child):
-    ${settings.ctype(child)}* ${var_name(i, entry.children)};
+      %if contains_data(child.entry):
+    ${settings.ctype(child.entry)}* ${var_name(i, entry.children)};
       %endif
     %endfor
 };
   %elif isinstance(entry, SequenceOf):
 ${settings.ctype(entry)}
 {
-    ${settings.ctype(entry.children[0])}* items;
+    ${settings.ctype(entry.children[0].entry)}* items;
     unsigned int count;
 };
   %else:

@@ -39,8 +39,8 @@ class Sequence(bdec.entry.Entry):
 
     def _decode(self, data, context, name):
         yield (True, name, self, data, None)
-        for child_name, child in zip(self.childnames, self.children):
-            for embedded in self._decode_child(child_name, child, data, context):
+        for child in self.children:
+            for embedded in self._decode_child(child, data, context):
                 yield embedded
         value = None
         if self.value is not None:
@@ -50,8 +50,8 @@ class Sequence(bdec.entry.Entry):
     def _encode(self, query, parent):
         structure = self._get_context(query, parent)
         for child in self.children:
-            for data in child.encode(query, structure):
+            for data in child.entry.encode(query, structure):
                 yield data
             
     def _range(self, ignore_entries):
-        return sum((child.range(ignore_entries) for child in self.children), bdec.entry.Range(0, 0))
+        return sum((child.entry.range(ignore_entries) for child in self.children), bdec.entry.Range(0, 0))

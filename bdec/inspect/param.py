@@ -114,14 +114,7 @@ class EndEntryParameters(_Parameters):
 
         # Keep walking down the chain look for 'end-sequenceof' entries.
         for child in entry.children:
-            self._populate_lookup(child, intermediaries[:])
-
-    def _walk(self, entry, visited, offset):
-        if entry in visited:
-            return
-        visited.add(entry)
-        for child in children:
-            self._walk(child, visited, offset + 1)
+            self._populate_lookup(child.entry, intermediaries[:])
 
     def get_locals(self, entry):
         result = []
@@ -142,7 +135,7 @@ class EndEntryParameters(_Parameters):
     def get_passed_variables(self, entry, child):
         # The passed parameter names don't change for 'should end' variables;
         # the name is the same in both parent & child.
-        return self.get_params(child)
+        return self.get_params(child.entry)
 
     def is_end_sequenceof(self, entry):
         return entry in self._end_sequenceof_entries
@@ -210,7 +203,7 @@ class ExpressionParameters(_Parameters):
         unreferenced_entries[entry] = set()
 
         for child in entry.children:
-            self._populate_references(child, unreferenced_entries)
+            self._populate_references(child.entry, unreferenced_entries)
 
         # An entries unknown references are those referenced in any 
         # expressions, and those that are unknown in all of its children.
@@ -222,7 +215,7 @@ class ExpressionParameters(_Parameters):
         # Store the names the child doesn't know about (ie: names that must be resolved for this entry to decode)
         child_unknowns = set()
         for child in entry.children:
-            child_unknowns.update(unreferenced_entries[child])
+            child_unknowns.update(unreferenced_entries[child.entry])
 
         if isinstance(entry, seq.Sequence) and entry.value is not None:
             # A sequence's references are treated as child unknowns, as they
@@ -261,8 +254,8 @@ class ExpressionParameters(_Parameters):
         for entry, params in self._params.iteritems():
 
             for child in entry.children:
-                for param in self._params[child]:
-                    local = self._get_local_reference(entry, child, param)
+                for param in self._params[child.entry]:
+                    local = self._get_local_reference(entry, child.entry, param)
                     if _VariableParam(local, param.direction) not in params:
                         self._locals[entry].add(local)
 
@@ -284,28 +277,28 @@ class ExpressionParameters(_Parameters):
         if isinstance(entry, chc.Choice):
             # The option names aren't specified in a choice expression
             for child in entry.children:
-                self._params[child].add(_VariableParam(reference, Param.OUT))
-                self._add_out_params(child, reference)
+                self._params[child.entry].add(_VariableParam(reference, Param.OUT))
+                self._add_out_params(child.entry, reference)
         elif isinstance(entry, seq.Sequence):
             was_child_found = False
             for child in entry.children:
                 if child.name == reference.name:
                     # This parameter references the value / length of the child item
-                    self._params[child].add(_VariableParam(reference, Param.OUT))
+                    self._params[child.entry].add(_VariableParam(reference, Param.OUT))
                     was_child_found = True
                     if isinstance(reference, expr.ValueResult):
-                        if isinstance(child, fld.Field):
-                            if child.format not in [fld.Field.INTEGER, fld.Field.BINARY]:
+                        if isinstance(child.entry, fld.Field):
+                            if child.entry.format not in [fld.Field.INTEGER, fld.Field.BINARY]:
                                 # We currently only allow integers and binary
                                 # strings in integer expressions.
-                                raise BadReferenceTypeError(child)
-                            self._referenced_values.add(child)
-                        elif isinstance(child, seq.Sequence) and child.value is not None:
-                            self._referenced_values.add(child)
+                                raise BadReferenceTypeError(child.entry)
+                            self._referenced_values.add(child.entry)
+                        elif isinstance(child.entry, seq.Sequence) and child.entry.value is not None:
+                            self._referenced_values.add(child.entry)
                         else:
                             raise BadReferenceError(entry, reference.name)
                     else:
-                        self._referenced_lengths.add(child)
+                        self._referenced_lengths.add(child.entry)
                 else:
                     child_name = reference.name.split('.')[0]
                     if child.name == child_name:
@@ -318,8 +311,8 @@ class ExpressionParameters(_Parameters):
                             raise Exception("Unknown reference type '%s'!" % reference)
 
                         # We found a child item that knows about this parameter
-                        self._params[child].add(_VariableParam(child_reference, Param.OUT))
-                        self._add_out_params(child, child_reference)
+                        self._params[child.entry].add(_VariableParam(child_reference, Param.OUT))
+                        self._add_out_params(child.entry, child_reference)
                         was_child_found = True
             if not was_child_found:
                 raise ent.MissingExpressionReferenceError(entry, reference.name)
@@ -341,6 +334,7 @@ class ExpressionParameters(_Parameters):
         """
         Get an iterator to all parameters passed to an entry due to value references.
         """
+        assert isinstance(entry, bdec.entry.Entry)
         params = list(self._params[entry])
         params.sort(key=lambda a:a.reference.name)
         result = list(Param(self._get_reference_name(param.reference), param.direction, int) for param in params)
@@ -357,7 +351,9 @@ class ExpressionParameters(_Parameters):
         """
         Get an iterator to all variables passed from a parent to a child entry.
         """
-        child_params = list(self._params[child])
+        assert isinstance(entry, bdec.entry.Entry)
+        assert isinstance(child, bdec.entry.Child)
+        child_params = list(self._params[child.entry])
         child_params.sort(key=lambda a:a.reference.name)
         for param in child_params:
             local = self._get_local_reference(entry, child, param)
@@ -410,8 +406,8 @@ class DataChecker:
         # This entry isn't yet calculated; do so now.
         stack.append(entry)
         for child in entry.children:
-            self._populate(child, stack, intermediates)
-            self._has_data[entry] |= self._has_data[child]
+            self._populate(child.entry, stack, intermediates)
+            self._has_data[entry] |= self._has_data[child.entry]
         stack.remove(entry)
 
     def contains_data(self, entry):
@@ -436,9 +432,9 @@ class ResultParameters(_Parameters):
         return [Param('result', Param.OUT, entry)]
 
     def get_passed_variables(self, entry, child):
-        if not self._checker.contains_data(child):
+        if not self._checker.contains_data(child.entry):
             return []
-        return [Param('unknown', Param.OUT, child)]
+        return [Param('unknown', Param.OUT, child.entry)]
 
 
 class CompoundParameters(_Parameters):
