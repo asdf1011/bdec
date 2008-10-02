@@ -1,5 +1,8 @@
 <protocol>
     <common>
+        <field name="byte" length="8" type="integer" />
+        <field name="word" length="16" type="integer" encoding="big endian" />
+
         <choice name="component:type">
             <field name="Y" length="8" value="0x1" />
             <field name="Cb" length="8" value="0x2" />
@@ -13,7 +16,7 @@
                 <sequence name="exif">
                     <field name="id:" length="8" value="0xff" />
                     <field name="type:" length="8" value="0xe1" />
-                    <field name="length:" length="16" type="integer" encoding="big endian" />
+                    <reference name="length:" type="word" />
                     <!-- The exif data structures are difficult to represent, as the 'offset to next ifd'
                         field is relative to the start of the entire block (which means we need to know
                         the length of the allready decoded blocks). Additionally, the fact that the
@@ -29,8 +32,8 @@
                 <sequence name="start of scan">
                     <field name="id:" length="8" value="0xff" />
                     <field name="type:" length="8" value="0xda" />
-                    <field name="length" length="16" type="integer" encoding="big endian" />
-                    <field name="number of components:" length="8" type="integer" />
+                    <reference name="length" type="word" />
+                    <reference name="number of components:" type="byte" />
                     <sequenceof name="components" count="${number of components:}">
                         <sequence name="component">
                             <reference name="component:type" />
@@ -46,11 +49,11 @@
                 <sequence name="start of frame 0">
                     <field name="id:" length="8" value="0xff" />
                     <field name="type:" length="8" value="0xc0" />
-                    <field name="length" length="16" type="integer" encoding="big endian" />
-                    <field name="data precision" length="8" type="integer" />
-                    <field name="image height" length="16" type="integer" encoding="big endian" />
-                    <field name="image width" length="16" type="integer" encoding="big endian" />
-                    <field name="number of components:" length="8" type="integer" />
+                    <reference name="length" type="word" />
+                    <reference name="data precision" type="byte" />
+                    <reference name="image height" type="word" />
+                    <reference name="image width" type="word" />
+                    <reference name="number of components:" type="byte" />
                     <sequenceof name="components" count="${number of components:}">
                         <sequence name="component">
                             <sequence name="sampling factors">
@@ -58,7 +61,7 @@
                                 <field name="horizontal" length="4" type="integer" />
                                 <field name="vertical" length="4" type="integer" />
                             </sequence>
-                            <field name="quantization table number" length="8" type="integer" />
+                            <reference name="quantization table number" type="byte" />
                         </sequence>
                     </sequenceof>
                 </sequence>
@@ -66,26 +69,26 @@
                 <sequence name="JFIF segment marker">
                     <field name="id:" length="8" value="0xff" />
                     <field name="type:" length="8" value="0xe0" />
-                    <field name="length" length="16" type="integer" encoding="big endian" />
+                    <reference name="length" type="word" />
                     <field name="jfif:" length="40" value="0x4a46494600" />
                     <field name="major revision:" length="8" value="0x1" />
-                    <field name="minor revision" length="8" type="integer" />
+                    <reference name="minor revision" type="byte" />
                     <choice name="x/y units">
                         <field name="no units" length="8" value="0x0" />
                         <field name="dots per inch" length="8" value="0x1" />
                         <field name="dots per cm" length="8" value="0x2" />
                     </choice>
-                    <field name="x density" length="16" type="integer" encoding="big endian" />
-                    <field name="y density" length="16" type="integer" encoding="big endian" />
+                    <reference name="x density" type="word" />
+                    <reference name="y density" type="word" />
                     <sequence name="thumbnail">
-                        <field name="width" length="8" type="integer" />
-                        <field name="height" length="8" type="integer" />
+                        <reference name="width" type="byte" />
+                        <reference name="height" type="byte" />
                         <sequenceof name="rows" count="${height}">
                             <sequenceof name="row" count="${width}">
                                 <sequence name="colour">
-                                    <field name="red" length="8" type="integer" />
-                                    <field name="green" length="8" type="integer" />
-                                    <field name="blue" length="8" type="integer" />
+                                    <reference name="red" type="byte" />
+                                    <reference name="green" type="byte" />
+                                    <reference name="blue" type="byte" />
                                 </sequence>
                             </sequenceof>
                         </sequenceof>
@@ -95,7 +98,7 @@
                 <sequence name="unknown APPX extension">
                     <field name="id:" length="12" value="0xffe" />
                     <field name="number" length="4" type="integer" />
-                    <field name="length" length="16" type="integer" encoding="big endian" />
+                    <reference name="length" type="word" />
                     <sequenceof name="identifier">
                         <choice name="char:">
                             <field name="null" length="8" value="0x0"><end-sequenceof/></field>
@@ -108,7 +111,7 @@
                 <sequence name="define quantization table">
                     <field name="id:" length="8" value="0xff" />
                     <field name="type:" length="8" type="hex" value="0xdb" />
-                    <field name="length" length="16" type="integer" encoding="big endian" />
+                    <reference name="length" type="word" />
                     <field name="precision of qt" length="4" type="integer" />
                     <field name="number of qt" length="4" type="integer" />
                     <field name="quantisation table" length="64 * (${precision of qt} + 1) * 8" type="hex" />
@@ -117,7 +120,7 @@
                 <sequence name="define huffman table">
                     <field name="id:" length="8" value="0xff" />
                     <field name="type" length="8" value="0xc4" />
-                    <field name="length" length="16" type="integer" encoding="big endian" />
+                    <reference name="length" type="word" />
                     <field name="unused:" length="3" value="0x0" />
                     <choice name="type">
                         <field name="dc table" length="1" value="0x0" />
@@ -132,7 +135,7 @@
                 <sequence name="unknown segment">
                     <field name="id:" length="8" value="0xff" />
                     <field name="type" length="8" type="hex" />
-                    <field name="length" length="16" type="integer" encoding="big endian" />
+                    <reference name="length" type="word" />
                     <field name="data" length="${length} * 8 - 16" type="hex" />
                 </sequence>
 
