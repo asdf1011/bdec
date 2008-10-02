@@ -351,7 +351,7 @@ ${static}int ${settings.decode_name(entry)}(BitBuffer* buffer${settings.define_p
 
 ${recursiveDecode(entry, False)}
 
-<%def name="printText(text, ws_offset)">
+<%def name="printText(text, value, ws_offset)">
   %if ws_offset == 0:
     ## We have to print in two runs, as we cannot print zero space characters 
     ## in a single print statement.
@@ -359,9 +359,17 @@ ${recursiveDecode(entry, False)}
     {
         printf("%*c", offset + ${ws_offset}, ' ');
     }
-    printf("${text}");
+    %if value.startswith('"'):
+    printf("${text % value[1:-1]}");
+    %else:
+    printf("${text}", ${value});
+    %endif
   %else:
-    printf("%*c${text}", offset + ${ws_offset}, ' ');
+    %if value.startswith('"'):
+    printf("%*c${text % value[1:-1]}", offset + ${ws_offset}, ' ');
+    %else:
+    printf("%*c${text}", offset + ${ws_offset}, ' ', ${value});
+    %endif
   %endif
 </%def>
 
@@ -369,15 +377,15 @@ ${recursiveDecode(entry, False)}
 ##
 ## We buffer the output, as the generated output will be filtered to adjust
 ## the whitespace offset.
-<%def name="recursivePrint(item, varname, ws_offset, iter_postfix)" buffered="True">
+<%def name="recursivePrint(item, name, varname, ws_offset, iter_postfix)" buffered="True">
   %if item in common and item is not entry:
     %if contains_data(item):
-    ${settings.print_name(item)}(&${varname}, offset + ${ws_offset});
+    ${settings.print_name(item)}(&${varname}, offset + ${ws_offset}, name);
     %endif
   %elif contains_data(item):
     %if isinstance(item, Field):
       %if not item.is_hidden():
-    ${printText("<%s>" % xmlname(item.name), ws_offset)}
+    ${printText("<%s>", name , ws_offset)}
         %if item.format == Field.INTEGER:
     printf("%i", ${varname}); 
         %elif item.format == Field.TEXT:
@@ -405,12 +413,12 @@ ${recursiveDecode(entry, False)}
     %else:
     ## Print everything other than fields
       %if not item.is_hidden():
-    ${printText("<%s>\\n" % xmlname(item.name), ws_offset)}
+    ${printText("<%s>\\n", name, ws_offset)}
       %endif
       <% next_offset = (ws_offset + 4) if not item.is_hidden() else ws_offset %>
       %if isinstance(item, Sequence):
         %for i, child in enumerate(item.children):
-${recursivePrint(child.entry, '%s.%s' % (varname, variable(esc_name(i, item.children))), next_offset, iter_postfix)}
+${recursivePrint(child.entry, '"%s"' % xmlname(child.name), '%s.%s' % (varname, variable(esc_name(i, item.children))), next_offset, iter_postfix)}
         %endfor
         %if item.value is not None and not item.is_hidden():
     printf("%*i\n", offset + ${ws_offset+4}, ${varname}.value); 
@@ -420,14 +428,14 @@ ${recursivePrint(child.entry, '%s.%s' % (varname, variable(esc_name(i, item.chil
     int ${iter_name};
     for (${iter_name} = 0; ${iter_name} < ${varname}.count; ++${iter_name})
     {
-${recursivePrint(item.children[0].entry, '%s.items[%s]' % (varname, iter_name), next_offset, iter_postfix) | ws(4)}
+${recursivePrint(item.children[0].entry, '"%s"' % xmlname(item.children[0].name), '%s.items[%s]' % (varname, iter_name), next_offset, iter_postfix) | ws(4)}
     }
       %elif isinstance(item, Choice):
         %for i, child in enumerate(item.children):
           %if contains_data(child.entry):
     if (${'%s.%s' % (varname, variable(esc_name(i, item.children)))} != 0)
     {
-${recursivePrint(child.entry, "(*%s.%s)" % (varname, variable(esc_name(i, item.children))), next_offset, iter_postfix) | ws(4)}
+${recursivePrint(child.entry, '"%s"' % xmlname(child.name), "(*%s.%s)" % (varname, variable(esc_name(i, item.children))), next_offset, iter_postfix) | ws(4)}
     }
           %endif
         %endfor
@@ -437,16 +445,16 @@ ${recursivePrint(child.entry, "(*%s.%s)" % (varname, variable(esc_name(i, item.c
     %endif
     %if not item.is_hidden():
       %if not isinstance(item, Field):
-    ${printText("</%s>\\n" % xmlname(item.name), ws_offset)}
+    ${printText("</%s>\\n", name, ws_offset)}
       %else:
-    printf("</${item.name |xmlname}>\n");
+    ${printText("</%s>\\n", name, 0)}
       %endif
     %endif
   %endif
 </%def>
 
-void ${settings.print_name(entry)}(${settings.ctype(entry)}* data, int offset)
+void ${settings.print_name(entry)}(${settings.ctype(entry)}* data, int offset, char* name)
 {
-${recursivePrint(entry, '(*data)', 0, iter(xrange(100)))}
+${recursivePrint(entry, 'name', '(*data)', 0, iter(xrange(100)))}
 }
 

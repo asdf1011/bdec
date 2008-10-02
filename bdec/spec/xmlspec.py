@@ -90,9 +90,22 @@ class _ReferencedEntry:
     Used to 'delay' referencing of decoder entries, for the case where a
     decoder entry has been referenced (but has not yet been defined).
     """
-    def __init__(self, name):
+    def __init__(self, name, type):
+        """
+        Construct a referenced entry.
+
+        name -- The name the resolved entry will have.
+        type -- If this is non-null and not empty, this will be the name of
+            the type we should resolve to.
+        """
         self.name = name
+        self.type = type
         self._parent = None
+
+    def getReferenceName(self):
+        if self.type:
+            return self.type
+        return self.name
 
     def resolve(self, entry):
         assert self._parent is not None
@@ -215,7 +228,7 @@ class _Handler(xml.sax.handler.ContentHandler):
             # If the 'top level' item is a reference, it won't have had a
             # parent set to allow it to resolve. We'll do this by hand.
             del self._unresolved_references[self._unresolved_references.index(children[0])]
-            children[0] = self._get_common_entry(children[0].name)
+            children[0] = self._get_common_entry(children[0].getReferenceName())
 
         # Note the we don't iterate over the unresolved references, as the
         # list can change as we iterate over it (in _get_common_entry).
@@ -223,7 +236,7 @@ class _Handler(xml.sax.handler.ContentHandler):
             entry = self._unresolved_references.pop()
             # Problem: We are copying the entry while we still have the referenced item in the tree...
             #  we'll have to insert it in the tree before copying it!
-            entry.resolve(self._get_common_entry(entry.name))
+            entry.resolve(self._get_common_entry(entry.getReferenceName()))
 
         self.decoder = children[0]
 
@@ -234,9 +247,14 @@ class _Handler(xml.sax.handler.ContentHandler):
             raise XmlExpressionError(ex, self._filename, self.locator)
 
     def _reference(self, attributes, children, name, length, breaks):
-        if not name:
-            raise self._error("Reference entries must have a single 'name' attribute!")
-        result = _ReferencedEntry(name)
+        type = ""
+        try:
+            type = attributes["type"]
+        except KeyError:
+            pass
+        if not name and not type:
+            raise self._error("Reference entries must non-empty 'name' or 'type' attribute!")
+        result = _ReferencedEntry(name, type)
         self._unresolved_references.append(result)
         return result
 

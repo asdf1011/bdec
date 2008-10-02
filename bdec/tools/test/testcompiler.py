@@ -27,6 +27,7 @@ import xml.etree.ElementTree
 
 import bdec.choice as chc
 import bdec.data as dt
+import bdec.entry as ent
 import bdec.field as fld
 import bdec.output.xmlout as xmlout
 import bdec.sequence as seq
@@ -433,5 +434,14 @@ class _CompilerTests:
         self._decode(d, '\x02\x00\x00', expected_xml='<d/>')
         self._decode(d, '\x03\x00\x00\x00', expected_xml='<d/>')
         self._decode_failure(d, '\x03\x00\x00')
+
+    def test_renamed_common_entry(self):
+        digit = fld.Field('digit:', format=fld.Field.INTEGER, length=8)
+        number = seq.Sequence('number', [digit], value=expr.compile("${digit:} - 48") )
+        header = seq.Sequence('header', [ent.Child('length', number), fld.Field('data', length=expr.compile('${length} * 8'), format=fld.Field.TEXT)])
+        expected = '<header> <length>5</length> <data>abcde</data> </header>'
+        self._decode(header, '5abcde', expected_xml=expected)
+        # Test it with not enough data
+        self._decode_failure(header, '5abcd')
 
 globals().update(create_decoder_classes([(_CompilerTests, 'SimpleDecode')], __name__))

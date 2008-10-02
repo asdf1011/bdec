@@ -21,10 +21,12 @@ import unittest
 
 import bdec.choice as chc
 import bdec.data as dt
+import bdec.entry as ent
 import bdec.field as fld
 import bdec.output.xmlout as xml
 import bdec.sequence as seq
 import bdec.sequenceof as sof
+import bdec.spec.expression as expr
 
 class TestXml(unittest.TestCase):
     def test_field(self):
@@ -94,3 +96,11 @@ class TestXml(unittest.TestCase):
         spec = seq.Sequence('blah', [hidden])
         text = xml.to_string(spec, dt.Data('\x00'), verbose=True)
         self.assertEqual('<blah>\n    <_hidden>0<!-- hex (1 bytes): 00 --></_hidden>\n</blah>\n', text)
+
+    def test_different_child_name(self):
+        digit = fld.Field('digit:', length=8)
+        number = seq.Sequence('number', [digit], value=expr.compile("${digit:} - 48") )
+        header = seq.Sequence('header', [ent.Child('length', number), fld.Field('data', length=expr.compile('${length} * 8'), format=fld.Field.TEXT)])
+        text = xml.to_string(header, dt.Data('5abcde'))
+        self.assertEqual('<header>\n    <length>5</length>\n    <data>abcde</data>\n</header>\n', text)
+

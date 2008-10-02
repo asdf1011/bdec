@@ -244,10 +244,12 @@ class ExpressionParameters(_Parameters):
 
     def _get_local_reference(self, entry, child, param):
         """Get the local name of a parameter used by a child entry. """
-        if param.direction == Param.OUT and child.name != param.reference.name and not isinstance(entry, chc.Choice):
-            name = "%s.%s" % (child.name, param.reference.name)
-        else:
+        if param.direction == Param.IN or isinstance(entry, chc.Choice):
             name = param.reference.name
+        elif param.reference.name == child.entry.name:
+            name = child.name
+        else:
+            name = "%s.%s" % (child.name, param.reference.name)
 
         # Create a new instance of the expression reference, using the new name
         return param.reference.__class__(name)
@@ -255,10 +257,9 @@ class ExpressionParameters(_Parameters):
     def _detect_unused_outputs(self):
         """ Detect child parameters that aren't in the parent entries parameters """
         for entry, params in self._params.iteritems():
-
             for child in entry.children:
                 for param in self._params[child.entry]:
-                    local = self._get_local_reference(entry, child.entry, param)
+                    local = self._get_local_reference(entry, child, param)
                     if _VariableParam(local, param.direction) not in params:
                         self._locals[entry].add(local)
 
@@ -276,6 +277,10 @@ class ExpressionParameters(_Parameters):
     def _add_out_params(self, entry, reference):
         """
         Drill down into the children of 'entry', adding output params to 'name'.
+
+        entry -- An instance of bdec.entry.Entry
+        reference -- An instance of either bdec.spec.expression.ValueResult or
+            bdec.spec.expression.LengthResult.
         """
         if isinstance(entry, chc.Choice):
             # The option names aren't specified in a choice expression
@@ -286,7 +291,10 @@ class ExpressionParameters(_Parameters):
             was_child_found = False
             for child in entry.children:
                 if child.name == reference.name:
-                    # This parameter references the value / length of the child item
+                    # This parameter references the value / length of the child
+                    # item. As the name might be different between parent and
+                    # child, use the childs name.
+                    reference = type(reference)(child.entry.name)
                     self._params[child.entry].add(_VariableParam(reference, Param.OUT))
                     was_child_found = True
                     if isinstance(reference, expr.ValueResult):

@@ -22,6 +22,7 @@ import unittest
 import bdec
 import bdec.choice as chc
 import bdec.data as dt
+import bdec.entry as ent
 import bdec.field as fld
 import bdec.inspect.param as prm
 import bdec.sequence as seq
@@ -232,6 +233,15 @@ class TestExpressionParameters(unittest.TestCase):
             prm.Param('d.b', prm.Param.OUT, int),
             prm.Param('d.c', prm.Param.OUT, int)],
             list(params.get_passed_variables(f, f.children[0])))
+
+    def test_renamed_common_reference(self):
+        digit = seq.Sequence('digit', [fld.Field('text digit', 8, min=48, max=58)], value=expr.compile("${text digit} - 48"))
+        b = seq.Sequence('b', [ent.Child('length', digit), fld.Field('data', length=expr.compile("${length} * 8"))])
+        lookup = prm.ExpressionParameters([b])
+        self.assertEqual([], lookup.get_params(b))
+        self.assertEqual([prm.Param('digit', prm.Param.OUT, int)], lookup.get_params(digit))
+        self.assertEqual([prm.Param('length', prm.Param.OUT, int)], list(lookup.get_passed_variables(b, b.children[0])))
+
 
 class TestEndEntryParameters(unittest.TestCase):
     def test_end_entry_lookup(self):

@@ -631,3 +631,37 @@ class TestXml(unittest.TestCase):
         self.assertEqual(4, len(items))
         self.assertEqual(ord('f'), items[0])
         self.assertEqual(3, items[1])
+
+    def test_different_name_of_reference_type(self):
+        text = """
+           <protocol>
+             <common>
+               <sequence name="digit" value="${number} - 48">
+                 <field name="number" length="8" type="integer" min="48" max="57" />
+               </sequence>
+               <sequence name="2 digit text" value="${digit 1} * 10 + ${digit 2}">
+                 <reference name="digit 1" type="digit" />
+                 <reference name="digit 2" type="digit" />
+               </sequence>
+             </common>
+             <sequence name="header">
+               <field name="id" length="16" value="0x1234" />
+               <reference name="length" type="2 digit text" />
+             </sequence>
+           </protocol>"""
+        spec = xml.loads(text)[0]
+        data = dt.Data("\x12\x3498")
+        items = list((name, value) for is_starting, name, entry, data, value in spec.decode(data) if not is_starting)
+        self.assertEqual(7, len(items))
+        self.assertEqual('number', items[1][0])
+        self.assertEqual(ord('9'), items[1][1])
+        self.assertEqual('digit 1', items[2][0])
+        self.assertEqual(9, items[2][1])
+
+        self.assertEqual('number', items[3][0])
+        self.assertEqual(ord('8'), items[3][1])
+        self.assertEqual('digit 2', items[4][0])
+        self.assertEqual(8, items[4][1])
+
+        self.assertEqual('length', items[5][0])
+        self.assertEqual(98, items[5][1])

@@ -161,7 +161,15 @@ class Entry(object):
     def _get_children(self):
         return self._children
     def _set_children(self, children):
-        self._children = tuple(Child(child.name, child) for child in children)
+        items = []
+        for child in children:
+            if isinstance(child, Child):
+                items.append(child)
+            else:
+                # For convenience in the tests, we allow the children to be
+                # assigned an array of Entry instances.
+                items.append(Child(child.name, child))
+        self._children = tuple(items)
     children = property(_get_children, _set_children)
 
     def validate(self):
@@ -240,6 +248,8 @@ class Entry(object):
         child_context = {}
         for param in child.entry._params:
             if param.direction is param.IN:
+                # The child's name may be different from what we are calling
+                # it; adjust the name to be sure.
                 child_context[param.name] = context[self._parent_param_lookup[child][param.name]]
 
         # Do the decode

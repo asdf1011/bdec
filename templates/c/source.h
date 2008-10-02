@@ -92,7 +92,7 @@ int ${settings.decode_name(entry)}( BitBuffer* buffer${settings.define_params(en
 void ${settings.free_name(entry)}(${settings.ctype(entry)}* value);
 
 // Print an xml representation of a ${entry.name} object.
-void ${settings.print_name(entry)}(${settings.ctype(entry)}* data, int offset);
+void ${settings.print_name(entry)}(${settings.ctype(entry)}* data, int offset, char* name);
 
 #endif
 
