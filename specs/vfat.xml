@@ -221,10 +221,10 @@ http://staff.washington.edu/dittrich/misc/fatgen103.pdf.
                     <field name="media descriptor" length="8" />
                     <field name="expected:" length="4" value="0xf" />
                     <field name="end of file marker" length="12" />
-                    <sequenceof name="clusters" count="${num clusters:}">
+                    <sequenceof name="cluster info" count="${num clusters:}">
                         <reference name="allocation table:fat 12:entry" />
                     </sequenceof>
-                    <field name="unused" length="${bootsector.common.sectors per fat} * ${bootsector.common.initial fields:.bytes per sector} * 8 - len{clusters} - 24" type="binary" />
+                    <field name="unused" length="${bootsector.common.sectors per fat} * ${bootsector.common.initial fields:.bytes per sector} * 8 - len{cluster info} - 24" type="binary" />
                 </sequence>
             </sequenceof>
             <reference name="directory" />
@@ -245,7 +245,7 @@ http://staff.washington.edu/dittrich/misc/fatgen103.pdf.
                     <field name="media descriptor" length="8" />
                     <field name="expected:" length="8" value="0xff" />
                     <field name="end of file marker" length="16" type="hex" />
-                    <sequenceof name="clusters" count="${num clusters:}">
+                    <sequenceof name="cluster info" count="${num clusters:}">
                         <reference name="allocation table:fat 16:entry" />
                     </sequenceof>
                     <field name="unused" length="${bootsector.common.sectors per fat} * ${bootsector.common.initial fields:.bytes per sector} * 8 - len{clusters} - 32" type="hex" />
@@ -268,14 +268,14 @@ http://staff.washington.edu/dittrich/misc/fatgen103.pdf.
                     <field name="media descriptor" length="8" />
                     <field name="unused" length="24" type="hex" />
                     <field name="end of file marker" length="32" type="hex" />
-                    <sequenceof name="clusters" count="(${bootsector.common.total sectors:} - ${bootsector.common.initial fields:.reserved sector count} - ${bootsector.common.sectors per fat} * ${bootsector.common.initial fields:.number of file allocation tables}) / ${bootsector.common.initial fields:.sectors per cluster}">
+                    <sequenceof name="cluster info" count="(${bootsector.common.total sectors:} - ${bootsector.common.initial fields:.reserved sector count} - ${bootsector.common.sectors per fat} * ${bootsector.common.initial fields:.number of file allocation tables}) / ${bootsector.common.initial fields:.sectors per cluster}">
                         <!-- We don't decode 32 bit entries, as the upper
                             four bits are reserved; due to the byte ordering,
                             these are bits 24-28 (meaning we have cannot 
                             easily distinguish between states). -->
                         <field name="entry" length="32" type="hex" />
                     </sequenceof>
-                    <field name="unused" length="${bootsector.common.sectors per fat} * ${bootsector.common.initial fields:.bytes per sector} * 8 - len{clusters} - 64" type="hex" />
+                    <field name="unused" length="${bootsector.common.sectors per fat} * ${bootsector.common.initial fields:.bytes per sector} * 8 - len{cluster info} - 64" type="hex" />
                 </sequence>
             </sequenceof>
             <!-- We don't decode the root directory for FAT32, as it may be several clusters long -->
