@@ -235,8 +235,8 @@ http://staff.washington.edu/dittrich/misc/fatgen103.pdf.
                     <field name="unused" length="${bootsector.common.sectors per fat} * ${bootsector.common.initial fields:.bytes per sector} * 8 - len{cluster info} - 24" type="binary" />
                 </sequence>
             </sequenceof>
-            <reference name="directory" />
-            <field name="unused" length="(${bootsector.common.initial fields:.sectors per cluster} * ${bootsector.common.initial fields:.bytes per sector}) * 8 - len{directory}" type="hex" />
+            <reference name="root directory" type="directory" />
+            <field name="unused" length="(${bootsector.common.initial fields:.sectors per cluster} * ${bootsector.common.initial fields:.bytes per sector}) * 8 - len{root directory}" type="hex" />
 
             <reference name="clusters" />
         </sequence>
@@ -258,8 +258,8 @@ http://staff.washington.edu/dittrich/misc/fatgen103.pdf.
                     <field name="unused" length="${bootsector.common.sectors per fat} * ${bootsector.common.initial fields:.bytes per sector} * 8 - len{cluster info} - 32" type="hex" />
                 </sequence>
             </sequenceof>
-            <reference name="directory" />
-            <field name="unused" length="(${bootsector.common.initial fields:.sectors per cluster} * ${bootsector.common.initial fields:.bytes per sector}) * 8 - len{directory}" type="hex" />
+            <reference name="root directory" type="directory" />
+            <field name="unused" length="(${bootsector.common.initial fields:.sectors per cluster} * ${bootsector.common.initial fields:.bytes per sector}) * 8 - len{root directory}" type="hex" />
 
             <reference name="clusters" />
         </sequence>
