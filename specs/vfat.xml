@@ -154,33 +154,39 @@ http://staff.washington.edu/dittrich/misc/fatgen103.pdf.
                         <field name="ignore 2" length="2" type="integer" />
                         <sequence name="create timestamp">
                             <reference name="centiseconds" type="byte" />
-                            <field name="minute lower" length="3" type="integer" />
+                            <field name="minute lower:" length="3" type="integer" />
                             <field name="two seconds" length="5" type="integer" />
                             <field name="hour" length="5" type="integer" />
-                            <field name="minute upper" length="3" type="integer" />
-                            <field name="month lower" length="3" type="integer" />
+                            <field name="minute upper:" length="3" type="integer" />
+                            <sequence name="minute" value="${minute upper:} * 8 + ${minute lower:}" />
+
+                            <field name="month lower:" length="3" type="integer" />
                             <field name="day" length="5" type="integer" />
                             <field name="year" length="7" type="integer" />
-                            <field name="month upper" length="1" type="integer" />
+                            <field name="month upper:" length="1" type="integer" />
+                            <sequence name="month" value="${month upper:} * 8 + ${month lower:}" />
                         </sequence>
                         <sequence name="access timestamp">
-                            <field name="month lower" length="3" type="integer" />
+                            <field name="month lower:" length="3" type="integer" />
                             <field name="day" length="5" type="integer" />
                             <field name="year" length="7" type="integer" />
-                            <field name="month upper" length="1" type="integer" />
+                            <field name="month upper:" length="1" type="integer" />
+                            <sequence name="month" value="${month upper:} * 8 + ${month lower:}" />
                         </sequence>
                         <!-- In FAT32, this is the high two bytes of the cluster number -->
                         <reference name="ea index" type="word" />
                         <sequence name="modified timestamp">
-                            <field name="minute lower" length="3" type="integer" />
+                            <field name="minute lower:" length="3" type="integer" />
                             <field name="two seconds" length="5" type="integer" />
                             <field name="hour" length="5" type="integer" />
-                            <field name="minute upper" length="3" type="integer" />
+                            <field name="minute upper:" length="3" type="integer" />
+                            <sequence name="minute" value="${minute upper:} * 8 + ${minute lower:}" />
 
-                            <field name="month lower" length="3" type="integer" />
+                            <field name="month lower:" length="3" type="integer" />
                             <field name="day" length="5" type="integer" />
                             <field name="year" length="7" type="integer" />
-                            <field name="month upper" length="1" type="integer" />
+                            <field name="month upper:" length="1" type="integer" />
+                            <sequence name="month" value="${month upper:} * 8 + ${month lower:}" />
                         </sequence>
                         <!-- In FAT32, this is the low two bytes of the first cluster (see 'ea index' for the high two bytes) -->
                         <reference name="first cluster" type="word" />
