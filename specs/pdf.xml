@@ -137,13 +137,9 @@
         </sequence>
 
         <sequence name="object reference">
-            <sequence name="object number">
-                <reference name="integer" />
-            </sequence>
+            <reference name="object number" type="integer" />
             <reference name="non breaking whitespace:" />
-            <sequence name="generation number">
-                <reference name="integer" />
-            </sequence>
+            <reference name="generation number" type="integer" />
             <reference name="non breaking whitespace:" />
             <field name="id:" length="8" type="text" value="R" />
         </sequence>
@@ -163,13 +159,9 @@
         </sequence>
 
         <sequence name="indirect object">
-            <sequence name="object number">
-                <reference name="integer" />
-            </sequence>
+            <reference name="object number" type="integer" />
             <reference name="whitespace" />
-            <sequence name="generation number">
-                <reference name="integer" />
-            </sequence>
+            <reference name="generation number" type="integer" />
             <reference name="whitespace" />
             <field name="obj:" length="24" type="text" value="obj" />
             <reference name="direct object:" />
@@ -229,26 +221,18 @@
 
         <choice name="cross reference entry">
             <sequence name="in use entry">
-                <sequence name="byte offset">
-                    <reference name="integer" />
-                </sequence>
+                <reference name="byte offset" type="integer" />
                 <reference name="whitespace" />
-                <sequence name="generation number">
-                    <reference name="integer" />
-                </sequence>
+                <reference name="generation number" type="integer" />
                 <reference name="optional whitespace:" />
                 <field name="n:" length="8" type="text" value="n" />
                 <reference name="cross reference end of line:" />
             </sequence>
 
             <sequence name="free entry">
-                <sequence name="object number of next free object">
-                    <reference name="integer" />
-                </sequence>
+                <reference name="object number of next free object" type="integer" />
                 <reference name="whitespace" />
-                <sequence name="generation number">
-                    <reference name="integer" />
-                </sequence>
+                <reference name="generation number" type="integer" />
                 <reference name="optional whitespace:" />
                 <field name="f:" length="8" type="text" value="f" />
                 <reference name="cross reference end of line:" />
@@ -257,13 +241,9 @@
 
         <sequence name="cross reference section">
             <reference name="optional whitespace:" />
-            <sequence name="object number of first section">
-                <reference name="integer" />
-            </sequence>
+            <reference name="object number of first section" type="integer" />
             <reference name="whitespace" />
-            <sequence name="number of entries">
-                <reference name="integer" />
-            </sequence>
+            <reference name="number of entries" type="integer" />
             <!-- We should use the value from 'number of entries', but it is
                 difficult to convert that text value to a numeric value we
                 can use. -->
@@ -312,9 +292,7 @@
             <reference name="optional whitespace:" />
             <field name="startxref:" length="72" type="text" value="startxref" />
             <reference name="optional whitespace:" />
-            <sequence name="cross reference table start address">
-                <reference name="integer" />
-            </sequence>
+            <reference name="cross reference table start address" type="integer" />
             <reference name="optional whitespace:" />
             <field name="eof:" length="40" type="text" value="%%EOF" />
             <reference name="optional whitespace:" />
