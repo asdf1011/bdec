@@ -188,7 +188,7 @@ http://staff.washington.edu/dittrich/misc/fatgen103.pdf.
 
         <!-- The two of the three types of allocation table entry (for
             FAT12, FAT16, but not FAT32). -->
-        <choice name="allocation table:fat 12:entry">
+        <choice name="allocation table fat 12 entry">
             <field name="free cluster" length="12" value="0x0" />
             <field name="next cluster" length="12" type="integer" min="0x2" max="0xFEF" />
             <field name="last cluster in file" length="12" min="0xFF8" max="0xFFF" />
@@ -197,7 +197,7 @@ http://staff.washington.edu/dittrich/misc/fatgen103.pdf.
             <field name="bad cluster" length="12" value="0xFF7" />
         </choice>
 
-        <choice name="allocation table:fat 16:entry">
+        <choice name="allocation table fat 16 entry">
             <field name="free cluster" length="16" value="0x0" />
             <field name="next cluster" length="16" type="integer" min="0x2" max="0xFFEF" />
             <field name="last cluster in file" length="16" min="0xFFF8" max="0xFFFF" />
@@ -230,7 +230,7 @@ http://staff.washington.edu/dittrich/misc/fatgen103.pdf.
                     <field name="expected:" length="4" value="0xf" />
                     <field name="end of file marker" length="12" />
                     <sequenceof name="cluster info" count="${num clusters:}">
-                        <reference name="allocation table:fat 12:entry" />
+                        <reference name="entry" type="allocation table fat 12 entry" />
                     </sequenceof>
                     <field name="unused" length="${bootsector.common.sectors per fat} * ${bootsector.common.initial fields:.bytes per sector} * 8 - len{cluster info} - 24" type="binary" />
                 </sequence>
@@ -253,7 +253,7 @@ http://staff.washington.edu/dittrich/misc/fatgen103.pdf.
                     <field name="expected:" length="8" value="0xff" />
                     <field name="end of file marker" length="16" type="hex" />
                     <sequenceof name="cluster info" count="${num clusters:}">
-                        <reference name="allocation table:fat 16:entry" />
+                        <reference name="entry" type="allocation table fat 16 entry" />
                     </sequenceof>
                     <field name="unused" length="${bootsector.common.sectors per fat} * ${bootsector.common.initial fields:.bytes per sector} * 8 - len{cluster info} - 32" type="hex" />
                 </sequence>
