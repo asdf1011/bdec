@@ -22,7 +22,7 @@ http://staff.washington.edu/dittrich/misc/fatgen103.pdf.
         </sequence>
 
         <!-- Fields that are common between FAT12 and FAT16 -->
-        <sequence name="bootsector:fat 12 and 16 common fields:">
+        <sequence name="bootsector fat 12 and 16 common fields">
             <reference name="initial fields:" />
             <field name="sectors per fat" length="16" type="integer" encoding="little endian" />
             <field name="sectors per track" length="16" type="integer" encoding="little endian" />
@@ -38,7 +38,7 @@ http://staff.washington.edu/dittrich/misc/fatgen103.pdf.
 
         <!-- The FAT12 bootsector -->
         <sequence name="bootsector fat 12">
-            <reference name="bootsector:fat 12 and 16 common fields:" />
+            <reference name="common" type="bootsector fat 12 and 16 common fields" />
             <field name="fat" length="64" type="text" encoding="ascii" value="FAT12   " />
             <field name="operating system boot code" length="3584" type="hex" />
             <field name="end of sector marker:" length="16" value="0x55aa" />
@@ -46,7 +46,7 @@ http://staff.washington.edu/dittrich/misc/fatgen103.pdf.
 
         <!-- The FAT16 bootsector -->
         <sequence name="bootsector fat 16">
-            <reference name="bootsector:fat 12 and 16 common fields:" />
+            <reference name="common" type="bootsector fat 12 and 16 common fields" />
             <field name="fat" length="64" type="text" encoding="ascii" value="FAT16   " />
             <field name="operating system boot code" length="3584" type="hex" />
             <field name="end of sector marker:" length="16" value="0x55aa" />
@@ -201,46 +201,46 @@ http://staff.washington.edu/dittrich/misc/fatgen103.pdf.
         <!-- A specification for a complete fat 12 filesystem. -->
         <sequence name="filesystem:fat 12:">
             <reference  name="bootsector" type="bootsector fat 12" />
-            <field name="reserved" length="(${bootsector.bootsector:fat 12 and 16 common fields:.initial fields:.reserved sector count} * ${bootsector.bootsector:fat 12 and 16 common fields:.initial fields:.bytes per sector} - 512) * 8" type="hex" />
-            <sequenceof name="file allocation tables" count="${bootsector.bootsector:fat 12 and 16 common fields:.initial fields:.number of file allocation tables}">
+            <field name="reserved" length="(${bootsector.common.initial fields:.reserved sector count} * ${bootsector.common.initial fields:.bytes per sector} - 512) * 8" type="hex" />
+            <sequenceof name="file allocation tables" count="${bootsector.common.initial fields:.number of file allocation tables}">
                 <sequence name="file allocation table">
                     <field name="media descriptor" length="8" />
                     <field name="expected:" length="4" value="0xf" />
                     <field name="end of file marker" length="12" />
-                    <sequenceof name="clusters" count="(${bootsector.bootsector:fat 12 and 16 common fields:.initial fields:.total sectors 16 bit} + ${bootsector.bootsector:fat 12 and 16 common fields:.total sectors 32 bit} - ${bootsector.bootsector:fat 12 and 16 common fields:.initial fields:.reserved sector count} - ${bootsector.bootsector:fat 12 and 16 common fields:.sectors per fat} * ${bootsector.bootsector:fat 12 and 16 common fields:.initial fields:.number of file allocation tables}) / ${bootsector.bootsector:fat 12 and 16 common fields:.initial fields:.sectors per cluster}">
+                    <sequenceof name="clusters" count="(${bootsector.common.initial fields:.total sectors 16 bit} + ${bootsector.common.total sectors 32 bit} - ${bootsector.common.initial fields:.reserved sector count} - ${bootsector.common.sectors per fat} * ${bootsector.common.initial fields:.number of file allocation tables}) / ${bootsector.common.initial fields:.sectors per cluster}">
                         <reference name="allocation table:fat 12:entry" />
                     </sequenceof>
-                    <field name="unused" length="${bootsector.bootsector:fat 12 and 16 common fields:.sectors per fat} * ${bootsector.bootsector:fat 12 and 16 common fields:.initial fields:.bytes per sector} * 8 - len{clusters} - 24" type="binary" />
+                    <field name="unused" length="${bootsector.common.sectors per fat} * ${bootsector.common.initial fields:.bytes per sector} * 8 - len{clusters} - 24" type="binary" />
                 </sequence>
             </sequenceof>
             <reference name="directory" />
-            <field name="unused" length="(${bootsector.bootsector:fat 12 and 16 common fields:.initial fields:.sectors per cluster} * ${bootsector.bootsector:fat 12 and 16 common fields:.initial fields:.bytes per sector}) * 8 - len{directory}" type="hex" />
+            <field name="unused" length="(${bootsector.common.initial fields:.sectors per cluster} * ${bootsector.common.initial fields:.bytes per sector}) * 8 - len{directory}" type="hex" />
 
-            <sequenceof name="clusters" count="(${bootsector.bootsector:fat 12 and 16 common fields:.initial fields:.total sectors 16 bit} + ${bootsector.bootsector:fat 12 and 16 common fields:.total sectors 32 bit} - ${bootsector.bootsector:fat 12 and 16 common fields:.initial fields:.reserved sector count} - ${bootsector.bootsector:fat 12 and 16 common fields:.sectors per fat} * ${bootsector.bootsector:fat 12 and 16 common fields:.initial fields:.number of file allocation tables}) / ${bootsector.bootsector:fat 12 and 16 common fields:.initial fields:.sectors per cluster} - 1">
-                <field name="cluster" length="${bootsector.bootsector:fat 12 and 16 common fields:.initial fields:.sectors per cluster} * ${bootsector.bootsector:fat 12 and 16 common fields:.initial fields:.bytes per sector} * 8" type="hex" />
+            <sequenceof name="clusters" count="(${bootsector.common.initial fields:.total sectors 16 bit} + ${bootsector.common.total sectors 32 bit} - ${bootsector.common.initial fields:.reserved sector count} - ${bootsector.common.sectors per fat} * ${bootsector.common.initial fields:.number of file allocation tables}) / ${bootsector.common.initial fields:.sectors per cluster} - 1">
+                <field name="cluster" length="${bootsector.common.initial fields:.sectors per cluster} * ${bootsector.common.initial fields:.bytes per sector} * 8" type="hex" />
             </sequenceof>
         </sequence>
         
         <!-- A specification for a complete fat 16 filesystem. -->
         <sequence name="filesystem:fat 16:">
             <reference name="bootsector" type="bootsector fat 16" />
-            <field name="reserved" length="(${bootsector.bootsector:fat 12 and 16 common fields:.initial fields:.reserved sector count} * ${bootsector.bootsector:fat 12 and 16 common fields:.initial fields:.bytes per sector} - 512) * 8" type="hex" />
-            <sequenceof name="file allocation tables" count="${bootsector.bootsector:fat 12 and 16 common fields:.initial fields:.number of file allocation tables}">
+            <field name="reserved" length="(${bootsector.common.initial fields:.reserved sector count} * ${bootsector.common.initial fields:.bytes per sector} - 512) * 8" type="hex" />
+            <sequenceof name="file allocation tables" count="${bootsector.common.initial fields:.number of file allocation tables}">
                 <sequence name="file allocation table">
                     <field name="media descriptor" length="8" />
                     <field name="expected:" length="8" value="0xff" />
                     <field name="end of file marker" length="16" type="hex" />
-                    <sequenceof name="clusters" count="(${bootsector.bootsector:fat 12 and 16 common fields:.initial fields:.total sectors 16 bit} + ${bootsector.bootsector:fat 12 and 16 common fields:.total sectors 32 bit} - ${bootsector.bootsector:fat 12 and 16 common fields:.initial fields:.reserved sector count} - ${bootsector.bootsector:fat 12 and 16 common fields:.sectors per fat} * ${bootsector.bootsector:fat 12 and 16 common fields:.initial fields:.number of file allocation tables}) / ${bootsector.bootsector:fat 12 and 16 common fields:.initial fields:.sectors per cluster}">
+                    <sequenceof name="clusters" count="(${bootsector.common.initial fields:.total sectors 16 bit} + ${bootsector.common.total sectors 32 bit} - ${bootsector.common.initial fields:.reserved sector count} - ${bootsector.common.sectors per fat} * ${bootsector.common.initial fields:.number of file allocation tables}) / ${bootsector.common.initial fields:.sectors per cluster}">
                         <reference name="allocation table:fat 16:entry" />
                     </sequenceof>
-                    <field name="unused" length="${bootsector.bootsector:fat 12 and 16 common fields:.sectors per fat} * ${bootsector.bootsector:fat 12 and 16 common fields:.initial fields:.bytes per sector} * 8 - len{clusters} - 32" type="hex" />
+                    <field name="unused" length="${bootsector.common.sectors per fat} * ${bootsector.common.initial fields:.bytes per sector} * 8 - len{clusters} - 32" type="hex" />
                 </sequence>
             </sequenceof>
             <reference name="directory" />
-            <field name="unused" length="(${bootsector.bootsector:fat 12 and 16 common fields:.initial fields:.sectors per cluster} * ${bootsector.bootsector:fat 12 and 16 common fields:.initial fields:.bytes per sector}) * 8 - len{directory}" type="hex" />
+            <field name="unused" length="(${bootsector.common.initial fields:.sectors per cluster} * ${bootsector.common.initial fields:.bytes per sector}) * 8 - len{directory}" type="hex" />
 
-            <sequenceof name="clusters" count="(${bootsector.bootsector:fat 12 and 16 common fields:.initial fields:.total sectors 16 bit} + ${bootsector.bootsector:fat 12 and 16 common fields:.total sectors 32 bit} - ${bootsector.bootsector:fat 12 and 16 common fields:.initial fields:.reserved sector count} - ${bootsector.bootsector:fat 12 and 16 common fields:.sectors per fat} * ${bootsector.bootsector:fat 12 and 16 common fields:.initial fields:.number of file allocation tables}) / ${bootsector.bootsector:fat 12 and 16 common fields:.initial fields:.sectors per cluster} - 1">
-                <field name="cluster" length="${bootsector.bootsector:fat 12 and 16 common fields:.initial fields:.sectors per cluster} * ${bootsector.bootsector:fat 12 and 16 common fields:.initial fields:.bytes per sector} * 8" type="hex" />
+            <sequenceof name="clusters" count="(${bootsector.common.initial fields:.total sectors 16 bit} + ${bootsector.common.total sectors 32 bit} - ${bootsector.common.initial fields:.reserved sector count} - ${bootsector.common.sectors per fat} * ${bootsector.common.initial fields:.number of file allocation tables}) / ${bootsector.common.initial fields:.sectors per cluster} - 1">
+                <field name="cluster" length="${bootsector.common.initial fields:.sectors per cluster} * ${bootsector.common.initial fields:.bytes per sector} * 8" type="hex" />
             </sequenceof>
         </sequence>
 
