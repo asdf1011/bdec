@@ -8,27 +8,31 @@ http://staff.washington.edu/dittrich/misc/fatgen103.pdf.
 -->
 <protocol>
     <common>
+        <field name="byte" length="8" type="integer" />
+        <field name="word" length="16" type="integer" encoding="little endian" />
+        <field name="dword" length="32" type="integer" encoding="little endian" />
+
         <!-- These are the initial fields all FAT filesystems -->
         <sequence name="initial fields:">
             <field name="jump instruction" length="24" type="hex" />
             <field name="oem name" length="64" type="text" />
-            <field name="bytes per sector" length="16" type="integer" encoding="little endian"/>
-            <field name="sectors per cluster" length="8" type="integer" />
-            <field name="reserved sector count" length="16" type="integer" encoding="little endian" />
-            <field name="number of file allocation tables" length="8" type="integer" />
-            <field name="max root directory entries" length="16" type="integer" encoding="little endian" />
-            <field name="total sectors 16 bit" length="16" type="integer" encoding="little endian" />
+            <reference name="bytes per sector" type="word" />
+            <reference name="sectors per cluster" type="byte" />
+            <reference name="reserved sector count" type="word" />
+            <reference name="number of file allocation tables" type="byte" />
+            <reference name="max root directory entries" type="word" />
+            <reference name="total sectors 16 bit" type="word" />
             <field name="media descriptor" length="8" />
         </sequence>
 
         <!-- Fields that are common between FAT12 and FAT16 -->
         <sequence name="bootsector fat 12 and 16 common fields">
             <reference name="initial fields:" />
-            <field name="sectors per fat" length="16" type="integer" encoding="little endian" />
-            <field name="sectors per track" length="16" type="integer" encoding="little endian" />
-            <field name="number of heads" length="16" type="integer" encoding="little endian" />
-            <field name="hidden sectors" length="32" type="integer" encoding="little endian" />
-            <field name="total sectors 32 bit" length="32" type="integer" encoding="little endian" />
+            <reference name="sectors per fat" type="word" />
+            <reference name="sectors per track" type="word" />
+            <reference name="number of heads" type="word" />
+            <reference name="hidden sectors" type="dword" />
+            <reference name="total sectors 32 bit" type="dword" />
             <field name="physical drive number" length="8" />
             <field name="reserved" length="8" />
             <field name="signature" length="8" />
@@ -59,23 +63,23 @@ http://staff.washington.edu/dittrich/misc/fatgen103.pdf.
         <sequence name="bootsector fat 32">
             <sequence name="common">
                 <reference name="initial fields:" />
-                <field name="unused" length="16" type="integer" encoding="little endian" />
-                <field name="sectors per track" length="16" type="integer" encoding="little endian" />
-                <field name="number of heads" length="16" type="integer" encoding="little endian" />
-                <field name="hidden sectors" length="32" type="integer" encoding="little endian" />
-                <field name="total sectors 32 bit" length="32" type="integer" encoding="little endian" />
+                <reference name="unused" type="word" />
+                <reference name="sectors per track" type="word" />
+                <reference name="number of heads" type="word" />
+                <reference name="hidden sectors" type="dword" />
+                <reference name="total sectors 32 bit" type="dword" />
 
-                <field name="sectors per fat" length="32" type="integer" encoding="little endian" />
-                <field name="fat flags" length="16" type="integer" encoding="little endian" />
-                <field name="version" length="16" type="integer" encoding="little endian" />
-                <field name="cluster number of root directory start" length="32" type="integer" encoding="little endian" />
-                <field name="sector number of FS Information Sector" length="16" type="integer" encoding="little endian" />
-                <field name="sector number of a copy of this boot sector" length="16" type="integer" encoding="little endian" />
+                <reference name="sectors per fat" type="dword" />
+                <reference name="fat flags" type="word" />
+                <reference name="version" type="word" />
+                <reference name="cluster number of root directory start" type="dword" />
+                <reference name="sector number of FS Information Sector" type="word" />
+                <reference name="sector number of a copy of this boot sector" type="word" />
                 <field name="reserved" length="96" type="integer" encoding="little endian" />
-                <field name="physical drive number" length="8" type="integer" encoding="little endian" />
-                <field name="reserved" length="8" type="integer" encoding="little endian" />
-                <field name="signature" length="8" type="integer" encoding="little endian" />
-                <field name="id (serial number)" length="32" type="integer" encoding="little endian" />
+                <reference name="physical drive number" type="byte" />
+                <reference name="reserved" type="byte" />
+                <reference name="signature" type="byte" />
+                <reference name="id (serial number)" type="dword" />
                 <field name="volume label" length="88" type="text" encoding="ascii" />
 
                 <!-- An empty sequence to provide a 'helper' total sectors variable. -->
@@ -121,11 +125,11 @@ http://staff.washington.edu/dittrich/misc/fatgen103.pdf.
                     </sequence>
 
                     <sequence name="long filename">
-                        <field name="sequence number" length="8" type="integer" />
+                        <reference name="sequence number" type="byte" />
                         <field name="chars 1" length="80" type="text" encoding="utf-16" />
                         <field name="attributes:" length="8" value="0xf" />
                         <field name="reserved:" length="8" />
-                        <field name="checksum" length="8" type="integer" />
+                        <reference name="checksum" type="byte" />
                         <field name="chars 2" length="96" type="text" encoding="utf-16" />
                         <field name="unused:" length="16" value="0x0" />
                         <field name="chars 3" length="32" type="text" encoding="utf-16" />
@@ -149,7 +153,7 @@ http://staff.washington.edu/dittrich/misc/fatgen103.pdf.
                         <field name="lowercase basename" length="1" />
                         <field name="ignore 2" length="2" type="integer" />
                         <sequence name="create timestamp">
-                            <field name="centiseconds" length="8" type="integer" />
+                            <reference name="centiseconds" type="byte" />
                             <field name="minute lower" length="3" type="integer" />
                             <field name="two seconds" length="5" type="integer" />
                             <field name="hour" length="5" type="integer" />
@@ -166,7 +170,7 @@ http://staff.washington.edu/dittrich/misc/fatgen103.pdf.
                             <field name="month upper" length="1" type="integer" />
                         </sequence>
                         <!-- In FAT32, this is the high two bytes of the cluster number -->
-                        <field name="ea index" length="16" type="integer" encoding="little endian" />
+                        <reference name="ea index" type="word" />
                         <sequence name="modified timestamp">
                             <field name="minute lower" length="3" type="integer" />
                             <field name="two seconds" length="5" type="integer" />
@@ -179,8 +183,8 @@ http://staff.washington.edu/dittrich/misc/fatgen103.pdf.
                             <field name="month upper" length="1" type="integer" />
                         </sequence>
                         <!-- In FAT32, this is the low two bytes of the first cluster (see 'ea index' for the high two bytes) -->
-                        <field name="first cluster" length="16" type="integer" encoding="little endian" />
-                        <field name="file size" length="32" type="integer" encoding="little endian" />
+                        <reference name="first cluster" type="word" />
+                        <reference name="file size" type="dword" />
                     </sequence>
                 </choice>
             </sequenceof>
