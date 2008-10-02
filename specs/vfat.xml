@@ -214,12 +214,16 @@ http://staff.washington.edu/dittrich/misc/fatgen103.pdf.
             <field name="cluster" length="${bootsector.common.initial fields:.sectors per cluster} * ${bootsector.common.initial fields:.bytes per sector} * 8" type="hex" />
         </sequenceof>
 
+        <sequence name="reserved section">
+            <field name="data" length="(${bootsector.common.initial fields:.reserved sector count} * ${bootsector.common.initial fields:.bytes per sector} - 512) * 8" type="hex" />
+        </sequence>
+
         <!-- A specification for a complete fat 12 filesystem. -->
         <sequence name="filesystem:fat 12:">
             <reference  name="bootsector" type="bootsector fat 12" />
             <reference name="num clusters:" />
+            <reference name="reserved section" />
 
-            <field name="reserved" length="(${bootsector.common.initial fields:.reserved sector count} * ${bootsector.common.initial fields:.bytes per sector} - 512) * 8" type="hex" />
             <sequenceof name="file allocation tables" count="${bootsector.common.initial fields:.number of file allocation tables}">
                 <sequence name="file allocation table">
                     <field name="media descriptor" length="8" />
@@ -241,7 +245,8 @@ http://staff.washington.edu/dittrich/misc/fatgen103.pdf.
         <sequence name="filesystem:fat 16:">
             <reference name="bootsector" type="bootsector fat 16" />
             <reference name="num clusters:" />
-            <field name="reserved" length="(${bootsector.common.initial fields:.reserved sector count} * ${bootsector.common.initial fields:.bytes per sector} - 512) * 8" type="hex" />
+            <reference name="reserved section" />
+
             <sequenceof name="file allocation tables" count="${bootsector.common.initial fields:.number of file allocation tables}">
                 <sequence name="file allocation table">
                     <field name="media descriptor" length="8" />
@@ -264,7 +269,7 @@ http://staff.washington.edu/dittrich/misc/fatgen103.pdf.
             <reference name="bootsector" type="bootsector fat 32" />
             <reference name="num clusters:" />
 
-            <field name="reserved" length="(${bootsector.common.initial fields:.reserved sector count} * ${bootsector.common.initial fields:.bytes per sector} - 512) * 8" type="hex" />
+            <reference name="reserved section" />
             <sequenceof name="file allocation tables" count="${bootsector.common.initial fields:.number of file allocation tables}">
                 <sequence name="file allocation table">
                     <field name="media descriptor" length="8" />
