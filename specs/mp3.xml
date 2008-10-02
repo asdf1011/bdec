@@ -18,8 +18,8 @@
 
         <sequence name="id3v2:frame">
             <field name="id" length="32" type="text" />
-            <reference name="syncsafe integer:" />
-            <sequence name="contents:" length="${syncsafe integer:} * 8 + 16">
+            <reference name="frame length:" type="syncsafe integer:" />
+            <sequence name="contents:" length="${frame length:} * 8 + 16">
                 <sequence name="status flags">
                     <choice name="tag alter preservation" >
                         <field name="preserve" length="1" value="0x0" />
@@ -43,20 +43,20 @@
                 <choice name="contents">
                     <sequence name="iso-8859-1:">
                         <field name="id:" length="8" value="0x0" />
-                        <field name="text" length="${syncsafe integer:} * 8 - 8" type="text" encoding="iso-8859-1" />
+                        <field name="text" length="${frame length:} * 8 - 8" type="text" encoding="iso-8859-1" />
                     </sequence>
                     <sequence name="utf16-bom:">
                         <choice name="utf id:">
                             <field name="id:" length="8" value="0x1" />
                             <field name="id:" length="8" value="0x2" />
                         </choice>
-                        <field name="text" length="${syncsafe integer:} * 8 - 8" type="text" encoding="utf-16-be" />
+                        <field name="text" length="${frame length:} * 8 - 8" type="text" encoding="utf-16-be" />
                     </sequence>
                     <sequence name="utf8:">
                         <field name="id:" length="8" value="0x3" />
-                        <field name="text" length="${syncsafe integer:} * 8 - 8" type="text" encoding="utf-8" />
+                        <field name="text" length="${frame length:} * 8 - 8" type="text" encoding="utf-8" />
                     </sequence>
-                    <field name="data" length="${syncsafe integer:} * 8" type="hex" />
+                    <field name="data" length="${frame length:} * 8" type="hex" />
                 </choice>
             </sequence>
         </sequence>
@@ -72,10 +72,8 @@
                 <field name="footer present" length="1" />
                 <field name="unused" length="4" />
             </sequence>
-            <sequence name="total frames length:">
-                <reference name="syncsafe integer:" />
-            </sequence>
-            <sequenceof name="frames" length="${total frames length:.syncsafe integer:} * 8">
+            <reference name="total frames length:" type="syncsafe integer:" />
+            <sequenceof name="frames" length="${total frames length:} * 8">
                 <reference name="id3v2:frame" />
             </sequenceof>
         </sequence>
