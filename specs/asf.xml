@@ -1,9 +1,14 @@
 <protocol>
     <common>
+        <field name="byte" length="8" type="integer" />
+        <field name="word" length="16" type="integer" encoding="little endian" />
+        <field name="dword" length="32" type="integer" encoding="little endian" />
+        <field name="long long" length="64" type="integer" encoding="little endian" />
+
         <sequence name="header">
             <field name="guid:" length="128" value="0x3026B2758E66CF11A6D900AA0062CE6C" type="hex" />
-            <field name="size:" length="64" type="integer" encoding="little endian" />
-            <field name="object count:" length="32" type="integer" encoding="little endian" />
+            <reference name="size:" type="long long" />
+            <reference name="object count:" type="dword" />
             <field name="reserved 1" length="8" />
             <field name="reserved 2" length="8" value="0x2" />
             <sequenceof name="objects" count="${object count:}" length="${size:} * 8 - 240">
@@ -15,67 +20,67 @@
             <field name="guid:" length="128" value="0xA1DCAB8C47A9CF118EE400C00C205365" />
             <field name="size:" length="64" type="integer" encoding="little endian" value="104" />
             <field name="guid" length="128" type="hex" />
-            <field name="file size" length="64" type="integer" encoding="little endian" />
-            <field name="creation date" length="64" type="integer" encoding="little endian" />
-            <field name="packet count" length="64" type="integer" encoding="little endian" />
-            <field name="play duration" length="64" type="integer" encoding="little endian" />
-            <field name="send duration" length="64" type="integer" encoding="little endian" />
-            <field name="preroll" length="64" type="integer" encoding="little endian" />
+            <reference name="file size" type="long long" />
+            <reference name="creation date" type="long long" />
+            <reference name="packet count" type="long long" />
+            <reference name="play duration" type="long long" />
+            <reference name="send duration" type="long long" />
+            <reference name="preroll" type="long long" />
             <field name="broadcast" length="1" type="integer" />
             <field name="seekable" length="1" type="integer" />
             <field name="reserved" length="30" />
-            <field name="min packet size" length="32" type="integer" encoding="little endian" />
+            <reference name="min packet size" type="dword" />
             <!-- Max packet size needs to be referenced by data.data packets.data packet.payload.data, but
                 currently cannot be (see issue22 and issue32). We currently hard code this to a size that
                 has been seen in several wma files. This hard coded value of 5976 is used later in the
                 file. -->
-            <!--<field name="max packet size" length="32" type="integer" encoding="little endian" />-->
+            <!--<reference name="max packet size" type="dword" />-->
             <field name="max packet size" length="32" type="integer" encoding="little endian" value="5976"/>
-            <field name="max bitrate" length="32" type="integer" encoding="little endian" />
+            <reference name="max bitrate" type="dword" />
         </sequence>
 
         <sequence name="extended content description">
             <field name="guid:" length="128" value="0x40A4D0D207E3D21197F000A0C95EA850" type="hex" />
-            <field name="size:" length="64" type="integer" encoding="little endian" />
-            <field name="count:" length="16" type="integer" encoding="little endian" />
+            <reference name="size:" type="long long" />
+            <reference name="count:" type="word" />
             <sequenceof name="descriptors" count="${count:}" length="${size:} * 8 - 208">
                 <sequence name="descriptor">
-                    <field name="length:" length="16" type="integer" encoding="little endian" />
+                    <reference name="length:" type="word" />
                     <field name="name" length="${length:} * 8" type="text" encoding="UTF-16-LE" />
                     <choice name="value">
                         <sequence name="unicode">
                             <field name="id:" length="16" value="0x0000" />
-                            <field name="value size:" length="16" type="integer" encoding="little endian" />
+                            <reference name="value size:" type="word" />
                             <field name="value" length="${value size:} * 8" type="text" encoding="UTF-16-LE" />
                         </sequence>
                         <sequence name="BOOL">
                             <field name="id:" length="16" value="0x0200" />
                             <field name="value size:" length="16" value="0x0400" />
-                            <field name="value" length="32" type="integer" encoding="little endian" />
+                            <reference name="value" type="dword" />
                         </sequence>
                         <sequence name="WORD">
                             <field name="id:" length="16" value="0x0500" />
                             <field name="value size:" length="16" value="0x0200" />
-                            <field name="value" length="16" type="integer" encoding="little endian" />
+                            <reference name="value" type="word" />
                         </sequence>
                         <sequence name="DWORD">
                             <field name="id:" length="16" value="0x0300" />
                             <field name="value size:" length="16" value="0x0400" />
-                            <field name="value" length="32" type="integer" encoding="little endian" />
+                            <reference name="value" type="dword" />
                         </sequence>
                         <sequence name="QWORD">
                             <field name="id:" length="16" value="0x0400" />
                             <field name="value size:" length="16" value="0x0800" />
-                            <field name="value" length="64" type="integer" encoding="little endian" />
+                            <reference name="value" type="long long" />
                         </sequence>
                         <sequence name="byte array">
                             <field name="id" length="16" value="0x0100" />
-                            <field name="value size:" length="16" type="integer" encoding="little endian" />
+                            <reference name="value size:" type="word" />
                             <field name="value" length="${value size:} * 8" type="hex" />
                         </sequence>
                         <sequence name="unknown">
-                            <field name="id" length="16" type="integer" encoding="little endian" />
-                            <field name="value size:" length="16" type="integer" encoding="little endian" />
+                            <reference name="id" type="word" />
+                            <reference name="value size:" type="word" />
                             <field name="value" length="${value size:} * 8" type="hex" />
                         </sequence>
                     </choice>
@@ -85,31 +90,31 @@
 
         <sequence name="header extension">
             <field name="guid:" length="128" value="0xB503BF5F2EA9CF118EE300C00C205365" />
-            <field name="size:" length="64" type="integer" encoding="little endian" />
+            <reference name="size:" type="long long" />
             <sequence name="contents:" length="${size:} * 8 - 192">
                 <field name="guid:" length="128" value="0x11D2D3ABBAA9cf118EE600C00C205365" />
                 <field name="reserved:" length="16" type="integer" encoding="little endian" value="0x0600" />
-                <field name="data size:" length="32" type="integer" encoding="little endian" />
+                <reference name="data size:" type="dword" />
                 <field name="data" length="${data size:} * 8" type="hex" />
             </sequence>
         </sequence>
 
         <sequence name="codec list">
             <field name="guid:" length="128" value="0x4052D1861D31D011A3A400A0C90348F6" />
-            <field name="size:" length="64" type="integer" encoding="little endian" />
+            <reference name="size:" type="long long" />
             <field name="guid" length="128" type="hex" />
-            <field name="count:" length="32" type="integer" encoding="little endian" />
+            <reference name="count:" type="dword" />
             <sequenceof name="codecs" count="${count:}" length="${size:} * 8 - 352">
                 <sequence name="codec">
                     <choice name="type">
                         <field name="video" length="16" value="0x0100" />
                         <field name="audio" length="16" value="0x0200" />
                     </choice>
-                    <field name="name length:" length="16" type="integer" encoding="little endian" />
+                    <reference name="name length:" type="word" />
                     <field name="name" length="${name length:} * 2 * 8" type="text" encoding="UTF-16-LE" />
-                    <field name="description length:" length="16" type="integer" encoding="little endian" />
+                    <reference name="description length:" type="word" />
                     <field name="description" length="${description length:} * 2 * 8" type="text" encoding="UTF-16-LE" />
-                    <field name="info length:" length="16" type="integer" encoding="little endian" />
+                    <reference name="info length:" type="word" />
                     <field name="info" length="${info length:} * 8" type="hex" />
                 </sequence>
             </sequenceof>
@@ -117,13 +122,13 @@
 
         <sequence name="stream property">
             <field name="guid:" length="128" value="0x9107DCB7B7A9CF118EE600C00C205365" />
-            <field name="size:" length="64" type="integer" encoding="little endian" />
+            <reference name="size:" type="long long" />
             <sequence name="contents:" length="${size:} * 8 - 192">
                 <field name="guid" length="128" type="hex" />
                 <field name="error correction" length="128" type="hex" />
-                <field name="time offset" length="64" type="integer" encoding="little endian" />
-                <field name="data length:" length="32" type="integer" encoding="little endian" />
-                <field name="error correction length:" length="32" type="integer" encoding="little endian" />
+                <reference name="time offset" type="long long" />
+                <reference name="data length:" type="dword" />
+                <reference name="error correction length:" type="dword" />
                 <field name="stream index" length="7" type="integer" />
                 <field name="reserved" length="8" />
                 <field name="encrypted" length="1" type="integer" />
@@ -135,26 +140,26 @@
 
         <sequence name="bitrate list">
             <field name="guid:" length="128" value="0xCE75F87B8D46D1118D82006097C9A2B2" />
-            <field name="size:" length="64" type="integer" encoding="little endian" />
-            <field name="count:" length="16" type="integer" encoding="little endian" />
+            <reference name="size:" type="long long" />
+            <reference name="count:" type="word" />
             <sequenceof name="bit rates" count="${count:}" length="${size:} * 8 - 208">
                 <sequence name="bit rate">
                     <field name="stream index" length="7" type="integer" />
                     <field name="padding" length="9" type="integer" />
-                    <field name="average bitrate" length="32" type="integer" encoding="little endian" />
+                    <reference name="average bitrate" type="dword" />
                 </sequence>
             </sequenceof>
         </sequence>
 
         <sequence name="metadata">
             <field name="guid:" length="128" value="0x3326B2758E66CF11A6D900AA0062CE6C" />
-            <field name="size:" length="64" type="integer" encoding="little endian" />
+            <reference name="size:" type="long long" />
             <sequence  name="contents:" length="${size:} * 8 - 192" >
-                <field name="title size:" length="16" type="integer" encoding="little endian" />
-                <field name="author size:" length="16" type="integer" encoding="little endian" />
-                <field name="copyright size:" length="16" type="integer" encoding="little endian" />
-                <field name="xxx size:" length="16" type="integer" encoding="little endian" />
-                <field name="yyy size:" length="16" type="integer" encoding="little endian" />
+                <reference name="title size:" type="word" />
+                <reference name="author size:" type="word" />
+                <reference name="copyright size:" type="word" />
+                <reference name="xxx size:" type="word" />
+                <reference name="yyy size:" type="word" />
 
                 <field name="title" length="${title size:} * 8" type="text" encoding="UTF-16-LE" />
                 <field name="author" length="${author size:} * 8" type="text" encoding="UTF-16-LE" />
@@ -166,9 +171,9 @@
 
         <sequence name="data">
             <field name="guid:" length="128" value="0x3626B2758E66CF11A6D900AA0062CE6C" />
-            <field name="size:" length="64" type="integer" encoding="little endian" />
+            <reference name="size:" type="long long" />
             <field name="guid" length="128" type="hex" />
-            <field name="packet count:" length="64" type="integer" encoding="little endian" />
+            <reference name="packet count:" type="long long" />
             <field name="reserved" length="16" value="0x0101" />
             <sequenceof name="data packets" count="${packet count:}" length="${size:} * 8 - 400">
                 <sequence name="data packet">
@@ -186,7 +191,7 @@
                                         <field name="xor data" length="4" value="0x0" />
                                         <field name="parity data" length="4" value="0x0" />
                                     </choice>
-                                    <field name="cycle" length="8" type="integer" />
+                                    <reference name="cycle" type="byte" />
                                     <field name="data" length="${data length:} * 8 - 16" />
                                 </sequence>
                                 <field name="payload error correction presnt bit:ignore" length="1" />
@@ -205,16 +210,16 @@
                         <field name="replicated data length type" length="2" value="0x1" />
                         
                         <field name="padding length" length="8" />
-                        <field name="send time" length="32" type="integer" encoding="little endian" />
-                        <field name="duration" length="16" type="integer" encoding="little endian" />
+                        <reference name="send time" type="dword" />
+                        <reference name="duration" type="word" />
                     </sequence>
                     <sequence name="payload">
                         <sequence name="payload header:">
                             <field name="key frame" length="1" />
                             <field name="stream number" length="7" type="integer" />
-                            <field name="media object number" length="8" type="integer" />
+                            <reference name="media object number" type="byte" />
                             <field name="offset into media object" length="32" type="integer" />
-                            <field name="replicated data length:" length="8" type="integer" />
+                            <reference name="replicated data length:" type="byte" />
                             <field name="replicated data" length="${replicated data length:} * 8" type="hex" />
                         </sequence>
                         <!-- We need to reference the 'max packet size' in the 'file property' header
@@ -238,7 +243,7 @@
             <reference name="stream property" />
             <!--<sequence name="unknown">
                 <field name="guid" length="128" type="hex" />
-                <field name="length:" length="64" type="integer" encoding="little endian" />
+                <reference name="length:" type="long long" />
                 <field name="data" length="${length:} * 8 - 192" />
             </sequence>-->
         </choice>
