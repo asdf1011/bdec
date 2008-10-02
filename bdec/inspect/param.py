@@ -152,6 +152,9 @@ class _VariableParam:
     def __eq__(self, other):
         return self.reference.name == other.reference.name and self.direction == other.direction
 
+    def __str__(self):
+        return "%s %s" % (self.direction, self.reference)
+
 
 class ExpressionParameters(_Parameters):
     """

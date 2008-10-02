@@ -35,7 +35,7 @@ class ExpressionError(bdec.spec.LoadError):
     def __str__(self):
         return str(self.error)
 
-class Expression:
+class Expression(object):
     def evaluate(self, context):
         raise NotImplementedError
 
@@ -57,6 +57,9 @@ class Delayed(Expression):
     def evaluate(self, context):
         return self.op(self.left.evaluate(context), self.right.evaluate(context))
 
+    def __str__(self):
+        return '(%s %s %s)' % (self.left, self.op, self.right)
+
 
 class Constant(Expression):
     def __init__(self, value):
@@ -64,6 +67,9 @@ class Constant(Expression):
         
     def evaluate(self, context):
         return self.value
+
+    def __str__(self):
+        return str(self.value)
 
 
 class ValueResult(Expression):
@@ -80,6 +86,9 @@ class ValueResult(Expression):
         except KeyError:
             raise UndecodedReferenceError()
 
+    def __str__(self):
+        return self.name
+
 
 class LengthResult(Expression):
     """
@@ -94,6 +103,9 @@ class LengthResult(Expression):
             return context[self.name + ' length']
         except KeyError:
             raise UndecodedReferenceError()
+
+    def __str__(self):
+        return "%s length" % self.name
 
 
 def _half(op):
