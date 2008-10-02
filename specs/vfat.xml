@@ -57,31 +57,33 @@ http://staff.washington.edu/dittrich/misc/fatgen103.pdf.
 
         <!-- The FAT32 bootsector -->
         <sequence name="bootsector fat 32">
-            <reference name="initial fields:" />
-            <field name="unused" length="16" type="integer" encoding="little endian" />
-            <field name="sectors per track" length="16" type="integer" encoding="little endian" />
-            <field name="number of heads" length="16" type="integer" encoding="little endian" />
-            <field name="hidden sectors" length="32" type="integer" encoding="little endian" />
-            <field name="total sectors 32 bit" length="32" type="integer" encoding="little endian" />
+            <sequence name="common">
+                <reference name="initial fields:" />
+                <field name="unused" length="16" type="integer" encoding="little endian" />
+                <field name="sectors per track" length="16" type="integer" encoding="little endian" />
+                <field name="number of heads" length="16" type="integer" encoding="little endian" />
+                <field name="hidden sectors" length="32" type="integer" encoding="little endian" />
+                <field name="total sectors 32 bit" length="32" type="integer" encoding="little endian" />
 
-            <field name="sectors per fat" length="32" type="integer" encoding="little endian" />
-            <field name="fat flags" length="16" type="integer" encoding="little endian" />
-            <field name="version" length="16" type="integer" encoding="little endian" />
-            <field name="cluster number of root directory start" length="32" type="integer" encoding="little endian" />
-            <field name="sector number of FS Information Sector" length="16" type="integer" encoding="little endian" />
-            <field name="sector number of a copy of this boot sector" length="16" type="integer" encoding="little endian" />
-            <field name="reserved" length="96" type="integer" encoding="little endian" />
-            <field name="physical drive number" length="8" type="integer" encoding="little endian" />
-            <field name="reserved" length="8" type="integer" encoding="little endian" />
-            <field name="signature" length="8" type="integer" encoding="little endian" />
-            <field name="id (serial number)" length="32" type="integer" encoding="little endian" />
-            <field name="volume label" length="88" type="text" encoding="ascii" />
+                <field name="sectors per fat" length="32" type="integer" encoding="little endian" />
+                <field name="fat flags" length="16" type="integer" encoding="little endian" />
+                <field name="version" length="16" type="integer" encoding="little endian" />
+                <field name="cluster number of root directory start" length="32" type="integer" encoding="little endian" />
+                <field name="sector number of FS Information Sector" length="16" type="integer" encoding="little endian" />
+                <field name="sector number of a copy of this boot sector" length="16" type="integer" encoding="little endian" />
+                <field name="reserved" length="96" type="integer" encoding="little endian" />
+                <field name="physical drive number" length="8" type="integer" encoding="little endian" />
+                <field name="reserved" length="8" type="integer" encoding="little endian" />
+                <field name="signature" length="8" type="integer" encoding="little endian" />
+                <field name="id (serial number)" length="32" type="integer" encoding="little endian" />
+                <field name="volume label" length="88" type="text" encoding="ascii" />
+
+                <!-- An empty sequence to provide a 'helper' total sectors variable. -->
+                <sequence name="total sectors:" value="${total sectors 32 bit} + ${initial fields:.total sectors 16 bit}" />
+            </sequence>
             <field name="fat" length="64" type="text" encoding="ascii" value="FAT32   " />
             <field name="operating system boot code" length="3360" type="integer" encoding="little endian" />
             <field name="end of sector marker" length="16" value="0x55aa" />
-
-            <!-- An empty sequence to provide a 'helper' total sectors variable. -->
-            <sequence name="total sectors:" value="${total sectors 32 bit} + ${initial fields:.total sectors 16 bit}" />
         </sequence>
 
         <!-- An entry capable of decoding all FAT bootsectors (this entry is used by the fatfuse filesystem) -->
@@ -260,25 +262,25 @@ http://staff.washington.edu/dittrich/misc/fatgen103.pdf.
         <!-- A specification for a complete fat 32 filesystem. -->
         <sequence name="filesystem:fat 32:">
             <reference name="bootsector" type="bootsector fat 32" />
-            <field name="reserved" length="(${bootsector.initial fields:.reserved sector count} * ${bootsector.initial fields:.bytes per sector} - 512) * 8" type="hex" />
-            <sequenceof name="file allocation tables" count="${bootsector.initial fields:.number of file allocation tables}">
+            <field name="reserved" length="(${bootsector.common.initial fields:.reserved sector count} * ${bootsector.common.initial fields:.bytes per sector} - 512) * 8" type="hex" />
+            <sequenceof name="file allocation tables" count="${bootsector.common.initial fields:.number of file allocation tables}">
                 <sequence name="file allocation table">
                     <field name="media descriptor" length="8" />
                     <field name="unused" length="24" type="hex" />
                     <field name="end of file marker" length="32" type="hex" />
-                    <sequenceof name="clusters" count="(${bootsector.total sectors:} - ${bootsector.initial fields:.reserved sector count} - ${bootsector.sectors per fat} * ${bootsector.initial fields:.number of file allocation tables}) / ${bootsector.initial fields:.sectors per cluster}">
+                    <sequenceof name="clusters" count="(${bootsector.common.total sectors:} - ${bootsector.common.initial fields:.reserved sector count} - ${bootsector.common.sectors per fat} * ${bootsector.common.initial fields:.number of file allocation tables}) / ${bootsector.common.initial fields:.sectors per cluster}">
                         <!-- We don't decode 32 bit entries, as the upper
                             four bits are reserved; due to the byte ordering,
                             these are bits 24-28 (meaning we have cannot 
                             easily distinguish between states). -->
                         <field name="entry" length="32" type="hex" />
                     </sequenceof>
-                    <field name="unused" length="${bootsector.sectors per fat} * ${bootsector.initial fields:.bytes per sector} * 8 - len{clusters} - 64" type="hex" />
+                    <field name="unused" length="${bootsector.common.sectors per fat} * ${bootsector.common.initial fields:.bytes per sector} * 8 - len{clusters} - 64" type="hex" />
                 </sequence>
             </sequenceof>
             <!-- We don't decode the root directory for FAT32, as it may be several clusters long -->
-            <sequenceof name="clusters" count="(${bootsector.total sectors:} - ${bootsector.initial fields:.reserved sector count} - ${bootsector.sectors per fat} * ${bootsector.initial fields:.number of file allocation tables}) / ${bootsector.initial fields:.sectors per cluster}">
-                <field name="cluster" length="${bootsector.initial fields:.sectors per cluster} * ${bootsector.initial fields:.bytes per sector} * 8" type="hex" />
+            <sequenceof name="clusters" count="(${bootsector.common.total sectors:} - ${bootsector.common.initial fields:.reserved sector count} - ${bootsector.common.sectors per fat} * ${bootsector.common.initial fields:.number of file allocation tables}) / ${bootsector.common.initial fields:.sectors per cluster}">
+                <field name="cluster" length="${bootsector.common.initial fields:.sectors per cluster} * ${bootsector.common.initial fields:.bytes per sector} * 8" type="hex" />
             </sequenceof>
         </sequence>
     </common>
