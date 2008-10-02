@@ -210,6 +210,10 @@ http://staff.washington.edu/dittrich/misc/fatgen103.pdf.
              This cannot be in the bootsector common entry because of issue122 -->
         <sequence name="num clusters:" value="(${bootsector.common.total sectors:} - ${bootsector.common.initial fields:.reserved sector count} - ${bootsector.common.sectors per fat} * ${bootsector.common.initial fields:.number of file allocation tables}) / ${bootsector.common.initial fields:.sectors per cluster}" />
 
+        <sequenceof name="clusters" count="${num clusters:} - 1">
+            <field name="cluster" length="${bootsector.common.initial fields:.sectors per cluster} * ${bootsector.common.initial fields:.bytes per sector} * 8" type="hex" />
+        </sequenceof>
+
         <!-- A specification for a complete fat 12 filesystem. -->
         <sequence name="filesystem:fat 12:">
             <reference  name="bootsector" type="bootsector fat 12" />
@@ -230,9 +234,7 @@ http://staff.washington.edu/dittrich/misc/fatgen103.pdf.
             <reference name="directory" />
             <field name="unused" length="(${bootsector.common.initial fields:.sectors per cluster} * ${bootsector.common.initial fields:.bytes per sector}) * 8 - len{directory}" type="hex" />
 
-            <sequenceof name="clusters" count="${num clusters:} - 1">
-                <field name="cluster" length="${bootsector.common.initial fields:.sectors per cluster} * ${bootsector.common.initial fields:.bytes per sector} * 8" type="hex" />
-            </sequenceof>
+            <reference name="clusters" />
         </sequence>
         
         <!-- A specification for a complete fat 16 filesystem. -->
@@ -248,20 +250,20 @@ http://staff.washington.edu/dittrich/misc/fatgen103.pdf.
                     <sequenceof name="cluster info" count="${num clusters:}">
                         <reference name="allocation table:fat 16:entry" />
                     </sequenceof>
-                    <field name="unused" length="${bootsector.common.sectors per fat} * ${bootsector.common.initial fields:.bytes per sector} * 8 - len{clusters} - 32" type="hex" />
+                    <field name="unused" length="${bootsector.common.sectors per fat} * ${bootsector.common.initial fields:.bytes per sector} * 8 - len{cluster info} - 32" type="hex" />
                 </sequence>
             </sequenceof>
             <reference name="directory" />
             <field name="unused" length="(${bootsector.common.initial fields:.sectors per cluster} * ${bootsector.common.initial fields:.bytes per sector}) * 8 - len{directory}" type="hex" />
 
-            <sequenceof name="clusters" count="${num clusters:} - 1">
-                <field name="cluster" length="${bootsector.common.initial fields:.sectors per cluster} * ${bootsector.common.initial fields:.bytes per sector} * 8" type="hex" />
-            </sequenceof>
+            <reference name="clusters" />
         </sequence>
 
         <!-- A specification for a complete fat 32 filesystem. -->
         <sequence name="filesystem:fat 32:">
             <reference name="bootsector" type="bootsector fat 32" />
+            <reference name="num clusters:" />
+
             <field name="reserved" length="(${bootsector.common.initial fields:.reserved sector count} * ${bootsector.common.initial fields:.bytes per sector} - 512) * 8" type="hex" />
             <sequenceof name="file allocation tables" count="${bootsector.common.initial fields:.number of file allocation tables}">
                 <sequence name="file allocation table">
@@ -279,9 +281,7 @@ http://staff.washington.edu/dittrich/misc/fatgen103.pdf.
                 </sequence>
             </sequenceof>
             <!-- We don't decode the root directory for FAT32, as it may be several clusters long -->
-            <sequenceof name="clusters" count="(${bootsector.common.total sectors:} - ${bootsector.common.initial fields:.reserved sector count} - ${bootsector.common.sectors per fat} * ${bootsector.common.initial fields:.number of file allocation tables}) / ${bootsector.common.initial fields:.sectors per cluster}">
-                <field name="cluster" length="${bootsector.common.initial fields:.sectors per cluster} * ${bootsector.common.initial fields:.bytes per sector} * 8" type="hex" />
-            </sequenceof>
+            <reference name="clusters" />
         </sequence>
     </common>
     <sequence name="vfat">
