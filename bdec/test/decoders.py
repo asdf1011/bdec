@@ -97,13 +97,12 @@ class _CompiledDecoder:
     def _decode_file(self, spec, common, data):
         """Return a tuple containing the exit code and the decoded xml."""
         self._compile(spec, common)
+        if not isinstance(data, str):
+            data = data.read()
 
         filename = os.path.join(self.TEST_DIR, 'data.bin')
         datafile = open(filename, 'wb')
-        if isinstance(data, str):
-            datafile.write(data)
-        else:
-            datafile.write(data.read())
+        datafile.write(data)
         datafile.close()
 
         command = [self.EXECUTABLE, filename]
@@ -119,6 +118,8 @@ class _CompiledDecoder:
         if decode.wait() == 0:
             # Validate the output against the python output
             exit_code, expected = _PythonDecoder()._decode_file(spec, common, data)
+            if exit_code != 0:
+                raise Exception("Python decode failed for when creating expected xml (got %i)", exit_code)
             assert_xml_equivalent(expected, xml)
         return decode.wait(), xml
 
