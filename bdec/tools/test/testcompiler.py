@@ -17,13 +17,11 @@
 #   <http://www.gnu.org/licenses/>.
 
 
-import itertools
 import operator
 import os
 import os.path
 import StringIO
 import unittest
-import xml.etree.ElementTree
 
 import bdec.choice as chc
 import bdec.data as dt
@@ -33,7 +31,7 @@ import bdec.output.xmlout as xmlout
 import bdec.sequence as seq
 import bdec.sequenceof as sof
 import bdec.spec.expression as expr
-from bdec.test.decoders import create_decoder_classes
+from bdec.test.decoders import assert_xml_equivalent, create_decoder_classes
 
 import sys
 
@@ -47,24 +45,6 @@ class _CompilerTests:
         """Return a tuple containing the exit code and the decoded xml."""
         raise NotImplementedError()
 
-    def _is_xml_text_equal(self, a, b):
-        a = a.text or ""
-        b = b.text or ""
-        return a.strip() == b.strip()
-
-    def _get_elem_text(self, a):
-        attribs = ' '.join('%s=%s' for name, value in a.attrib.itervalues())
-        text = a.text or ""
-        return "<%s %s>%s ..." % (a.tag, attribs, text.strip())
-
-    def _compare_xml(self, expected, actual):
-        a = xml.etree.ElementTree.iterparse(StringIO.StringIO(expected), ['start', 'end'])
-        b = xml.etree.ElementTree.iterparse(StringIO.StringIO(actual), ['start', 'end'])
-        for (a_event, a_elem), (b_event, b_elem) in itertools.izip(a, b):
-            if a_event != b_event or a_elem.tag != b_elem.tag or \
-                    a_elem.attrib != b_elem.attrib or \
-                    not self._is_xml_text_equal(a_elem, b_elem):
-                self.fail("expected '%s', got '%s'" % (self._get_elem_text(a_elem), self._get_elem_text(b_elem)))
 
     def _decode(self, spec, data, expected_exit_code=0, expected_xml=None, common=[]):
         exit_code, xml = self._decode_file(spec, common, StringIO.StringIO(data))
@@ -77,7 +57,7 @@ class _CompilerTests:
                 binary = reduce(lambda a,b:a+b, xmlout.encode(spec, xml)).bytes()
                 self.assertEqual(data, binary)
             else:
-                self._compare_xml(expected_xml, xml)
+                assert_xml_equivalent(expected_xml, xml)
 
     def _decode_failure(self, spec, data, common=[]):
         self._decode(spec, data, 3, common=common)

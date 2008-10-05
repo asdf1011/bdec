@@ -9,6 +9,7 @@ import os.path
 import unittest
 
 import bdec.data as dt
+import bdec.output.xmlout as xmlout
 import bdec.spec.xmlspec as xmlspec
 from bdec.test.decoders import create_decoder_classes 
 
@@ -28,7 +29,8 @@ class _BaseTest(object):
         else:
             datafile = open(filename, 'rb')
 
-        self._decode_file(self._spec, self._common, datafile)
+        (exit_code, xml) = self._decode_file(self._spec, self._common, datafile)
+        self.assertEqual(0, exit_code)
 
 
 def _create_decode_function(name, filename):

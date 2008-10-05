@@ -24,6 +24,7 @@ See the create_decoder_classes function.
 """
 
 import glob
+import itertools
 import os
 import re
 import unittest
@@ -31,12 +32,33 @@ import shutil
 import subprocess
 import stat
 import StringIO
+import xml.etree.ElementTree
 
 import bdec
 import bdec.data as dt
 import bdec.output.xmlout as xmlout
 import bdec.tools.compiler as comp
 
+def _is_xml_text_equal(a, b):
+    a = a.text or ""
+    b = b.text or ""
+    return a.strip() == b.strip()
+
+def _get_elem_text(a):
+    attribs = ' '.join('%s=%s' for name, value in a.attrib.itervalues())
+    text = a.text or ""
+    return "<%s %s>%s ..." % (a.tag, attribs, text.strip())
+
+def assert_xml_equivalent(expected, actual):
+    open('temp.expected.xml', 'w').write(expected)
+    open('temp.actual.xml', 'w').write(actual)
+    a = xml.etree.ElementTree.iterparse(StringIO.StringIO(expected), ['start', 'end'])
+    b = xml.etree.ElementTree.iterparse(StringIO.StringIO(actual), ['start', 'end'])
+    for (a_event, a_elem), (b_event, b_elem) in itertools.izip(a, b):
+        if a_event != b_event or a_elem.tag != b_elem.tag or \
+                a_elem.attrib != b_elem.attrib or \
+                not _is_xml_text_equal(a_elem, b_elem):
+            raise Exception("expected '%s', got '%s'" % (_get_elem_text(a_elem), _get_elem_text(b_elem)))
 
 def _find_executable(name):
     for path in os.environ['PATH'].split(os.pathsep):
@@ -95,6 +117,11 @@ class _CompiledDecoder:
         match = re.search('lost: [^0]', stderr)
         if match is not None:
             self.fail(stderr)
+
+        if decode.wait() == 0:
+            # Validate the output against the python output
+            exit_code, expected = _PythonDecoder()._decode_file(spec, common, data)
+            assert_xml_equivalent(expected, xml)
         return decode.wait(), xml
 
 
