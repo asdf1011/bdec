@@ -446,8 +446,10 @@ ${recursivePrint(child.entry, '"%s"' % xmlname(child.name), "(*%s.%s)" % (varnam
     %if not item.is_hidden():
       %if not isinstance(item, Field):
     ${printText("</%s>\\n", name, ws_offset)}
+      %elif name.startswith('"'):
+    printf("</${name[1:-1]}>\n");
       %else:
-    ${printText("</%s>\\n", name, 0)}
+    printf("</${'%'}>\n", ${name});
       %endif
     %endif
   %endif
