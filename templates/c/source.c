@@ -453,7 +453,7 @@ ${recursivePrint(child.entry, '"%s"' % xmlname(child.name), "(*%s.%s)" % (varnam
       %elif name.startswith('"'):
     printf("</${name[1:-1]}>\n");
       %else:
-    printf("</${'%'}>\n", ${name});
+    printf("</${'%s'}>\n", ${name});
       %endif
     %endif
   %endif
