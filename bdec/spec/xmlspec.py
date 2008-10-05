@@ -178,7 +178,7 @@ class _Handler(xml.sax.handler.ContentHandler):
         length = None
         if attrs.has_key('length'):
             length = self._parse_expression(attrs['length'])
-        entry_name = None
+        entry_name = ""
         if attrs.has_key('name'):
             entry_name = attrs['name']
         entry = self._handlers[name](attrs, children, entry_name, length, breaks)
