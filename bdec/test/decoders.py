@@ -55,7 +55,7 @@ def assert_xml_equivalent(expected, actual):
     for (a_event, a_elem), (b_event, b_elem) in itertools.izip(a, b):
         if a_event != b_event or a_elem.tag != b_elem.tag or \
                 a_elem.attrib != b_elem.attrib or \
-                not _is_xml_text_equal(a_elem, b_elem):
+                (a_event == 'end' and not _is_xml_text_equal(a_elem, b_elem)):
             raise Exception("expected '%s', got '%s'" % (_get_elem_text(a_elem), _get_elem_text(b_elem)))
 
 def _find_executable(name):
