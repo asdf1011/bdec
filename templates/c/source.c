@@ -386,7 +386,7 @@ ${recursiveDecode(entry, False)}
 <%def name="recursivePrint(item, name, varname, ws_offset, iter_postfix)" buffered="True">
   %if item in common and item is not entry:
     %if contains_data(item):
-    ${settings.print_name(item)}(&${varname}, offset + ${ws_offset}, name);
+    ${settings.print_name(item)}(&${varname}, offset + ${ws_offset}, ${name});
     %endif
   %elif contains_data(item):
     %if isinstance(item, Field):

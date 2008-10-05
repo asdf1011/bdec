@@ -420,7 +420,7 @@ class _CompilerTests:
         number = seq.Sequence('number', [digit], value=expr.compile("${digit:} - 48") )
         header = seq.Sequence('header', [ent.Child('length', number), fld.Field('data', length=expr.compile('${length} * 8'), format=fld.Field.TEXT)])
         expected = '<header> <length>5</length> <data>abcde</data> </header>'
-        self._decode(header, '5abcde', expected_xml=expected)
+        self._decode(header, '5abcde', expected_xml=expected, common=[header, number])
         # Test it with not enough data
         self._decode_failure(header, '5abcd')
 
