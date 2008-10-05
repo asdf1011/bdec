@@ -36,6 +36,19 @@ class _XMLGenerator(xml.sax.saxutils.XMLGenerator):
     def comment(self, text):
         self._out.write('<!-- %s -->' % text)
 
+def _escape_char(character):
+    # The list of 'safe' xml characters is from http://www.w3.org/TR/REC-xml/#NT-Char
+    ordinal = ord(character)
+    if ordinal >= 0x20:
+        return character
+    if ordinal in [0x9, 0xa, 0xd]:
+        return character
+    return '?'
+
+def _xml_strip(text):
+    """Replace chracters that cannot be represented in xml."""
+    return ''.join(_escape_char(char) for char in text)
+
 def to_file(decoder, binary, output, encoding="utf-8", verbose=False):
     handler = _XMLGenerator(output, encoding)
     offset = 0
@@ -57,7 +70,7 @@ def to_file(decoder, binary, output, encoding="utf-8", verbose=False):
             offset = offset + 4
 
         if value is not None:
-            text = unicode(value)
+            text = _xml_strip(unicode(value))
             handler.characters(text)
 
             if verbose and isinstance(entry, fld.Field):
