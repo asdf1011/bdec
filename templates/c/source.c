@@ -341,6 +341,9 @@ ${static}int ${settings.decode_name(entry)}(BitBuffer* buffer${settings.define_p
     if (buffer->num_bits != 0)
     {
         // The entry didn't use all of the data
+      %if contains_data(entry):
+        ${settings.free_name(entry)}(result);
+      %endif
         return 0;
     }
     buffer->num_bits = ${'unused number of bits' |variable};
