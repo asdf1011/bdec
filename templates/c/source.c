@@ -37,12 +37,6 @@
 %endfor
 #include "variable_integer.h"
 
-<%def name="update_length_reference(entry)">
-  %if is_length_referenced(entry):
-    *${entry.name + ' length' |variable} = ${'initial length' |variable} - buffer->num_bits;
-  %endif
-</%def>
-
 <%def name="compare_binary_expected(entry, expected)">
   %if len(entry.expected) < 32:
     if (get_integer(&actual) != ${int(entry.expected)})
@@ -349,7 +343,9 @@ ${static}int ${settings.decode_name(entry)}(BitBuffer* buffer${settings.define_p
     }
     buffer->num_bits = ${'unused number of bits' |variable};
   %endif
-    ${update_length_reference(entry)}
+  %if is_length_referenced(entry):
+    *${entry.name + ' length' |variable} = ${'initial length' |variable} - buffer->num_bits;
+  %endif
     return 1;
 }
 </%def>
