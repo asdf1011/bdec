@@ -116,7 +116,7 @@
     BitBuffer actual = {value.buffer, 0, value.length * 8};
     ${compare_binary_expected(entry, entry.expected)}
        %elif entry.format == entry.TEXT:
-    if (memcmp(value, ${settings.c_string(entry.expected.bytes())}, buffer->length) != 0)
+    if (memcmp(value.buffer, ${settings.c_string(entry.expected.bytes())}, value.length) != 0)
        %else:
 #error Field of type ${entry.format} not currently supported for an expected value!
        %endif
