@@ -232,8 +232,10 @@
     %endif
     BitBuffer temp;
     %for i, child in enumerate(entry.children):
+      %if contains_data(child.entry):
     <% temp_name = variable('temp ' + esc_name(i, entry.children)) %>
     ${settings.ctype(child.entry)} ${temp_name};
+      %endif
     %endfor
     %for i, child in enumerate(entry.children):
     <% temp_name = variable('temp ' + esc_name(i, entry.children)) %>
