@@ -195,6 +195,35 @@ need to swap them around, like so::
 This causes the file to successfully decode!
 
 
+Simplifying the specification using named references
+----------------------------------------------------
+
+In the specification so far, we have had to re-type the integer type several
+times. While this isn't too difficult, having more text can make it harder to
+read. We can use :ref:`references <bdec-reference>` to only specify these once::
+
+  <protocol>
+     ...skipping...
+
+    <common>
+       <field name="dword" type="integer" length="32" />
+
+       <sequence name="unknown chunk">
+          <reference name="data length" type="dword" />
+          <field name="type" length="32" type="hex" />
+
+     ...skipping...
+
+       <sequence name="end chunk">
+          <reference name="data length" type="dword" />
+          <field name="type" length="32" type="text" value="IEND" />
+
+Even in this simple case, it has made the code easier to read. In more
+complicated situations, where complex encodings are used (eg: textual integers,
+big endian integers, ...) it can make your specification far easier to
+read and maintain.
+
+
 Refining the specification
 --------------------------
 
