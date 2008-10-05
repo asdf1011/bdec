@@ -166,12 +166,6 @@
     ${settings.free_name(entry)}(&value);
       %endif
     %endif
-
-    %if is_end_sequenceof(entry):
-    *${'should end' |variable} = 1;
-    %endif
-    ${update_length_reference(entry)}
-    return 1;
 </%def>
 
 <%def name="decodeSequence(entry)">
@@ -195,12 +189,6 @@
     *${entry.name |variable} = value;
       %endif
     %endif
-
-    %if is_end_sequenceof(entry):
-    *${'should end' |variable} = 1;
-    %endif
-    ${update_length_reference(entry)}
-    return 1;
 </%def>
 
 <%def name="decodeSequenceOf(entry)">
@@ -246,11 +234,6 @@
         }
     }
 
-    %if is_end_sequenceof(entry):
-    *${'should end' |variable} = 1;
-    %endif
-    ${update_length_reference(entry)}
-    return 1;
 </%def>
 
 <%def name="decodeChoice(entry)">
@@ -279,8 +262,6 @@
         // Decode failed, no options succeeded...
         return 0;
     }
-    ${update_length_reference(entry)}
-    return 1;
 </%def>
 
 ## Recursively create functions for decoding the entries contained within this protocol specification.
@@ -350,6 +331,11 @@ ${static}int ${settings.decode_name(entry)}(BitBuffer* buffer${settings.define_p
   %elif isinstance(entry, Choice):
     ${decodeChoice(entry)}
   %endif
+    %if is_end_sequenceof(entry):
+    *${'should end' |variable} = 1;
+    %endif
+    ${update_length_reference(entry)}
+    return 1;
 }
 </%def>
 
