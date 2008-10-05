@@ -218,7 +218,7 @@
                             <field name="key frame" length="1" />
                             <field name="stream number" length="7" type="integer" />
                             <reference name="media object number" type="byte" />
-                            <field name="offset into media object" length="32" type="integer" />
+                            <reference name="offset into media object" type="dword" />
                             <reference name="replicated data length:" type="byte" />
                             <field name="replicated data" length="${replicated data length:} * 8" type="hex" />
                         </sequence>
