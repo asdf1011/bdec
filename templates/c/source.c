@@ -397,7 +397,7 @@ ${recursiveDecode(entry, False)}
     int ${iter_name};
     for (${iter_name} = 0; ${iter_name} < ${varname}.length; ++${iter_name})
     {
-        printf("%x", ${varname}.buffer[${iter_name}]);
+        printf("%02x", ${varname}.buffer[${iter_name}]);
     }
         %elif item.format == Field.BINARY:
         <% copy_name = variable('copy of ' + item.name + str(iter_postfix.next())) %>
