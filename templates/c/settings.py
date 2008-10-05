@@ -29,7 +29,7 @@ def ctype(entry):
         if entry.format == fld.Field.INTEGER:
             return 'int'
         if entry.format == fld.Field.TEXT:
-            return 'char*'
+            return 'Buffer'
         elif entry.format == fld.Field.HEX:
             return 'Buffer'
         elif entry.format == fld.Field.BINARY:

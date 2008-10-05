@@ -435,4 +435,8 @@ class _CompilerTests:
         d = seq.Sequence('d', [a, c])
         self._decode(d, '12345')
 
+    def test_invalid_characters_in_string(self):
+        a = fld.Field('a', length=72, format=fld.Field.TEXT)
+        self._decode(a, '1\x002\x013<4>5', expected_xml='<a>1?2?3&lt;4&gt;5</a>')
+
 globals().update(create_decoder_classes([(_CompilerTests, 'SimpleDecode')], __name__))

@@ -1,5 +1,6 @@
 
 #include <assert.h>
+#include <stdio.h>
 #include "variable_integer.h"
 
 int get_integer(BitBuffer* buffer)
@@ -58,3 +59,33 @@ int decode_little_endian_integer(BitBuffer* buffer, int num_bits)
     }
     return result;
 }
+
+void print_escaped_string(Buffer* text)
+{
+    char c;
+    int i;
+    for (i = 0; i < text->length; ++i)
+    {
+        c = text->buffer[i];
+        // The list of 'safe' xml characters is from
+        // http://www.w3.org/TR/REC-xml/#NT-Char
+        if (c == '<')
+        {
+            printf("&lt;");
+        }
+        else if (c == '>')
+        {
+            printf("&gt;");
+        }
+        else if (c >= 0x20 || c == 0x9 || c == 0xa || c == 0xd)
+        {
+            putc(c, stdout);
+        }
+        else
+        {
+            // This character cannot be safely represent in xml
+            putc('?', stdout);
+        }
+    }
+}
+

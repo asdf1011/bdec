@@ -72,12 +72,12 @@
     %endif
   %elif entry.format == Field.TEXT:
     int i;
-    int ${entry.name + ' buffer length' |variable} = ${settings.value(entry.length)} / 8;
-    value = malloc(${entry.name + ' buffer length' |variable} + 1);
-    value[${entry.name + ' buffer length' |variable}] = 0;
-    for (i = 0; i < ${entry.name + ' buffer length' |variable}; ++i)
+    value.length = ${settings.value(entry.length)} / 8;
+    value.buffer = malloc(value.length + 1);
+    value.buffer[value.length] = 0;
+    for (i = 0; i < value.length; ++i)
     {
-        value[i] = decode_integer(buffer, 8);
+        value.buffer[i] = decode_integer(buffer, 8);
     }
   %elif entry.format == Field.HEX:
     int i;
@@ -116,7 +116,7 @@
     BitBuffer actual = {value.buffer, 0, value.length * 8};
     ${compare_binary_expected(entry, entry.expected)}
        %elif entry.format == entry.TEXT:
-    if (memcmp(value, ${settings.c_string(entry.expected.bytes())}, ${len(entry.expected) / 8}) != 0)
+    if (memcmp(value, ${settings.c_string(entry.expected.bytes())}, buffer->length) != 0)
        %else:
 #error Field of type ${entry.format} not currently supported for an expected value!
        %endif
@@ -148,11 +148,7 @@
     %if not entry.is_hidden():
     (*result) = value;
     %else:
-      %if entry.format == Field.TEXT:
-    ${settings.free_name(entry)}(&value);
-      %elif entry.format == Field.BINARY:
-    ${settings.free_name(entry)}(&value);
-      %elif entry.format == Field.HEX:
+      %if entry.format != Field.INTEGER:
     ${settings.free_name(entry)}(&value);
       %endif
     %endif
@@ -270,7 +266,7 @@ ${static}void ${settings.free_name(entry)}(${settings.ctype(entry)}* value)
 {
   %if isinstance(entry, Field):
     %if entry.format == Field.TEXT:
-    free(*value);
+    free(value->buffer);
     %elif entry.format == Field.HEX:
     free(value->buffer);
     %elif entry.format == Field.BINARY:
@@ -395,7 +391,7 @@ ${recursiveDecode(entry, False)}
         %if item.format == Field.INTEGER:
     printf("%i", ${varname}); 
         %elif item.format == Field.TEXT:
-    printf("%s", ${varname});
+    print_escaped_string(&${varname});
         %elif item.format == Field.HEX:
         <% iter_name = variable(item.name + ' counter' + str(iter_postfix.next())) %>
     int ${iter_name};

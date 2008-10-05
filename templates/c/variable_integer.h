@@ -12,4 +12,7 @@ int get_integer(BitBuffer* buffer);
 int decode_integer(BitBuffer* buffer, int num_bits);
 int decode_little_endian_integer(BitBuffer* buffer, int num_bits);
 
+// Helper function to print an xml escaped string
+void print_escaped_string(Buffer* text);
+
 #endif
