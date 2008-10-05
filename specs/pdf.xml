@@ -33,7 +33,7 @@
         <sequenceof name="optional whitespace:">
             <choice name="entry:">
                 <reference name="whitespace entry:" />
-                <field name="end:" length="0"><end-sequenceof /> </field>
+                <sequence><end-sequenceof/></sequence>
             </choice>
         </sequenceof>
 
@@ -82,7 +82,7 @@
             <sequenceof name="remaining chars:">
                 <choice name="entry:">
                     <reference name="name character:" />
-                    <field name="empty:" length="0"><end-sequenceof /></field>
+                    <sequence><end-sequenceof/></sequence>
                 </choice>
             </sequenceof>
         </sequence>
@@ -91,13 +91,13 @@
             <choice name="sign:">
                 <field name="positive" length="8" type="text" value="+" />
                 <field name="negative" length="8" type="text" value="-" />
-                <field name="none:" length="0" />
+                <sequence />
             </choice>
             <field name="digit" length="8" type="text" min="48" max="57" />
             <sequenceof name="number:">
                 <choice name="char:">
                     <field name="digit" length="8" type="text" min="48" max="57" />
-                    <field name="none" length="0"><end-sequenceof /></field>
+                    <sequence><end-sequenceof/></sequence>
                 </choice>
             </sequenceof>
         </sequence>
@@ -252,7 +252,7 @@
                     <reference name="optional whitespace:" />
                     <choice name="entry:">
                         <reference name="cross reference entry" />
-                        <field name="end:" length="0"><end-sequenceof/></field>
+                        <sequence><end-sequenceof/></sequence>
                     </choice>
                 </sequence>
             </sequenceof>
@@ -264,7 +264,7 @@
             <sequenceof name="cross reference sections">
                 <choice name="section:">
                     <reference name="cross reference section" />
-                    <field name="end:" length="0" ><end-sequenceof /></field>
+                    <sequence><end-sequenceof/></sequence>
                 </choice>
             </sequenceof>
         </sequence>
