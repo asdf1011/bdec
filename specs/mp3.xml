@@ -165,15 +165,19 @@
     </common>
 
     <sequence name="mp3">
-        <reference name="id3 v2" />
+        <choice name="optional id3 v2:">
+            <reference name="id3 v2" />
+            <sequence />
+        </choice>
         <sequenceof name="frames">
             <choice name="frame:">
                 <reference name="frame" />
-                <sequence name="id3 v1:">
-                    <reference name="id3 v1" />
-                    <end-sequenceof />
-                </sequence>
+                <sequence><end-sequenceof/></sequence>
             </choice>
         </sequenceof>
+        <choice name="optional id3 v1:">
+            <reference name="id3 v1" />
+            <sequence />
+        </choice>
     </sequence>
 </protocol>
