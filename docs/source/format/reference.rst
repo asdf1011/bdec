@@ -13,6 +13,9 @@ References are identified by name, and cannot include modifications to the top
 level entry (eg: no changing the type of fields, changing the children of a 
 sequence, adding an end-entry, ...).
 
+It is possible to give the referenced entry another name, and this can help in
+defining common types (such as defining a default integer encoding).
+
 The referenced entry doesn't need to be specified at the time it is referenced
 (although it must be specified by the time the specification finishes loading).
 Referenced entries can be used to enable recursive specifications (eg: pdf).
@@ -21,9 +24,13 @@ Referenced entries can be used to enable recursive specifications (eg: pdf).
 Specification
 =============
 
-A bdec reference can have one attribute;
+A bdec reference can have one or two attributes;
 
-  * A name
+  * name -- The name to use for the referenced entry.
+  * type -- If specified, identifies the name of entry to be referenced. If it
+        is not specified, the reference name is used to find the referenced
+        entry.
+
 
 
 Examples
@@ -32,6 +39,8 @@ Examples
 Reuse a null terminating string::
 
   <common>
+    <field name="dword" length="32" encoding="little endian" />
+
     <sequenceof name="null terminating string">
       <choice name="entry">
         <field name="null" length="8" value="0x0" ><end-sequenceof /></field>
@@ -40,13 +49,10 @@ Reuse a null terminating string::
     </sequenceof>
 
     <sequence name="address">
-      <field name="street number" length="32" type="integer" />
-      <sequence name="street">
-        <reference name="null terminating string" />
-      </sequence>
-      <sequence name="city">
-        <reference name="null terminating string" />
-      </sequence>
+      <reference name="flat number" type="dword" />
+      <reference name="street number" type="dword" />
+      <reference name="street" type="null terminating string" />
+      <reference name="city" type="null terminating string" />
     </sequence>
   </common>
 
