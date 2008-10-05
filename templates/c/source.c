@@ -259,24 +259,28 @@
     %endif
     BitBuffer temp;
     %for i, child in enumerate(entry.children):
-    temp = *buffer;
     <% temp_name = variable('temp ' + esc_name(i, entry.children)) %>
-    ${settings.ctype(child.entry)}* ${temp_name} = malloc(sizeof(${settings.ctype(child.entry)}));
-    if (${settings.decode_name(child.entry)}(&temp${params(entry, i, temp_name)}))
+    ${settings.ctype(child.entry)} ${temp_name};
+    %endfor
+    %for i, child in enumerate(entry.children):
+    <% temp_name = variable('temp ' + esc_name(i, entry.children)) %>
+    <% if_ = "if" if i == 0 else 'else if' %>
+    ${if_} (temp = *buffer, ${settings.decode_name(child.entry)}(&temp${params(entry, i, "&%s" % temp_name)}))
     {
         *buffer = temp;
       %if contains_data(child.entry):
-        result->${settings.var_name(i, entry.children)} = ${temp_name};
-      %else:
-        free(${temp_name});
+        result->${settings.var_name(i, entry.children)} = malloc(sizeof(${settings.ctype(child.entry)}));
+        *result->${settings.var_name(i, entry.children)} = ${temp_name};
       %endif
-        ${update_length_reference(entry)}
-        return 1;
     }
-    free(${temp_name});
     %endfor
-    // Decode failed, no options succeeded...
-    return 0;
+    else
+    {
+        // Decode failed, no options succeeded...
+        return 0;
+    }
+    ${update_length_reference(entry)}
+    return 1;
 </%def>
 
 ## Recursively create functions for decoding the entries contained within this protocol specification.
