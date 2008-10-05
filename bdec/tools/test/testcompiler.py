@@ -424,4 +424,15 @@ class _CompilerTests:
         # Test it with not enough data
         self._decode_failure(header, '5abcd')
 
+    def test_sequence_with_expected_length(self):
+        # Test that we fail to decode when the sequence length is wrong
+        a = seq.Sequence('a', [fld.Field('b', length=8)], length=expr.compile('16'))
+        self._decode_failure(a, 'z')
+
+    def test_sequenceof_with_expected_length(self):
+        a = sof.SequenceOf('a', fld.Field('b', 8), None, length=expr.compile('32'))
+        c = fld.Field('c', length=8, expected=dt.Data('5') )
+        d = seq.Sequence('d', [a, c])
+        self._decode(d, '12345')
+
 globals().update(create_decoder_classes([(_CompilerTests, 'SimpleDecode')], __name__))

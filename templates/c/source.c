@@ -62,10 +62,6 @@
 </%def>
 
 <%def name="decodeField(entry)">
-    if (${settings.value(entry.length)} > buffer->num_bits)
-    {
-        return 0;
-    }
     ${settings.ctype(entry)} value;
   %if entry.min is not None or entry.max is not None:
     BitBuffer field_data = *buffer;
@@ -317,10 +313,21 @@ ${static}void ${settings.free_name(entry)}(${settings.ctype(entry)}* value)
 ${static}int ${settings.decode_name(entry)}(BitBuffer* buffer${settings.define_params(entry)})
 {
   %for local in local_vars(entry):
-      int ${local} = 0;
+    int ${local} = 0;
   %endfor
   %if is_length_referenced(entry):
-      int ${'initial length' |variable} = buffer->num_bits;
+    int ${'initial length' |variable} = buffer->num_bits;
+  %endif
+  %if entry.length is not None:
+    <% length = variable(entry.name + " expected length") %>
+    int ${length} = ${settings.value(entry.length)};
+    int ${'unused number of bits' |variable} = buffer->num_bits - ${length};
+    if (${length} > buffer->num_bits)
+    {
+        // Not enough data
+        return 0;
+    }
+    buffer->num_bits = ${length};
   %endif
   %if isinstance(entry, Field):
     ${decodeField(entry)}
@@ -331,9 +338,17 @@ ${static}int ${settings.decode_name(entry)}(BitBuffer* buffer${settings.define_p
   %elif isinstance(entry, Choice):
     ${decodeChoice(entry)}
   %endif
-    %if is_end_sequenceof(entry):
+  %if is_end_sequenceof(entry):
     *${'should end' |variable} = 1;
-    %endif
+  %endif
+  %if entry.length is not None:
+    if (buffer->num_bits != 0)
+    {
+        // The entry didn't use all of the data
+        return 0;
+    }
+    buffer->num_bits = ${'unused number of bits' |variable};
+  %endif
     ${update_length_reference(entry)}
     return 1;
 }
