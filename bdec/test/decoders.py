@@ -50,8 +50,6 @@ def _get_elem_text(a):
     return "<%s %s>%s ..." % (a.tag, attribs, text.strip())
 
 def assert_xml_equivalent(expected, actual):
-    open('temp.expected.xml', 'w').write(expected)
-    open('temp.actual.xml', 'w').write(actual)
     a = xml.etree.ElementTree.iterparse(StringIO.StringIO(expected), ['start', 'end'])
     b = xml.etree.ElementTree.iterparse(StringIO.StringIO(actual), ['start', 'end'])
     for (a_event, a_elem), (b_event, b_elem) in itertools.izip(a, b):
