@@ -86,11 +86,10 @@ Features
 * It is easy to quickly write (and read) a specification
 * No need to write a custom decoder (all error conditions are handled 
   internally; decoding either passes or fails).
-* The command line application allows visual inspection of problematic
-  files.
+* The command line application allows visual inspection of problematic files.
 * Unicode aware, little-endian / big-endian aware
 * Specify fields down to the bit (eg: single bit flags)
-* Generate a C language decoder from the specification
+* Generated decoders are human readable, and compile without any warnings.
 
 
 Similar projects
