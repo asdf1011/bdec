@@ -349,9 +349,20 @@ Note that we use the 'len{...}' entry to reference the length of another field
 that has been decoded.
 
 
-Future decoding
----------------
+Where to go from here
+---------------------
 
 There are many other chunk types in the png specification; try decoding sRGB
 (very easy) or PLTE (more difficult; use the 'length' attribute of a sequenceof).
+
+One thing to realise is that the bdec specification will only take you so far;
+except for trival file formats, code will still need to be written before you
+have a fully functional decoder (for example, decompression). The important
+fact is that this is exactly the non-trivial code that you have to think about;
+all the drudgery of normal loading and validation is already taken care of. 
+
+Offload as much possible into the specification, and it will make your code
+easier to read, and future maintenance much more pleasant.
+
+Have fun!
 
