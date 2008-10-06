@@ -625,7 +625,7 @@ class TestXml(unittest.TestCase):
              </sequence>
            </protocol>"""
         spec = xml.loads(text)[0]
-        self.assertEqual(None, spec.children[0].name)
+        self.assertEqual("", spec.children[0].name)
         data = dt.Data("f\x03")
         items = list(value for is_starting, name, entry, data, value in spec.decode(data) if not is_starting)
         self.assertEqual(4, len(items))
