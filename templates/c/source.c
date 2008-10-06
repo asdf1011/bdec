@@ -406,6 +406,10 @@ ${recursiveDecode(entry, False)}
     int ${iter_name};
     for (${iter_name} = 0; ${iter_name} < ${varname}.num_bits; ++${iter_name})
     {
+        if (${iter_name} > 0 && (${varname}.num_bits - ${iter_name}) % 8 == 0)
+        {
+            putchar(' ');
+        }
         printf("%i", decode_integer(&${copy_name}, 1));
     }
         %else:
