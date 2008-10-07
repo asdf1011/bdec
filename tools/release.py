@@ -114,7 +114,7 @@ def get_focus():
     default = 7
     focus = raw_input('What is the release focus? %s ' % default)
     if focus:
-        item = text.strip()
+        item = int(focus.strip())
     else:
         item = default
     return _RELEASE_FOCUS[item]
