@@ -7,7 +7,8 @@ import bdec
 long_description = """\
 Write specifications for existing binary formats in a flexible xml based
 syntax, and have decoders automatically generated for you. Written in Python,
-it currently supports decoding to xml or python objects.
+it currently supports native decoding to xml or python objects, as well as
+generating quality C decoders.
 """
 
 version=bdec.__version__
