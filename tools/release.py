@@ -267,8 +267,8 @@ if __name__ == '__main__':
             sys.exit('Not committed.')
 
         commit_bdec(version)
-        commit_website(version)
         tag_changes(version)
+        commit_website(version)
         upload()
         notify(version, changelog)
     else:
