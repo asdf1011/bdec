@@ -199,6 +199,9 @@ def commit_website(version):
     os.chdir(website_dir)
     if os.system('bzr diff | less') != 0:
         sys.exit('Stopped after reviewing changes.')
+    text = raw_input('Commit website changes? [y]')
+    if text and text != 'y':
+        sys.exit('Not committed.')
 
     # Commit the website changes
     os.chdir(website_dir)
