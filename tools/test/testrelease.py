@@ -16,8 +16,12 @@ Download
 * `Version 9.9.9`_
 
    Blah blah:
-   * Did this
-   * Did that
+   * Did this.
+   * Did that.
+
+   Ding dong:
+   * Went there.
+   * Came back.
 
 * `Version 1.2.3`_
 
@@ -26,7 +30,7 @@ Download
         offset, version, previous_version, changelog = get_changelog(text)
         self.assertEqual('9.9.9', version)
         self.assertEqual('1.2.3', previous_version)
-        self.assertEqual('Blah blah:\n* Did this\n* Did that', changelog)
+        self.assertEqual('Blah blah: Did this. Did that. Ding dong: Went there. Came back.', changelog)
 
     def test_notify(self):
         commands = []

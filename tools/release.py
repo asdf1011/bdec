@@ -93,17 +93,18 @@ def get_changelog(contents=_read_changelog()):
         sys.exit('Failed to find previous version')
     previous_version = match.group(1)
 
-    # Get the changelog, and strip off any leading whitespace
+    # Get the changelog, and strip off any trailing and leading whitespace.
+    # Look at some the freshmeat main page to get examples of how the layout
+    # should look (basically free flowing text).
     changelog = contents[changelog_offset:changelog_offset + match.start()]
+    lines = []
     for line in changelog.splitlines():
-        if line.strip():
-            for i, char in enumerate(line):
-                if char != ' ':
-                    break
-            break
-    changelog = ''.join(line[i:] for line in changelog.splitlines(True)).strip()
-
-
+        line = line.strip()
+        while line.startswith('*'):
+            line = line[1:].strip()
+        if line:
+            lines.append(line)
+    changelog = " ".join(lines)
     return (changelog_offset, version, previous_version, changelog)
 
 def get_focus():
