@@ -200,7 +200,7 @@ Simplifying the specification using named references
 
 In the specification so far, we have had to re-type the integer type several
 times. While this isn't too difficult, having more text can make it harder to
-read. We can use :ref:`references <bdec-reference>` to only specify these once::
+read. We can use :ref:`references <format-reference>` to only specify these once::
 
   <protocol>
      ...skipping...
