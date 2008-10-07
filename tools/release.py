@@ -39,7 +39,7 @@ _RELEASE_FOCUS = {
         2: 'Documentation',
         3: 'Code cleanup',
         4: 'Minor feature enhancements',
-        5: 'Major feature enhancement',
+        5: 'Major feature enhancements',
         6: 'Minor bugfixes', 
         7: 'Major bugfixes', 
         }
