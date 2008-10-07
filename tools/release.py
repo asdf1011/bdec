@@ -192,7 +192,7 @@ def commit_bdec(version):
 
     # Commit the bdec changes
     os.chdir(root_path)
-    if os.system('git commit --edit -m "Updated version to %s"' % version) != 0:
+    if os.system('git commit -a --edit -m "Updated version to %s"' % version) != 0:
         sys.exit('Failed to commit!')
 
 def commit_website(version):
