@@ -13,6 +13,28 @@ sys.path.append(root_path)
 
 import bdec
 
+def usage():
+    print "A script to simplify deploying new releases."
+    print
+    print "Usage: %s" % sys.argv[0]
+    print
+    print "This script will;"
+    print " 1. Check that all source files have copyright statements."
+    print " 2. Get the changelog from the README."
+    print " 3. If the changelog version matches the bdec version, will prompt "
+    print "    to update the website documentation."
+    print " 4. If the changelog version doesn't match the bdec version, it will;"
+    print "    a) Update the bdec/__init__.py version."
+    print "    b) Insert today's date into the README changelog."
+    print "    c) Update the website bdec documentation."
+    print "    d) Create a new tarball in the website 'files' folder."
+    print "    e) Prompt if the user wants to upload and notify others of this"
+    print "       release. If so, all changes will be automatically committed,"
+    print "       the website will have the changes uploaded, and a new tag will"
+    print "       be created in source control."
+    print "    f) Prompt if user wants freshmeat & pypi to be notified. If so,"
+    print "       README changlog will be used."
+
 _RELEASE_FOCUS = {
         2: 'Documentation',
         3: 'Code cleanup',
@@ -216,6 +238,9 @@ def upload():
         sys.exit('Failed to upload to the server!')
 
 if __name__ == '__main__':
+    if len(sys.argv) != 1:
+        usage()
+        sys.exit(1)
 
     _check_copyright_statements(['bdec', 'templates'])
     offset, version, previous_version, changelog = get_changelog()
