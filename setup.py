@@ -15,7 +15,7 @@ version=bdec.__version__
 
 setup(name='bdec',
       version=version,
-      description='bdec binary decoder',
+      description='Generates decoders for binary file formats given a high level specification.',
       long_description=long_description,
       author='Henry Ludemann',
       author_email='misc@hl.id.au',
