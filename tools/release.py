@@ -112,7 +112,7 @@ def get_focus():
     for id, text in _RELEASE_FOCUS.iteritems():
         print id, text
     default = 7
-    focus = raw_input('What is the release focus? %s ' % default)
+    focus = raw_input('What is the release focus? [%s] ' % default)
     if focus:
         item = int(focus.strip())
     else:
