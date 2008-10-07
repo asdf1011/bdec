@@ -130,6 +130,22 @@ available, please contact licensing at hl.id.au.
 Download
 ========
 
+* `Version 0.4.0`_
+
+  Features:
+
+  * Allow common entries to be given another name.
+  * Improve readability of generated C code.
+  * Don't include unnecessary data structures in C headers.
+  * Change to LGPL license.
+  * Documentation updates.
+
+  Bugfixes:
+
+  * Various fixes in C decoders.
+  * Fix mp3 specification.
+
+
 * `Version 0.3.2`_
   2008-07-06
 
@@ -218,4 +234,5 @@ Download
 .. _Version 0.3.0: files/bdec-0.3.0.tar.gz
 .. _Version 0.3.1: files/bdec-0.3.1.tar.gz
 .. _Version 0.3.2: files/bdec-0.3.2.tar.gz
+.. _Version 0.4.0: files/bdec-0.4.0.tar.gz
 
