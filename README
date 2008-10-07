@@ -8,21 +8,27 @@ bdec
 Overview
 ========
 
-Binary formats typically aren't easily specified; they are rarely specified
-in a high level marked language such as ASN.1 (and such specifications
-cannot be retro-fitted to existing binary formats). 'bdec' is an attempt
-to specify arbitrary binary formats in a markup language, and create decoders
-automatically for that binary format given the high level specification.
+Writing decoders for binary formats is typically tedious and error prone.
+Binary formats are usually specified in text documents that developers have
+to read if they are to create decoders, a time consuming, frustrating, and
+costly process.
+
+While there are high level markup languages such as ASN.1 for specifying
+formats, few specifications make use of these languages, and such markup
+languages cannot be retro-fitted to existing binary formats. 'bdec' is an
+attempt to specify arbitrary binary formats in a markup language, and create
+decoders automatically for that binary format given the high level
+specification.
 
 Bdec can;
 
  * Allow specifications to be easily written, updated, and maintained.
  * Decode binary files directly from the specification.
- * Generate portable, understandable, and readable C decoders.
+ * Generate portable, readable, and efficient C decoders.
  * Provide rudimentary encoding support.
  * Run under Windows & Unix operating systems
 
-The bdec xml specification uses constructs based on the constructs found in
+The bdec xml specification uses constructs loosely based on those found in
 ASN.1.
 
 
