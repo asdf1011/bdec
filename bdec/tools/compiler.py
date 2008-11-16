@@ -8,14 +8,33 @@ import mako.template
 import mako.runtime
 import os
 import os.path
+import pkg_resources
 import sys
 
 import bdec.choice as chc
 import bdec.inspect.param as prm
 import bdec.output.xmlout
 
+class PkgResourcesLookup(mako.lookup.TemplateCollection):
+    def __init__(self, basename):
+        self._base_name = basename
+        self._collection = {}
+
+    def get_template(self, uri, relativeto=None):
+        try:
+            return self._collection[uri]
+        except KeyError:
+            pass
+
+        path = "%s/%s" % (self._base_name, uri)
+        text = pkg_resources.resource_string('bdec', path)
+        result = mako.template.Template(text, uri=uri, lookup=self)
+        self._collection[uri] = result
+        return result
+
+
 _template_cache = {}
-def _load_templates(directory):
+def _load_templates(language):
     """
     Load all file templates for a given specification.
 
@@ -23,21 +42,22 @@ def _load_templates(directory):
     where every template is a tuple containing (name, mako template).
     """
     # We cache the results, as it sped up the tests by about 3x.
-    if directory in _template_cache:
-        return _template_cache[directory]
+    if language in _template_cache:
+        return _template_cache[language]
 
     common_templates  = []
     entry_templates = []
-    for filename in os.listdir(directory):
+    template_dir = 'templates/' + language
+    for filename in pkg_resources.resource_listdir('bdec', template_dir):
         if not filename.endswith('.tmpl') and not filename.startswith('.'):
-            path = os.path.join(directory, filename)
-            lookup = mako.lookup.TemplateLookup(directories=[directory])
-            template = mako.template.Template(filename=path, lookup=lookup)
+            lookup = PkgResourcesLookup(template_dir)
+            text = pkg_resources.resource_string('bdec', '%s/%s' % (template_dir, filename))
+            template = mako.template.Template(text, uri=filename, lookup=lookup)
             if 'source' in filename:
                 entry_templates.append((filename, template))
             else:
                 common_templates.append((filename, template))
-    _template_cache[directory] = (common_templates, entry_templates)
+    _template_cache[language] = (common_templates, entry_templates)
     return (common_templates, entry_templates)
 
 def _generate_template(output_dir, filename, lookup, template):
@@ -65,13 +85,14 @@ class _EntryInfo(prm.ParamLookup):
             yield prm.Param(_variable_name(param.name), param.direction)
 
 class _Utils:
-    def __init__(self, common, template_path):
+    def __init__(self, common, language):
         self._common = common
         self._entries = self._detect_entries()
 
-        config_file = os.path.join(template_path, '.settings')
+        path = 'templates/%s/.settings' % language
+        config_file = pkg_resources.resource_stream('bdec', path)
         settings = ConfigParser.ConfigParser()
-        settings.read([config_file])
+        settings.readfp(config_file)
         self._keywords = list(self._get_keywords(settings))
 
     def _detect_entries(self):
@@ -139,13 +160,13 @@ class _Utils:
 
         if len(matching_entries) == 1 and name not in self._keywords:
             # No need to escape the name
-            result = entry_name 
+            result = entry_name
         else:
             result = "%s %i" % (entry_name, matching_index)
         return result
 
 def _crange(start, end):
-    return [chr(i) for i in range(ord(start), ord(end)+1)] 
+    return [chr(i) for i in range(ord(start), ord(end)+1)]
 _NUMBERS = _crange('0', '9')
 _VALID_CHARS = _NUMBERS + _crange('a', 'z') + _crange('A', 'Z') + ['_', ' ']
 
@@ -178,15 +199,15 @@ def _type_name(name):
 def _constant_name(name):
     return _delimiter(name, '_').upper()
 
-def generate_code(spec, template_path, output_dir, common_entries=[]):
+def generate_code(spec, language, output_dir, common_entries=[]):
     """
     Generate code to decode the given specification.
     """
-    common_templates, entry_templates = _load_templates(template_path)
+    common_templates, entry_templates = _load_templates(language)
     entries = set(common_entries)
     entries.add(spec)
     info = _EntryInfo(entries)
-    utils = _Utils(entries, template_path)
+    utils = _Utils(entries, language)
 
     lookup = {}
     lookup['protocol'] = spec

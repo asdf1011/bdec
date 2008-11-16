@@ -28,8 +28,7 @@ else:
     outputdir = os.getcwd()
 
 language = 'c'
-directory = os.path.join(os.path.dirname(__file__), '..', 'templates', language)
 try:
-    bdec.tools.compiler.generate_code(spec, directory, outputdir, common.itervalues())
+    bdec.tools.compiler.generate_code(spec, language, outputdir, common.itervalues())
 except:
     sys.exit(mako.exceptions.text_error_template().render())
