@@ -87,7 +87,7 @@ class _CompiledDecoder:
             shutil.rmtree(self.TEST_DIR)
         os.mkdir(self.TEST_DIR)
 
-        comp.generate_code(spec, self.TEMPLATE_PATH, self.TEST_DIR, common)
+        comp.generate_code(spec, self.LANGUAGE, self.TEST_DIR, common)
 
         files = glob.glob(os.path.join(self.TEST_DIR, '*.%s' % self.FILE_TYPE))
         command = [self.COMPILER] + self.COMPILER_FLAGS + [self.EXECUTABLE] + files
@@ -128,7 +128,7 @@ class _CDecoder(_CompiledDecoder):
     COMPILER = "gcc"
     COMPILER_FLAGS = ["-Wall", "-Werror", '-g', '-o']
     FILE_TYPE = "c"
-    TEMPLATE_PATH = os.path.join(os.path.dirname(__file__), '..', '..', 'templates', 'c')
+    LANGUAGE = "c"
 
 
 class _PythonDecoder:
