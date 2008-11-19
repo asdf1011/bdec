@@ -32,6 +32,10 @@
 #include "${e.name |filename}.h"
 %endfor
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 <%def name="c_define(entry)" >
   %if isinstance(entry, Sequence):
 ${settings.ctype(entry)}
@@ -93,6 +97,10 @@ void ${settings.free_name(entry)}(${settings.ctype(entry)}* value);
 
 // Print an xml representation of a ${entry.name} object.
 void ${settings.print_name(entry)}(${settings.ctype(entry)}* data, int offset, char* name);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 
