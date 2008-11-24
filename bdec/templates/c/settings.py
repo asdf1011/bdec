@@ -38,7 +38,7 @@ def ctype(entry):
         else:
             raise Exception("Unhandled field format '%s'!" % entry)
     elif isinstance(entry, seq.Sequence) and entry.value is not None and \
-            not reduce(lambda a,b: a and b, (contains_data(child.entry) for child in entry.children)):
+            not reduce(lambda a,b: a and b, (contains_data(child.entry) for child in entry.children), True):
         # This sequence has hidden children and a value; we can treat this as
         # an integer.
         return 'int'
