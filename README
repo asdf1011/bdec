@@ -142,6 +142,13 @@ available, please contact licensing at hl.id.au.
 Download
 ========
 
+If you have the python easy_install_ available, run::
+
+  easy_install bdec
+
+to install the latest version of the bdec decoder and compiler. If you don't
+know what easy_install is, use one of the following downloads.
+
 * `Version 0.4.0`_
   2008-10-08
 
@@ -243,6 +250,7 @@ Download
     expressions).
 
 
+.. _easy_install: http://peak.telecommunity.com/DevCenter/EasyInstall
 .. _Version 0.1.1: files/bdec-0.1.1.tar.gz
 .. _Version 0.2.0: files/bdec-0.2.0.tar.gz
 .. _Version 0.3.0: files/bdec-0.3.0.tar.gz
