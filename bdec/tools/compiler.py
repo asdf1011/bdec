@@ -262,6 +262,12 @@ def generate_code(spec, language, output_dir, common_entries=[]):
     common_templates, entry_templates = _load_templates(language)
     entries = set(common_entries)
     entries.add(spec)
+    
+    # We want the entries to be in a consistent order, otherwise the name
+    # escaping might choose different names for the same entry across multiple
+    # runs.
+    entries = list(entries)
+    entries.sort(key=lambda a:a.name)
     info = _EntryInfo(entries)
 
     lookup = {}
