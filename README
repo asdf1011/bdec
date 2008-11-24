@@ -155,7 +155,7 @@ code links below can be also be used if you install the dependencies manually
   2008-10-08
 
 
-  Features:
+  New Features:
 
   * Allow common entries to be given another name.
   * Improve readability of generated C code.
@@ -172,7 +172,7 @@ code links below can be also be used if you install the dependencies manually
 * `Version 0.3.2`_
   2008-07-06
 
-  Features
+  New Features
 
   * The c decoder memory is now freed
   * Decoders are validated with valgrind
