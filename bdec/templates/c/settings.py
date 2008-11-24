@@ -17,6 +17,7 @@
 #   <http://www.gnu.org/licenses/>.
 
 import bdec.field as fld
+import bdec.sequence as seq
 from bdec.spec.expression import Delayed, ValueResult, LengthResult, Constant
 import operator
 import string
@@ -36,6 +37,11 @@ def ctype(entry):
             return 'BitBuffer'
         else:
             raise Exception("Unhandled field format '%s'!" % entry)
+    elif isinstance(entry, seq.Sequence) and entry.value is not None and \
+            not reduce(lambda a,b: a and b, (contains_data(child.entry) for child in entry.children)):
+        # This sequence has hidden children and a value; we can treat this as
+        # an integer.
+        return 'int'
     else:
         return "struct " + typename(esc_name(iter_entries().index(entry), iter_entries()))
 

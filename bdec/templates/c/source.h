@@ -37,7 +37,7 @@ extern "C" {
 #endif
 
 <%def name="c_define(entry)" >
-  %if isinstance(entry, Sequence):
+  %if isinstance(entry, Sequence) and settings.ctype(entry) is not 'int':
 ${settings.ctype(entry)}
 {
   %for i, child in enumerate(entry.children):
@@ -49,8 +49,6 @@ ${settings.ctype(entry)}
     int value;
   %endif
 };
-  %elif isinstance(entry, Field):
-typedef ${settings.ctype(entry)} ${entry.name |typename};
   %elif isinstance(entry, Choice):
 ${settings.ctype(entry)}
 {
@@ -66,8 +64,6 @@ ${settings.ctype(entry)}
     ${settings.ctype(entry.children[0].entry)}* items;
     unsigned int count;
 };
-  %else:
-#error Unsupported entry ${entry}
   %endif
 </%def>
 

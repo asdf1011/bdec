@@ -169,7 +169,11 @@
     %if entry.value is not None:
     int value = ${settings.value(entry.value)};
       %if contains_data(entry):
+        %if settings.ctype(entry) == 'int':
+    *result = value;
+        %else:
     result->value = value;
+        %endif
       %endif
       %if is_value_referenced(entry):
     *${entry.name |variable} = value;
@@ -422,7 +426,9 @@ ${recursiveDecode(entry, False)}
     ${printText("<%s>\\n", name, ws_offset)}
       %endif
       <% next_offset = (ws_offset + 4) if not item.is_hidden() else ws_offset %>
-      %if isinstance(item, Sequence):
+      %if isinstance(item, Sequence) and settings.ctype(item) == 'int':
+    printf("%*i\n", offset + ${ws_offset+4}, ${varname}); 
+      %elif isinstance(item, Sequence):
         %for i, child in enumerate(item.children):
 ${recursivePrint(child.entry, '"%s"' % xmlname(child.name), '%s.%s' % (varname, variable(esc_name(i, item.children))), next_offset, iter_postfix)}
         %endfor

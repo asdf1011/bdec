@@ -439,4 +439,9 @@ class _CompilerTests:
         a = fld.Field('a', length=72, format=fld.Field.TEXT)
         self._decode(a, '1\x002\x013<4>5', expected_xml='<a>1?2?3&lt;4&gt;5</a>')
 
+    def test_sequence_as_integer(self):
+        # Test that we can compile non-hidden sequences with hidden children
+        a = seq.Sequence('a', [fld.Field('a:', 8, fld.Field.INTEGER)], value=expr.compile("${a:}"))
+        self._decode(a, '\x70', expected_xml='<a>112</a>')
+
 globals().update(create_decoder_classes([(_CompilerTests, 'SimpleDecode')], __name__))
