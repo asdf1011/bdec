@@ -9,7 +9,7 @@ import os
 import sys
 
 import bdec.spec.xmlspec
-import bdec.tools.compiler
+import bdec.compiler
 
 def _load_spec(filename):
     """Load the protocol specification. """
@@ -30,7 +30,7 @@ def main():
 
     language = 'c'
     try:
-        bdec.tools.compiler.generate_code(spec, language, outputdir, common.itervalues())
+        bdec.compiler.generate_code(spec, language, outputdir, common.itervalues())
     except:
         sys.exit(mako.exceptions.text_error_template().render())
 

@@ -37,7 +37,7 @@ import xml.etree.ElementTree
 import bdec
 import bdec.data as dt
 import bdec.output.xmlout as xmlout
-import bdec.tools.compiler as comp
+import bdec.compiler as comp
 
 def _is_xml_text_equal(a, b):
     a = a.text or ""
