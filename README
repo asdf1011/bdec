@@ -115,6 +115,8 @@ Some other projects that perform 'generic' binary decoding include;
 * Construct (http://construct.wikispaces.com/) - Decodes data 
   structures, formats are specified in python code without too
   much high-level intelligence. Not many formats available.
+* Asn1c (http://lionet.info/asn1c/) - Asn.1 compiler; generates C language
+  encoders / decoders.
 
 
 License
