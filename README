@@ -80,23 +80,6 @@ Features
 .. _xml representation of a FAT bootsector: doc/files/fatbootsector.xml
 
 
-Similar projects
-================
-
-Some other projects that perform 'generic' binary decoding include;
-
-* Hachoir (http://hachoir.org/) - Very powerful decoding
-  library, where binary formats are specified in python
-  code (using generators). Quite high level decoding, with
-  complex binary files being decoded. Lots of file formats
-  are specified (at least partially).
-* Construct (http://construct.wikispaces.com/) - Decodes data 
-  structures, formats are specified in python code without too
-  much high-level intelligence. Not many formats available.
-* Asn1c (http://lionet.info/asn1c/) - Asn.1 compiler; generates C language
-  encoders / decoders.
-
-
 License
 =======
 
@@ -236,4 +219,21 @@ code links below can be also be used if you install the dependencies manually
 .. _Version 0.3.1: files/bdec-0.3.1.tar.gz
 .. _Version 0.3.2: files/bdec-0.3.2.tar.gz
 .. _Version 0.4.0: files/bdec-0.4.0.tar.gz
+
+
+Similar projects
+================
+
+Some other projects that perform 'generic' binary decoding include;
+
+* Hachoir (http://hachoir.org/) - Very powerful decoding
+  library, where binary formats are specified in python
+  code (using generators). Quite high level decoding, with
+  complex binary files being decoded. Lots of file formats
+  are specified (at least partially).
+* Construct (http://construct.wikispaces.com/) - Decodes data 
+  structures, formats are specified in python code without too
+  much high-level intelligence. Not many formats available.
+* Asn1c (http://lionet.info/asn1c/) - Asn.1 compiler; generates C language
+  encoders / decoders.
 
