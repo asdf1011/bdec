@@ -8,7 +8,7 @@
   from bdec.sequenceof import SequenceOf
  %>
 
-/*  Copyright (C) 2008 Henry Ludemann
+/*  Portions Copyright (C) 2008 Henry Ludemann
 
     This file is part of the bdec decoder library.
 
