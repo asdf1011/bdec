@@ -141,9 +141,6 @@ summary, this means;
  * The source code (and any modifications) to the decoder must be made
    available to anyone you distribute the decoder to.
 
-To use the library and generated decoders without having to make the source
-available, please contact licensing at hl.id.au.
-
 .. _GNU Lesser General Public License (LGPL): http://www.gnu.org/licenses/lgpl.txt
 
 
