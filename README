@@ -77,7 +77,7 @@ Features
 * Specify fields down to the bit (eg: single bit flags)
 * Generated decoders are human readable, and compile without any warnings.
 
-.. _xml representation of a FAT bootsector: doc/files/fatbootsector.xml
+.. _xml representation of a FAT bootsector: docs/files/fatbootsector.xml
 
 
 License

@@ -349,6 +349,22 @@ Note that we use the 'len{...}' entry to reference the length of another field
 that has been decoded.
 
 
+Compiling to C
+--------------
+
+While the specification is interesting, and the decoding to xml can be useful
+in certain situations, to be able to use the decoder in other languages is a
+major feature of bdec. Generate a C language decoder by running::
+
+  bcompile png.xml
+
+The generate source includes a sample 'main.c' that can be used as for
+decoding png files to xml. See the alternate main.c_ that prints the image
+width and height, and displays all png 'text' sections.
+
+.. _main.c: files/main.c
+
+
 Where to go from here
 ---------------------
 

@@ -165,6 +165,7 @@ def update_website():
         os.mkdir('tempdir')
     if os.system(command) != 0:
         sys.exit('Failed to update project html documentation!')
+    shutil.copytree("files", "tempdir/files")
     if os.path.exists(html_doc_dir):
         shutil.rmtree(html_doc_dir)
     os.rename('tempdir', html_doc_dir)
