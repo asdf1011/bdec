@@ -75,53 +75,58 @@ def _get_valgrind():
         print 'Failed to find valgrind executable! Compiled tests will run without valgrind.'
     return path
 
+def generate(spec, common, details):
+    """Create a compiled decoder."""
+    if os.path.exists(details.TEST_DIR):
+        shutil.rmtree(details.TEST_DIR)
+    os.mkdir(details.TEST_DIR)
+
+    comp.generate_code(spec, details.LANGUAGE, details.TEST_DIR, common)
+
+def compile_and_run(data, details):
+    files = glob.glob(os.path.join(details.TEST_DIR, '*.%s' % details.FILE_TYPE))
+    command = [details.COMPILER] + details.COMPILER_FLAGS + [details.EXECUTABLE] + files
+    if subprocess.call(command) != 0:
+        self.fail('Failed to compile!')
+
+    if not isinstance(data, str):
+        data = data.read()
+
+    filename = os.path.join(details.TEST_DIR, 'data.bin')
+    datafile = open(filename, 'wb')
+    datafile.write(data)
+    datafile.close()
+
+    command = [details.EXECUTABLE, filename]
+    if details.VALGRIND is not None:
+        command = [details.VALGRIND, '--tool=memcheck', '--leak-check=full'] + command
+    decode = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    xml = decode.stdout.read()
+    stderr = decode.stderr.read()
+    match = re.search('ERROR SUMMARY: (\d+) errors', stderr)
+    assert match is not None, stderr
+    assert match.group(1) == '0', stderr
+
+    return decode.wait(), xml
+
 class _CompiledDecoder:
     """Base class for testing decoders that are compiled."""
     TEST_DIR = os.path.join(os.path.dirname(__file__), 'temp')
     EXECUTABLE = os.path.join(TEST_DIR, 'decode')
     VALGRIND = _get_valgrind()
 
-    def _compile(self, spec, common):
-        """Create a compiled decoder."""
-        if os.path.exists(self.TEST_DIR):
-            shutil.rmtree(self.TEST_DIR)
-        os.mkdir(self.TEST_DIR)
-
-        comp.generate_code(spec, self.LANGUAGE, self.TEST_DIR, common)
-
-        files = glob.glob(os.path.join(self.TEST_DIR, '*.%s' % self.FILE_TYPE))
-        command = [self.COMPILER] + self.COMPILER_FLAGS + [self.EXECUTABLE] + files
-        if subprocess.call(command) != 0:
-            self.fail('Failed to compile!')
-
     def _decode_file(self, spec, common, data):
         """Return a tuple containing the exit code and the decoded xml."""
-        self._compile(spec, common)
-        if not isinstance(data, str):
-            data = data.read()
+        generate(spec, common, self)
+        (exitstatus, xml) = compile_and_run(data, self)
 
-        filename = os.path.join(self.TEST_DIR, 'data.bin')
-        datafile = open(filename, 'wb')
-        datafile.write(data)
-        datafile.close()
-
-        command = [self.EXECUTABLE, filename]
-        if self.VALGRIND is not None:
-            command = [self.VALGRIND, '--tool=memcheck', '--leak-check=full'] + command
-        decode = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        xml = decode.stdout.read()
-        stderr = decode.stderr.read()
-        match = re.search('lost: [^0]', stderr)
-        if match is not None:
-            self.fail(stderr)
-
-        if decode.wait() == 0:
+        if exitstatus == 0:
             # Validate the output against the python output
             exit_code, expected = _PythonDecoder()._decode_file(spec, common, data)
             if exit_code != 0:
                 raise Exception("Python decode failed for when creating expected xml (got %i)", exit_code)
             assert_xml_equivalent(expected, xml)
-        return decode.wait(), xml
+        return exitstatus, xml
 
 
 class _CDecoder(_CompiledDecoder):
