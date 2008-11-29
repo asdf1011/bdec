@@ -168,13 +168,17 @@ class _Utils:
         return self._entries
 
     def iter_required_common(self, entry):
+        items = set()
         for child in entry.children:
             if child.entry in self._common:
                 if not isinstance(entry, chc.Choice):
-                    yield child.entry
+                    items.add(child.entry)
             else:
                 for e in self.iter_required_common(child.entry):
-                    yield e
+                    items.add(e)
+        result = list(items)
+        result.sort(key=lambda a:a.name)
+        return result
 
     def iter_optional_common(self, entry):
         for child in entry.children:
