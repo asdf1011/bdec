@@ -100,7 +100,7 @@ summary, this means;
 Download
 ========
 
-The easier way to install bdec is to use python's easy_install_ application.
+The easiest way to install bdec is to use python's easy_install_ application.
 Run::
 
   easy_install bdec
