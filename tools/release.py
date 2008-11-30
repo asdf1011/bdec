@@ -188,10 +188,6 @@ def tag_changes(version):
         sys.exit('Failed to tag!')
 
 def commit_bdec(version):
-    os.chdir(root_path)
-    if os.system('git diff') != 0:
-        sys.exit('Stopped after reviewing changes.')
-
     # Commit the bdec changes
     os.chdir(root_path)
     if os.system('git commit -a --edit -m "Updated version to %s"' % version) != 0:
@@ -298,6 +294,10 @@ if __name__ == '__main__':
         insert_date_into_changelog(offset)
         update_website()
         update_release(version)
+
+        os.chdir(root_path)
+        if os.system('git diff') != 0:
+            sys.exit('Stopped after reviewing changes.')
 
         text = raw_input('Commit changes and tag release? [y]')
         if text and text != 'y':
