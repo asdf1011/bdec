@@ -6,6 +6,7 @@ import datetime
 import os.path
 import re
 import shutil
+import smtplib
 import sys
 
 root_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), '..')
@@ -215,6 +216,34 @@ def commit_website(version):
         sys.exit('Failed to commit!')
     os.remove('.commitmsg')
 
+def send_email(version, changelog):
+    to_addr = 'bdec-project@yahoogroups.com'
+
+    data = open('.emailmsg', 'w')
+    data.write('To: %s\r\n' % to_addr)
+    data.write('From: Henry Ludemann <lists@hl.id.au>\r\n')
+    data.write('Reply-To: Henry Ludemann <lists@hl.id.au>\r\n')
+    data.write('Subject: Bdec %s released\r\n' % version)
+    data.write('\r\n')
+    data.write('Version %s of the bdec decoder has been released. The changes in this version are;\r\n\r\n%s' % (version, changelog))
+    data.close()
+    if os.system('vi .emailmsg') != 0:
+        sys.exit('Stopping due to edit email message failure')
+    message = open('.emailmsg', 'r').read()
+    os.remove('.emailmsg')
+
+    user = raw_input('Enter gmail username:')
+    password = raw_input('Enter gmail password:')
+
+    print 'Sending email...'
+    smtp = smtplib.SMTP('smtp.gmail.com', 587)
+    smtp.ehlo()
+    smtp.starttls()
+    smtp.ehlo()
+    smtp.login(user, password)
+    smtp.sendmail('lists@hl.id.au', to_addr, message)
+    smtp.quit()
+
 def notify(version, changelog, get_focus=get_focus,  system=os.system, confirm=raw_input):
     # Notify freshmeat
     if confirm('Should freshmeat be notified? [y]') in ['', 'y', 'Y']:
@@ -234,6 +263,8 @@ def notify(version, changelog, get_focus=get_focus,  system=os.system, confirm=r
             sys.exit('Failed to update python package index!')
     else:
         print 'Not notifying pypi.'
+
+    send_email(version, changelog)
 
 def upload():
     print "Uploading to the server..."
