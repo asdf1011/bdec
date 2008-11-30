@@ -1,3 +1,8 @@
+/*
+ * Copyright (C) 2008 Henry Ludemann
+ *
+ * License: GNU Lesser General Public License.
+ */
 #include <stdio.h>
 #include <stdlib.h>
 
