@@ -3,6 +3,7 @@
 """ A script for automatically preparing a new release """
 
 import datetime
+import getpass
 import os.path
 import re
 import shutil
@@ -233,7 +234,7 @@ def send_email(version, changelog):
     while 1:
         try:
             user = raw_input('Enter gmail username:')
-            password = raw_input('Enter gmail password:')
+            password = getpass.getpass()
 
             print 'Sending email...'
             smtp = smtplib.SMTP('smtp.gmail.com', 587)
