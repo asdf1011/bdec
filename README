@@ -109,6 +109,19 @@ to install the latest version of the bdec decoder and compiler. The source
 code links below can be also be used if you install the dependencies manually
 (currently pyparsing_ and mako_).
 
+* `Version 0.4.1`_
+
+  New Features:
+
+  * Allow the project to be compiled to an egg (including templates).
+  * Allow the generated C to be used from C++ programs (eg: extern "c").
+  * Install 'bdecode' and 'bcompile' as part of the egg install.
+
+  Bugfixes:
+
+  * Generated C language type names are consistent across runs.
+
+
 * `Version 0.4.0`_
   2008-10-08
 
@@ -219,6 +232,7 @@ code links below can be also be used if you install the dependencies manually
 .. _Version 0.3.1: files/bdec-0.3.1.tar.gz
 .. _Version 0.3.2: files/bdec-0.3.2.tar.gz
 .. _Version 0.4.0: files/bdec-0.4.0.tar.gz
+.. _Version 0.4.1: files/bdec-0.4.1.tar.gz
 
 
 Similar projects
