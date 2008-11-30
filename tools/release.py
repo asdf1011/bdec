@@ -221,7 +221,9 @@ def send_email(version, changelog):
     data.write('Reply-To: Henry Ludemann <lists@hl.id.au>\r\n')
     data.write('Subject: Bdec %s released\r\n' % version)
     data.write('\r\n')
-    data.write('Version %s of the bdec decoder has been released. The changes in this version are;\r\n\r\n%s' % (version, changelog))
+    data.write('Version %s of the bdec decoder has been released. The changes in this version are;\r\n\r\n' % version)
+    data.write(changelog)
+    data.write('\r\n\r\nDownload: http://www.hl.id.au/projects/bdec/#download')
     data.close()
     if os.system('vi .emailmsg') != 0:
         sys.exit('Stopping due to edit email message failure')
