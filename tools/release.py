@@ -269,10 +269,14 @@ def notify(version, changelog, get_focus=get_focus,  system=os.system, confirm=r
 
 def upload():
     print "Uploading to the server..."
-    os.chdir(website_dir)
-    command = "./upload ftp://ftp.hl.id.au"
-    if os.system(command) != 0:
-        sys.exit('Failed to upload to the server!')
+    while 1:
+        os.chdir(website_dir)
+        command = "./upload ftp://ftp.hl.id.au"
+        if os.system(command) == 0:
+            break
+        text = raw_input('Failed to upload to the server! Try again? [y]')
+        if text and text != 'y':
+            sys.exit('Not uploaded.')
 
 if __name__ == '__main__':
     if len(sys.argv) != 1:
