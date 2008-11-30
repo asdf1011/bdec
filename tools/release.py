@@ -232,17 +232,22 @@ def send_email(version, changelog):
     message = open('.emailmsg', 'r').read()
     os.remove('.emailmsg')
 
-    user = raw_input('Enter gmail username:')
-    password = raw_input('Enter gmail password:')
+    while 1:
+        try:
+            user = raw_input('Enter gmail username:')
+            password = raw_input('Enter gmail password:')
 
-    print 'Sending email...'
-    smtp = smtplib.SMTP('smtp.gmail.com', 587)
-    smtp.ehlo()
-    smtp.starttls()
-    smtp.ehlo()
-    smtp.login(user, password)
-    smtp.sendmail('lists@hl.id.au', to_addr, message)
-    smtp.quit()
+            print 'Sending email...'
+            smtp = smtplib.SMTP('smtp.gmail.com', 587)
+            smtp.ehlo()
+            smtp.starttls()
+            smtp.ehlo()
+            smtp.login(user, password)
+            smtp.sendmail('lists@hl.id.au', to_addr, message)
+            smtp.quit()
+            break
+        except SMTPAuthenticationError, ex:
+            print 'Authenticion error!', ex
 
 def notify(version, changelog, get_focus=get_focus,  system=os.system, confirm=raw_input):
     # Notify freshmeat
