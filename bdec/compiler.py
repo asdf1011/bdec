@@ -42,23 +42,6 @@ def is_template(filename):
     # We ignore all 'hidden' files, and the setting files, when looking for templates.
     return not filename.startswith('.') and filename != _SETTINGS
 
-class PkgResourcesLookup(mako.lookup.TemplateCollection):
-    def __init__(self, basename):
-        self._base_name = basename
-        self._collection = {}
-
-    def get_template(self, uri, relativeto=None):
-        try:
-            return self._collection[uri]
-        except KeyError:
-            pass
-
-        path = "%s/%s" % (self._base_name, uri)
-        text = pkg_resources.resource_string('bdec', path)
-        result = mako.template.Template(text, uri=uri, lookup=self)
-        self._collection[uri] = result
-        return result
-
 _template_cache = {}
 def _load_templates(language):
     """
@@ -76,9 +59,8 @@ def _load_templates(language):
     template_dir = 'templates/' + language
     for filename in pkg_resources.resource_listdir('bdec', template_dir):
         if is_template(filename):
-            lookup = PkgResourcesLookup(template_dir)
             text = pkg_resources.resource_string('bdec', '%s/%s' % (template_dir, filename))
-            template = mako.template.Template(text, uri=filename, lookup=lookup)
+            template = mako.template.Template(text, uri=filename)
             if 'source' in filename:
                 entry_templates.append((filename, template))
             else:
