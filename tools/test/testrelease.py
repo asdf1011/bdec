@@ -38,7 +38,7 @@ Download
             commands.append(command)
             return 0
         message = 'I am a change\n\nwith several lines'
-        notify('9.9.9', message, lambda: 7, mock_system, lambda msg:'y')
+        notify('9.9.9', message, lambda: 7, mock_system, lambda msg:'y', should_send_email=False)
         self.assertEqual(2,  len(commands))
         command = commands[0][:commands[0].index(' ')]
         args = commands[0][len(command):].strip()

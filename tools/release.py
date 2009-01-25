@@ -231,24 +231,22 @@ def send_email(version, changelog):
     message = open('.emailmsg', 'r').read()
     os.remove('.emailmsg')
 
-    while 1:
-        try:
-            user = raw_input('Enter gmail username:')
-            password = getpass.getpass()
+    try:
+        user = raw_input('Enter gmail username:')
+        password = getpass.getpass()
 
-            print 'Sending email...'
-            smtp = smtplib.SMTP('smtp.gmail.com', 587)
-            smtp.ehlo()
-            smtp.starttls()
-            smtp.ehlo()
-            smtp.login(user, password)
-            smtp.sendmail('lists@hl.id.au', to_addr, message)
-            smtp.quit()
-            break
-        except SMTPAuthenticationError, ex:
-            print 'Authenticion error!', ex
+        print 'Sending email...'
+        smtp = smtplib.SMTP('smtp.gmail.com', 587)
+        smtp.ehlo()
+        smtp.starttls()
+        smtp.ehlo()
+        smtp.login(user, password)
+        smtp.sendmail('lists@hl.id.au', to_addr, message)
+        smtp.quit()
+    except smtplib.SMTPAuthenticationError, ex:
+        print 'Authenticion error!', ex
 
-def notify(version, changelog, get_focus=get_focus,  system=os.system, confirm=raw_input):
+def notify(version, changelog, get_focus=get_focus,  system=os.system, confirm=raw_input, should_send_email=True):
     # Notify freshmeat
     if confirm('Should freshmeat be notified? [y]') in ['', 'y', 'Y']:
         focus = get_focus()
@@ -268,7 +266,8 @@ def notify(version, changelog, get_focus=get_focus,  system=os.system, confirm=r
     else:
         print 'Not notifying pypi.'
 
-    send_email(version, changelog)
+    if should_send_email:
+        send_email(version, changelog)
 
 def upload():
     print "Uploading to the server..."
