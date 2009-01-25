@@ -171,27 +171,34 @@ class _Utils:
                 for entry in self.iter_optional_common(child.entry):
                     yield entry
 
-    def esc_name(self, index, iter_entries):
-        # Find all entries that will have the same name as the entry at i
-        entry_name = _escape_name(iter_entries[index].name)
-        matching_entries = []
-        matching_index = None
-        for i, e in enumerate(iter_entries):
-            name = _escape_name(e.name)
-            if name == entry_name:
-                matching_entries.append(e)
-                if i == index:
-                    matching_index = len(matching_entries)
+    def esc_names(self, iter_entries):
+        """Return a list of names matching to each entry in 'iter_entries'"""
+        name_count = {}
+        entries = list(iter_entries)
+        names = []
+        for i, e in enumerate(entries):
+            # We ignore case when checking for matching names, because the
+            # conversion to different uses (eg: type, constant, function)
+            # usually changes the case.
+            name = _escape_name(e.name).lower()
+            try:
+                name_count[name] += 1
+            except KeyError:
+                name_count[name] = 0
+            names.append((name, name_count[name]))
 
-        assert matching_index != None
-        assert len(matching_entries) > 0
-
-        if len(matching_entries) == 1 and name not in self._settings.keywords:
-            # No need to escape the name
-            result = entry_name
-        else:
-            result = "%s %i" % (entry_name, matching_index)
+        result = []
+        for name, count in names:
+            if name_count[name] == 0  and name not in self._settings.keywords:
+                # This is the only item with that name
+                result.append(name)
+            else:
+                result.append("%s %i" % (name, count))
+        assert len(result) == len(entries)
         return result
+
+    def esc_name(self, index, iter_entries):
+        return self.esc_names(iter_entries)[index]
 
 def _crange(start, end):
     return [chr(i) for i in range(ord(start), ord(end)+1)]
