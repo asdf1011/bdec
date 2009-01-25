@@ -87,7 +87,7 @@ def compile_and_run(data, details):
     files = glob.glob(os.path.join(details.TEST_DIR, '*.%s' % details.FILE_TYPE))
     command = [details.COMPILER] + details.COMPILER_FLAGS + [details.EXECUTABLE] + files
     if subprocess.call(command) != 0:
-        self.fail('Failed to compile!')
+        raise Exception('Failed to compile!')
 
     if not isinstance(data, str):
         data = data.read()
