@@ -16,6 +16,7 @@
 #   License along with this library; if not, see
 #   <http://www.gnu.org/licenses/>.
 
+import bdec.choice as chc
 import bdec.field as fld
 import bdec.sequence as seq
 from bdec.spec.expression import Delayed, ValueResult, LengthResult, Constant
@@ -104,6 +105,24 @@ def value(expr):
 
 def enum_type_name(entry):
     return typename(settings.escaped_type(entry) + ' option')
+
+_enum_cache = {}
+def enum_value(parent, child_index):
+    if not _enum_cache:
+        # For all global 'options', we need the enum item to be unique. To do
+        # this we get all possible options, then get a unique name for that
+        # option.
+        options = []
+        offsets = {}
+        for e in iter_entries():
+            if isinstance(e, chc.Choice):
+                offsets[e] = range(len(options), len(options) + len(e.children))
+                options.extend(c.entry for c in e.children)
+        names = esc_names(options)
+        for e in iter_entries():
+            if isinstance(e, chc.Choice):
+                _enum_cache[e] = list(names[i] for i in offsets[e])
+    return constant(_enum_cache[parent][child_index])
 
 def decode_name(entry):
     return function('decode ' + escaped_type(entry))

@@ -24,6 +24,7 @@ import StringIO
 import unittest
 
 import bdec.choice as chc
+import bdec.compiler as comp
 import bdec.data as dt
 import bdec.entry as ent
 import bdec.field as fld
@@ -35,6 +36,24 @@ from bdec.test.decoders import assert_xml_equivalent, create_decoder_classes
 
 import sys
 
+class TestUtils(unittest.TestCase):
+    def test_is_not_recursive(self):
+        a = fld.Field('a', 8)
+        b = fld.Field('b', 8)
+        utils = comp._Utils([a, b], {})
+        self.assertTrue(not utils.is_recursive(a, b))
+
+    def test_is_recursive(self):
+        a = seq.Sequence('a', [])
+        b = seq.Sequence('b', [a])
+        c = fld.Field('c', 8)
+        d = seq.Sequence('d', [b, c])
+        a.children = [d]
+        utils = comp._Utils([a], {})
+        self.assertTrue(utils.is_recursive(a, d))
+        self.assertTrue(utils.is_recursive(b, a))
+        self.assertTrue(utils.is_recursive(d, b))
+        self.assertTrue(not utils.is_recursive(d, c))
 
 class _CompilerTests:
     """
@@ -443,5 +462,19 @@ class _CompilerTests:
         # Test that we can compile non-hidden sequences with hidden children
         a = seq.Sequence('a', [fld.Field('a:', 8, fld.Field.INTEGER)], value=expr.compile("${a:}"))
         self._decode(a, '\x70', expected_xml='<a>112</a>')
+
+    def test_common_choice_entry(self):
+        # There was a bug where choice entries that referenced non-recursive
+        # common entries would fail to compile.
+        a = seq.Sequence('a', [fld.Field('a data', 8, fld.Field.INTEGER)])
+        b = chc.Choice('b', [a])
+        self._decode(b, '\x50', common=[a,b])
+
+    def test_common_entry_in_multiple_choices(self):
+        a = seq.Sequence('a', [fld.Field('a data', 8, fld.Field.INTEGER)])
+        b = chc.Choice('b', [a])
+        c = chc.Choice('c', [a])
+        d = seq.Sequence('d', [b, c])
+        self._decode(d, '\x50\x50', common=[a,b,c,d])
 
 globals().update(create_decoder_classes([(_CompilerTests, 'SimpleDecode')], __name__))

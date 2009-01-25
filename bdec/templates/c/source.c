@@ -232,20 +232,27 @@
     %endif
     BitBuffer temp;
     %for i, child in enumerate(entry.children):
-      %if contains_data(child.entry):
+      %if contains_data(child.entry) and is_recursive(entry, child.entry):
     <% temp_name = variable('temp ' + esc_name(i, entry.children)) %>
     ${settings.ctype(child.entry)} ${temp_name};
       %endif
     %endfor
     %for i, child in enumerate(entry.children):
+      %if is_recursive(entry, child.entry):
     <% temp_name = variable('temp ' + esc_name(i, entry.children)) %>
+      %else:
+    <% temp_name = 'result->value.' + settings.var_name(i, entry.children) %>
+      %endif
     <% if_ = "if" if i == 0 else 'else if' %>
     ${if_} (temp = *buffer, ${settings.decode_name(child.entry)}(&temp${params(entry, i, "&%s" % temp_name)}))
     {
+      %if contains_data(entry):
+        result->option = ${settings.enum_value(entry, i)};
+      %endif
         *buffer = temp;
-      %if contains_data(child.entry):
-        result->${settings.var_name(i, entry.children)} = malloc(sizeof(${settings.ctype(child.entry)}));
-        *result->${settings.var_name(i, entry.children)} = ${temp_name};
+      %if contains_data(child.entry) and is_recursive(entry, child.entry):
+        result->value.${settings.var_name(i, entry.children)} = malloc(sizeof(${settings.ctype(child.entry)}));
+        *result->value.${settings.var_name(i, entry.children)} = ${temp_name};
       %endif
     }
     %endfor
@@ -290,15 +297,23 @@ ${static}void ${settings.free_name(entry)}(${settings.ctype(entry)}* value)
     }
     free(value->items);
   %elif isinstance(entry, Choice):
-    %for i, child in enumerate(entry.children):
-      %if contains_data(child.entry):
-    if (value->${settings.var_name(i, entry.children)} != 0)
+    switch(value->option)
     {
-        ${settings.free_name(child.entry)}(value->${settings.var_name(i, entry.children)});
-        free(value->${settings.var_name(i, entry.children)});
-    }
+    %for i, child in enumerate(entry.children):
+    case ${enum_value(entry, i)}:
+      %if contains_data(child.entry):
+        <% child_var = "value->value.%s" % variable(esc_name(i, entry.children)) %>
+        %if not is_recursive(entry, child.entry):
+          <% child_var = '&' + child_var %>
+        %endif
+        ${settings.free_name(child.entry)}(${child_var});
+        %if is_recursive(entry, child.entry):
+        free(${child_var});
+        %endif
       %endif
+        break;
     %endfor
+    }
   %else:
     <% raise Exception("Don't know how to free objects of type '%s'" % entry) %>
   %endif
@@ -443,14 +458,20 @@ ${recursivePrint(child.entry, '"%s"' % xmlname(child.name), '%s.%s' % (varname, 
 ${recursivePrint(item.children[0].entry, '"%s"' % xmlname(item.children[0].name), '%s.items[%s]' % (varname, iter_name), next_offset, iter_postfix) | ws(4)}
     }
       %elif isinstance(item, Choice):
-        %for i, child in enumerate(item.children):
-          %if contains_data(child.entry):
-    if (${'%s.%s' % (varname, variable(esc_name(i, item.children)))} != 0)
+    switch(${varname}.option)
     {
-${recursivePrint(child.entry, '"%s"' % xmlname(child.name), "(*%s.%s)" % (varname, variable(esc_name(i, item.children))), next_offset, iter_postfix) | ws(4)}
-    }
+        %for i, child in enumerate(item.children):
+    case ${enum_value(item, i)}:
+          %if contains_data(child.entry):
+            <% child_var = "%s.value.%s" % (varname, variable(esc_name(i, item.children))) %>
+            %if is_recursive(entry, child.entry):
+              <% child_var = '(*%s)' % child_var %>
+            %endif
+${recursivePrint(child.entry, '"%s"' % xmlname(child.name), child_var, next_offset, iter_postfix) | ws(4)}
           %endif
+        break;
         %endfor
+    }
       %else:
     #error Don't know how to print ${item}
       %endif

@@ -50,13 +50,29 @@ ${settings.ctype(entry)}
   %endif
 };
   %elif isinstance(entry, Choice):
-${settings.ctype(entry)}
+enum ${settings.enum_type_name(entry)}
 {
     %for i, child in enumerate(entry.children):
+      <% trailing_char = ',' if i + 1 != len(entry.children) else '' %>
+    ${enum_value(entry, i)}${trailing_char}
+    %endfor
+};
+
+${settings.ctype(entry)}
+{
+    enum ${settings.enum_type_name(entry)} option;
+    union
+    {
+    %for i, child in enumerate(entry.children):
       %if contains_data(child.entry):
-    ${settings.ctype(child.entry)}* ${var_name(i, entry.children)};
+        %if is_recursive(entry, child.entry):
+        ${settings.ctype(child.entry)}* ${var_name(i, entry.children)};
+        %else:
+        ${settings.ctype(child.entry)} ${var_name(i, entry.children)};
+        %endif
       %endif
     %endfor
+    }value;
 };
   %elif isinstance(entry, SequenceOf):
 ${settings.ctype(entry)}

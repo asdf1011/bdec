@@ -125,6 +125,30 @@ class _Utils:
         self._entries = self._detect_entries()
         self._settings = settings
 
+        self._reachable_entries = {}
+        for entry in self._entries:
+            reachable = set()
+            self._update_reachable(entry, reachable)
+            self._reachable_entries[entry] = reachable
+
+    def _update_reachable(self, entry, reached):
+        if entry in reached:
+            return
+        reached.add(entry)
+
+        for child in entry.children:
+            try:
+                reached.update(self._reachable_entries[child.entry])
+            except KeyError:
+                self._update_reachable(child.entry, reached)
+
+    def is_recursive(self, parent, child):
+        "Is the parent entry reachable from the given child."
+        return parent in self._reachable_entries[child]
+
+    def _detect_recursive(self, parent, child, parents):
+        pass
+
     def _detect_entries(self):
         """
         Return a list of all entries.
@@ -153,7 +177,7 @@ class _Utils:
         items = set()
         for child in entry.children:
             if child.entry in self._common:
-                if not isinstance(entry, chc.Choice):
+                if not isinstance(entry, chc.Choice) or not self.is_recursive(entry, child.entry):
                     items.add(child.entry)
             else:
                 for e in self.iter_required_common(child.entry):
@@ -276,6 +300,7 @@ def generate_code(spec, language, output_dir, common_entries=[]):
     lookup['is_end_sequenceof'] = info.is_end_sequenceof
     lookup['is_value_referenced'] = info.is_value_referenced
     lookup['is_length_referenced'] = info.is_length_referenced
+    lookup['is_recursive'] = utils.is_recursive
     lookup['contains_data'] = lambda entry: data_checker.contains_data(entry)
     lookup['iter_inner_entries'] = utils.iter_inner_entries
     lookup['iter_required_common'] = utils.iter_required_common

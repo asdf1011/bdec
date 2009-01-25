@@ -49,15 +49,16 @@ int main(int argc, char* argv[])
     int i, j;
     for (i = 0; i < result.chunks.count; ++i)
     {
-        struct TextChunk* text = result.chunks.items[i].textChunk;
-        if (text != 0)
+        if (result.chunks.items[i].option == TEXT_CHUNK)
         {
+            struct TextChunk* text = &result.chunks.items[i].value.textChunk;
+
             // Print the 'name' of this chunk.
             for (j = 0; j < text->keyword.count; ++j)
             {
-                if (text->keyword.items[j].character != 0)
+                if (text->keyword.items[j].option == CHARACTER)
                 {
-                    printf("%c", text->keyword.items[j].character->buffer[0]);
+                    printf("%c", text->keyword.items[j].value.character.buffer[0]);
                 }
             }
             printf(" = ");
