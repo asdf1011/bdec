@@ -270,6 +270,7 @@ def generate_code(spec, language, output_dir, common_entries=[]):
     lookup['protocol'] = spec
     lookup['common'] = entries
     lookup['esc_name'] = utils.esc_name
+    lookup['esc_names'] = utils.esc_names
     lookup['get_params'] = info.get_params
     lookup['get_passed_variables'] = info.get_passed_variables
     lookup['is_end_sequenceof'] = info.is_end_sequenceof

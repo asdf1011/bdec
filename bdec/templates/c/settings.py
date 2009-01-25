@@ -22,7 +22,16 @@ from bdec.spec.expression import Delayed, ValueResult, LengthResult, Constant
 import operator
 import string
 
-keywords=['char', 'int', 'float', 'if', 'then', 'else', 'struct', 'for']
+keywords=['char', 'int', 'float', 'if', 'then', 'else', 'struct', 'for', 'null']
+
+_escaped_types = {}
+def escaped_type(entry):
+    if not _escaped_types:
+        # Create a cache of names to types (this function is called many times)
+        entries = list(iter_entries())
+        for e in entries:
+            _escaped_types[e] = esc_name(entries.index(e), entries)
+    return _escaped_types[entry]
 
 def ctype(entry):
     """Return the c type name for an entry"""
@@ -43,7 +52,7 @@ def ctype(entry):
         # an integer.
         return 'int'
     else:
-        return "struct " + typename(esc_name(iter_entries().index(entry), iter_entries()))
+        return "struct " + typename(escaped_type(entry))
 
 def _param_type(param):
     if param.type is int:
@@ -93,17 +102,20 @@ def value(expr):
   else:
       raise Exception('Unknown length value', expression)
 
+def enum_type_name(entry):
+    return typename(settings.escaped_type(entry) + ' option')
+
 def decode_name(entry):
-    return function('decode ' + esc_name(iter_entries().index(entry), iter_entries()))
+    return function('decode ' + escaped_type(entry))
 
 def print_name(entry):
-    return function('print xml ' + esc_name(iter_entries().index(entry), iter_entries()))
+    return function('print xml ' + escaped_type(entry))
 
 def var_name(i, other_vars):
     return variable(esc_name(i, other_vars))
 
 def free_name(entry):
-    return function('free ' + esc_name(iter_entries().index(entry), iter_entries()))
+    return function('free ' + escaped_type(entry))
 
 _PRINTABLE = string.ascii_letters + string.digits
 def _c_repr(char):
