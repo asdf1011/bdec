@@ -117,7 +117,7 @@ def enum_value(parent, child_index):
         for e in iter_entries():
             if isinstance(e, chc.Choice):
                 offsets[e] = range(len(options), len(options) + len(e.children))
-                options.extend(c.entry for c in e.children)
+                options.extend(c.name for c in e.children)
         names = esc_names(options)
         for e in iter_entries():
             if isinstance(e, chc.Choice):
@@ -130,8 +130,14 @@ def decode_name(entry):
 def print_name(entry):
     return function('print xml ' + escaped_type(entry))
 
-def var_name(i, other_vars):
-    return variable(esc_name(i, other_vars))
+_var_name_cache = {}
+def var_name(entry, child_index):
+    try:
+        names = _var_name_cache[entry]
+    except KeyError:
+        names = [variable(name) for name in esc_names(c.name for c in entry.children)]
+        _var_name_cache[entry] = names
+    return names[child_index]
 
 def free_name(entry):
     return function('free ' + escaped_type(entry))

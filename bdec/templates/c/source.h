@@ -42,7 +42,7 @@ ${settings.ctype(entry)}
 {
   %for i, child in enumerate(entry.children):
     %if contains_data(child.entry):
-    ${settings.ctype(child.entry)} ${var_name(i, entry.children)};
+    ${settings.ctype(child.entry)} ${var_name(entry, i)};
     %endif
   %endfor
   %if entry.value is not None:
@@ -66,9 +66,9 @@ ${settings.ctype(entry)}
     %for i, child in enumerate(entry.children):
       %if contains_data(child.entry):
         %if is_recursive(entry, child.entry):
-        ${settings.ctype(child.entry)}* ${var_name(i, entry.children)};
+        ${settings.ctype(child.entry)}* ${var_name(entry, i)};
         %else:
-        ${settings.ctype(child.entry)} ${var_name(i, entry.children)};
+        ${settings.ctype(child.entry)} ${var_name(entry, i)};
         %endif
       %endif
     %endfor

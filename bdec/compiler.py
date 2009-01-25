@@ -195,34 +195,34 @@ class _Utils:
                 for entry in self.iter_optional_common(child.entry):
                     yield entry
 
-    def esc_names(self, iter_entries):
+    def esc_names(self, names):
         """Return a list of names matching to each entry in 'iter_entries'"""
         name_count = {}
-        entries = list(iter_entries)
-        names = []
-        for i, e in enumerate(entries):
+        names = list(names)
+        abs_names = []
+        for i, name in enumerate(names):
             # We ignore case when checking for matching names, because the
             # conversion to different uses (eg: type, constant, function)
             # usually changes the case.
-            name = _escape_name(e.name).lower()
+            name = _escape_name(name).lower()
             try:
                 name_count[name] += 1
             except KeyError:
                 name_count[name] = 0
-            names.append((name, name_count[name]))
+            abs_names.append((name, name_count[name]))
 
         result = []
-        for name, count in names:
+        for name, count in abs_names:
             if name_count[name] == 0  and name not in self._settings.keywords:
                 # This is the only item with that name
                 result.append(name)
             else:
                 result.append("%s %i" % (name, count))
-        assert len(result) == len(entries)
+        assert len(result) == len(names)
         return result
 
     def esc_name(self, index, iter_entries):
-        return self.esc_names(iter_entries)[index]
+        return self.esc_names(e.name for e in iter_entries)[index]
 
 def _crange(start, end):
     return [chr(i) for i in range(ord(start), ord(end)+1)]

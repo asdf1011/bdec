@@ -156,11 +156,11 @@
 
 <%def name="decodeSequence(entry)">
     %for i, child in enumerate(entry.children):
-    if (!${settings.decode_name(child.entry)}(buffer${settings.params(entry, i, '&result->%s' % variable(esc_name(i, entry.children)))}))
+    if (!${settings.decode_name(child.entry)}(buffer${settings.params(entry, i, '&result->%s' % settings.var_name(entry, i))}))
     {
         %for j, previous in enumerate(entry.children[:i]):
             %if contains_data(previous.entry):
-        ${settings.free_name(previous.entry)}(&result->${settings.var_name(j, entry.children)});
+        ${settings.free_name(previous.entry)}(&result->${settings.var_name(entry, j)});
             %endif
         %endfor
         return 0;
@@ -241,7 +241,7 @@
       %if is_recursive(entry, child.entry):
     <% temp_name = variable('temp ' + esc_name(i, entry.children)) %>
       %else:
-    <% temp_name = 'result->value.' + settings.var_name(i, entry.children) %>
+    <% temp_name = 'result->value.' + settings.var_name(entry, i) %>
       %endif
     <% if_ = "if" if i == 0 else 'else if' %>
     ${if_} (temp = *buffer, ${settings.decode_name(child.entry)}(&temp${params(entry, i, "&%s" % temp_name)}))
@@ -251,8 +251,8 @@
       %endif
         *buffer = temp;
       %if contains_data(child.entry) and is_recursive(entry, child.entry):
-        result->value.${settings.var_name(i, entry.children)} = malloc(sizeof(${settings.ctype(child.entry)}));
-        *result->value.${settings.var_name(i, entry.children)} = ${temp_name};
+        result->value.${settings.var_name(entry, i)} = malloc(sizeof(${settings.ctype(child.entry)}));
+        *result->value.${settings.var_name(entry, i)} = ${temp_name};
       %endif
     }
     %endfor
@@ -286,7 +286,7 @@ ${static}void ${settings.free_name(entry)}(${settings.ctype(entry)}* value)
   %elif isinstance(entry, Sequence):
     %for i, child in enumerate(entry.children):
         %if contains_data(child.entry):
-    ${settings.free_name(child.entry)}(&value->${settings.var_name(i, entry.children)});
+    ${settings.free_name(child.entry)}(&value->${settings.var_name(entry, i)});
         %endif
     %endfor
   %elif isinstance(entry, SequenceOf):
@@ -302,7 +302,7 @@ ${static}void ${settings.free_name(entry)}(${settings.ctype(entry)}* value)
     %for i, child in enumerate(entry.children):
     case ${enum_value(entry, i)}:
       %if contains_data(child.entry):
-        <% child_var = "value->value.%s" % variable(esc_name(i, entry.children)) %>
+        <% child_var = "value->value.%s" % settings.var_name(entry, i) %>
         %if not is_recursive(entry, child.entry):
           <% child_var = '&' + child_var %>
         %endif
@@ -445,7 +445,7 @@ ${recursiveDecode(entry, False)}
     printf("%*i\n", offset + ${ws_offset+4}, ${varname}); 
       %elif isinstance(item, Sequence):
         %for i, child in enumerate(item.children):
-${recursivePrint(child.entry, '"%s"' % xmlname(child.name), '%s.%s' % (varname, variable(esc_name(i, item.children))), next_offset, iter_postfix)}
+${recursivePrint(child.entry, '"%s"' % xmlname(child.name), '%s.%s' % (varname, settings.var_name(item, i)), next_offset, iter_postfix)}
         %endfor
         %if item.value is not None and not item.is_hidden():
     printf("%*i\n", offset + ${ws_offset+4}, ${varname}.value); 
@@ -463,7 +463,7 @@ ${recursivePrint(item.children[0].entry, '"%s"' % xmlname(item.children[0].name)
         %for i, child in enumerate(item.children):
     case ${enum_value(item, i)}:
           %if contains_data(child.entry):
-            <% child_var = "%s.value.%s" % (varname, variable(esc_name(i, item.children))) %>
+            <% child_var = "%s.value.%s" % (varname, settings.var_name(item, i)) %>
             %if is_recursive(entry, child.entry):
               <% child_var = '(*%s)' % child_var %>
             %endif
