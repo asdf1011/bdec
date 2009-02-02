@@ -95,10 +95,14 @@ def get_changelog(contents=_read_changelog()):
         sys.exit('Failed to find previous version')
     previous_version = match.group(1)
 
+    changelog = contents[changelog_offset:changelog_offset + match.start()]
+    return (changelog_offset, version, previous_version, changelog)
+
+def strip_changelog(changelog):
+    """Make the changelog into a single paragraph suitable for freshmeat."""
     # Get the changelog, and strip off any trailing and leading whitespace.
     # Look at some the freshmeat main page to get examples of how the layout
     # should look (basically free flowing text).
-    changelog = contents[changelog_offset:changelog_offset + match.start()]
     lines = []
     for line in changelog.splitlines():
         line = line.strip()
@@ -106,8 +110,7 @@ def get_changelog(contents=_read_changelog()):
             line = line[1:].strip()
         if line:
             lines.append(line)
-    changelog = " ".join(lines)
-    return (changelog_offset, version, previous_version, changelog)
+    return " ".join(lines)
 
 def get_focus():
     print 'Focus options are:'
@@ -214,6 +217,8 @@ def commit_website(version):
     os.remove('.commitmsg')
 
 def send_email(version, changelog):
+    # Emails display much more consistently when we use 'windows' newlines.
+    changelog = "\r\n".join(changelog.splitlines())
     to_addr = 'bdec-project@yahoogroups.com'
 
     data = open('.emailmsg', 'w')
@@ -247,6 +252,8 @@ def send_email(version, changelog):
         print 'Authenticion error!', ex
 
 def notify(version, changelog, get_focus=get_focus,  system=os.system, confirm=raw_input, should_send_email=True):
+    changelog = strip_changelog(changelog)
+
     # Notify freshmeat
     if confirm('Should freshmeat be notified? [y]') in ['', 'y', 'Y']:
         focus = get_focus()
@@ -293,7 +300,7 @@ if __name__ == '__main__':
             sys.exit("Neither the documented current version (%s) nor the previous version (%s) match the actual version (%s)!" % (version, previous_version, bdec.__version__))
         print "Next version will be", version
         print "Changes are;"
-        print changelog
+        print strip_changelog(changelog)
         print
 
         update_bdec_version(version)

@@ -3,7 +3,7 @@ import os.path
 import unittest
 
 import bdec
-from tools.release import get_changelog, notify
+from tools.release import strip_changelog, get_changelog, notify
 
 class TestRelease(unittest.TestCase):
     def test_changelog(self):
@@ -30,7 +30,7 @@ Download
         offset, version, previous_version, changelog = get_changelog(text)
         self.assertEqual('9.9.9', version)
         self.assertEqual('1.2.3', previous_version)
-        self.assertEqual('Blah blah: Did this. Did that. Ding dong: Went there. Came back.', changelog)
+        self.assertEqual('Blah blah: Did this. Did that. Ding dong: Went there. Came back.', strip_changelog(changelog))
 
     def test_notify(self):
         commands = []
@@ -44,6 +44,6 @@ Download
         args = commands[0][len(command):].strip()
         expected = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'website', 'website.integ', 'build', 'freshmeat-submit-1.6', "freshmeat-submit")
         self.assertEqual(os.path.normpath(expected), os.path.normpath(command))
-        self.assertEqual('-n --project bdec --version 9.9.9 --changes "%s" --release-focus "7" --gzipped-tar-url http://www.hl.id.au/projects/bdec/files/bdec-9.9.9.tar.gz' % message, args)
+        self.assertEqual('-n --project bdec --version 9.9.9 --changes "I am a change with several lines" --release-focus "7" --gzipped-tar-url http://www.hl.id.au/projects/bdec/files/bdec-9.9.9.tar.gz', args)
 
         self.assertEqual('./setup.py register', commands[1])
