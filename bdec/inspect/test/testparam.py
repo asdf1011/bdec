@@ -190,8 +190,8 @@ class TestExpressionParameters(unittest.TestCase):
 
         # Now test the passing out (and ignoring) of the length value within 'b'
         self.assertEqual([], vars.get_params(b))
-        self.assertEqual(['shared.length'], vars.get_locals(b))
-        self.assertEqual([prm.Param('shared.length', prm.Param.OUT, int)], list(vars.get_passed_variables(b, b.children[0])))
+        self.assertEqual(['length'], vars.get_locals(b))
+        self.assertEqual([prm.Param('length', prm.Param.OUT, int)], list(vars.get_passed_variables(b, b.children[0])))
         self.assertEqual([], list(vars.get_passed_variables(spec, spec.children[0])))
 
     def test_referencing_sequence_without_value(self):
@@ -235,13 +235,63 @@ class TestExpressionParameters(unittest.TestCase):
             list(params.get_passed_variables(f, f.children[0])))
 
     def test_renamed_common_reference(self):
-        digit = seq.Sequence('digit', [fld.Field('text digit', 8, min=48, max=58)], value=expr.compile("${text digit} - 48"))
-        b = seq.Sequence('b', [ent.Child('length', digit), fld.Field('data', length=expr.compile("${length} * 8"))])
+        digit = seq.Sequence('digit', [
+            fld.Field('text digit', 8, min=48, max=58)],
+            value=expr.compile("${text digit} - 48"))
+        b = seq.Sequence('b', [
+            ent.Child('length', digit),
+            fld.Field('data', length=expr.compile("${length} * 8"))])
         lookup = prm.ExpressionParameters([b])
         self.assertEqual([], lookup.get_params(b))
-        self.assertEqual([prm.Param('digit', prm.Param.OUT, int)], lookup.get_params(digit))
-        self.assertEqual([prm.Param('length', prm.Param.OUT, int)], list(lookup.get_passed_variables(b, b.children[0])))
+        self.assertEqual([prm.Param('digit', prm.Param.OUT, int)],
+                lookup.get_params(digit))
+        self.assertEqual([prm.Param('length', prm.Param.OUT, int)],
+                list(lookup.get_passed_variables(b, b.children[0])))
 
+    def test_choice_reference(self):
+        # Test that we can correctly reference a choice (which in effect
+        # references each of its children).
+        #
+        # We test this by creating a choice where each child has a value type,
+        # and attempt to reference the top level choice.
+        len = fld.Field('len', length=8)
+        a = fld.Field('a', length=32)
+        b = fld.Field('b', length=16)
+        c = fld.Field('c', length=8)
+        var_len = chc.Choice('var_len', [a, b, c], length=expr.compile('${len}'))
+        data = fld.Field('data', length=expr.compile('${var_len}'))
+        spec = seq.Sequence('spec', [len, var_len, data])
+
+        # Check the parameters passed in and out of each entry
+        lookup = prm.ExpressionParameters([spec])
+        self.assertEqual([], lookup.get_params(spec))
+        self.assertEqual([prm.Param('len', prm.Param.OUT, int)],
+                lookup.get_params(len))
+        self.assertEqual([prm.Param('len', prm.Param.IN, int),
+                    prm.Param('var_len', prm.Param.OUT, int)],
+                lookup.get_params(var_len))
+        self.assertEqual([prm.Param('a', prm.Param.OUT, int)],
+                lookup.get_params(a))
+        self.assertEqual([prm.Param('b', prm.Param.OUT, int)],
+                lookup.get_params(b))
+        self.assertEqual([prm.Param('var_len', prm.Param.IN, int)],
+                lookup.get_params(data))
+
+        # Test the mapping of the parameters for the choice to the option
+        # entries.
+        self.assertEqual([prm.Param('var_len', prm.Param.OUT, int)],
+                list(lookup.get_passed_variables(var_len, var_len.children[0])))
+        self.assertEqual([prm.Param('var_len', prm.Param.OUT, int)],
+                list(lookup.get_passed_variables(var_len, var_len.children[1])))
+        self.assertEqual([prm.Param('var_len', prm.Param.OUT, int)],
+                list(lookup.get_passed_variables(var_len, var_len.children[2])))
+
+        # And validate the locals...
+        self.assertEqual(['len', 'var_len'], lookup.get_locals(spec))
+        self.assertEqual([], lookup.get_locals(len))
+        self.assertEqual([], lookup.get_locals(var_len))
+        self.assertEqual([], lookup.get_locals(a))
+        self.assertEqual([], lookup.get_locals(data))
 
 class TestEndEntryParameters(unittest.TestCase):
     def test_end_entry_lookup(self):

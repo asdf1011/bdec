@@ -168,6 +168,9 @@ class ExpressionParameters(_Parameters):
         self._params = {}
         self._locals = {}
 
+        # A lookup of [entry][child][param.name] to get the 'local' name of the
+        # child parameter.
+        self._local_child_param_name = {}
         self._referenced_values = set()
         self._referenced_lengths = set()
         unreferenced_entries = {}
@@ -244,15 +247,13 @@ class ExpressionParameters(_Parameters):
 
     def _get_local_reference(self, entry, child, param):
         """Get the local name of a parameter used by a child entry. """
-        if param.direction == Param.IN or isinstance(entry, chc.Choice):
+        try:
+            name = self._local_child_param_name[entry][child][param.reference.name]
+        except KeyError:
             name = param.reference.name
-        elif param.reference.name == child.entry.name:
-            name = child.name
-        else:
-            name = "%s.%s" % (child.name, param.reference.name)
 
         # Create a new instance of the expression reference, using the new name
-        return param.reference.__class__(name)
+        return type(param.reference)(name)
 
     def _detect_unused_outputs(self):
         """ Detect child parameters that aren't in the parent entries parameters """
@@ -274,6 +275,34 @@ class ExpressionParameters(_Parameters):
         # We re-run the local detection, to find detect any 'unused' output parameters
         self._detect_unused_outputs()
 
+    def _add_reference(self, entry, reference):
+        self._params[entry].add(_VariableParam(reference, Param.OUT))
+        if isinstance(entry, fld.Field):
+            if entry.format not in [fld.Field.INTEGER, fld.Field.BINARY]:
+                # We currently only allow integers and binary
+                # strings in integer expressions.
+                raise BadReferenceTypeError(entry)
+            self._referenced_values.add(entry)
+        elif isinstance(entry, seq.Sequence):
+            if entry.value is not None:
+                self._referenced_values.add(entry)
+            else:
+                # We can only reference sequences with a value
+                raise BadReferenceError(entry, reference.name)
+        elif isinstance(entry, chc.Choice):
+            # When referencing a choice, we want to attempt to reference each
+            # of its children.
+            child_params = self._local_child_param_name.setdefault(entry, {})
+            self._params[entry].add(_VariableParam(reference, Param.OUT))
+            for child in entry.children:
+                child_reference = type(reference)(child.entry.name)
+                self._add_reference(child.entry, child_reference)
+
+                local_names = child_params.setdefault(child, {})
+                local_names[child_reference.name] = reference.name
+        else:
+            raise BadReferenceError(entry, name)
+
     def _add_out_params(self, entry, reference):
         """
         Drill down into the children of 'entry', adding output params to 'name'.
@@ -289,37 +318,27 @@ class ExpressionParameters(_Parameters):
                 self._add_out_params(child.entry, reference)
         elif isinstance(entry, seq.Sequence):
             was_child_found = False
+            child_params = self._local_child_param_name.setdefault(entry, {})
             for child in entry.children:
+                local_names = child_params.setdefault(child, {})
                 if child.name == reference.name:
                     # This parameter references the value / length of the child
                     # item. As the name might be different between parent and
                     # child, use the childs name.
-                    reference = type(reference)(child.entry.name)
-                    self._params[child.entry].add(_VariableParam(reference, Param.OUT))
+                    child_reference = type(reference)(child.entry.name)
+                    local_names[child.entry.name] = reference.name
                     was_child_found = True
-                    if isinstance(reference, expr.ValueResult):
-                        if isinstance(child.entry, fld.Field):
-                            if child.entry.format not in [fld.Field.INTEGER, fld.Field.BINARY]:
-                                # We currently only allow integers and binary
-                                # strings in integer expressions.
-                                raise BadReferenceTypeError(child.entry)
-                            self._referenced_values.add(child.entry)
-                        elif isinstance(child.entry, seq.Sequence) and child.entry.value is not None:
-                            self._referenced_values.add(child.entry)
-                        else:
-                            raise BadReferenceError(entry, reference.name)
+                    if isinstance(child_reference, expr.ValueResult):
+                        self._add_reference(child.entry, child_reference)
                     else:
+                        self._params[child.entry].add(_VariableParam(child_reference, Param.OUT))
                         self._referenced_lengths.add(child.entry)
                 else:
                     child_name = reference.name.split('.')[0]
                     if child.name == child_name:
                         sub_name = ".".join(reference.name.split('.')[1:])
-                        if isinstance(reference, expr.ValueResult):
-                            child_reference = expr.ValueResult(sub_name)
-                        elif isinstance(reference, expr.LengthResult):
-                            child_reference = expr.LengthResult(sub_name)
-                        else:
-                            raise Exception("Unknown reference type '%s'!" % reference)
+                        local_names[sub_name] = reference.name
+                        child_reference = type(reference)(sub_name)
 
                         # We found a child item that knows about this parameter
                         self._params[child.entry].add(_VariableParam(child_reference, Param.OUT))

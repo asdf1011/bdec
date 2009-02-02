@@ -125,7 +125,7 @@ class TestChoice(unittest.TestCase):
         self.assertEqual(4, choice.range().min)
         self.assertEqual(8, choice.range().max)
 
-    def test_variable_length(self):
+    def test_reference_common_child(self):
         byte = seq.Sequence('8 bit:', [fld.Field('id', 8, expected=dt.Data('\x00')), fld.Field('length', 8)])
         word = seq.Sequence('16 bit:', [fld.Field('id', 8, expected=dt.Data('\x01')), fld.Field('length', 16)])
         length = chc.Choice('variable integer', [byte, word])
@@ -139,3 +139,17 @@ class TestChoice(unittest.TestCase):
         results = dict((entry, value)for is_starting, name, entry, entry_data, value in spec.decode(dt.Data('\x01\x00\x20abcde')) if not is_starting)
         self.assertEqual('abcd', results[data])
 
+    def test_reference_choice(self):
+        # Test that we can correctly reference a choice entry, where each of
+        # its children have value types.
+        byte = seq.Sequence('8 bit:', [fld.Field('id', 8, expected=dt.Data('\x00')), fld.Field('length', 8)], value=expr.compile('${length}'))
+        word = seq.Sequence('16 bit:', [fld.Field('id', 8, expected=dt.Data('\x01')), fld.Field('length', 16)], value=expr.compile('${length}'))
+        length = chc.Choice('variable integer', [byte, word])
+        data = fld.Field('data', expr.compile('${variable integer}'), fld.Field.TEXT)
+        spec = seq.Sequence('spec', [length, data])
+
+        results = dict((entry, value)for is_starting, name, entry, entry_data, value in spec.decode(dt.Data('\x00\x20abcde')) if not is_starting)
+        self.assertEqual('abcd', results[data])
+
+        results = dict((entry, value)for is_starting, name, entry, entry_data, value in spec.decode(dt.Data('\x01\x00\x20abcde')) if not is_starting)
+        self.assertEqual('abcd', results[data])
