@@ -68,9 +68,11 @@ class _Parameters:
         raise NotImplementedError()
 
     def get_params(self, entry):
+        """Return an iterable of Param instances."""
         raise NotImplementedError()
 
     def get_passed_variables(self, entry, child):
+        """Return an iterable of Param instances."""
         raise NotImplementedError()
 
     def is_end_sequenceof(self, entry):
@@ -165,8 +167,8 @@ class ExpressionParameters(_Parameters):
     those entries to supply the data the expression requires.
     """
     def __init__(self, entries):
+        # A map of entry -> list of _VariableParam instances
         self._params = {}
-        self._locals = {}
 
         # A lookup of [entry][child][param.name] to get the 'local' name of the
         # child parameter.
@@ -176,7 +178,6 @@ class ExpressionParameters(_Parameters):
         unreferenced_entries = {}
         for entry in entries:
             self._populate_references(entry, unreferenced_entries)
-        self._detect_out_params()
 
     def _collect_references(self, expression):
         """
@@ -192,7 +193,8 @@ class ExpressionParameters(_Parameters):
         elif isinstance(expression, expr.LengthResult):
             result.append(expression)
         elif isinstance(expression, expr.Delayed):
-            result = self._collect_references(expression.left) + self._collect_references(expression.right)
+            result = self._collect_references(expression.left) + \
+                     self._collect_references(expression.right)
         else:
             raise Exception("Unable to collect references from unhandled expression type '%s'!" % expression)
         return result
@@ -218,7 +220,8 @@ class ExpressionParameters(_Parameters):
         elif isinstance(entry, sof.SequenceOf) and entry.count is not None:
             unreferenced_entries[entry].update(self._collect_references(entry.count))
 
-        # Store the names the child doesn't know about (ie: names that must be resolved for this entry to decode)
+        # Store the names the child doesn't know about (ie: names that must be
+        # resolved for this entry to decode)
         child_unknowns = set()
         for child in entry.children:
             child_unknowns.update(unreferenced_entries[child.entry])
@@ -230,23 +233,26 @@ class ExpressionParameters(_Parameters):
 
         # Our unknown list is all the unknowns in our children that aren't
         # present in our known references.
-        self._locals[entry] = set()
         child_names = [child.name for child in entry.children]
         for unknown in child_unknowns:
             name = unknown.name.split('.')[0]
-            if name in child_names:
-                # This value is a local...
-                self._locals[entry].add(unknown)
-                pass
-            else:
+            if name not in child_names:
                 # This value is 'unknown' to the entry, and must be passed in.
                 unreferenced_entries[entry].add(unknown)
+            else:
+                # This value comes from one of our child entries, so drill down
+                # into it.
+                self._add_out_params(entry, unknown)
 
         for reference in unreferenced_entries[entry]:
             self._params[entry].add(_VariableParam(reference, Param.IN))
 
     def _get_local_reference(self, entry, child, param):
-        """Get the local name of a parameter used by a child entry. """
+        """Get the local of a parameter used by a child entry.
+
+        Return either a bdec.spec.expression.ValueResult or a
+        bdec.spec.expression.LengthResult.
+        """
         try:
             name = self._local_child_param_name[entry][child][param.reference.name]
         except KeyError:
@@ -254,26 +260,6 @@ class ExpressionParameters(_Parameters):
 
         # Create a new instance of the expression reference, using the new name
         return type(param.reference)(name)
-
-    def _detect_unused_outputs(self):
-        """ Detect child parameters that aren't in the parent entries parameters """
-        for entry, params in self._params.iteritems():
-            for child in entry.children:
-                for param in self._params[child.entry]:
-                    local = self._get_local_reference(entry, child, param)
-                    if _VariableParam(local, param.direction) not in params:
-                        self._locals[entry].add(local)
-
-    def _detect_out_params(self):
-        """ Add output parameters for all entries. """
-        # Now that we have the locals, drill down into the relevant children
-        # to pass the params as outputs.
-        for entry, locals in self._locals.iteritems():
-            for reference in locals:
-                self._add_out_params(entry, reference)
-
-        # We re-run the local detection, to find detect any 'unused' output parameters
-        self._detect_unused_outputs()
 
     def _add_reference(self, entry, reference):
         self._params[entry].add(_VariableParam(reference, Param.OUT))
@@ -356,7 +342,15 @@ class ExpressionParameters(_Parameters):
         Local variables are all child outputs that aren't an output of the
         entry.
         """
-        result = list(set(self._get_reference_name(reference) for reference in self._locals[entry]))
+        locals = set()
+        params = self._params[entry]
+        for child in entry.children:
+            for child_param in self._params[child.entry]:
+                if child_param.direction == Param.OUT:
+                    local = self._get_local_reference(entry, child, child_param)
+                    if _VariableParam(local, child_param.direction) not in params:
+                        locals.add(self._get_reference_name(local))
+        result = list(locals)
         result.sort()
         return result
 
@@ -379,7 +373,12 @@ class ExpressionParameters(_Parameters):
 
     def get_passed_variables(self, entry, child):
         """
-        Get an iterator to all variables passed from a parent to a child entry.
+        Get an iterator to parameters passed from a parent to child entry.
+
+        entry -- A bdec.entry.Entry instance
+        child -- A bdec.entry.Child instance
+        return -- An iterator to Param instances for variables passed from
+            entry to child entry.
         """
         assert isinstance(entry, bdec.entry.Entry)
         assert isinstance(child, bdec.entry.Child)

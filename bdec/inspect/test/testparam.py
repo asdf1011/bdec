@@ -293,6 +293,34 @@ class TestExpressionParameters(unittest.TestCase):
         self.assertEqual([], lookup.get_locals(a))
         self.assertEqual([], lookup.get_locals(data))
 
+    def test_in_and_out_parameters(self):
+        # Test what happens when we have a parameter that is to be passed out
+        # of an entry, but also into a child (issue122).
+        #
+        #        ___ e ___
+        #   __c__         d(len=a)
+        #  a   b(len=a)
+        a = fld.Field('a', length=8)
+        b = fld.Field('b', length=expr.compile('${a}'))
+        c = seq.Sequence('c', [a, b])
+        d = fld.Field('d', length=expr.compile('${c.a}'))
+        e = seq.Sequence('e', [c, d])
+
+        lookup = prm.ExpressionParameters([e])
+        self.assertEqual([], lookup.get_params(e))
+        self.assertEqual([prm.Param('a', prm.Param.OUT, int)], lookup.get_params(a))
+        self.assertEqual([prm.Param('a', prm.Param.OUT, int)], lookup.get_params(c))
+        self.assertEqual([prm.Param('a', prm.Param.IN, int)], lookup.get_params(b))
+        self.assertEqual([prm.Param('c.a', prm.Param.IN, int)], lookup.get_params(d))
+        self.assertEqual(['c.a'], lookup.get_locals(e))
+        self.assertEqual([], lookup.get_locals(c))
+
+        self.assertEqual([prm.Param('a', prm.Param.IN, int)],
+                list(lookup.get_passed_variables(c, c.children[1])))
+        self.assertEqual([prm.Param('c.a', prm.Param.IN, int)],
+                list(lookup.get_passed_variables(e, e.children[1])))
+
+
 class TestEndEntryParameters(unittest.TestCase):
     def test_end_entry_lookup(self):
         null = fld.Field("null", 8, expected=dt.Data('\x00'))
