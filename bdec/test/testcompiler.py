@@ -477,4 +477,27 @@ class _CompilerTests:
         d = seq.Sequence('d', [b, c])
         self._decode(d, '\x50\x50', common=[a,b,c,d])
 
+    def test_in_and_out_parameters(self):
+        # Test what happens when we have a parameter that is to be passed out
+        # of an entry, but also into a child (issue122).
+        #
+        #        ___ e ___
+        #   __c__         d(len=a)
+        #  a   b(len=a)
+        a = fld.Field('a', length=8, format=fld.Field.INTEGER)
+        b = fld.Field('b', length=expr.compile('${a} * 8'))
+        c = seq.Sequence('c', [a, b])
+        d = fld.Field('d', length=expr.compile('${c.a} * 8'))
+        e = seq.Sequence('e', [c, d])
+        xml = """
+           <e>
+             <c>
+               <a>2</a>
+               <b>01100001 01100001</b>
+             </c>
+             <d>01100010 01100010</d>
+           </e>"""
+        self._decode(e, '\x02aabb', common=[a,b,c,d,e], expected_xml=xml)
+
+
 globals().update(create_decoder_classes([(_CompilerTests, 'SimpleDecode')], __name__))

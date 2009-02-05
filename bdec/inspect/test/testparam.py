@@ -315,6 +315,8 @@ class TestExpressionParameters(unittest.TestCase):
         self.assertEqual(['c.a'], lookup.get_locals(e))
         self.assertEqual([], lookup.get_locals(c))
 
+        self.assertTrue(lookup.is_value_referenced(a))
+
         self.assertEqual([prm.Param('a', prm.Param.IN, int)],
                 list(lookup.get_passed_variables(c, c.children[1])))
         self.assertEqual([prm.Param('c.a', prm.Param.IN, int)],

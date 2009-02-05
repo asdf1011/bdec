@@ -70,15 +70,31 @@ def define_params(entry):
     return result
 
 def params(parent, i, result_name):
+    # How we should reference the variable passed to the child is from the
+    # following table;
+    #
+    #                        Child in   |   Child out
+    #                       --------------------------
+    # Local or input param |    name    |    &name    |
+    #                      |--------------------------|
+    #         Output param |   *name    |    name     |
+    #                       --------------------------
     result = ""
     locals = list(local_vars(parent))
+    params = dict((param.name, param.direction) for param in get_params(parent))
     for param in get_passed_variables(parent, parent.children[i]):
         if param.direction is param.OUT and param.name == 'unknown':
             result += ', %s' % result_name
-        elif param.direction is param.OUT and param.name in locals:
-            result += ", &%s" % param.name
+        elif param.name in locals or params[param.name] == param.IN:
+            if param.direction == param.IN:
+                result += ", %s" % param.name
+            else:
+                result += ", &%s" % param.name
         else:
-            result += ", %s" % param.name
+            if param.direction == param.IN:
+                result += ", *%s" % param.name
+            else:
+                result += ", %s" % param.name
     return result
 
 

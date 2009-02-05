@@ -47,7 +47,7 @@ def _is_xml_text_equal(a, b):
 def _get_elem_text(a):
     attribs = ' '.join('%s=%s' for name, value in a.attrib.itervalues())
     text = a.text or ""
-    return "<%s %s>%s ..." % (a.tag, attribs, text.strip())
+    return "<%s %s>%s</%s>" % (a.tag, attribs, text.strip(), a.tag)
 
 def assert_xml_equivalent(expected, actual):
     a = xml.etree.ElementTree.iterparse(StringIO.StringIO(expected), ['start', 'end'])
