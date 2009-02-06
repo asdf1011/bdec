@@ -370,6 +370,8 @@ Where to go from here
 
 There are many other chunk types in the png specification; try decoding sRGB
 (very easy) or PLTE (more difficult; use the 'length' attribute of a sequenceof).
+Read the :ref:`tips <format-tips>` section for useful tips on improving your
+specification.
 
 One thing to realise is that the bdec specification will only take you so far;
 except for trival file formats, code will still need to be written before you

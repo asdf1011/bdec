@@ -21,6 +21,7 @@ multiple existing binary formats.
     reference
 
     expressions
+    tips
 
 
 .. _bdec-entries:
@@ -33,4 +34,6 @@ There are five basic entries in a bdec protocol specification.
   * A :ref:`sequenceof <format-sequenceof>`
   * A :ref:`reference <format-reference>`
 
-
+Once the basic entries have been mastered, there are some
+:ref:`tips <format-tips>` that can be used to improve the readability of the
+specification.
