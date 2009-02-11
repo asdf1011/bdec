@@ -499,5 +499,9 @@ class _CompilerTests:
            </e>"""
         self._decode(e, '\x02aabb', common=[a,b,c,d,e], expected_xml=xml)
 
+    def test_expected_value_little_endian(self):
+        spec = fld.Field('a', 32, fld.Field.INTEGER, encoding=fld.Field.LITTLE_ENDIAN, expected=dt.Data.from_int_little_endian(1, 32))
+        self._decode(spec, '\x01\x00\x00\x00')
+
 
 globals().update(create_decoder_classes([(_CompilerTests, 'SimpleDecode')], __name__))

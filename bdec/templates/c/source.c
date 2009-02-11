@@ -104,7 +104,7 @@
   %endif
      %if entry.expected is not None:
        %if entry.format == entry.INTEGER:
-    if (value != ${int(entry.expected)})
+    if (value != ${entry.decode_value(entry.expected)})
        %elif entry.format == entry.BINARY:
            <% 
            extra_bits = 8 - len(entry.expected) % 8
