@@ -23,6 +23,7 @@ errors (derived from bdec.DecodeError) common to all entry types.
 
 import bdec
 import bdec.data as dt
+from bdec.spec.expression import Expression, Constant
 
 class MissingInstanceError(bdec.DecodeError):
     """
@@ -144,7 +145,6 @@ class Entry(object):
         length -- Optionally specify the size in bits of the entry. Must be an
             instance of bdec.spec.expression.Expression or an integer.
         """
-        from bdec.spec.expression import Expression, Constant
         if length is not None:
             if isinstance(length, int):
                 length = Constant(length)

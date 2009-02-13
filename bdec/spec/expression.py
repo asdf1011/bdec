@@ -16,8 +16,6 @@
 #   License along with this library; if not, see
 #   <http://www.gnu.org/licenses/>.
 
-import bdec.field as fld
-import bdec.sequence as seq
 import bdec.spec
 import operator
 
