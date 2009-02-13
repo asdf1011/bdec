@@ -302,9 +302,12 @@ class Data:
 
         Conversion is big endian.
         """
+        data = self.copy()
         result = 0
-        for bit in self._get_bits():
+        for bit in data.pop(len(data) % 8)._get_bits():
             result = (result << 1) | bit
+        for byte in data._get_bytes():
+            result = (result << 8) | byte
         return result
 
     def __add__(self, other):
