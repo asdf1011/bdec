@@ -34,6 +34,10 @@ class NotEnoughDataError(DataError):
     def __str__(self):
         return "Asked for %i bits, but only have %i bits available!" % (self.requested, self.available)
 
+class IntegerConversionNeedsData(DataError):
+    def __str__(self):
+        return "Cannot convert an empty data buffer to an integer!"
+
 class PoppedNegativeBitsError(DataError):
     """A negative amount of data was requested."""
     def __init__(self, requested_length):
@@ -302,6 +306,9 @@ class Data:
 
         Conversion is big endian.
         """
+        if not len(self):
+            raise IntegerConversionNeedsData()
+
         data = self.copy()
         result = 0
         for bit in data.pop(len(data) % 8)._get_bits():
@@ -345,6 +352,8 @@ class Data:
         """
         Get an integer that has been encoded in little endian format
         """
+        if not len(self):
+            raise IntegerConversionNeedsData()
         result = 0
         for byte, value in enumerate(self._get_bytes()):
             result = result | (value << (8 * byte))
@@ -418,7 +427,8 @@ class Data:
         chars.reverse()
 
         result = Data("".join(chars))
-        if 0 != int(result.pop(num_bytes * 8 - length)):
+        num_leading_bits = num_bytes * 8 - length
+        if num_leading_bits and 0 != int(result.pop(num_leading_bits)):
             # We have an integer that isn't a multiple of 8 bits, and we
             # couldn't quite fit it in the space available.
             raise IntegerTooLongError(value, length)
