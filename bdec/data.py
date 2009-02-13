@@ -360,17 +360,19 @@ class Data:
         """
         Get a string representing the data in hex format.
         """
-        bits = list(self._get_bits())
-        if len(bits) % 4 != 0:
+        data = self.copy()
+        size = len(data)
+        if size % 4 != 0:
             raise HexNeedsFourBitsError(self)
 
-        chars = []
-        for i in range(0, len(bits), 4):
-            value = 0
-            for bit in range(4):
-                value |= bits[i + bit] << (3-bit)
-            chars.append(hex(value)[2:])
-        return "".join(chars)
+        result = ""
+        if size % 8:
+            result += "%x" % int(data.pop(4))
+
+        for num in data._get_bytes():
+            result += '%02x' % num
+
+        return result
 
     @staticmethod
     def from_int_little_endian(value, length):
