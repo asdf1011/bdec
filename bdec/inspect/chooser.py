@@ -185,17 +185,18 @@ def _differentiate(entries):
         # Get the values of all of the options for this data section
         lookup = {}
         undistinguished = []
-        for entry, option in options:
-            data = option.data.pop(length)
-            if isinstance(data, _AnyData):
-                undistinguished.append(entry)
-            elif isinstance(data, _UnknownData):
-                # This entry _may_ have been successfuly decoded...
-                undistinguished.append(entry)
-                if entry not in possible:
-                    possible.append(entry)
-            else:
-                lookup.setdefault(int(data), []).append(entry)
+        if length:
+            for entry, option in options:
+                data = option.data.pop(length)
+                if isinstance(data, _AnyData):
+                    undistinguished.append(entry)
+                elif isinstance(data, _UnknownData):
+                    # This entry _may_ have been successfuly decoded...
+                    undistinguished.append(entry)
+                    if entry not in possible:
+                        possible.append(entry)
+                else:
+                    lookup.setdefault(int(data), []).append(entry)
 
         if have_new_success or _can_differentiate(lookup, undistinguished + successful + possible):
             # We also should notify if we have a new item in the successful (or possible) list...
@@ -224,30 +225,39 @@ def _differentiate(entries):
     # of the current possible option.
     yield offset, 0, {}, [entry for entry, option in options], successful, possible
 
+class _Cache:
+    """ Class to cache differentiated entries. """
+    def __init__(self, entries):
+        self._cache = []
+        self._items = _differentiate(entries)
+
+    def __iter__(self):
+        for item in self._cache:
+            yield item
+
+        for offset, length, lookup, undistinguished, successful, possible in self._items:
+            item = (offset, length, lookup.copy(), undistinguished[:], successful[:], possible[:])
+            self._cache.append(item)
+            yield item
+
 
 class Chooser:
     def __init__(self, entries):
         self._entries = entries
+        self._cache = _Cache(entries)
 
     def choose(self, data):
         options = list(self._entries)
         current_offset = 0
         copy = data.copy()
-        for offset, length, lookup, undistinguished, successful, possible in _differentiate(self._entries):
+        for offset, length, lookup, undistinguished, successful, possible in self._cache:
             if len(options) <= 1:
                 break
 
-            # Get the value of the data at this location
+            # Remove data from before the current offset, as we cannot use it
+            # to differentiate.
             assert offset >= current_offset
-            try:
-                copy.pop(offset - current_offset)
-                value = int(copy.pop(length))
-                current_offset = offset + length
-            except dt.NotEnoughDataError:
-                # We don't have enough data left for this option; reduce
-                # the possibles to those that have finished decoding.
-                options = [option for option in options if option in set(successful + possible)]
-                break
+            copy.pop(offset - current_offset)
 
             # Check to see if we have a successful item, and remove any items
             # after that item (as they cannot succeed).
@@ -258,14 +268,25 @@ class Chooser:
                     del options[i+1:]
                     break
 
-            if lookup and length:
-                # We found a range of bits that can be used to distinguish
-                # between the diffent options.
-                fallback_entries = set(undistinguished + successful + possible)
-                filter = successful + possible + undistinguished
+            if length:
                 try:
-                    filter += lookup[value]
-                except KeyError:
-                    pass
-                options = [option for option in options if option in filter]
+                    value = int(copy.pop(length))
+                    current_offset = offset + length
+                except dt.NotEnoughDataError:
+                    # We don't have enough data left for this option; reduce
+                    # the possibles to those that have finished decoding.
+                    options = [option for option in options if option in set(successful + possible)]
+                    break
+
+                if lookup:
+                    # We found a range of bits that can be used to distinguish
+                    # between the diffent options.
+                    fallback_entries = set(undistinguished + successful + possible)
+                    filter = successful + possible + undistinguished
+                    try:
+                        filter += lookup[value]
+                    except KeyError:
+                        pass
+                    options = [option for option in options if option in filter]
+
         return options
