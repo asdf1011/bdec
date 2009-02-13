@@ -317,19 +317,26 @@ class Data:
         """
         Return an iterator to a series of byte values in the data.
         """
-        # TODO: Optimise reading when we are byte aligned...
-
-        # Read as many of the bits as possible, yielding the results.
-        value = 0
-        i = None
-        for i, bit in enumerate(self._get_bits()):
-            value = (value << 1) | bit
-            if (i + 1) % 8 == 0:
-                # We have a new byte!
-                yield value
-                value = 0
-        if i is not None and i % 8 != 7:
-            raise ConversionNeedsBytesError()
+        if self._start % 8 == 0 and self._end is not None and self._end % 8 == 0:
+            # Optimise for the case where we know the length of the data, and
+            # it is byte aligned.
+            for i in xrange(self._start / 8, self._end / 8):
+                try:
+                    yield self._buffer.read_byte(i)
+                except _OutOfDataError:
+                    raise NotEnoughDataError(self._end - self._start, (i-1) * 8)
+        else:
+            # Read as many of the bits as possible, yielding the results.
+            value = 0
+            i = None
+            for i, bit in enumerate(self._get_bits()):
+                value = (value << 1) | bit
+                if (i + 1) % 8 == 0:
+                    # We have a new byte!
+                    yield value
+                    value = 0
+            if i is not None and i % 8 != 7:
+                raise ConversionNeedsBytesError()
 
     def get_little_endian_integer(self):
         """
