@@ -211,7 +211,8 @@ def update_release_tarball(version):
     if os.path.exists(destination):
         text = raw_input("Archive '%s' exists! Overwrite? [y]" % destination)
         if text and text != 'y':
-            sys.exit('Not tagged.')
+            print 'Not updated archiving...'
+            return
 
     command = 'git archive --format=tar --prefix=bdec-%s/ HEAD | gzip > %s' % (version, destination)
     if os.system(command) != 0:
@@ -232,9 +233,10 @@ def tag_changes(version):
         text = raw_input("Create new tag '%s'? [y]" % tag)
     else:
         text = raw_input("Tag '%s' exists! Overwrite? [y]" % tag)
+
     if text and text != 'y':
-        sys.exit('Not tagged.')
-    if os.system('git tag -f "%s"' % tag) != 0:
+        print 'Not tagged.'
+    elif os.system('git tag -f "%s"' % tag) != 0:
         sys.exit('Failed to tag!')
 
 def commit_website(version):
@@ -243,7 +245,8 @@ def commit_website(version):
         sys.exit('Stopped after reviewing changes.')
     text = raw_input('Commit website changes? [y]')
     if text and text != 'y':
-        sys.exit('Not committed.')
+        print 'Not committed.'
+        return False
 
     # Commit the website changes
     os.chdir(website_dir)
@@ -255,6 +258,7 @@ def commit_website(version):
     if os.system('bzr commit -F .commitmsg') != 0:
         sys.exit('Failed to commit!')
     os.remove('.commitmsg')
+    return True
 
 def send_email(version, changelog):
     # Emails display much more consistently when we use 'windows' newlines.
@@ -350,8 +354,8 @@ if __name__ == '__main__':
     if os.system('git status') != 0:
         sys.exit('Source tree has changes! Stopping.')
 
-    commit_website(version)
-    upload()
+    if commit_website(version):
+        upload()
 
     tag_changes(version)
     notify(version, changelog)
