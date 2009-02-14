@@ -205,9 +205,14 @@ def update_website():
     if os.system('bzr add "%s"' % html_doc_dir) != 0:
         sys.exit('Failed to add the updated html_doc_dir')
 
-def update_release(version):
+def update_release_tarball(version):
     os.chdir(root_path)
     destination = os.path.join(project_dir, 'files', 'bdec-%s.tar.gz' % version)
+    if os.path.exists(destination):
+        text = raw_input("Archive '%s' exists! Overwrite? [y]" % destination)
+        if text and text != 'y':
+            sys.exit('Not tagged.')
+
     command = 'git archive --format=tar --prefix=bdec-%s/ HEAD | gzip > %s' % (version, destination)
     if os.system(command) != 0:
         sys.exit('Failed to export new tar.gz!')
@@ -336,7 +341,7 @@ if __name__ == '__main__':
     print
 
     update_website()
-    update_release(version)
+    update_release_tarball(version)
 
     os.chdir(root_path)
     if os.system('git status') != 0:
