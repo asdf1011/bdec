@@ -1,4 +1,27 @@
 
+0.5.0 (2009-02-14)
+------------------
+
+Features:
+
+ * Compilation speedups (the jpeg spec now only takes 5 seconds to compile
+   instead of 25).
+ * Python decoding speedups (decoding a small sample pdf document now takes 10
+   seconds instead of 300).
+ * Compiled choices are now represented by an 'enum' to identify the decoded
+   option, and a 'union' for the decoded value. This requires considerably
+   less memory allocations, and is easier for client applications to use.
+ * Expressions can now directly reference choice entries to reference the
+   decoded option.
+ * New 'tips' section in the documentation. Includes the ':' hidden entry
+   hint.
+
+Bugfixes:
+ * Fix entries whose values are passed both in and out of an entry due to 
+   expressions.
+ * Fix little endian fields with an expected value in compiled specifications.
+
+
 0.4.1 (2008-11-30)
 ------------------
 
