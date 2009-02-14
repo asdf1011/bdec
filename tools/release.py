@@ -221,10 +221,13 @@ def update_release_tarball(version):
         sys.exit('Failed to add new tar.gz!')
 
 def tag_changes(version):
+    os.chdir(root_path)
     tag = 'bdec-%s' % version
 
     git = subprocess.Popen(['git', 'tag'], stdout=subprocess.PIPE)
     tags = git.stdout.read().splitlines()
+    if git.wait() != 0:
+        sys.exit('Failed to read git tags!')
     if tag not in tags:
         text = raw_input("Create new tag '%s'? [y]" % tag)
     else:
