@@ -239,6 +239,21 @@ def tag_changes(version):
     elif os.system('git tag -f "%s"' % tag) != 0:
         sys.exit('Failed to tag!')
 
+def _edit_message(message):
+    filename = 'message.edit'
+    data = file(filename, 'w')
+    data.write(message)
+    data.close()
+
+    if os.system('vi %s' % filename) != 0:
+        sys.exit('Stopping due to edit message failure!')
+
+    data = file(filename, 'r')
+    message = data.read()
+    data.close()
+    os.remove(filename)
+    return message
+
 def commit_website(version):
     os.chdir(website_dir)
     if os.system('bzr diff | less') != 0:
@@ -250,11 +265,10 @@ def commit_website(version):
 
     # Commit the website changes
     os.chdir(website_dir)
+    message = _edit_message('Updated bdec project to version %s' % version)
     data = file('.commitmsg', 'w')
-    data.write('Updated bdec project to version %s' % version)
+    data.write(message)
     data.close()
-    if os.system('vi .commitmsg') != 0:
-        sys.exit('Stopping due to edit commit message failure')
     if os.system('bzr commit -F .commitmsg') != 0:
         sys.exit('Failed to commit!')
     os.remove('.commitmsg')
@@ -297,12 +311,23 @@ def send_email(version, changelog):
 
 def notify(version, changelog, get_focus=get_focus,  system=os.system, confirm=raw_input, should_send_email=True):
     changelog = strip_changelog(changelog)
+    # This is a fresmeat limit
+    MAX_CHARS = 600
+    short_message = changelog
+    while len(short_message) > 600:
+        print 'Changelog is too long (must be less then %i characters, is %i)' % (MAX_CHARS, len(short_message))
+        text = raw_input('Edit changelog for submission? [y]')
+        if text and text != 'y':
+            print 'Servers not notified of release.'
+            return
+
+        short_message = _edit_message(short_message)
 
     # Notify freshmeat
     if confirm('Should freshmeat be notified? [y]') in ['', 'y', 'Y']:
         focus = get_focus()
         freshmeat = os.path.join(website_dir, 'build', 'freshmeat-submit-1.6', 'freshmeat-submit')
-        command = '%s -n --project bdec --version %s --changes "%s" --release-focus "%s" --gzipped-tar-url http://www.hl.id.au/projects/bdec/files/bdec-%s.tar.gz' % (freshmeat, version, changelog, focus, version)
+        command = '%s -n --project bdec --version %s --changes "%s" --release-focus "%s" --gzipped-tar-url http://www.hl.id.au/projects/bdec/files/bdec-%s.tar.gz' % (freshmeat, version, short_message, focus, version)
         if system(command) != 0:
             sys.exit('Failed to submit to freshmeat! (%s)' % command)
     else:
