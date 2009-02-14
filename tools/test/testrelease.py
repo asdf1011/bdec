@@ -13,24 +13,31 @@ Blah blah
 Download
 ========
 
-* `Version 9.9.9`_
+9.9.9 (blah blah)
+-----------------
 
-   Blah blah:
-   * Did this.
-   * Did that.
+Blah blah:
+* Did this.
+* Did that.
 
-   Ding dong:
-   * Went there.
-   * Came back.
+Ding dong:
+* Went there.
+* Came back.
 
-* `Version 1.2.3`_
+1.2.3 (be bop)
+--------------
 
-   This is the current version
+This is the current version
    """
-        offset, version, previous_version, changelog = get_changelog(text)
-        self.assertEqual('9.9.9', version)
-        self.assertEqual('1.2.3', previous_version)
-        self.assertEqual('Blah blah: Did this. Did that. Ding dong: Went there. Came back.', strip_changelog(changelog))
+        changelog = get_changelog(text)
+        self.assertEqual(2, len(changelog))
+        self.assertEqual('9.9.9', changelog[0][0])
+        self.assertEqual('blah blah', changelog[0][1])
+        self.assertEqual('Blah blah: Did this. Did that. Ding dong: Went there. Came back.', strip_changelog(changelog[0][2]))
+
+        self.assertEqual('1.2.3', changelog[1][0])
+        self.assertEqual('be bop', changelog[1][1])
+        self.assertEqual('This is the current version', strip_changelog(changelog[1][2]))
 
     def test_notify(self):
         commands = []

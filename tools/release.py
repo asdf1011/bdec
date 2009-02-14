@@ -46,7 +46,9 @@ _RELEASE_FOCUS = {
         7: 'Major bugfixes', 
         }
 
-_README = filename = os.path.join(root_path, 'README')
+_README = os.path.join(root_path, 'README')
+_CHANGELOG = os.path.join(root_path, 'CHANGELOG')
+
 website_dir = os.path.join(root_path, '..', 'website', 'website.integ')
 project_dir = os.path.join(website_dir, 'html', 'projects', 'bdec')
 
@@ -68,35 +70,41 @@ def _check_copyright_statements(subdirs):
         sys.exit('Copyright issues must be resolved.')
 
 def _read_changelog():
-    readme = file(_README, 'r')
+    readme = file(_CHANGELOG, 'r')
     contents = readme.read()
     readme.close()
     return contents
 
 def get_changelog(contents=_read_changelog()):
-    "Returns the a (offset, version, prevous_version, changelog) tuple"
+    "Returns a list of (version, date, notes) tuple"
 
-    match = re.search('^Download', contents, re.M)
-    if match is None:
-        sys.exit('Failed to find download section in %s!' % filename)
-    download_offset = match.end()
+    result = []
+    version_regex = r'^([0-9.]*) \((.*)\)$'
+    while contents:
+        match = re.search(version_regex, contents, re.M)
+        if match is None:
+            break
 
-    # Get the current version
-    version_regex = '^\* `Version (.*)`_$'
-    match = re.search(version_regex, contents[download_offset:], re.M)
-    if match is None:
-        sys.exit('Failed to find version section')
-    version = match.group(1)
-    changelog_offset = download_offset + match.end()
+        version = match.group(1)
+        date = match.group(2)
+        changelog_offset = match.end()
 
-    # Get the previous version
-    match = re.search(version_regex, contents[changelog_offset:], re.M)
-    if match is None:
-        sys.exit('Failed to find previous version')
-    previous_version = match.group(1)
+        match = re.search(version_regex, contents[changelog_offset:], re.M)
+        if match:
+            notes = contents[changelog_offset:changelog_offset + match.start()]
+            contents = contents[changelog_offset + match.start():]
+        else:
+            notes = contents[changelog_offset:]
+            contents = ""
 
-    changelog = contents[changelog_offset:changelog_offset + match.start()]
-    return (changelog_offset, version, previous_version, changelog)
+        lines = notes.strip().splitlines()
+        if set(lines[0]) != set('-') or lines[1].strip():
+            sys.exit("The changelog section should be followed by a '---' line, got '%s'" % lines)
+        notes = '\n'.join(lines[2:])
+        result.append((version, date, notes))
+    if not result:
+        sys.exit('Failed to find version')
+    return result
 
 def strip_changelog(changelog):
     """Make the changelog into a single paragraph suitable for freshmeat."""
@@ -124,43 +132,62 @@ def get_focus():
         item = default
     return _RELEASE_FOCUS[item]
 
-def update_bdec_version(version):
-    filename = os.path.join(root_path, 'bdec', '__init__.py')
-    init_file = file(filename, 'r')
-    contents = init_file.read()
-    init_file.close()
+def _get_link(version):
+    return 'files/bdec-%s.tar.gz' % version
 
-    init_file = file(filename, 'w')
-    found_version = False
-    for line in contents.splitlines(True):
-        if line.startswith('__version__'):
-            init_file.write('__version__ = "%s"\n' % version)
-            found_version = True
-        else:
-            init_file.write(line)
-    init_file.close()
-    if not found_version:
-        sys.exit('Failed to update version text in %s!' % filename)
-
-def insert_date_into_changelog(changelog_offset):
-    readme = file(_README, 'r')
-    contents = readme.read() 
-    readme.close()
-
-    readme = file(_README, 'w')
-    readme.write(contents[:changelog_offset])
-    readme.write("\n  %s\n" % (datetime.datetime.now().date()))
-    readme.write(contents[changelog_offset:])
-    readme.close()
-
-def update_website():
+def _generate_html(contents):
     website_build = os.path.join(website_dir, 'build')
     rst2doc = os.path.join(website_build, 'rst2doc.py')
-    print 'Updating project index...'
-    os.chdir(project_dir)
-    command = "%s %s" % (rst2doc, _README)
+
+    generated_readme = os.path.join(root_path, 'readme.tmp')
+    data = open(generated_readme, 'w')
+    data.write(contents)
+    data.close()
+    command = "%s %s" % (rst2doc, generated_readme)
     if os.system(command) != 0:
         sys.exit('Failed to update project html index!')
+    os.remove(generated_readme)
+
+def _create_changelog():
+    # 1. Get all change log entries;
+    # 2. Modify each of the headers to include the links to the downloads
+    # 3. Convert them to a list starting with ' * '
+    contents = ""
+    links = ""
+    for version, date, notes in get_changelog():
+        contents += '\n* `Version %s`_ (%s)\n\n' % (version, date)
+        contents += '\n'.join('  %s' % line for line in notes.splitlines())
+        contents += '\n'
+        links += '.. _Version %s: files/bdec-%s.tar.gz\n' % (version, version)
+    contents += '\n\n%s' % links
+
+    _generate_html(contents)
+    os.rename('index.html', 'changelog.html')
+
+def _create_index_file():
+    # Create a temporary file that contains a modified readme
+    version, date, notes = get_changelog()[0]
+    notes = '\n  '.join(notes.splitlines())
+    contents = open(_README, 'r').read()
+    match = re.search('(.*)(See the CHANGELOG.*)', contents)
+    if not match:
+        sys.exit('Failed to find changelog section of readme!')
+
+    # Update the index from the README
+    contents = contents[:match.start(1)] + \
+        '\n* `Version %s`_ (%s)\n\n  %s\n\n' % (version, date, notes) + \
+        '.. _Version %s: %s\n\n' % (version, _get_link(version)) + \
+        contents[match.start(1):]
+    _generate_html(contents)
+
+def update_website():
+    print 'Updating project index...'
+    os.chdir(project_dir)
+
+    _create_changelog()
+    _create_index_file()
+
+    # Update the CHANGELOG
 
     print 'Updating project documentation...'
     html_doc_dir = os.path.join(project_dir, 'docs')
@@ -190,12 +217,6 @@ def update_release(version):
 def tag_changes(version):
     if os.system('git tag "bdec-%s"' % version) != 0:
         sys.exit('Failed to tag!')
-
-def commit_bdec(version):
-    # Commit the bdec changes
-    os.chdir(root_path)
-    if os.system('git commit -a --edit -m "Updated version to %s"' % version) != 0:
-        sys.exit('Failed to commit!')
 
 def commit_website(version):
     os.chdir(website_dir)
@@ -293,37 +314,29 @@ if __name__ == '__main__':
         sys.exit(1)
 
     _check_copyright_statements(['bdec', 'templates'])
-    offset, version, previous_version, changelog = get_changelog()
+    version, date, changelog = get_changelog()[0]
 
     if version != bdec.__version__:
-        if previous_version != bdec.__version__:
-            sys.exit("Neither the documented current version (%s) nor the previous version (%s) match the actual version (%s)!" % (version, previous_version, bdec.__version__))
-        print "Next version will be", version
-        print "Changes are;"
-        print strip_changelog(changelog)
-        print
+        sys.exit("Version mismatch! Changelog version is '%s', bdec version is '%s'" % (version, bdec.__version__))
 
-        update_bdec_version(version)
-        insert_date_into_changelog(offset)
-        update_website()
-        update_release(version)
+    print "Preparing new bdec release", version
+    print "Changes are;"
+    print strip_changelog(changelog)
+    print
 
-        os.chdir(root_path)
-        if os.system('git diff') != 0:
-            sys.exit('Stopped after reviewing changes.')
+    update_website()
+    update_release(version)
 
-        text = raw_input('Commit changes and tag release? [y]')
-        if text and text != 'y':
-            sys.exit('Not committed.')
+    os.chdir(root_path)
+    if os.system('git status') != 0:
+        sys.exit('Source tree has changes! Stopping.')
 
-        commit_bdec(version)
-        tag_changes(version)
-        commit_website(version)
-        upload()
-        notify(version, changelog)
-    else:
-        print "The version hasn't changed, so only updating documentation and uploading..."
-        update_website()
-        commit_website(version)
-        upload()
+    commit_website(version)
+    upload()
+
+    text = raw_input('Tag release %s? [y]' % version)
+    if text and text != 'y':
+        sys.exit('Not tagged.')
+    tag_changes(version)
+    notify(version, changelog)
 

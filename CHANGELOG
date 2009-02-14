@@ -1,0 +1,111 @@
+
+0.4.1 (2008-11-30)
+------------------
+
+Features:
+
+ * Allow the project to be compiled to an egg (including templates).
+ * Allow the generated C to be used from C++ programs (eg: extern "c").
+ * Install 'bdecode' and 'bcompile' as part of the egg install.
+
+Bugfixes:
+
+ * Generated C language type names are consistent across runs.
+
+
+0.4.0 (2008-10-08)
+------------------
+
+Features:
+
+ * Allow common entries to be given another name.
+ * Improve readability of generated C code.
+ * Don't include unnecessary data structures in C headers.
+ * Change to LGPL license.
+ * Documentation updates.
+
+Bugfixes:
+
+ * Various fixes in C decoders.
+ * Fix mp3 specification.
+
+
+0.3.2 (2008-07-06)
+------------------
+
+Features:
+
+ * The c decoder memory is now freed
+ * Decoders are validated with valgrind
+ * A new 'release' script to simplify making new releases
+
+Bugfixes:
+
+ * Handle sequence values in the C decoder
+ * Print sequence values in the c decoder output
+ * Xml output no longer includes whitespace around decoded values
+ * Allow entry names to use the '-' character
+ * Improve speed when choosing between embedded choices
+ * Bit buffers now allocate their own memory (instead of reusing the input)
+
+
+0.3.1 (20 April 2008)
+---------------------
+
+Docs:
+
+ * Add external documentation (and tutorial), and update internal docs
+
+Format specifications:
+
+ * Add a png specification
+
+
+0.3.0 (3 April 2008)
+--------------------
+
+Core:
+
+ * Detect invalid integer encodings in a specification
+ * Nosetests can now find all unit tests
+ * Expressions are resolved after the spec as loaded (allows resolving into
+   common items not yet specified).
+ * Referenced items can no longer use 'end-sequenceof'
+
+Format specifications:
+
+ * Add a basic asf specification (wma/wmv)
+ * Add boolean type (pdf)
+ * Limit possible comment characters (pdf)
+ * Add test data files for pdf, mp3, jpeg, and vfat
+
+
+0.2.0 (17 September 2007)
+-------------------------
+
+Core:
+
+ * Add a 'file' tool that attempts to identify the format of a binary file.
+ * Support efficient decoding of files (the whole file is no longer read into
+   memory).
+
+Format specifications:
+
+ * More complete pdf protocl specification.
+ * Fixes to 'mp3' and 'vfat' specifications.
+
+
+0.1.1 (8 August 2007)
+---------------------
+
+Initial standalone release of bdec library. Allows complex specifications
+to be written that can be automatically decoded. The included example
+specifications include;
+
+ * pdf documents
+ * mp3 and jpg media files
+ * fat12/fat16/fat32 filesystems
+
+Encoding is supported only for very basic specifications (no use of
+expressions).
+
