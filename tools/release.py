@@ -149,7 +149,7 @@ def _generate_html(contents):
         sys.exit('Failed to update project html index!')
     os.remove(generated_readme)
 
-def _create_changelog():
+def _create_changelog_html():
     # 1. Get all change log entries;
     # 2. Modify each of the headers to include the links to the downloads
     # 3. Convert them to a list starting with ' * '
@@ -185,7 +185,7 @@ def update_website():
     print 'Updating project index...'
     os.chdir(project_dir)
 
-    _create_changelog()
+    _create_changelog_html()
     _create_index_file()
 
     # Update the CHANGELOG
