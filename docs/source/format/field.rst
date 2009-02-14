@@ -20,7 +20,7 @@ Specification
 
 Bdec fields can have 4 attributes;
 
-  * A name
+  * A name (optional)
   * A :ref:`length <bdec-expressions>` in bits
   * A type_ (optional)
   * An encoding (optional)

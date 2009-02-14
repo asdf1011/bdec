@@ -20,7 +20,7 @@ Specification
 
 Bdec sequenceof entries can have 3 attributes;
 
-  * A name
+  * A name (optional)
   * A count_ (optional)
   * A length_ (optional)
 

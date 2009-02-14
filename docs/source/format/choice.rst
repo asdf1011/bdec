@@ -15,7 +15,7 @@ Specification
 
 Choice entries can have up to two attributes.
 
-  * A name
+  * A name (optional)
   * A length_ (optional)
 
 The choice must have multiple child entries specifying the different possible

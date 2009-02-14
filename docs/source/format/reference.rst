@@ -26,11 +26,27 @@ Specification
 
 A bdec reference can have one or two attributes;
 
-  * name -- The name to use for the referenced entry.
-  * type -- If specified, identifies the name of entry to be referenced. If it
-        is not specified, the reference name is used to find the referenced
-        entry.
+  * name_ (optional)
+  * type_ (optional)
 
+Either a name or a type must be specified for a reference.
+
+.. _name: `Reference name`_
+.. _type: `Reference type`_
+
+
+Reference name
+--------------
+
+The name specifies the name to be used for this element. If no type_ is
+specified, this also specifies the name of the referenced entry to use.
+
+
+Reference type
+--------------
+
+If specified, identifies the name of entry to be referenced. If it is not
+specified, the reference name is used to find the referenced entry.
 
 
 Examples

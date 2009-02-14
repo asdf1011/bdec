@@ -18,7 +18,7 @@ Specification
 
 Bdec sequence entries can have 3 attributes;
 
-  * A name
+  * A name (optional)
   * A length_ (optional)
   * A value_ (optional)
 
