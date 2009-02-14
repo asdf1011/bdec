@@ -8,6 +8,7 @@ import os.path
 import re
 import shutil
 import smtplib
+import subprocess
 import sys
 
 root_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), '..')
@@ -215,7 +216,17 @@ def update_release(version):
         sys.exit('Failed to add new tar.gz!')
 
 def tag_changes(version):
-    if os.system('git tag "bdec-%s"' % version) != 0:
+    tag = 'bdec-%s' % version
+
+    git = subprocess.Popen(['git', 'tag'], stdout=subprocess.PIPE)
+    tags = git.stdout.read().splitlines()
+    if tag not in tags:
+        text = raw_input("Create new tag '%s'? [y]" % tag)
+    else:
+        text = raw_input("Tag '%s' exists! Overwrite? [y]" % tag)
+    if text and text != 'y':
+        sys.exit('Not tagged.')
+    if os.system('git tag -f "%s"' % tag) != 0:
         sys.exit('Failed to tag!')
 
 def commit_website(version):
@@ -334,9 +345,6 @@ if __name__ == '__main__':
     commit_website(version)
     upload()
 
-    text = raw_input('Tag release %s? [y]' % version)
-    if text and text != 'y':
-        sys.exit('Not tagged.')
     tag_changes(version)
     notify(version, changelog)
 
