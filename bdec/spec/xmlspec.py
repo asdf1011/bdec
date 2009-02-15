@@ -427,20 +427,37 @@ _handlers = {fld.Field: _save_field,
         chc.Choice: _save_choice,
         }
 
-def _write_entry(gen, entry):
+def _write_reference(gen, child):
+    attributes = {'name' : child.name}
+    if child.entry.name != child.name:
+        attributes['type'] = child.entry.name
+    gen.startElement('reference', xml.sax.xmlreader.AttributesImpl(attributes))
+    gen.endElement('reference')
+
+def _write_entry(gen, entry, common):
     name, attributes = _handlers[type(entry)](entry)
     attributes = dict((name, value) for name, value in attributes.items() if value is not None)
     gen.startElement(name, xml.sax.xmlreader.AttributesImpl(attributes))
     for child in entry.children:
-        _write_entry(gen, child.entry)
+        if child.entry in common:
+            _write_reference(gen, child)
+        else:
+            _write_entry(gen, child.entry, common)
     gen.endElement(name)
 
-def save(spec):
+def save(spec, common=[]):
     """Save a specification in the xml format."""
     buffer  = StringIO.StringIO()
     gen = xml.sax.saxutils.XMLGenerator(buffer, 'utf-8')
 
     gen.startElement('protocol', xml.sax.xmlreader.AttributesImpl({}))
-    _write_entry(gen, spec)
+    _write_entry(gen, spec, common)
+    common = [entry for entry in common if entry is not spec]
+    if common:
+        gen.startElement('common', xml.sax.xmlreader.AttributesImpl({}))
+        for entry in common:
+            _write_entry(gen, entry, common)
+        gen.endElement('common')
     gen.endElement('protocol')
     return buffer.getvalue()
+

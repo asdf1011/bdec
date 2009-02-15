@@ -696,3 +696,17 @@ class TestSave(unittest.TestCase):
                       </protocol>"""
         assert_xml_equivalent(expected, xml.save(a))
 
+    def test_common_entries(self):
+        a = fld.Field('a', length=8)
+        b = seq.Sequence('b', [a, a])
+        expected = """<protocol>
+                        <sequence name="b">
+                          <reference name="a" />
+                          <reference name="a" />
+                        </sequence>
+                        <common>
+                          <field name="a" length="8" />
+                        </common>
+                      </protocol>"""
+        assert_xml_equivalent(expected, xml.save(b, [a, b]))
+
