@@ -45,7 +45,7 @@ def _is_xml_text_equal(a, b):
     return a.strip() == b.strip()
 
 def _get_elem_text(a):
-    attribs = ' '.join('%s=%s' for name, value in a.attrib.itervalues())
+    attribs = ' '.join('%s="%s"' % (name, value) for name, value in a.attrib.items())
     text = a.text or ""
     return "<%s %s>%s</%s>" % (a.tag, attribs, text.strip(), a.tag)
 

@@ -27,6 +27,7 @@ import bdec.field as fld
 import bdec.output.instance as inst
 import bdec.sequence as seq
 import bdec.spec.xmlspec as xml
+from bdec.test.decoders import assert_xml_equivalent
 
 class TestXml(unittest.TestCase):
     def test_simple_field(self):
@@ -645,3 +646,21 @@ class TestXml(unittest.TestCase):
 
         self.assertEqual('length', items[5][0])
         self.assertEqual(98, items[5][1])
+
+class TestSave(unittest.TestCase):
+    def test_simple_field(self):
+        a = fld.Field('a', length=8)
+        assert_xml_equivalent(xml.save(a), '<protocol><field name="a" length="8" /></protocol>')
+
+    def test_field_expected_value(self):
+        a = fld.Field('a', length=8, expected=dt.Data('\x63'))
+        assert_xml_equivalent(xml.save(a), '<protocol><field name="a" length="8" value="0x63" /></protocol>')
+
+    def test_text_field(self):
+        a = fld.Field('a', format=fld.Field.TEXT, length=32)
+        assert_xml_equivalent(xml.save(a), '<protocol><field name="a" type="text" length="32" /></protocol>')
+
+    def test_text_field_with_expected_value(self):
+        a = fld.Field('a', format=fld.Field.TEXT, length=32, expected=dt.Data('abcd'))
+        assert_xml_equivalent(xml.save(a), '<protocol><field name="a" type="text" length="32" value="abcd" /></protocol>')
+

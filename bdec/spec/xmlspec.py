@@ -18,6 +18,7 @@
 
 import StringIO
 import xml.sax
+import xml.sax.saxutils
 
 import bdec.choice as chc
 import bdec.data as dt
@@ -384,3 +385,38 @@ def load(xml):
     else:
         result = _load_from_file(xml, "<stream>")
     return result
+
+def _save_field(entry):
+    attributes = {'name': entry.name, 'length': str(entry.length),
+            'min':entry.min, 'max':entry.max}
+    if entry.expected is not None:
+        if entry.format in [fld.Field.HEX, fld.Field.BINARY]:
+            value = '0x%s' % entry.expected.get_hex()
+        else:
+            value = entry.decode_value(entry.expected)
+        attributes['value'] = value
+    if entry.format is not fld.Field.BINARY:
+        attributes['type'] = entry.format
+    if entry.encoding not in [fld.Field.BIG_ENDIAN, 'ascii']:
+        attributes['encoding'] = entry.encoding
+    return ('field', attributes)
+
+_handlers = {fld.Field: _save_field}
+
+def _write_entry(gen, entry):
+    name, attributes = _handlers[type(entry)](entry)
+    attributes = dict((name, value) for name, value in attributes.items() if value is not None)
+    gen.startElement(name, xml.sax.xmlreader.AttributesImpl(attributes))
+    for child in entry.children:
+        _write_entry(gen, child.entry)
+    gen.endElement(name)
+
+def save(spec):
+    """Save a specification in the xml format."""
+    buffer  = StringIO.StringIO()
+    gen = xml.sax.saxutils.XMLGenerator(buffer, 'utf-8')
+
+    gen.startElement('protocol', xml.sax.xmlreader.AttributesImpl({}))
+    _write_entry(gen, spec)
+    gen.endElement('protocol')
+    return buffer.getvalue()
