@@ -401,7 +401,15 @@ def _save_field(entry):
         attributes['encoding'] = entry.encoding
     return ('field', attributes)
 
-_handlers = {fld.Field: _save_field}
+def _save_sequence(entry):
+    attributes = {'name': entry.name, 'value':entry.value}
+    if entry.length is not None:
+        attributes['length'] = str(entry.length)
+    return ('sequence', attributes)
+
+_handlers = {fld.Field: _save_field,
+        seq.Sequence: _save_sequence,
+        }
 
 def _write_entry(gen, entry):
     name, attributes = _handlers[type(entry)](entry)
