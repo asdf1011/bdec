@@ -187,13 +187,6 @@ class Entry(object):
         params = bdec.inspect.param.CompoundParameters([end_entry_params, expression_params])
         self._set_params(params)
 
-        # We need to raise an error as to missing parameters
-        for param in params.get_params(self):
-            if param.direction is param.IN:
-                # TODO: We should instead raise the error from the context of the
-                # child that needs the data.
-                raise MissingExpressionReferenceError(self, param.name)
-
     def _set_params(self, lookup):
         """
         Set the parameters needed to decode this entry.

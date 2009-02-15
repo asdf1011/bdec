@@ -21,6 +21,7 @@ import sys
 
 import bdec
 import bdec.data as dt
+import bdec.inspect.param
 import bdec.spec.xmlspec as xmlspec
 import bdec.output.xmlout as xmlout
 
@@ -53,10 +54,12 @@ def _parse_args():
 
     return (spec, data, verbose)
 
+
 def main():
     spec, data, verbose = _parse_args()
     try:
         decoder, lookup, common = xmlspec.load(spec)
+        bdec.spec.validate_no_input_params(decoder, lookup)
     except bdec.spec.LoadError, ex:
         sys.exit(str(ex))
 

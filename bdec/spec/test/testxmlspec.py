@@ -301,13 +301,6 @@ class TestXml(unittest.TestCase):
                 result += value
         self.assertEqual("hello world", result)
         self.assertEqual("boo", data.bytes())
-        
-    def test_missing_reference_error(self):
-        text = """
-            <protocol>
-                <field name="bob" length="${missing}" />
-            </protocol>"""
-        self.assertRaises(xml.XmlExpressionError, xml.loads, text)
 
     def test_sequence_value(self):
         text = """
@@ -552,19 +545,6 @@ class TestXml(unittest.TestCase):
               <field name="bob" length="8" value="0xFFFF" />
             </protocol>"""
         self.assertRaises(xml.XmlError, xml.loads, text)
-
-    def test_expression_cannot_reference_common_entry(self):
-        text = """
-            <protocol>
-              <common>
-                  <field name="bob" length="8" />
-                  <sequence name="hey">
-                     <field name="cat" length="${bob}" />
-                  </sequence>
-              </common>
-              <reference name="hey" />
-            </protocol>"""
-        self.assertRaises(xml.XmlExpressionError, xml.loads, text)
 
     def test_cannot_use_end_sequenceof_in_reference(self):
         # There was a problem with using 'end-sequenceof' with common items...
