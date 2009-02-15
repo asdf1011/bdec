@@ -24,6 +24,7 @@ import bdec
 import bdec.choice as chc
 import bdec.data as dt
 import bdec.entry as ent
+import bdec.expression as expr
 import bdec.field as fld
 import bdec.output.instance as inst
 import bdec.sequence as seq
@@ -709,4 +710,16 @@ class TestSave(unittest.TestCase):
                         </common>
                       </protocol>"""
         assert_xml_equivalent(expected, xml.save(b, [a, b]))
+
+    def test_expression(self):
+        a = seq.Sequence('a', [
+            fld.Field('b', format=fld.Field.INTEGER, length=8),
+            fld.Field('c', length=expr.compile('${a} * 8'))])
+        expected = """<protocol>
+                        <sequence name="a">
+                          <field name="b" length="8" type="integer" />
+                          <field name="c" length="(${a} * 8)" />
+                        </sequence>
+                      </protocol>"""
+        assert_xml_equivalent(expected, xml.save(a))
 

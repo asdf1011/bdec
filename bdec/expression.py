@@ -18,6 +18,17 @@
 
 import operator
 
+_operators1 = [
+        ('*', operator.mul),
+        ('/', operator.div),
+        ('%', operator.mod),
+        ]
+
+_operators2 = [
+        ('+', operator.add),
+        ('-', operator.sub),
+        ]
+
 class UndecodedReferenceError(Exception):
     """
     Raised when a decoded entry is referenced (but unused).
@@ -55,7 +66,10 @@ class Delayed(Expression):
         return self.op(self.left.evaluate(context), self.right.evaluate(context))
 
     def __str__(self):
-        return '(%s %s %s)' % (self.left, self.op, self.right)
+        lookup = {}
+        lookup.update((op, name) for name, op in _operators1)
+        lookup.update((op, name) for name, op in _operators2)
+        return '(%s %s %s)' % (self.left, lookup[self.op], self.right)
 
 
 class Constant(Expression):
@@ -84,7 +98,7 @@ class ValueResult(Expression):
             raise UndecodedReferenceError()
 
     def __str__(self):
-        return self.name
+        return '${%s}' % self.name
 
 
 class LengthResult(Expression):
@@ -102,7 +116,7 @@ class LengthResult(Expression):
             raise UndecodedReferenceError()
 
     def __str__(self):
-        return "%s length" % self.name
+        return "len{%s}" % self.name
 
 
 def _half(op):
@@ -145,14 +159,13 @@ def compile(text):
     expression = Forward()
     factor = hex | integer | named_reference | length_reference | ('(' + expression + ')').addParseAction(lambda s,l,t:t[1])
 
-    mul = ('*' + factor).addParseAction(_half(operator.mul))
-    div = ('/' + factor).addParseAction(_half(operator.div))
-    mod = ('%' + factor).addParseAction(_half(operator.mod))
-    term = (factor + ZeroOrMore(mul | div | mod)).addParseAction(_collapse)
+    ops1 = reduce(operator.or_,
+            [(character + factor).addParseAction(_half(op)) for character, op in _operators1])
+    term = (factor + ZeroOrMore(ops1)).addParseAction(_collapse)
 
-    add = ('+' + term).addParseAction(_half(operator.add))
-    sub = ('-' + term).addParseAction(_half(operator.sub))
-    expression << (term + ZeroOrMore(add | sub)).addParseAction(_collapse)
+    ops2 = reduce(operator.or_,
+            [(character + term).addParseAction(_half(op)) for character, op in _operators2])
+    expression << (term + ZeroOrMore(ops2)).addParseAction(_collapse)
 
     complete = expression + StringEnd()
     try:
