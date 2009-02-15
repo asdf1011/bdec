@@ -18,6 +18,7 @@
 
 import bdec.data as dt
 import bdec.entry
+from bdec.expression import Constant, Expression
 
 class InvalidSequenceOfCount(bdec.DecodeError):
     """Raised during encoding when an invalid length is found."""
@@ -67,7 +68,6 @@ class SequenceOf(bdec.entry.Entry):
         fail to decode after using all of the available buffer.
         """
         bdec.entry.Entry.__init__(self, name, length, [child])
-        from bdec.spec.expression import Constant, Expression
         if isinstance(count, int):
             count = Constant(count)
         assert count is None or isinstance(count, Expression)

@@ -27,7 +27,7 @@ import bdec.field as fld
 import bdec.inspect.param as prm
 import bdec.sequence as seq
 import bdec.sequenceof as sof
-import bdec.spec.expression as expr
+import bdec.expression as expr
 
 class TestExpressionParameters(unittest.TestCase):
     def test_direct_children(self):

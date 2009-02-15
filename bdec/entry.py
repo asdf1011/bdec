@@ -23,7 +23,7 @@ errors (derived from bdec.DecodeError) common to all entry types.
 
 import bdec
 import bdec.data as dt
-from bdec.spec.expression import Expression, Constant
+from bdec.expression import Expression, Constant, UndecodedReferenceError
 
 class MissingInstanceError(bdec.DecodeError):
     """
@@ -143,7 +143,7 @@ class Entry(object):
 
         children -- A list of Entry instances.
         length -- Optionally specify the size in bits of the entry. Must be an
-            instance of bdec.spec.expression.Expression or an integer.
+            instance of bdec.expression.Expression or an integer.
         """
         if length is not None:
             if isinstance(length, int):
@@ -384,13 +384,12 @@ class Entry(object):
             # If an entry is recursive, we cannot predict how long it will be.
             return Range()
 
-        import bdec.spec.expression
         result = None
         if self.length is not None:
             try:
                 min = max = self.length.evaluate({})
                 result = bdec.entry.Range(min, max)
-            except bdec.spec.expression.UndecodedReferenceError:
+            except UndecodedReferenceError:
                 pass
         if result is None:
             ignore_entries.add(self)

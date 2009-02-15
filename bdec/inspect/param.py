@@ -23,7 +23,7 @@ import bdec.entry as ent
 import bdec.field as fld
 import bdec.sequence as seq
 import bdec.sequenceof as sof
-import bdec.spec.expression as expr
+import bdec.expression as expr
 
 
 class BadReferenceError(bdec.DecodeError):
@@ -250,8 +250,8 @@ class ExpressionParameters(_Parameters):
     def _get_local_reference(self, entry, child, param):
         """Get the local of a parameter used by a child entry.
 
-        Return either a bdec.spec.expression.ValueResult or a
-        bdec.spec.expression.LengthResult.
+        Return either a bdec.expression.ValueResult or a
+        bdec.expression.LengthResult.
         """
         try:
             name = self._local_child_param_name[entry][child][param.reference.name]
@@ -294,8 +294,8 @@ class ExpressionParameters(_Parameters):
         Drill down into the children of 'entry', adding output params to 'name'.
 
         entry -- An instance of bdec.entry.Entry
-        reference -- An instance of either bdec.spec.expression.ValueResult or
-            bdec.spec.expression.LengthResult.
+        reference -- An instance of either bdec.expression.ValueResult or
+            bdec.expression.LengthResult.
         """
         if isinstance(entry, chc.Choice):
             # The option names aren't specified in a choice expression

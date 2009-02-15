@@ -19,7 +19,7 @@
 import bdec.choice as chc
 import bdec.field as fld
 import bdec.sequence as seq
-from bdec.spec.expression import Delayed, ValueResult, LengthResult, Constant
+from bdec.expression import Delayed, ValueResult, LengthResult, Constant
 import operator
 import string
 

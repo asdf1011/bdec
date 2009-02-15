@@ -26,7 +26,7 @@ import bdec.field as fld
 import bdec.output.xmlout as xml
 import bdec.sequence as seq
 import bdec.sequenceof as sof
-import bdec.spec.expression as expr
+import bdec.expression as expr
 
 class TestXml(unittest.TestCase):
     def test_field(self):

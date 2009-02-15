@@ -22,11 +22,11 @@ import xml.sax
 import bdec.choice as chc
 import bdec.data as dt
 import bdec.entry as ent
+import bdec.expression as exp
 import bdec.field as fld
 import bdec.spec
 import bdec.sequence as seq
 import bdec.sequenceof as sof
-import bdec.spec.expression as exp
 
 class XmlSpecError(bdec.spec.LoadError):
     def __init__(self, filename, locator):

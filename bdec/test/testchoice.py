@@ -24,7 +24,7 @@ import bdec.choice as chc
 import bdec.data as dt
 import bdec.field as fld
 import bdec.sequence as seq
-import bdec.spec.expression as expr
+import bdec.expression as expr
 
 class TestChoice(unittest.TestCase):
     def test_first_successful(self):

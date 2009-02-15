@@ -20,6 +20,7 @@ import logging
 
 import bdec.choice as chc
 import bdec.data as dt
+import bdec.expression as expr
 import bdec.field as fld
 import bdec.sequence as seq
 import bdec.sequenceof as sof
@@ -109,7 +110,6 @@ class _ProtocolStream:
             if self.entry.expected is not None:
                 return self.entry.expected.copy()
             else:
-                import bdec.spec.expression as expr
                 length = None
                 min = max = None
                 try:

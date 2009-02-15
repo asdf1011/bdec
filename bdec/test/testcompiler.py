@@ -31,7 +31,7 @@ import bdec.field as fld
 import bdec.output.xmlout as xmlout
 import bdec.sequence as seq
 import bdec.sequenceof as sof
-import bdec.spec.expression as expr
+import bdec.expression as expr
 from bdec.test.decoders import assert_xml_equivalent, create_decoder_classes
 
 import sys
