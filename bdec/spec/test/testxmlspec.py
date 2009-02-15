@@ -21,6 +21,7 @@
 import unittest
 
 import bdec
+import bdec.choice as chc
 import bdec.data as dt
 import bdec.entry as ent
 import bdec.field as fld
@@ -681,5 +682,17 @@ class TestSave(unittest.TestCase):
     def test_sequenceof_with_count(self):
         a = sof.SequenceOf('a', fld.Field('b', length=8), count=4)
         expected = '<protocol><sequenceof name="a" count="4"><field name="b" length="8" /></sequenceof></protocol>'
+        assert_xml_equivalent(expected, xml.save(a))
+
+    def test_choice(self):
+        a = chc.Choice('a', [
+            fld.Field('b', length=8, expected=dt.Data('\x01')),
+            fld.Field('c', length=8, expected=dt.Data('\x02'))])
+        expected = """<protocol>
+                        <choice name="a">
+                          <field name="b" length="8" value="0x01" />
+                          <field name="c" length="8" value="0x02" />
+                        </choice>
+                      </protocol>"""
         assert_xml_equivalent(expected, xml.save(a))
 
