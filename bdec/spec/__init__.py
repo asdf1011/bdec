@@ -33,6 +33,23 @@ class UnknownInputParameter(LoadError):
         return "%s[%i]: '%s' references unknown parameter '%s'" % (filename,
                 line_number, self._entry, self._param_name)
 
+def _get_entry_that_uses_param(inspect, entry, param):
+    """Drill down into an entry until we find the entry that uses 'param."""
+    while 1:
+        for child in entry.children:
+            found_param = False
+            for var in inspect.get_passed_variables(entry, child):
+                if var.name == param:
+                    found_param = True
+                    entry = child.entry
+                    break
+            if found_param:
+                break
+        else:
+            # This entry doesn't have a child that uses the given parameter, so
+            # it must be the end-user.
+            return entry
+
 def validate_no_input_params(entry, lookup):
     """ Make sure the decoder doesn't have any unknown references."""
 
@@ -45,5 +62,6 @@ def validate_no_input_params(entry, lookup):
         if param.direction is param.IN:
             # TODO: We should instead raise the error from the context of the
             # child that needs the data.
-            raise UnknownInputParameter(entry, param.name, lookup)
+            user = _get_entry_that_uses_param(params, entry, param.name)
+            raise UnknownInputParameter(user, param.name, lookup)
 
