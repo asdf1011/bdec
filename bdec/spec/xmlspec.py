@@ -392,7 +392,8 @@ def _save_field(entry):
             'min':entry.min, 'max':entry.max}
     if entry.expected is not None:
         if entry.format in [fld.Field.HEX, fld.Field.BINARY]:
-            value = '0x%s' % entry.expected.get_hex()
+            data = dt.Data('\x00', start=0, end=len(entry.expected) % 8) + entry.expected
+            value = '0x%s' % data.get_hex()
         else:
             value = entry.decode_value(entry.expected)
         attributes['value'] = value
