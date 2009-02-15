@@ -685,6 +685,18 @@ class TestSave(unittest.TestCase):
         expected = '<protocol><sequenceof name="a" count="4"><field name="b" length="8" /></sequenceof></protocol>'
         assert_xml_equivalent(expected, xml.save(a))
 
+    def test_sequenceof_with_end_entry(self):
+        a = fld.Field('a', length=8)
+        b = sof.SequenceOf('b', seq.Sequence('c', [a]), count=None, end_entries=[a])
+        expected = """<protocol>
+                        <sequenceof name="b">
+                          <sequence name="c">
+                            <field name="a" length="8"><end-sequenceof/></field>
+                          </sequence>
+                        </sequenceof>
+                      </protocol>"""
+        assert_xml_equivalent(expected, xml.save(b))
+
     def test_choice(self):
         a = chc.Choice('a', [
             fld.Field('b', length=8, expected=dt.Data('\x01')),
