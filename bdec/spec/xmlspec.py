@@ -428,17 +428,38 @@ _handlers = {fld.Field: _save_field,
         chc.Choice: _save_choice,
         }
 
+class _XmlOut:
+    def __init__(self):
+        self._buffer  = StringIO.StringIO()
+        self._gen = xml.sax.saxutils.XMLGenerator(self._buffer, 'utf-8')
+        self._offset = 0
+
+    def __str__(self):
+        return self._buffer.getvalue()
+
+    def start(self, name, attributes={}):
+        self._gen.ignorableWhitespace('  ' * self._offset)
+        self._gen.startElement(name, xml.sax.xmlreader.AttributesImpl(attributes))
+        self._gen.ignorableWhitespace('\n')
+        self._offset += 2
+
+    def end(self, name):
+        self._offset -= 2
+        self._gen.ignorableWhitespace('  ' * self._offset)
+        self._gen.endElement(name)
+        self._gen.ignorableWhitespace('\n')
+
 def _write_reference(gen, child):
     attributes = {'name' : child.name}
     if child.entry.name != child.name:
         attributes['type'] = child.entry.name
-    gen.startElement('reference', xml.sax.xmlreader.AttributesImpl(attributes))
-    gen.endElement('reference')
+    gen.start('reference', attributes)
+    gen.end('reference')
 
 def _write_entry(gen, entry, common, end_entry):
     name, attributes = _handlers[type(entry)](entry)
     attributes = dict((name, value) for name, value in attributes.items() if value is not None)
-    gen.startElement(name, xml.sax.xmlreader.AttributesImpl(attributes))
+    gen.start(name, attributes)
     for child in entry.children:
         if child.entry in common:
             _write_reference(gen, child)
@@ -446,25 +467,23 @@ def _write_entry(gen, entry, common, end_entry):
             _write_entry(gen, child.entry, common, end_entry)
 
     if end_entry.is_end_sequenceof(entry):
-        gen.startElement('end-sequenceof', xml.sax.xmlreader.AttributesImpl({}))
-        gen.endElement('end-sequenceof')
-    gen.endElement(name)
+        gen.start('end-sequenceof')
+        gen.end('end-sequenceof')
+    gen.end(name)
 
 def save(spec, common=[]):
     """Save a specification in the xml format."""
     common = [entry for entry in common if entry is not spec]
     end_entry = prm.EndEntryParameters([spec] + common)
+    gen = _XmlOut()
 
-    buffer  = StringIO.StringIO()
-    gen = xml.sax.saxutils.XMLGenerator(buffer, 'utf-8')
-
-    gen.startElement('protocol', xml.sax.xmlreader.AttributesImpl({}))
+    gen.start('protocol')
     _write_entry(gen, spec, common, end_entry)
     if common:
-        gen.startElement('common', xml.sax.xmlreader.AttributesImpl({}))
+        gen.start('common')
         for entry in common:
             _write_entry(gen, entry, common, end_entry)
-        gen.endElement('common')
-    gen.endElement('protocol')
-    return buffer.getvalue()
+        gen.end('common')
+    gen.end('protocol')
+    return str(gen)
 
