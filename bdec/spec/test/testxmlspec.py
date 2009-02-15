@@ -26,6 +26,7 @@ import bdec.entry as ent
 import bdec.field as fld
 import bdec.output.instance as inst
 import bdec.sequence as seq
+import bdec.sequenceof as sof
 import bdec.spec.xmlspec as xml
 from bdec.test.decoders import assert_xml_equivalent
 
@@ -676,4 +677,9 @@ class TestSave(unittest.TestCase):
                         </sequence>
                       </protocol>"""
         assert_xml_equivalent(expected, xml.save(c))
+
+    def test_sequenceof_with_count(self):
+        a = sof.SequenceOf('a', fld.Field('b', length=8), count=4)
+        expected = '<protocol><sequenceof name="a" count="4"><field name="b" length="8" /></sequenceof></protocol>'
+        assert_xml_equivalent(expected, xml.save(a))
 

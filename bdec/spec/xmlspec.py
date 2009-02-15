@@ -407,8 +407,17 @@ def _save_sequence(entry):
         attributes['length'] = str(entry.length)
     return ('sequence', attributes)
 
+def _save_sequenceof(entry):
+    attributes = {'name': entry.name}
+    if entry.count is not None:
+        attributes['count'] = str(entry.count)
+    if entry.length is not None:
+        attributes['length'] = str(entry.length)
+    return ('sequenceof', attributes)
+
 _handlers = {fld.Field: _save_field,
         seq.Sequence: _save_sequence,
+        sof.SequenceOf: _save_sequenceof,
         }
 
 def _write_entry(gen, entry):
