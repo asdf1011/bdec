@@ -439,6 +439,7 @@ class _XmlOut:
         return self._buffer.getvalue()
 
     def start(self, name, attributes={}):
+        attributes = dict((name, str(value)) for name, value in attributes.items())
         self._gen.ignorableWhitespace('  ' * self._offset)
         self._gen.startElement(name, xml.sax.xmlreader.AttributesImpl(attributes))
         self._gen.ignorableWhitespace('\n')
