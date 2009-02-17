@@ -40,7 +40,8 @@ _SETTINGS = "settings.py"
 
 def is_template(filename):
     # We ignore all 'hidden' files, and the setting files, when looking for templates.
-    return not filename.startswith('.') and filename != _SETTINGS
+    return not filename.startswith('.') and not filename.endswith('.pyc') \
+        and filename != _SETTINGS
 
 _template_cache = {}
 def _load_templates(language):
