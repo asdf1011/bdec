@@ -1,3 +1,11 @@
+0.5.1 (2009-02-18)
+------------------
+
+Bugfixes:
+
+ * Report the correct entry when there is a missing referenced entry.
+ * Fix Mako compile exception when running from an egg (ignore .pyc files).
+
 
 0.5.0 (2009-02-14)
 ------------------
