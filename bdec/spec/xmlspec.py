@@ -18,7 +18,7 @@
 
 import StringIO
 import xml.sax
-import xml.sax.saxutils
+from xml.sax import saxutils
 
 import bdec.choice as chc
 import bdec.data as dt
@@ -388,39 +388,39 @@ def load(xml):
     return result
 
 def _save_field(entry):
-    attributes = {'name': entry.name, 'length': str(entry.length),
-            'min':entry.min, 'max':entry.max}
+    attributes = [('name', entry.name), ('length', str(entry.length))]
+    if entry.format is not fld.Field.BINARY:
+        attributes += [('type', entry.format)]
     if entry.expected is not None:
         if entry.format in [fld.Field.HEX, fld.Field.BINARY]:
             data = dt.Data('\x00', start=0, end=len(entry.expected) % 8) + entry.expected
             value = '0x%s' % data.get_hex()
         else:
             value = entry.decode_value(entry.expected)
-        attributes['value'] = value
-    if entry.format is not fld.Field.BINARY:
-        attributes['type'] = entry.format
+        attributes += [('value', value)]
+    attributes += [('min', entry.min), ('max', entry.max)]
     if entry.encoding not in [fld.Field.BIG_ENDIAN, 'ascii']:
-        attributes['encoding'] = entry.encoding
+        attributes += [('encoding', entry.encoding)]
     return ('field', attributes)
 
 def _save_sequence(entry):
-    attributes = {'name': entry.name, 'value':entry.value}
+    attributes = [('name', entry.name), ('value', entry.value)]
     if entry.length is not None:
-        attributes['length'] = str(entry.length)
+        attributes += [('length', str(entry.length))]
     return ('sequence', attributes)
 
 def _save_sequenceof(entry):
-    attributes = {'name': entry.name}
+    attributes = [('name', entry.name)]
     if entry.count is not None:
-        attributes['count'] = str(entry.count)
+        attributes += [('count', str(entry.count))]
     if entry.length is not None:
-        attributes['length'] = str(entry.length)
+        attributes += [('length', str(entry.length))]
     return ('sequenceof', attributes)
 
 def _save_choice(entry):
-    attributes = {'name': entry.name}
+    attributes = [('name', entry.name)]
     if entry.length is not None:
-        attributes['length'] = str(entry.length)
+        attributes += [('length', str(entry.length))]
     return ('choice', attributes)
 
 _handlers = {fld.Field: _save_field,
@@ -432,35 +432,52 @@ _handlers = {fld.Field: _save_field,
 class _XmlOut:
     def __init__(self):
         self._buffer  = StringIO.StringIO()
-        self._gen = xml.sax.saxutils.XMLGenerator(self._buffer, 'utf-8')
         self._offset = 0
+        self._is_open = False
 
     def __str__(self):
         return self._buffer.getvalue()
 
-    def start(self, name, attributes={}):
-        attributes = dict((name, str(value)) for name, value in attributes.items())
-        self._gen.ignorableWhitespace(' ' * self._offset)
-        self._gen.startElement(name, xml.sax.xmlreader.AttributesImpl(attributes))
-        self._gen.ignorableWhitespace('\n')
+    def start(self, name, attributes=()):
+        """Mark the start of an xml element.
+
+        name -- The name of the element.
+        attributes -- An iterable of (name, value) tuples. If the 'value'
+            is None, the pair will be ignored.
+        """
+        if self._is_open:
+            self._buffer.write('>\n')
+        self._is_open = True
+
+        self._buffer.write(' ' * self._offset)
+        self._buffer.write('<%s' % saxutils.escape(name))
+
+        for name, value in attributes:
+            if value is not None:
+                name = saxutils.escape(name)
+                value = saxutils.escape(str(value))
+                self._buffer.write(' %s="%s"' % (name, value))
+
         self._offset += 4
 
     def end(self, name):
         self._offset -= 4
-        self._gen.ignorableWhitespace('  ' * self._offset)
-        self._gen.endElement(name)
-        self._gen.ignorableWhitespace('\n')
+        if self._is_open:
+            self._buffer.write(' />\n')
+        else:
+            self._buffer.write(' ' * self._offset)
+            self._buffer.write('</%s>\n' % saxutils.escape(name))
+        self._is_open = False
 
 def _write_reference(gen, child):
-    attributes = {'name' : child.name}
+    attributes = [('name', child.name)]
     if child.entry.name != child.name:
-        attributes['type'] = child.entry.name
+        attributes += [('type', child.entry.name)]
     gen.start('reference', attributes)
     gen.end('reference')
 
 def _write_entry(gen, entry, common, end_entry):
     name, attributes = _handlers[type(entry)](entry)
-    attributes = dict((name, value) for name, value in attributes.items() if value is not None)
     gen.start(name, attributes)
     for child in entry.children:
         if child.entry in common:
