@@ -440,13 +440,13 @@ class _XmlOut:
 
     def start(self, name, attributes={}):
         attributes = dict((name, str(value)) for name, value in attributes.items())
-        self._gen.ignorableWhitespace('  ' * self._offset)
+        self._gen.ignorableWhitespace(' ' * self._offset)
         self._gen.startElement(name, xml.sax.xmlreader.AttributesImpl(attributes))
         self._gen.ignorableWhitespace('\n')
-        self._offset += 2
+        self._offset += 4
 
     def end(self, name):
-        self._offset -= 2
+        self._offset -= 4
         self._gen.ignorableWhitespace('  ' * self._offset)
         self._gen.endElement(name)
         self._gen.ignorableWhitespace('\n')
