@@ -430,17 +430,26 @@ class DataChecker:
         if entry in self._has_data:
             return
 
-        self._has_data[entry] = not entry.is_hidden()
+        #self._has_data[entry] = not entry.is_hidden()
+        self._has_data[entry] = False
 
         # This entry isn't yet calculated; do so now.
         stack.append(entry)
         for child in entry.children:
             self._populate(child.entry, stack, intermediates)
-            self._has_data[entry] |= self._has_data[child.entry]
+            self._has_data[entry] |= self.child_has_data(child)
         stack.remove(entry)
 
     def contains_data(self, entry):
-        return self._has_data[entry]
+        """Does an entry contain data."""
+        return self._has_data[entry] or not ent.is_hidden(entry.name)
+
+    def child_has_data(self, child):
+        """Does a bdec.entry.Child instance contain data.
+
+        This is different from contains_data when a referenced entry has been
+        hidden."""
+        return self._has_data[child.entry] or not ent.is_hidden(child.name)
 
 
 class ResultParameters(_Parameters):
@@ -452,8 +461,14 @@ class ResultParameters(_Parameters):
         self._checker = DataChecker(entries)
 
     def get_locals(self, entry):
-        # Result items are never stored as locals; they are always passed out.
-        return []
+        locals = []
+        for child in entry.children:
+            print child
+            if self._checker.contains_data(entry) and not self._checker.child_has_data(child):
+                # There is a common entry that appears visible, but has been
+                # hidden locally. We store this entry as a local.
+                locals.append(child.name)
+        return locals
 
     def get_params(self, entry):
         if not self._checker.contains_data(entry):
@@ -463,6 +478,9 @@ class ResultParameters(_Parameters):
     def get_passed_variables(self, entry, child):
         if not self._checker.contains_data(child.entry):
             return []
+        if not self._checker.child_has_data(child):
+            # A visible common entry has been hidden locally.
+            return [Param(child.name, Param.OUT, child.entry)]
         return [Param('unknown', Param.OUT, child.entry)]
 
 

@@ -383,3 +383,14 @@ class TestResultParameters(unittest.TestCase):
         self.assertEqual([prm.Param('result', prm.Param.OUT, item)], lookup.get_params(item))
         self.assertEqual([prm.Param('result', prm.Param.OUT, embedded)], lookup.get_params(embedded))
 
+    def test_hidden_reference(self):
+        # Test a visible common reference that is hidden through its reference
+        # name. This is common for integers defined at the common level.
+        a = fld.Field('a', 8, fld.Field.INTEGER)
+        b = seq.Sequence('b', [ent.Child('a:', a)])
+        lookup = prm.ResultParameters([b])
+        self.assertEqual([prm.Param('result', prm.Param.OUT, a)], lookup.get_params(a))
+        self.assertEqual([prm.Param('result', prm.Param.OUT, b)], lookup.get_params(b))
+        self.assertEqual(['a:'], lookup.get_locals(b))
+        self.assertEqual([prm.Param('a:', prm.Param.OUT, a)], lookup.get_passed_variables(b, b.children[0]))
+
