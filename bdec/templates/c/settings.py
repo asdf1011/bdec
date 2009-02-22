@@ -36,7 +36,9 @@ def escaped_type(entry):
 
 def ctype(entry):
     """Return the c type name for an entry"""
-    if isinstance(entry, fld.Field):
+    if entry is int:
+        return 'int'
+    elif isinstance(entry, fld.Field):
         if entry.format == fld.Field.INTEGER:
             return 'int'
         if entry.format == fld.Field.TEXT:
@@ -80,7 +82,7 @@ def params(parent, i, result_name):
     #         Output param |   *name    |    name     |
     #                       --------------------------
     result = ""
-    locals = list(local_vars(parent))
+    locals = list(local.name for local in local_vars(parent))
     params = dict((param.name, param.direction) for param in get_params(parent))
     for param in get_passed_variables(parent, parent.children[i]):
         if param.direction is param.OUT and param.name == 'unknown':

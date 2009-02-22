@@ -145,7 +145,7 @@
         return 0;
     }
     %endif
-    %if not entry.is_hidden():
+    %if contains_data(entry):
     (*result) = value;
     %else:
       %if entry.format != Field.INTEGER:
@@ -159,7 +159,7 @@
     if (!${settings.decode_name(child.entry)}(buffer${settings.params(entry, i, '&result->%s' % settings.var_name(entry, i))}))
     {
         %for j, previous in enumerate(entry.children[:i]):
-            %if contains_data(previous.entry):
+            %if child_contains_data(previous):
         ${settings.free_name(previous.entry)}(&result->${settings.var_name(entry, j)});
             %endif
         %endfor
@@ -201,6 +201,7 @@
       %if entry.length is not None:
     while (buffer->num_bits > 0)
       %else:
+    ${'should end'|variable} = 0;
     while (!${'should end' |variable})
       %endif
     {
@@ -232,7 +233,7 @@
     %endif
     BitBuffer temp;
     %for i, child in enumerate(entry.children):
-      %if contains_data(child.entry) and is_recursive(entry, child.entry):
+      %if child_contains_data(child) and is_recursive(entry, child.entry):
     <% temp_name = variable('temp ' + esc_name(i, entry.children)) %>
     ${settings.ctype(child.entry)} ${temp_name};
       %endif
@@ -250,7 +251,7 @@
         result->option = ${settings.enum_value(entry, i)};
       %endif
         *buffer = temp;
-      %if contains_data(child.entry) and is_recursive(entry, child.entry):
+      %if child_contains_data(child) and is_recursive(entry, child.entry):
         result->value.${settings.var_name(entry, i)} = malloc(sizeof(${settings.ctype(child.entry)}));
         *result->value.${settings.var_name(entry, i)} = ${temp_name};
       %endif
@@ -285,7 +286,7 @@ ${static}void ${settings.free_name(entry)}(${settings.ctype(entry)}* value)
     %endif
   %elif isinstance(entry, Sequence):
     %for i, child in enumerate(entry.children):
-        %if contains_data(child.entry):
+        %if child_contains_data(child):
     ${settings.free_name(child.entry)}(&value->${settings.var_name(entry, i)});
         %endif
     %endfor
@@ -301,7 +302,7 @@ ${static}void ${settings.free_name(entry)}(${settings.ctype(entry)}* value)
     {
     %for i, child in enumerate(entry.children):
     case ${enum_value(entry, i)}:
-      %if contains_data(child.entry):
+      %if child_contains_data(child):
         <% child_var = "value->value.%s" % settings.var_name(entry, i) %>
         %if not is_recursive(entry, child.entry):
           <% child_var = '&' + child_var %>
@@ -324,7 +325,7 @@ ${static}void ${settings.free_name(entry)}(${settings.ctype(entry)}* value)
 ${static}int ${settings.decode_name(entry)}(BitBuffer* buffer${settings.define_params(entry)})
 {
   %for local in local_vars(entry):
-    int ${local} = 0;
+    ${ctype(local.type)} ${local.name};
   %endfor
   %if is_length_referenced(entry):
     int ${'initial length' |variable} = buffer->num_bits;
@@ -445,7 +446,9 @@ ${recursiveDecode(entry, False)}
     printf("%*i\n", offset + ${ws_offset+4}, ${varname}); 
       %elif isinstance(item, Sequence):
         %for i, child in enumerate(item.children):
+          %if child_contains_data(child):
 ${recursivePrint(child.entry, '"%s"' % xmlname(child.name), '%s.%s' % (varname, settings.var_name(item, i)), next_offset, iter_postfix)}
+          %endif
         %endfor
         %if item.value is not None and not item.is_hidden():
     printf("%*i\n", offset + ${ws_offset+4}, ${varname}.value); 
@@ -462,7 +465,7 @@ ${recursivePrint(item.children[0].entry, '"%s"' % xmlname(item.children[0].name)
     {
         %for i, child in enumerate(item.children):
     case ${enum_value(item, i)}:
-          %if contains_data(child.entry):
+          %if child_contains_data(child):
             <% child_var = "%s.value.%s" % (varname, settings.var_name(item, i)) %>
             %if is_recursive(entry, child.entry):
               <% child_var = '(*%s)' % child_var %>

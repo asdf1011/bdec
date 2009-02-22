@@ -404,11 +404,11 @@ class _CompilerTests:
         self._decode(c, '\x08', expected_xml="<c/>")
 
     def test_choice_hidden_child(self):
-        a = fld.Field('', 8, fld.Field.INTEGER, expected=dt.Data('\x00'))
+        a = fld.Field('a', 8, fld.Field.INTEGER, expected=dt.Data('\x00'))
         b = fld.Field('b', 8, fld.Field.TEXT)
-        c = chc.Choice('c', [a, b])
-        self._decode(c, '\x00', expected_xml="<c/>")
-        self._decode(c, 'x', expected_xml="<c><b>x</b></c>")
+        c = chc.Choice('c', [ent.Child('', a), b])
+        self._decode(c, '\x00', expected_xml="<c/>", common=[a,b])
+        self._decode(c, 'x', expected_xml="<c><b>x</b></c>", common=[a,b])
 
     def test_hidden_choice(self):
         a = fld.Field('a:', 8, fld.Field.INTEGER, expected=dt.Data('\x00'))

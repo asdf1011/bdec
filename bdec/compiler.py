@@ -89,7 +89,7 @@ class _EntryInfo(prm.CompoundParameters):
 
     def get_locals(self, entry):
         for local in prm.CompoundParameters.get_locals(self, entry):
-            yield _variable_name(local)
+            yield prm.Local(_variable_name(local.name), local.type)
 
     def get_params(self, entry):
         for param in prm.CompoundParameters.get_params(self, entry):
@@ -190,7 +190,7 @@ class _Utils:
         for child in entry.children:
             if child.entry in self._common:
                 if isinstance(entry, chc.Choice):
-                    yield child
+                    yield child.entry
             else:
                 for entry in self.iter_optional_common(child.entry):
                     yield entry
@@ -301,6 +301,7 @@ def generate_code(spec, language, output_dir, common_entries=[]):
     lookup['is_value_referenced'] = info.is_value_referenced
     lookup['is_length_referenced'] = info.is_length_referenced
     lookup['is_recursive'] = utils.is_recursive
+    lookup['child_contains_data'] = lambda child: data_checker.child_has_data(child)
     lookup['contains_data'] = lambda entry: data_checker.contains_data(entry)
     lookup['iter_inner_entries'] = utils.iter_inner_entries
     lookup['iter_required_common'] = utils.iter_required_common
