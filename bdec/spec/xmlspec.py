@@ -493,13 +493,15 @@ def _write_entry(gen, entry, common, end_entry):
 def save(spec, common=[]):
     """Save a specification in the xml format."""
     if spec not in common:
-        common.append(spec)
-    end_entry = prm.EndEntryParameters([spec] + common)
+        common = common + [spec]
+    end_entry = prm.EndEntryParameters(common)
     gen = _XmlOut()
 
     gen.start('protocol')
     _write_entry(gen, spec, common, end_entry)
-    if common:
+    if len(common) > 1:
+        # Only generate common entries when we have something other then the
+        # main protocol entry.
         gen.start('common')
         for entry in common:
             if entry is not spec:
