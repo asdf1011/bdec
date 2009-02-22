@@ -1,0 +1,12 @@
+<protocol>
+    <sequence name="d">
+        <reference name="" type="some choice" />
+    </sequence>
+    <common>
+        <choice name="some choice">
+            <field name="a:" length="8" type="integer" value="0" />
+            <field name="b:" length="8" type="text" value="x" />
+        </choice>
+    </common>
+
+</protocol>

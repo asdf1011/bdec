@@ -1,0 +1,6 @@
+<protocol>
+    <sequence name="blah">
+        <field name="bob" length="6 * 8" type="text" />
+    </sequence>
+
+</protocol>

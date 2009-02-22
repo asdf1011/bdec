@@ -1,0 +1,23 @@
+<protocol>
+    <!--
+      Test what happens when we have a parameter that is to be passed out
+      of an entry, but also into a child (issue122).
+      
+             ___ e ___
+        __c__         d(len=a)
+       a   b(len=a)
+      -->
+    <sequence name="e">
+        <reference name="c" />
+        <reference name="d" />
+    </sequence>
+    <common>
+        <field name="a" length="8" type="integer" />
+        <field name="b" length="(${a} * 8)" />
+        <sequence name="c">
+            <reference name="a" />
+            <reference name="b" />
+        </sequence>
+        <field name="d" length="(${c.a} * 8)" />
+    </common>
+</protocol>

@@ -1,0 +1,19 @@
+<protocol>
+    <sequence name="a">
+        <reference name="two digits" />
+        <field name="buffer" length="(${two digits} * 8)" type="text" />
+    </sequence>
+    <common>
+        <sequence name="digit" value="(${text digit} - 6 * 8)">
+            <field name="text digit" length="8" type="integer" min="48" max="57" />
+        </sequence>
+        <sequence name="two digits" value="((${digit 1.digit} * 10) + ${digit 2.digit})">
+            <sequence name="digit 1">
+                <reference name="digit" />
+            </sequence>
+            <sequence name="digit 2">
+                <reference name="digit" />
+            </sequence>
+        </sequence>
+    </common>
+</protocol>

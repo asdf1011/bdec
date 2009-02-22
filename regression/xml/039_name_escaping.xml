@@ -1,0 +1,13 @@
+<protocol>
+    <sequence name="blah">
+        <sequence name="b with a ">
+            <field name="a with spaces" length="8" type="integer" />
+        </sequence>
+        <reference name="d" />
+    </sequence>
+    <common>
+        <sequence name="d">
+            <field name="c" length="8" type="integer" />
+        </sequence>
+    </common>
+</protocol>

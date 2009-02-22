@@ -1,0 +1,8 @@
+<protocol>
+    <sequence name="blah">
+        <sequence name="dog">
+            <field name="cat" length="8" type="integer" value="97" />
+        </sequence>
+    </sequence>
+
+</protocol>

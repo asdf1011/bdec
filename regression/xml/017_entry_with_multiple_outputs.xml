@@ -1,0 +1,18 @@
+<protocol>
+    <!--
+      There was a problem with an entry that had multiple outputs from a
+      single child (in this test, 'c' has outputs for 'a' and 'b', both of
+      which are passed through 'problem').
+      -->
+    <sequence name="spec">
+        <sequence name="problem">
+            <sequence name="c">
+                <field name="a" length="8" type="integer" />
+                <field name="b" length="8" type="integer" />
+            </sequence>
+        </sequence>
+        <field name="d" length="${problem.c.a}" />
+        <field name="e" length="${problem.c.b}" />
+    </sequence>
+
+</protocol>

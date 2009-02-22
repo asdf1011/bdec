@@ -1,0 +1,6 @@
+<protocol>
+    <sequenceof name="databuffer" length="4 * 8">
+        <field name="data" length="8" />
+    </sequenceof>
+
+</protocol>

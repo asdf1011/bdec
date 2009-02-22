@@ -1,0 +1,8 @@
+<protocol>
+    <sequence name="blah">
+        <field name="a" length="6" type="integer" />
+        <field name="b" length="6" />
+        <field name="c" length="4" type="integer" />
+    </sequence>
+
+</protocol>

@@ -1,0 +1,9 @@
+<protocol>
+    <sequence name="blah">
+        <choice name="a">
+            <field name="a" length="8" type="integer" value="97" />
+            <field name="a" length="8" type="integer" />
+        </choice>
+    </sequence>
+
+</protocol>

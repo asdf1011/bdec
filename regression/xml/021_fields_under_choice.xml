@@ -1,0 +1,7 @@
+<protocol>
+    <choice name="blah">
+        <field name="a" length="8" type="integer" value="97" />
+        <field name="b" length="8" type="integer" value="98" />
+    </choice>
+
+</protocol>

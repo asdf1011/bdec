@@ -1,0 +1,6 @@
+<protocol>
+    <sequence name="">
+        <field name="a" length="8" type="integer" />
+    </sequence>
+
+</protocol>

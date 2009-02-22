@@ -1,0 +1,9 @@
+<protocol>
+    <sequence name="blah">
+        <sequence name="hello">
+            <field name="world" length="8" type="integer" />
+        </sequence>
+        <field name="bob" length="8" type="integer" />
+    </sequence>
+
+</protocol>

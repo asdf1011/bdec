@@ -1,0 +1,13 @@
+<protocol>
+    <sequence name="blah">
+        <sequence name="a">
+            <field name="a1" length="8" type="integer" />
+        </sequence>
+        <sequenceof name="b" count="${a.a1}">
+            <sequence name="b1">
+                <field name="b2" length="8" type="integer" />
+            </sequence>
+        </sequenceof>
+    </sequence>
+
+</protocol>
