@@ -423,7 +423,7 @@ class Data:
             chars.append(chr(data & 0xff))
             data >>= 8
         if data != 0:
-            raise NotEnoughDataError(value, length)
+            raise IntegerTooLongError(value, length)
         chars.reverse()
 
         result = Data("".join(chars))
