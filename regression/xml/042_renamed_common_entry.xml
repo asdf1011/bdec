@@ -1,0 +1,11 @@
+<protocol>
+    <sequence name="header">
+        <reference name="length" type="number" />
+        <field name="data" length="(${length} * 8)" type="text" />
+    </sequence>
+    <common>
+        <sequence name="number" value="(${digit:} - 6 * 8)">
+            <field name="digit:" length="8" type="integer" />
+        </sequence>
+    </common>
+</protocol>

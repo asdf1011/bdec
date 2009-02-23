@@ -1,0 +1,12 @@
+<protocol>
+    <sequenceof name="blah">
+        <choice name="byte">
+            <sequence name="fixa">
+                <field name="null" length="8" type="integer" value="0" />
+                <end-sequenceof />
+            </sequence>
+            <field name="character" length="8" type="text" />
+        </choice>
+    </sequenceof>
+
+</protocol>

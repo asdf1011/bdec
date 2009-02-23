@@ -1,0 +1,11 @@
+<protocol>
+    <choice name="blah">
+        <sequenceof name="databuffer" count="3">
+            <sequenceof name="a" count="2">
+                <field name="data" length="8" value="0x61" />
+            </sequenceof>
+        </sequenceof>
+        <field name="fallback" length="6 * 8" />
+    </choice>
+
+</protocol>

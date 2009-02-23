@@ -76,9 +76,10 @@ class TestData(unittest.TestCase):
         self.assertEqual(16, len(data))
         self.assertEqual(10000, int(data))
 
-    def test_encode_not_enough_data(self):
+    def test_integer_too_big(self):
         self.assertEqual(chr(255), dt.Data.from_int_big_endian(255, 8).bytes())
         self.assertRaises(dt.IntegerTooLongError, dt.Data.from_int_big_endian, 255, 7)
+        self.assertRaises(dt.IntegerTooLongError, dt.Data.from_int_big_endian, 100000, 7)
 
     def test_encode_length(self):
         data = dt.Data.from_int_big_endian(0x3e, 7)
@@ -140,3 +141,16 @@ class TestData(unittest.TestCase):
         data = dt.Data(buffer)
         self.assertEqual(4, int(data.pop(8)))
         self.assertEqual('abcd', data.bytes())
+
+    def test_not_enough_data(self):
+        # There was a bug in the size of available data we were popping; check
+        # the sizes reported in the exception.
+        data = dt.Data('abcd', 8, 48)
+        try:
+            data.text('ascii')
+            self.fail('NotEnoughDataError not thrown!')
+        except dt.NotEnoughDataError, ex:
+            pass
+        self.assertEqual(40, ex.requested)
+        self.assertEqual(24, ex.available)
+

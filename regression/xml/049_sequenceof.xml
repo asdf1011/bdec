@@ -1,0 +1,9 @@
+<protocol>
+    <sequenceof name="blah" count="4">
+        <sequence name="dog">
+            <field name="a" length="8" type="integer" value="97" />
+            <field name="x" length="8" type="integer" />
+        </sequence>
+    </sequenceof>
+
+</protocol>

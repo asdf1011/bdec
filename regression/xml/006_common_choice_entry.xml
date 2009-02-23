@@ -1,0 +1,14 @@
+<protocol>
+    <!--
+      There was a bug where choice entries that referenced non-recursive
+      common entries would fail to compile.
+      -->
+    <choice name="b">
+        <reference name="a" />
+    </choice>
+    <common>
+        <sequence name="a">
+            <field name="a data" length="8" type="integer" />
+        </sequence>
+    </common>
+</protocol>

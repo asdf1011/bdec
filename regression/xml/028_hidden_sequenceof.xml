@@ -1,0 +1,9 @@
+<protocol>
+    <sequence name="d">
+        <field name="count:" length="8" type="integer" />
+        <sequenceof name="nulls:" count="${count:}">
+            <field name="null:" length="8" value="0x00" />
+        </sequenceof>
+    </sequence>
+
+</protocol>

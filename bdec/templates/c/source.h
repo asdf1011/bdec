@@ -41,7 +41,7 @@ extern "C" {
 ${settings.ctype(entry)}
 {
   %for i, child in enumerate(entry.children):
-    %if contains_data(child.entry):
+    %if child_contains_data(child):
     ${settings.ctype(child.entry)} ${var_name(entry, i)};
     %endif
   %endfor
@@ -64,7 +64,7 @@ ${settings.ctype(entry)}
     union
     {
     %for i, child in enumerate(entry.children):
-      %if contains_data(child.entry):
+      %if child_contains_data(child):
         %if is_recursive(entry, child.entry):
         ${settings.ctype(child.entry)}* ${var_name(entry, i)};
         %else:

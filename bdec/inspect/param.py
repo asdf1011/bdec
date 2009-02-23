@@ -62,9 +62,26 @@ class Param(object):
         return "%s %s '%s'" % (self.type, self.direction, self.name)
 
 
+class Local(object):
+    """Object representing a local instance."""
+    def __init__(self, name, type):
+        self.name = name
+        self.type = type
+
+    def __eq__(self, other):
+        return self.type == other.type and self.name == other.name
+
+    def __hash__(self):
+        return hash(self.name)
+
+    def __repr__(self):
+        return "%s '%s'" % (self.type, self.name)
+
+
 class _Parameters:
     """Interface for querying information about passed parameters"""
     def get_locals(self, entry):
+        """Return an iterable of Local instances. """
         raise NotImplementedError()
 
     def get_params(self, entry):
@@ -122,7 +139,7 @@ class EndEntryParameters(_Parameters):
         result = []
         if isinstance(entry, sof.SequenceOf):
             if entry.end_entries:
-                result.append('should end')
+                result.append(Local('should end', int))
         return result
 
     def get_params(self, entry):
@@ -349,9 +366,9 @@ class ExpressionParameters(_Parameters):
                 if child_param.direction == Param.OUT:
                     local = self._get_local_reference(entry, child, child_param)
                     if _VariableParam(local, child_param.direction) not in params:
-                        locals.add(self._get_reference_name(local))
+                        locals.add(Local(self._get_reference_name(local), int))
         result = list(locals)
-        result.sort()
+        result.sort(key=lambda a:a.name)
         return result
 
     def get_params(self, entry):
@@ -430,17 +447,26 @@ class DataChecker:
         if entry in self._has_data:
             return
 
-        self._has_data[entry] = not entry.is_hidden()
+        #self._has_data[entry] = not entry.is_hidden()
+        self._has_data[entry] = False
 
         # This entry isn't yet calculated; do so now.
         stack.append(entry)
         for child in entry.children:
             self._populate(child.entry, stack, intermediates)
-            self._has_data[entry] |= self._has_data[child.entry]
+            self._has_data[entry] |= self.child_has_data(child)
         stack.remove(entry)
 
     def contains_data(self, entry):
-        return self._has_data[entry]
+        """Does an entry contain data."""
+        return self._has_data[entry] or not ent.is_hidden(entry.name)
+
+    def child_has_data(self, child):
+        """Does a bdec.entry.Child instance contain data.
+
+        This is different from contains_data when a referenced entry has been
+        hidden."""
+        return self._has_data[child.entry] or not ent.is_hidden(child.name)
 
 
 class ResultParameters(_Parameters):
@@ -452,8 +478,13 @@ class ResultParameters(_Parameters):
         self._checker = DataChecker(entries)
 
     def get_locals(self, entry):
-        # Result items are never stored as locals; they are always passed out.
-        return []
+        locals = []
+        for child in entry.children:
+            if self._checker.contains_data(child.entry) and not self._checker.child_has_data(child):
+                # There is a common entry that appears visible, but has been
+                # hidden locally. We store this entry as a local.
+                locals.append(Local('unused %s' % child.name, child.entry))
+        return locals
 
     def get_params(self, entry):
         if not self._checker.contains_data(entry):
@@ -463,6 +494,9 @@ class ResultParameters(_Parameters):
     def get_passed_variables(self, entry, child):
         if not self._checker.contains_data(child.entry):
             return []
+        if not self._checker.child_has_data(child):
+            # A visible common entry has been hidden locally.
+            return [Param('unused %s' % child.name, Param.OUT, child.entry)]
         return [Param('unknown', Param.OUT, child.entry)]
 
 

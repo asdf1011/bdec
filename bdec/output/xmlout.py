@@ -56,7 +56,7 @@ def to_file(decoder, binary, output, encoding="utf-8", verbose=False):
     offset = 0
     is_first = True
     for is_starting, name, entry, data, value in decoder.decode(binary):
-        if not verbose and entry.is_hidden():
+        if not verbose and ent.is_hidden(name):
             continue
 
         if not is_starting:

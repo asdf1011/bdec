@@ -1,0 +1,10 @@
+<protocol>
+    <sequence name="a" value="(${digit:} * 2)">
+        <reference name="digit:" />
+    </sequence>
+    <common>
+        <sequence name="digit:" value="(${text digit:} - 6 * 8)">
+            <field name="text digit:" length="8" type="integer" min="48" max="57" />
+        </sequence>
+    </common>
+</protocol>

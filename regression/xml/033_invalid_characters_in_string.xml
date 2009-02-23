@@ -1,0 +1,4 @@
+<protocol>
+    <field name="a" length="9 * 8" type="text" />
+
+</protocol>

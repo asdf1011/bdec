@@ -1,0 +1,9 @@
+<protocol>
+    <sequence name="blah">
+        <reference name="a" />
+        <reference name="a" />
+    </sequence>
+    <common>
+        <field name="a" length="8" type="integer" />
+    </common>
+</protocol>

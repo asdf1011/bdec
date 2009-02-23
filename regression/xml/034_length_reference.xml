@@ -1,0 +1,9 @@
+<protocol>
+    <sequence name="blah">
+        <field name="length total" length="8" type="integer" />
+        <field name="length header" length="8" type="integer" />
+        <field name="header" length="(${length header} * 8)" type="text" />
+        <field name="data" length="((${length total} * 8) - len{header})" type="text" />
+    </sequence>
+
+</protocol>

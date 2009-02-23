@@ -81,7 +81,8 @@ def _generate_template(output_dir, filename, lookup, template):
 
 
 class _EntryInfo(prm.CompoundParameters):
-    def __init__(self, entries):
+    def __init__(self, utils, entries):
+        self._utils = utils
         queries = []
         queries.append(prm.ResultParameters(entries))
         queries.append(prm.ExpressionParameters(entries))
@@ -90,15 +91,18 @@ class _EntryInfo(prm.CompoundParameters):
 
     def get_locals(self, entry):
         for local in prm.CompoundParameters.get_locals(self, entry):
-            yield _variable_name(local)
+            name = self._utils.variable_name(local.name)
+            yield prm.Local(name, local.type)
 
     def get_params(self, entry):
         for param in prm.CompoundParameters.get_params(self, entry):
-            yield prm.Param(_variable_name(param.name), param.direction, param.type)
+            name = self._utils.variable_name(param.name)
+            yield prm.Param(name, param.direction, param.type)
             
     def get_passed_variables(self, entry, child):
         for param in prm.CompoundParameters.get_passed_variables(self, entry, child):
-            yield prm.Param(_variable_name(param.name), param.direction, param.type)
+            name = self._utils.variable_name(param.name)
+            yield prm.Param(name, param.direction, param.type)
 
 class _Settings:
     _REQUIRED_SETTINGS = ['keywords']
@@ -191,7 +195,7 @@ class _Utils:
         for child in entry.children:
             if child.entry in self._common:
                 if isinstance(entry, chc.Choice):
-                    yield child
+                    yield child.entry
             else:
                 for entry in self.iter_optional_common(child.entry):
                     yield entry
@@ -205,7 +209,7 @@ class _Utils:
             # We ignore case when checking for matching names, because the
             # conversion to different uses (eg: type, constant, function)
             # usually changes the case.
-            name = _escape_name(name).lower()
+            name = self._escape_name(name).lower()
             try:
                 name_count[name] += 1
             except KeyError:
@@ -214,7 +218,7 @@ class _Utils:
 
         result = []
         for name, count in abs_names:
-            if name_count[name] == 0  and name not in self._settings.keywords:
+            if name_count[name] == 0:
                 # This is the only item with that name
                 result.append(name)
             else:
@@ -225,41 +229,44 @@ class _Utils:
     def esc_name(self, index, iter_entries):
         return self.esc_names(e.name for e in iter_entries)[index]
 
+    def _escape_name(self, name):
+        if not name:
+            return "_hidden"
+        result = "".join(char for char in name if char in _VALID_CHARS)
+        if result[0] in _NUMBERS:
+            result = '_' + result
+        if result in self._settings.keywords:
+            result += '_'
+        return result
+
+    def _camelcase(self, name):
+        words = self._escape_name(name).split()
+        return "".join(word[0].upper() + word[1:].lower() for word in words)
+
+    def _delimiter(self, name, delim):
+        words = self._escape_name(name).split()
+        return delim.join(words)
+
+    def variable_name(self, name):
+        name = self._delimiter(name, ' ')
+        return name[0].lower() + self._camelcase(name)[1:]
+
+    def filename(self, name):
+        basename, extension = os.path.splitext(name)
+        return self._delimiter(basename, '').lower() + extension
+
+    def type_name(self, name):
+        result= self._camelcase(name)
+        return result
+
+    def constant_name(self, name):
+        return self._delimiter(name, '_').upper()
+
 def _crange(start, end):
     return [chr(i) for i in range(ord(start), ord(end)+1)]
 _NUMBERS = _crange('0', '9')
 _VALID_CHARS = _NUMBERS + _crange('a', 'z') + _crange('A', 'Z') + ['_', ' ']
 
-def _escape_name(name):
-    if not name:
-        return "_hidden"
-    result = "".join(char for char in name if char in _VALID_CHARS)
-    if result[0] in _NUMBERS:
-        result = '_' + result
-    return result
-
-def _camelcase(name):
-    words = _escape_name(name).split()
-    return "".join(word[0].upper() + word[1:].lower() for word in words)
-
-def _delimiter(name, delim):
-    words = _escape_name(name).split()
-    return delim.join(words)
-
-def _variable_name(name):
-    name = _delimiter(name, ' ')
-    return name[0].lower() + _camelcase(name)[1:]
-
-def _filename(name):
-    basename, extension = os.path.splitext(name)
-    return _delimiter(basename, '').lower() + extension
-
-def _type_name(name):
-    result= _camelcase(name)
-    return result
-
-def _constant_name(name):
-    return _delimiter(name, '_').upper()
 
 def _whitespace(offset):
     """Create a filter for adding leading whitespace"""
@@ -286,12 +293,12 @@ def generate_code(spec, language, output_dir, common_entries=[]):
     # runs.
     entries = list(entries)
     entries.sort(key=lambda a:a.name)
-    info = _EntryInfo(entries)
 
     lookup = {}
     data_checker = prm.DataChecker(entries)
     lookup['settings'] = _Settings.load(language, lookup)
     utils = _Utils(entries, lookup['settings'])
+    info = _EntryInfo(utils, entries)
     lookup['protocol'] = spec
     lookup['common'] = entries
     lookup['esc_name'] = utils.esc_name
@@ -302,17 +309,18 @@ def generate_code(spec, language, output_dir, common_entries=[]):
     lookup['is_value_referenced'] = info.is_value_referenced
     lookup['is_length_referenced'] = info.is_length_referenced
     lookup['is_recursive'] = utils.is_recursive
+    lookup['child_contains_data'] = lambda child: data_checker.child_has_data(child)
     lookup['contains_data'] = lambda entry: data_checker.contains_data(entry)
     lookup['iter_inner_entries'] = utils.iter_inner_entries
     lookup['iter_required_common'] = utils.iter_required_common
     lookup['iter_optional_common'] = utils.iter_optional_common
     lookup['iter_entries'] = utils.iter_entries
     lookup['local_vars'] = info.get_locals
-    lookup['constant'] = _constant_name
-    lookup['filename'] = _filename
-    lookup['function'] = _variable_name
-    lookup['typename'] = _type_name
-    lookup['variable'] = _variable_name
+    lookup['constant'] = utils.constant_name
+    lookup['filename'] = utils.filename
+    lookup['function'] = utils.variable_name
+    lookup['typename'] = utils.type_name
+    lookup['variable'] = utils.variable_name
     lookup['ws'] = _whitespace
     lookup['xmlname'] = bdec.output.xmlout.escape_name
 
@@ -321,5 +329,5 @@ def generate_code(spec, language, output_dir, common_entries=[]):
     for filename, template in entry_templates:
         for entry in entries:
             lookup['entry'] = entry
-            _generate_template(output_dir, _filename(filename.replace('source', entry.name)), lookup, template)
+            _generate_template(output_dir, utils.filename(filename.replace('source', entry.name)), lookup, template)
 

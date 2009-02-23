@@ -80,6 +80,10 @@ class Constant(Expression):
         return self.value
 
     def __str__(self):
+        if isinstance(self.value, int) and self.value % 8 == 0 and \
+                self.value / 8 > 1:
+            # It can be clearer to return numbers in bytes
+            return "%i * 8" % (self.value / 8)
         return str(self.value)
 
 

@@ -1,0 +1,9 @@
+<protocol>
+    <sequence name="d">
+        <sequenceof name="a" length="4 * 8">
+            <field name="b" length="8" />
+        </sequenceof>
+        <field name="c" length="8" value="0x35" />
+    </sequence>
+
+</protocol>

@@ -661,11 +661,11 @@ class TestSave(unittest.TestCase):
 
     def test_text_field(self):
         a = fld.Field('a', format=fld.Field.TEXT, length=32)
-        assert_xml_equivalent(xml.save(a), '<protocol><field name="a" type="text" length="32" /></protocol>')
+        assert_xml_equivalent(xml.save(a), '<protocol><field name="a" type="text" length="4 * 8" /></protocol>')
 
     def test_text_field_with_expected_value(self):
         a = fld.Field('a', format=fld.Field.TEXT, length=32, expected=dt.Data('abcd'))
-        assert_xml_equivalent(xml.save(a), '<protocol><field name="a" type="text" length="32" value="abcd" /></protocol>')
+        assert_xml_equivalent(xml.save(a), '<protocol><field name="a" type="text" length="4 * 8" value="abcd" /></protocol>')
 
     def test_sequence(self):
         a = seq.Sequence('a', [fld.Field('b', length=8)])
@@ -675,7 +675,7 @@ class TestSave(unittest.TestCase):
                           <sequence name="a">
                              <field name="b" length="8" />
                           </sequence>
-                          <field name="d" length="16" />
+                          <field name="d" length="2 * 8" />
                         </sequence>
                       </protocol>"""
         assert_xml_equivalent(expected, xml.save(c))

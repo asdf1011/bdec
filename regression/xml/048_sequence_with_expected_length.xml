@@ -1,0 +1,9 @@
+<protocol>
+    <!--
+      Test that we fail to decode when the sequence length is wrong.
+      -->
+    <sequence name="a" length="2 * 8">
+        <field name="b" length="8" />
+    </sequence>
+
+</protocol>

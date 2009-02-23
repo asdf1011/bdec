@@ -76,7 +76,14 @@ def _get_valgrind():
     return path
 
 def generate(spec, common, details):
-    """Create a compiled decoder."""
+    """Create a compiled decoder for a specification in the test directory.
+
+    Doesn't attempt to compile the specification.
+
+    spec -- The specification to compile.
+    common -- The common entries from the specification.
+    details -- Object containing information on how and where to compile this
+        specification. """
     if os.path.exists(details.TEST_DIR):
         shutil.rmtree(details.TEST_DIR)
     os.mkdir(details.TEST_DIR)
@@ -84,6 +91,12 @@ def generate(spec, common, details):
     comp.generate_code(spec, details.LANGUAGE, details.TEST_DIR, common)
 
 def compile_and_run(data, details):
+    """Compile a previously generated decoder, and use it to decode a data file.
+
+    data -- The data to be decoded.
+    details -- Contains information on the generated decoder, and how to
+        compile it.
+    """
     files = glob.glob(os.path.join(details.TEST_DIR, '*.%s' % details.FILE_TYPE))
     command = [details.COMPILER] + details.COMPILER_FLAGS + [details.EXECUTABLE] + files
     if subprocess.call(command) != 0:

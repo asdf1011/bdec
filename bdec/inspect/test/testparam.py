@@ -37,7 +37,7 @@ class TestExpressionParameters(unittest.TestCase):
         spec = seq.Sequence('blah', [a,b])
 
         vars = prm.ExpressionParameters([spec])
-        self.assertEqual(['a'], vars.get_locals(spec))
+        self.assertEqual([prm.Local('a', int)], vars.get_locals(spec))
         self.assertTrue(vars.is_value_referenced(a))
         self.assertFalse(vars.is_value_referenced(b))
         self.assertEqual([], vars.get_locals(a))
@@ -52,7 +52,7 @@ class TestExpressionParameters(unittest.TestCase):
         spec = seq.Sequence('blah', [a,b])
 
         vars = prm.ExpressionParameters([spec])
-        self.assertEqual(['a.a1.a2'], vars.get_locals(spec))
+        self.assertEqual([prm.Local('a.a1.a2', int)], vars.get_locals(spec))
         # Note that despite containing a referenced entry, it isn't a local (as
         # it is passed up to the parent entry).
         self.assertEqual([], vars.get_locals(a))
@@ -76,7 +76,7 @@ class TestExpressionParameters(unittest.TestCase):
         spec = seq.Sequence('blah', [a,b])
 
         vars = prm.ExpressionParameters([spec])
-        self.assertEqual(['a length'], vars.get_locals(spec))
+        self.assertEqual([prm.Local('a length', int)], vars.get_locals(spec))
         self.assertFalse(vars.is_length_referenced(a1))
         self.assertTrue(vars.is_length_referenced(a))
         self.assertEqual([prm.Param('a length', prm.Param.OUT, int)], vars.get_params(a))
@@ -102,12 +102,12 @@ class TestExpressionParameters(unittest.TestCase):
         self.assertTrue(vars.is_value_referenced(lower))
         self.assertFalse(vars.is_value_referenced(ignored))
         self.assertTrue(vars.is_value_referenced(upper))
-        self.assertEqual(['lower byte', 'upper byte'], vars.get_locals(length))
+        self.assertEqual([prm.Local('lower byte', int), prm.Local('upper byte', int)], vars.get_locals(length))
         self.assertEqual([prm.Param('lower byte', prm.Param.OUT, int)], vars.get_params(lower))
         self.assertEqual([prm.Param('upper byte', prm.Param.OUT, int)], vars.get_params(upper))
         self.assertEqual([prm.Param('length', prm.Param.OUT, int)], vars.get_params(length))
 
-        self.assertEqual(['length'], vars.get_locals(spec))
+        self.assertEqual([prm.Local('length', int)], vars.get_locals(spec))
         self.assertEqual([prm.Param('length', prm.Param.IN, int)], vars.get_params(data))
 
     def test_choice_reference(self):
@@ -132,7 +132,7 @@ class TestExpressionParameters(unittest.TestCase):
         self.assertEqual([], vars.get_locals(length))
         self.assertEqual([prm.Param('length', prm.Param.OUT, int)], list(vars.get_passed_variables(length, length.children[0])))
 
-        self.assertEqual(['variable integer.length'], vars.get_locals(spec))
+        self.assertEqual([prm.Local('variable integer.length', int)], vars.get_locals(spec))
         self.assertEqual([prm.Param('variable integer.length', prm.Param.IN, int)], vars.get_params(data))
 
     def test_reference_outside_of_choice(self):
@@ -149,7 +149,7 @@ class TestExpressionParameters(unittest.TestCase):
         vars = prm.ExpressionParameters([spec])
         self.assertTrue(vars.is_value_referenced(length))
         self.assertEqual([], vars.get_params(spec))
-        self.assertEqual(['length:'], vars.get_locals(spec))
+        self.assertEqual([prm.Local('length:', int)], vars.get_locals(spec))
         self.assertEqual([prm.Param('length:', prm.Param.OUT, int)], vars.get_params(length))
         self.assertEqual([prm.Param('length:', prm.Param.OUT, int)], list(vars.get_passed_variables(spec, spec.children[0])))
 
@@ -167,9 +167,11 @@ class TestExpressionParameters(unittest.TestCase):
         shared = seq.Sequence('shared', [length])
         length_value = expr.ValueResult('shared.length')
 
-        # Now we'll reference that common component twice, but only once referencing an actual value.
+        # Now we'll reference that common component twice, but only once
+        # referencing an actual value. In 'b' we use it twice, to detect that
+        # it only turns up in the locals list once.
         a = seq.Sequence('a', [shared, fld.Field('a data', length_value)])
-        b = seq.Sequence('b', [shared])
+        b = seq.Sequence('b', [shared, shared])
         spec = seq.Sequence('spec', [a,b])
         vars = prm.ExpressionParameters([spec])
         self.assertEqual([], list(vars.get_params(spec)))
@@ -183,14 +185,14 @@ class TestExpressionParameters(unittest.TestCase):
 
         # First validate the passing of the length value within entry 'a'
         self.assertEqual([], vars.get_params(a))
-        self.assertEqual(['shared.length'], vars.get_locals(a))
+        self.assertEqual([prm.Local('shared.length', int)], vars.get_locals(a))
         self.assertEqual([prm.Param('shared.length', prm.Param.OUT, int)], list(vars.get_passed_variables(a, a.children[0])))
         self.assertEqual([prm.Param('shared.length', prm.Param.IN, int)], list(vars.get_passed_variables(a, a.children[1])))
         self.assertEqual([], list(vars.get_passed_variables(spec, spec.children[0])))
 
         # Now test the passing out (and ignoring) of the length value within 'b'
         self.assertEqual([], vars.get_params(b))
-        self.assertEqual(['length'], vars.get_locals(b))
+        self.assertEqual([prm.Local('length', int)], vars.get_locals(b))
         self.assertEqual([prm.Param('length', prm.Param.OUT, int)], list(vars.get_passed_variables(b, b.children[0])))
         self.assertEqual([], list(vars.get_passed_variables(spec, spec.children[0])))
 
@@ -206,7 +208,7 @@ class TestExpressionParameters(unittest.TestCase):
         b = fld.Field('data', expr.compile('${data length} * 8'))
         c = seq.Sequence('c', [a, b])
         params = prm.ExpressionParameters([c])
-        self.assertEqual(['data length'], params.get_locals(c))
+        self.assertEqual([prm.Local('data length', int)], params.get_locals(c))
         self.assertEqual([], params.get_params(c))
         self.assertEqual([prm.Param('data length', prm.Param.OUT, int)], params.get_params(a))
         self.assertEqual([prm.Param('data length', prm.Param.IN, int)], params.get_params(b))
@@ -224,7 +226,7 @@ class TestExpressionParameters(unittest.TestCase):
         f = seq.Sequence('f', [d, e])
 
         params = prm.ExpressionParameters([f])
-        self.assertEqual(['d.a', 'd.b', 'd.c'], params.get_locals(f))
+        self.assertEqual([prm.Local('d.a', int), prm.Local('d.b', int), prm.Local('d.c', int)], params.get_locals(f))
         self.assertEqual([prm.Param('a', prm.Param.OUT, int), 
             prm.Param('b', prm.Param.OUT, int),
             prm.Param('c', prm.Param.OUT, int)],
@@ -287,7 +289,7 @@ class TestExpressionParameters(unittest.TestCase):
                 list(lookup.get_passed_variables(var_len, var_len.children[2])))
 
         # And validate the locals...
-        self.assertEqual(['len', 'var_len'], lookup.get_locals(spec))
+        self.assertEqual([prm.Local('len', int), prm.Local('var_len', int)], lookup.get_locals(spec))
         self.assertEqual([], lookup.get_locals(len))
         self.assertEqual([], lookup.get_locals(var_len))
         self.assertEqual([], lookup.get_locals(a))
@@ -312,7 +314,7 @@ class TestExpressionParameters(unittest.TestCase):
         self.assertEqual([prm.Param('a', prm.Param.OUT, int)], lookup.get_params(c))
         self.assertEqual([prm.Param('a', prm.Param.IN, int)], lookup.get_params(b))
         self.assertEqual([prm.Param('c.a', prm.Param.IN, int)], lookup.get_params(d))
-        self.assertEqual(['c.a'], lookup.get_locals(e))
+        self.assertEqual([prm.Local('c.a', int)], lookup.get_locals(e))
         self.assertEqual([], lookup.get_locals(c))
 
         self.assertTrue(lookup.is_value_referenced(a))
@@ -333,7 +335,7 @@ class TestEndEntryParameters(unittest.TestCase):
         lookup = prm.EndEntryParameters([string])
         self.assertEqual(set([prm.Param('should end', prm.Param.OUT, int)]), lookup.get_params(null))
         self.assertEqual(set([prm.Param('should end', prm.Param.OUT, int)]), lookup.get_params(entry))
-        self.assertEqual(['should end'], lookup.get_locals(string))
+        self.assertEqual([prm.Local('should end', int)], lookup.get_locals(string))
         self.assertTrue(lookup.is_end_sequenceof(null))
 
 class TestResultParameters(unittest.TestCase):
@@ -382,4 +384,15 @@ class TestResultParameters(unittest.TestCase):
         lookup = prm.ResultParameters([item])
         self.assertEqual([prm.Param('result', prm.Param.OUT, item)], lookup.get_params(item))
         self.assertEqual([prm.Param('result', prm.Param.OUT, embedded)], lookup.get_params(embedded))
+
+    def test_hidden_reference(self):
+        # Test a visible common reference that is hidden through its reference
+        # name. This is common for integers defined at the common level.
+        a = fld.Field('a', 8, fld.Field.INTEGER)
+        b = seq.Sequence('b', [ent.Child('a:', a)])
+        lookup = prm.ResultParameters([b])
+        self.assertEqual([prm.Param('result', prm.Param.OUT, a)], lookup.get_params(a))
+        self.assertEqual([prm.Param('result', prm.Param.OUT, b)], lookup.get_params(b))
+        self.assertEqual([prm.Local('unused a:', a)], lookup.get_locals(b))
+        self.assertEqual([prm.Param('unused a:', prm.Param.OUT, a)], lookup.get_passed_variables(b, b.children[0]))
 

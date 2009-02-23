@@ -1,0 +1,16 @@
+<protocol>
+    <sequence name="blah">
+        <reference name="a" />
+        <reference name="b" />
+    </sequence>
+    <common>
+        <sequence name="a">
+            <field name="c" length="8" type="integer" />
+        </sequence>
+        <sequence name="b">
+            <sequence name="a">
+                <field name="d" length="8" type="integer" />
+            </sequence>
+        </sequence>
+    </common>
+</protocol>

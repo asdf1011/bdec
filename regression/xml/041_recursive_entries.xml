@@ -1,0 +1,26 @@
+<protocol>
+    <!--
+      There was a problem with creating include files for items that cross
+      reference each other. Test that we can create a decoder for a
+      recursive specification.
+      -->
+    <reference name="b" />
+
+    <common>
+        <sequence name="a">
+            <field name="id" length="8" type="text" value="a" />
+            <choice name="embed b">
+                <field name="null" length="8" value="0x00" />
+                <reference name="b" />
+            </choice>
+        </sequence>
+
+        <sequence name="b">
+            <field name="id" length="8" type="text" value="b" />
+            <choice name="embed a">
+                <field name="null" length="8" value="0x00" />
+                <reference name="a" />
+            </choice>
+        </sequence>
+    </common>
+</protocol>
