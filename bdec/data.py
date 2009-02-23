@@ -334,7 +334,7 @@ class Data:
                 try:
                     yield self._buffer.read_byte(i)
                 except _OutOfDataError:
-                    raise NotEnoughDataError(self._end - self._start, (i-1) * 8)
+                    raise NotEnoughDataError(self._end - self._start, i * 8 - self._start)
         else:
             # Read as many of the bits as possible, yielding the results.
             value = 0
