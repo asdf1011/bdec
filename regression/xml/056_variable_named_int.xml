@@ -1,8 +1,9 @@
 <protocol>
     <sequence name="a">
         <reference name="b" type="int" />
-        <reference name="c" type="int" />
-        <field name="d" length="${c} * 8"  type="text" />
+        <reference name="int" type="int" />
+        <field name="d" length="${b} * 8"  type="text" />
+        <field name="e" length="${int} * 8"  type="text" />
     </sequence>
 
     <common>
