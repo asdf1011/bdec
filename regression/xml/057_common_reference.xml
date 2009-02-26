@@ -1,0 +1,14 @@
+<protocol>
+    <!--
+      It can be useful to define common references. For example, the ddlp
+      specification uses textual numbers, and there is a common entry named
+      'amount' which is 5 digits. It is useful to define 'amount' to be a
+      reference to a '5 digit text' entry, and when this 'amount' referenced,
+      is effectively creating a reference to a reference.
+      -->
+    <reference name="a" type="b" />
+    <common>
+        <field name="number" type="integer" length="8" />
+        <reference name="b" type="number" />
+    </common>
+</protocol>

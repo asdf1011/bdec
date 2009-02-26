@@ -222,10 +222,22 @@ class _Handler(xml.sax.handler.ContentHandler):
         except KeyError:
             raise self._error("Referenced element '%s' is not found!" % name)
 
+    def _resolve_common_references(self):
+        """ Resolve any references that are common list."""
+        while 1:
+            references = [e for e in self.common_entries.items()
+                    if isinstance(e[1], _ReferencedEntry)]
+            if not references:
+                break
+            for name, ref in references:
+                self.common_entries[name] = self.common_entries[ref.type]
+                self._unresolved_references.remove(ref)
+
     def _protocol(self, attributes, children, name, length, breaks):
         if len(children) != 1:
             raise self._error("Protocol should have a single entry to be decoded!")
 
+        self._resolve_common_references()
         if isinstance(children[0], _ReferencedEntry):
             # If the 'top level' item is a reference, it won't have had a
             # parent set to allow it to resolve. We'll do this by hand.
