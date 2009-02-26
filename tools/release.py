@@ -107,7 +107,7 @@ def get_changelog(contents=_read_changelog()):
         sys.exit('Failed to find version')
     return result
 
-def strip_changelog(changelog):
+def shorten_changelog(changelog):
     """Make the changelog into a single paragraph suitable for freshmeat."""
     # Get the changelog, and strip off any trailing and leading whitespace.
     # Look at some the freshmeat main page to get examples of how the layout
@@ -310,10 +310,9 @@ def send_email(version, changelog):
         print 'Authenticion error!', ex
 
 def notify(version, changelog, get_focus=get_focus,  system=os.system, confirm=raw_input, should_send_email=True):
-    changelog = strip_changelog(changelog)
     # This is a fresmeat limit
     MAX_CHARS = 600
-    short_message = changelog
+    short_message = shorten_changelog(changelog)
     while len(short_message) > 600:
         print 'Changelog is too long (must be less then %i characters, is %i)' % (MAX_CHARS, len(short_message))
         text = raw_input('Edit changelog for submission? [y]')
@@ -369,7 +368,7 @@ if __name__ == '__main__':
 
     print "Preparing new bdec release", version
     print "Changes are;"
-    print strip_changelog(changelog)
+    print shorten_changelog(changelog)
     print
 
     update_website()
