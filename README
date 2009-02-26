@@ -120,16 +120,22 @@ See the CHANGELOG_ for past releases.
 Similar projects
 ================
 
-Some other projects that perform 'generic' binary decoding include;
+Some projects that perform 'generic' binary decoding include;
 
-* Hachoir (http://hachoir.org/) - Very powerful decoding
-  library, where binary formats are specified in python
-  code (using generators). Quite high level decoding, with
-  complex binary files being decoded. Lots of file formats
-  are specified (at least partially).
-* Construct (http://construct.wikispaces.com/) - Decodes data 
-  structures, formats are specified in python code without too
-  much high-level intelligence. Not many formats available.
-* Asn1c (http://lionet.info/asn1c/) - Asn.1 compiler; generates C language
-  encoders / decoders.
+* Hachoir_ - Very powerful decoding library, where binary formats are specified
+  in python code (using generators). Quite high level decoding, with complex
+  binary files being decoded. Lots of file formats are specified (at least
+  partially).
+* Construct_ - Decodes data structures, formats are specified in python code
+  without too much high-level intelligence. Not many formats available.
 
+Projects that generate decoders from high level specifications;
+
+* Asn1c_ Asn.1 compiler; generates C language encoders and decoders.
+* `Google protocol buffers`_ - Define file formats in an easy to read text
+  specification, and compile them to Java, C++, or Python decoders and encoders.
+
+.. _Hachoir: http://hachoir.org/
+.. _Construct: http://construct.wikispaces.com/
+.. _Asn1c: http://lionet.info/asn1c/
+.. _Google protocol buffers: http://code.google.com/apis/protocolbuffers/
