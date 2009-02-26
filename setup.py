@@ -5,22 +5,19 @@ from setuptools import setup, find_packages
 import bdec
 
 long_description = """\
-Write specifications for existing binary formats in a flexible xml based
-syntax, and have decoders automatically generated for you. Written in Python,
-it currently supports native decoding to xml or python objects, as well as
-generating quality C decoders.
+A set of tools for decoding binary files given a specification written in a
+flexible xml based syntax. It supports decoding to xml or python objects, and
+can generate quality C decoders.
 """
 
-version=bdec.__version__
-
 setup(name='bdec',
-      version=version,
+      version=bdec.__version__,
       description='Generates decoders for binary file formats given a high level specification.',
       long_description=long_description,
       author='Henry Ludemann',
       author_email='misc@hl.id.au',
-      url='http://www.hl.id.au/Projects/bdec/',
-      download_url='http://www.hl.id.au/Projects/bdec/files/bdec-%s.tar.gz' % version,
+      url='http://www.hl.id.au/projects/bdec/',
+      download_url='http://www.hl.id.au/projects/bdec/files/bdec-%s.tar.gz' % bdec.__version__,
       packages=find_packages(exclude=["specs", "specs.*"]),
       package_data={'bdec': ['templates/c/*']},
       entry_points={'console_scripts': [
