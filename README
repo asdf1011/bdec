@@ -2,7 +2,7 @@
 bdec
 ----
 
-'bdec', a set of tools for decoding binary files given an xml specification.
+'bdec', a set of tools for decoding binary files.
 
 
 Overview
@@ -25,10 +25,9 @@ Bdec can;
  * Allow specifications to be easily written, updated, and maintained.
  * Decode binary files directly from the specification.
  * Generate portable, readable, and efficient C decoders.
- * Provide rudimentary encoding support.
  * Run under Windows & Unix operating systems
 
-The bdec xml specification uses constructs loosely based on those found in
+The bdec xml specification uses constructs based loosely on those found in
 ASN.1.
 
 
@@ -47,8 +46,8 @@ Documentation
 =============
 
 If you're just getting started, the tutorial_ takes you step by step through
-the different concepts used in bdec. Once you've got started, read the rest
-of the documentation_ to improve your specifications.
+the different concepts used in bdec. Once you've got started, refere to the
+rest of the documentation_ as required.
 
 .. _documentation: docs
 .. _tutorial: docs/tutorial.html
@@ -75,7 +74,8 @@ Features
 * Decode to xml for rapid development (eg: `xml representation of a fat
   bootsector`_)
 * Specify fields down to the bit (eg: single bit flags)
-* Generated decoders are human readable, and compile without any warnings.
+* Generated decoders are human readable, easy to use, and compile without
+  warnings.
 
 .. _xml representation of a FAT bootsector: docs/files/fatbootsector.xml
 
