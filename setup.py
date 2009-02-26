@@ -4,6 +4,7 @@ from setuptools import setup, find_packages
 
 import bdec
 
+short_description = 'A set of tools for decoding binary files.'
 long_description = """\
 A set of tools for decoding binary files given a specification written in a
 flexible xml based syntax. It supports decoding to xml or python objects, and
@@ -12,7 +13,7 @@ can generate quality C decoders.
 
 setup(name='bdec',
       version=bdec.__version__,
-      description='Generates decoders for binary file formats given a high level specification.',
+      description=short_description,
       long_description=long_description,
       author='Henry Ludemann',
       author_email='misc@hl.id.au',
