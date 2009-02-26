@@ -23,9 +23,11 @@ Bdec sequenceof entries can have 3 attributes;
   * A name (optional)
   * A count_ (optional)
   * A length_ (optional)
+  * An :ref:`if <boolean-expression>` (optional)
 
 A sequenceof should have either a count, a length, or have an embedded 
-`end-sequenceof`_ to indicate when to stop repeating the element.
+`end-sequenceof`_ to indicate when to stop repeating the element. If none of
+these are present, it is a greedy_ sequenceof.
 
 SequenceOf entries must contain one entry that is to be repeated (ie: a
 :ref:`field <format-field>`, a :ref:`sequence <format-sequence>`, a sequenceof,
@@ -34,6 +36,7 @@ a :ref:`choice <format-choice>`, or a :ref:`references <format-reference>`).
 .. _count: `Count loops`_
 .. _length: `Length loops`_
 .. _end-sequenceof: `End-sequenceof loops`_
+.. _greedy: `Greedy sequenceof`_
 
 
 Count loops
@@ -62,7 +65,19 @@ terminated with an 'end' tag in the buffer. It is usually used with a
 For example, a `null terminated string`_ can be defined by a sequence of 
 characters ended by a null character.
 
+It is possible to use an 'end-sequenceof' with a count_ and length_ loop, but
+the decode will fail if the last entry is not an end-sequenceof.
+
 .. _null terminated string: `null-terminated-string`_
+
+Greedy sequenceof
+=================
+
+A 'greedy' sequenceof doesn't have 'count', 'length', or 'end-sequenceof'
+entries; it will continue to decode until all of the available data has been
+decoded. If its child entry fails to decode while data is still available, the
+sequenceof decoding fails.
+
 
 Examples
 ========

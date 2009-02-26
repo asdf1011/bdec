@@ -5,20 +5,23 @@
 Reference entries
 =================
 
-Reference entries are used to mark that a child entry is a reference to a 
-:ref:`top level entry <common-elements>`. This allows the specification to be 
-broken up into logical boundaries.
+Reference entries are used to reference a
+:ref:`top level entry <common-elements>` at the current location in the
+specification. This allows parts of the specification to be re-used in multiple
+locations, and also allows the specification to be broken up into logical
+boundaries.
 
 References are identified by name, and cannot include modifications to the top
 level entry (eg: no changing the type of fields, changing the children of a 
 sequence, adding an end-entry, ...).
 
-It is possible to give the referenced entry another name, and this can help in
-defining common types (such as defining a default integer encoding).
+It is possible however to give the referenced entry another name, and this can
+help in defining common types (such as defining a default integer encoding).
 
-The referenced entry doesn't need to be specified at the time it is referenced
-(although it must be specified by the time the specification finishes loading).
-Referenced entries can be used to enable recursive specifications (eg: pdf).
+The top level entry doesn't need to be specified in the file before it is
+referenced (although it must be specified before the specification has finished
+loading). Referenced entries can be used to decode specifications with
+recursive data structures (eg: pdf).
 
 
 Specification
@@ -38,21 +41,21 @@ Either a name or a type must be specified for a reference.
 Reference name
 --------------
 
-The name specifies the name to be used for this element. If no type_ is
-specified, this also specifies the name of the referenced entry to use.
+The name attribute specifies the name to be used for this entry. If no type_
+is specified, this is assumed to be the name of the common entry.
 
 
 Reference type
 --------------
 
-If specified, identifies the name of entry to be referenced. If it is not
-specified, the reference name is used to find the referenced entry.
+If specified, identifies the name of common entry to be referenced. If it is
+not specified, the reference name is used to find the referenced entry.
 
 
 Examples
 ========
 
-Reuse a null terminating string::
+Reuse a 'dword' type and a null terminating string type::
 
   <common>
     <field name="dword" length="32" encoding="little endian" />

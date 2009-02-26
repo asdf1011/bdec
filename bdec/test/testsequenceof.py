@@ -20,6 +20,8 @@
 import unittest
 
 import bdec.choice as chc
+from bdec.constraints import Equals
+import bdec.expression as expr
 import bdec.data as dt
 import bdec.field as fld
 import bdec.sequence as seq
@@ -41,20 +43,28 @@ class TestSequenceOf(unittest.TestCase):
             ("blah", None)]
         self.assertEqual(expected, actual)
 
-    def test_encoding(self):
+    def test_encode(self):
         sequenceof = sof.SequenceOf("blah", fld.Field("cat", 8, format=fld.Field.INTEGER), 3)
-        data = {"blah" : [{"cat":5}, {"cat":9}, {"cat":0xf6}]}
+        data = [5, 9, 0xf6]
         query = lambda context, child: context[child.name] 
         data = reduce(lambda a,b:a+b, sequenceof.encode(query, data))
         self.assertEqual("\x05\x09\xf6", data.bytes())
 
     def test_invalid_encoding_count(self):
         sequenceof = sof.SequenceOf("blah", fld.Field("cat", 8, format=fld.Field.INTEGER), 3)
-        data = {"blah" : [{"cat":5}, {"cat":9}]}
+        data = [5, 9]
         query = lambda context, child: context[child.name] 
         self.assertRaises(sof.InvalidSequenceOfCount, list, sequenceof.encode(query, data))
 
     def test_greedy_decode(self):
+        sequenceof = sof.SequenceOf("blah", fld.Field("cat", 8, format=fld.Field.TEXT), None, length=None)
+        rawdata = dt.Data("date")
+        items = [value for is_starting, name, entry, data, value in sequenceof.decode(rawdata) if isinstance(entry, fld.Field) and not is_starting]
+        self.assertEqual(4, len(items))
+        self.assertEqual('date', ''.join(items))
+        self.assertEqual('', rawdata.bytes())
+
+    def test_length_decode(self):
         sequenceof = sof.SequenceOf("blah", fld.Field("cat", 8, format=fld.Field.TEXT), None, length=32)
         rawdata = dt.Data("dateunused")
         items = [value for is_starting, name, entry, data, value in sequenceof.decode(rawdata) if isinstance(entry, fld.Field) and not is_starting]
@@ -62,7 +72,7 @@ class TestSequenceOf(unittest.TestCase):
         self.assertEqual('date', ''.join(items))
         self.assertEqual('unused', rawdata.bytes())
 
-    def test_run_out_of_data_greedy(self):
+    def test_run_out_of_data_length(self):
         sequenceof = sof.SequenceOf("blah", fld.Field("cat", 8, format=fld.Field.TEXT), None, length=32)
         rawdata = dt.Data("date")
         items = [value for is_starting, name, entry, data, value in sequenceof.decode(rawdata) if isinstance(entry, fld.Field) and not is_starting]
@@ -72,7 +82,7 @@ class TestSequenceOf(unittest.TestCase):
 
     def test_encoding_greedy_sequenceof(self):
         sequenceof = sof.SequenceOf("blah", fld.Field("cat", 8, format=fld.Field.INTEGER), None)
-        data = {"blah" : [{"cat":5}, {"cat":9}, {"cat":0xf6}]}
+        data = [5, 9, 0xf6]
         query = lambda context, child: context[child.name] 
         data = reduce(lambda a,b:a+b, sequenceof.encode(query, data))
         self.assertEqual("\x05\x09\xf6", data.bytes())
@@ -82,7 +92,7 @@ class TestSequenceOf(unittest.TestCase):
         self.assertRaises(sof.NegativeSequenceofLoop, list, sequenceof.decode(dt.Data("")))
 
     def test_end_entries(self):
-        null = fld.Field("null", 8, expected=dt.Data('\x00'))
+        null = fld.Field("null", 8, constraints=[Equals(dt.Data('\x00'))])
         char = fld.Field("char", 8)
         sequenceof = sof.SequenceOf("null terminated string", chc.Choice('entry', [null, char]), None, end_entries=[null])
         actual = []
@@ -94,3 +104,15 @@ class TestSequenceOf(unittest.TestCase):
 
         self.assertEqual("hello", result)
         self.assertEqual("bob", data.bytes())
+
+    def test_sequenceof_ended_early(self):
+        null = fld.Field("null", 8, constraints=[Equals(dt.Data('\x00'))])
+        char = fld.Field("char", 8)
+        a = sof.SequenceOf('a', chc.Choice('b', [null, char]), expr.parse('5'), end_entries=[null])
+
+        # Make sure we decode correctly given sane values
+        list(a.decode(dt.Data('abcd\x00')))
+        # Check the exception when the null is found before the count runs out
+        self.assertRaises(sof.SequenceEndedEarlyError, list, a.decode(dt.Data('abc\x00')))
+        # Check the exception when the count is reached before the end
+        self.assertRaises(sof.SequenceofStoppedBeforeEndEntry, list, a.decode(dt.Data('abcde')))

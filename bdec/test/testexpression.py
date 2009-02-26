@@ -16,11 +16,30 @@
 #   License along with this library; if not, see
 #   <http://www.gnu.org/licenses/>.
 
+from bdec import DecodeError
+from bdec.data import Data
 import bdec.expression as exp
+import bdec.sequence as sequence
 import unittest
 
 def eval(text):
     return exp.compile(text).evaluate({})
+
+def bool(text,context={}):
+    try:
+        # If the object decodes, the conditional is false
+        conditional = exp.parse_conditional_inverse(text)
+
+        # If the expression needs context to decode, it'll need to be able to
+        # reference other entries, so create them here...
+        children = []
+        for name, value in context.items():
+            children.append(sequence.Sequence(name, [], value=exp.Constant(value)))
+        children.append(conditional)
+        list(sequence.Sequence('', children).decode(Data()))
+        return False
+    except DecodeError,ex:
+        return True
 
 class TestExpression(unittest.TestCase):
     def test_simple_int(self):
@@ -67,3 +86,66 @@ class TestExpression(unittest.TestCase):
     def test_hex(self):
         self.assertEqual(5, eval("0x5"))
         self.assertEqual(255, eval("0xfF"))
+
+    def test_shift_left(self):
+        self.assertEqual(256, eval("2 - 1 << 8"))
+        self.assertEqual(16, eval("1 << 4"))
+        self.assertEqual(1, eval("1 << 0"))
+
+    def test_shift_right(self):
+        self.assertEqual(1, eval("200 + 56 >> 8"))
+        self.assertEqual(8, eval("8 * 1 >> 0"))
+        self.assertEqual(2, eval("8 / 1 >> 2"))
+
+class TestBoolean(unittest.TestCase):
+    def test_greater_equal(self):
+        self.assertEqual(True, bool("5 >= 3"))
+        self.assertEqual(True, bool("3 >= 3"))
+        self.assertEqual(False, bool("2 >= 3"))
+
+    def test_greater(self):
+        self.assertEqual(True, bool("5 > 3"))
+        self.assertEqual(False, bool("3 > 3"))
+        self.assertEqual(False, bool("2 > 3"))
+
+    def test_lesser(self):
+        self.assertEqual(False, bool("5 < 3"))
+        self.assertEqual(False, bool("3 < 3"))
+        self.assertEqual(True, bool("2 < 3"))
+
+    def test_lesser_equal(self):
+        self.assertEqual(False, bool("5 <= 3"))
+        self.assertEqual(True, bool("3 <= 3"))
+        self.assertEqual(True, bool("2 <= 3"))
+
+    def test_equals(self):
+        self.assertEqual(True, bool('5 == 5'))
+        self.assertEqual(False, bool('5 == 4'))
+        self.assertEqual(True, bool('11 - 1 == 5 * 2'))
+
+    def test_not_equals(self):
+        self.assertEqual(False, bool('5 != 5'))
+        self.assertEqual(True, bool('5 != 4'))
+        self.assertEqual(True, bool('5 != 5 - 1'))
+
+    def test_and(self):
+        self.assertEqual(True, bool('5 == (1+4) && 3 > 2'))
+        self.assertEqual(False, bool('5 != (1+4) && 3 > 2'))
+        self.assertEqual(False, bool('5 == (1+4) && 3 > 4'))
+        self.assertEqual(True, bool('1==1 && 1==1 && 1==1 && 1==1'))
+        self.assertEqual(False, bool('1==1 && 1==1 && 1==1 && 0==1'))
+        self.assertEqual(False, bool('5 == (1+4) and 3 > 4'))
+
+    def test_or(self):
+        self.assertEqual(True, bool('5 == (1+4) || 3 > 2'))
+        self.assertEqual(True, bool('5 != (1+4) || 3 > 2'))
+        self.assertEqual(True, bool('5 == (1+4) or 3 > 4'))
+        self.assertEqual(False, bool('5 != (1+4) || 3 > 4'))
+        self.assertEqual(True, bool('0==1 or 0==1 or 0==1 or 0==0'))
+        self.assertEqual(False, bool('0==1 or 0==1 or 0==1 or 0>=1'))
+
+    def test_implicit_conversion(self):
+        self.assertEqual(True, bool('${bob}', {'bob':1}))
+        self.assertEqual(True, bool('0 or ${bob}', {'bob':1}))
+        self.assertEqual(False, bool('0 or ${bob}', {'bob':0}))
+

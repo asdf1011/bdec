@@ -20,16 +20,23 @@
 #include <stdio.h>
 #include "variable_integer.h"
 
-int get_integer(BitBuffer* buffer)
+unsigned int get_integer(BitBuffer* buffer)
 {
     // We'll just create a copy of the buffer, and decode it's value.
     BitBuffer temp = *buffer;
     return decode_integer(&temp, temp.num_bits);
 }
 
-int decode_integer(BitBuffer* buffer, int num_bits)
+unsigned long long get_long_integer(BitBuffer* buffer)
 {
-    int result = 0;
+    // We'll just create a copy of the buffer, and decode it's value.
+    BitBuffer temp = *buffer;
+    return decode_long_integer(&temp, temp.num_bits);
+}
+
+unsigned int decode_integer(BitBuffer* buffer, int num_bits)
+{
+    unsigned int result = 0;
     while (num_bits > 0)
     {
         assert(buffer->num_bits > 0);
@@ -62,14 +69,27 @@ int decode_integer(BitBuffer* buffer, int num_bits)
     return result;
 }
 
-int decode_little_endian_integer(BitBuffer* buffer, int num_bits)
+unsigned long long decode_long_integer(BitBuffer* buffer, int num_bits)
+{
+    unsigned long long result = 0;
+    while (num_bits > 0)
+    {
+        int size = num_bits > 32 ? 32 : num_bits;
+        result <<= size;
+        result |= decode_integer(buffer, size);
+        num_bits -= size;
+    }
+    return result;
+}
+
+unsigned int decode_little_endian_integer(BitBuffer* buffer, int num_bits)
 {
     // Little endian conversion only works for fields that are a multiple
     // of 8 bits.
     assert(num_bits % 8  == 0);
 
     int i;
-    int result = 0;
+    unsigned int result = 0;
     for (i = 0; i < num_bits / 8; ++i)
     {
         result |= decode_integer(buffer, 8) << (i * 8);
@@ -77,10 +97,10 @@ int decode_little_endian_integer(BitBuffer* buffer, int num_bits)
     return result;
 }
 
-void print_escaped_string(Buffer* text)
+void print_escaped_string(Text* text)
 {
     char c;
-    int i;
+    unsigned int i;
     for (i = 0; i < text->length; ++i)
     {
         c = text->buffer[i];

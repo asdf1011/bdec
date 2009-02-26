@@ -40,6 +40,16 @@ class NegativeSequenceofLoop(bdec.DecodeError):
     def __str__(self):
         return "%s asked to loop %i times!" % (self.entry, self.count)
 
+
+class SequenceEndedEarlyError(bdec.DecodeError):
+    def __str__(self):
+        return "%s got an end-sequenceof while still looping!" % (self.entry)
+
+class SequenceofStoppedBeforeEndEntry(bdec.DecodeError):
+    def __str__(self):
+        return "%s stopped without receiving an end-sequenceof!" % (self.entry)
+
+
 class SequenceOf(bdec.entry.Entry):
     """
     A protocol entry representing a sequence of another protocol entry.
@@ -82,40 +92,39 @@ class SequenceOf(bdec.entry.Entry):
     def _loop(self, context, data):
         context['should end'] = False
         if self.count is not None:
+            # We have a count of items; use that to determine how long we
+            # should continue looping for.
             count = int(self.count.evaluate(context))
             if count < 0:
                 raise NegativeSequenceofLoop(self, count)
 
-            for i in range(count):
-                yield i
-        elif self.length is not None:
-            while 1:
-                if data.empty():
-                    # We ran out of data on a greedy sequence...
-                    break
+            for i in xrange(count):
+                yield None
+        elif self.end_entries:
+            while not context['should end']:
                 yield None
         else:
-            while 1:
-                if context['should end']:
-                    break
+            while data:
                 yield None
 
     def _decode(self, data, context, name):
         yield (True, name, self, data, None)
         for i in self._loop(context, data):
+            if self.end_entries and context['should end']:
+                raise SequenceEndedEarlyError(self)
             for item in self._decode_child(self.children[0], data, context):
                 yield item
+        if self.end_entries and not context['should end']:
+            raise SequenceofStoppedBeforeEndEntry(self)
         yield (False, name, self, dt.Data(), None)
 
-    def _encode(self, query, parent):
-        children = self._get_context(query, parent)
-
+    def _encode(self, query, value):
         count = 0
-        for child in children:
+        for child in value:
             count += 1
             for data in self.children[0].entry.encode(query, child):
                 yield data
 
         if self.count is not None and self.count.evaluate({}) != count:
-            raise InvalidSequenceOfCount(self, self.count, count)
+            raise InvalidSequenceOfCount(self, self.count.evaluate({}), count)
 

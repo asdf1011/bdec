@@ -1,5 +1,6 @@
 
 import os.path
+import StringIO
 import unittest
 
 import bdec
@@ -44,13 +45,27 @@ This is the current version
         def mock_system(command):
             commands.append(command)
             return 0
-        message = 'I am a change\n\nwith several lines'
-        notify('9.9.9', message, lambda: 7, mock_system, lambda msg:'y', should_send_email=False)
-        self.assertEqual(2,  len(commands))
-        command = commands[0][:commands[0].index(' ')]
-        args = commands[0][len(command):].strip()
-        expected = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'website', 'website.integ', 'build', 'freshmeat-submit-1.6', "freshmeat-submit")
-        self.assertEqual(os.path.normpath(expected), os.path.normpath(command))
-        self.assertEqual('-n --project bdec --version 9.9.9 --changes "I am a change with several lines" --release-focus "7" --gzipped-tar-url http://www.hl.id.au/projects/bdec/files/bdec-9.9.9.tar.gz', args)
+        connections = []
+        class MockConnection:
+            def __init__(self, domain):
+                connections.append(self)
+            def request(self, actual, path, json, headers):
+                self.json = json
+            def getresponse(self):
+                response = StringIO.StringIO()
+                response.status = 200
+                response.reason = ''
+                return response
+            def close(self):
+                pass
 
-        self.assertEqual('./setup.py register', commands[1])
+        message = 'I am a change\n\nwith several lines'
+        notify('9.9.9', message, lambda:'xxx',MockConnection, mock_system, lambda msg:'y', should_send_email=False, tag_list=lambda a,b:'')
+        self.assertEqual(1,  len(connections))
+        self.assertEqual('{"release": {"tag_list": "", "version": "9.9.9", ' +
+            '"changelog": "I am a change with several lines"}, ' +
+            '"auth_code": "xxx"}', connections[0].json)
+
+        self.assertEqual(1, len(commands))
+        self.assertEqual('./setup.py register', commands[0])
+

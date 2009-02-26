@@ -1,4 +1,4 @@
-#   Copyright (C) 2008 Henry Ludemann
+#   Copyright (C) 2008-2009 Henry Ludemann
 #
 #   This file is part of the bdec decoder library.
 #
@@ -16,10 +16,12 @@
 #   License along with this library; if not, see
 #   <http://www.gnu.org/licenses/>.
 
-import logging
+import operator
 
 import bdec.choice as chc
+from bdec.constraints import Equals, Maximum, Minimum
 import bdec.data as dt
+import bdec.entry as ent
 import bdec.expression as expr
 import bdec.field as fld
 import bdec.sequence as seq
@@ -53,16 +55,28 @@ class _AnyData(_UnknownData):
     def __init__(self, length):
         _UnknownData.__init__(self, length)
 
+def _get_constraint(entry, constraint_type):
+    for constraint in entry.constraints:
+        if isinstance(constraint, constraint_type):
+            try:
+                return constraint.limit.evaluate({})
+            except expr.UndecodedReferenceError:
+                # We don't know the value for this entry, and so cannot use it.
+                return
+    return None
+
 class _ProtocolStream:
     _MAX_FIELD_RANGE = 100
     def __init__(self, entry, parent=None, parent_offset=None):
-        if isinstance(entry, fld.Field) and entry.min is not None and entry.max is not None and entry.max - entry.min < self._MAX_FIELD_RANGE:
+        min = _get_constraint(entry, Minimum)
+        max = _get_constraint(entry, Maximum)
+        if min is not None and max is not None and max - min < self._MAX_FIELD_RANGE and entry.length is not None:
             # When we have a ranged field, it can be conveniant to 'key' on the
             # possible values. This allows early outs...
             options = []
-            for i in range(entry.min, entry.max + 1):
-                length = entry.length.evaluate({})
-                options.append(fld.Field(entry.name, entry.length, expected=dt.Data.from_int_big_endian(i, length)))
+            for i in range(min, max + 1):
+                value = dt.Data.from_int_big_endian(i, entry.length.evaluate({}))
+                options.append(fld.Field(entry.name, entry.length, format=fld.Field.INTEGER, constraints=[Equals(value)]))
             self.entry = chc.Choice('mock %s' % entry.name, options)
         else:
             self.entry = entry
@@ -107,31 +121,37 @@ class _ProtocolStream:
     def _create_data(self):
         """Return a data instance, or None if one doesn't exist for this entry."""
         if isinstance(self.entry, fld.Field):
-            if self.entry.expected is not None:
-                return self.entry.expected.copy()
-            else:
-                length = None
-                min = max = None
-                try:
-                    length = self.entry.length.evaluate({})
-                    if self.entry.min is not None:
-                        min = int(self.entry.min)
-                    if self.entry.max is not None:
-                        max = int(self.entry.max)
-                except expr.UndecodedReferenceError:
-                    # If the length of a  field references the decoded value of
-                    # another field, we will not be able to calculate the length.
-                    pass
+            value = _get_constraint(self.entry, Equals)
+            try:
+                if value is not None:
+                    def query(context, entry):
+                        raise bdec.entry.MissingInstanceError()
+                    data = reduce(operator.add, self.entry.encode(query, value))
+                    return data
+            except ent.NotEnoughContextError:
+                # We can't encode this entry; see if we know how long it is.
+                pass
 
-                if length is not None and min is None and max is None:
-                    # When we know a field can accept any type of data, we are
-                    # able to know that some entries _will_ decode (not just
-                    # possibly decode).
-                    return _AnyData(length)
-                else:
-                    return _UnknownData(length)
+            length = None
+            try:
+                length = self.entry.length.evaluate({})
+            except expr.UndecodedReferenceError:
+                # If the length of a  field references the decoded value of
+                # another field, we will not be able to calculate the length.
+                pass
+
+            if length is not None and not self.entry.constraints:
+                # When we know a field can accept any type of data, we are
+                # able to know that some entries _will_ decode (not just
+                # possibly decode).
+                return _AnyData(length)
+            else:
+                return _UnknownData(length)
         elif isinstance(self.entry, sof.SequenceOf):
             return _UnknownData()
+        elif self.entry.constraints:
+            # This entry has unknown constraints... return an unkown data object.
+            return _UnknownData(0)
         else:
             # This entry contains no data (but its children might)...
             return dt.Data()
@@ -185,18 +205,17 @@ def _differentiate(entries):
         # Get the values of all of the options for this data section
         lookup = {}
         undistinguished = []
-        if length:
-            for entry, option in options:
-                data = option.data.pop(length)
-                if isinstance(data, _AnyData):
-                    undistinguished.append(entry)
-                elif isinstance(data, _UnknownData):
-                    # This entry _may_ have been successfuly decoded...
-                    undistinguished.append(entry)
-                    if entry not in possible:
-                        possible.append(entry)
-                else:
-                    lookup.setdefault(int(data), []).append(entry)
+        for entry, option in options:
+            data = option.data.pop(length)
+            if isinstance(data, _AnyData):
+                undistinguished.append(entry)
+            elif isinstance(data, _UnknownData):
+                # This entry _may_ have been successfuly decoded...
+                undistinguished.append(entry)
+                if entry not in possible:
+                    possible.append(entry)
+            elif data:
+                lookup.setdefault(int(data), []).append(entry)
 
         if have_new_success or _can_differentiate(lookup, undistinguished + successful + possible):
             # We also should notify if we have a new item in the successful (or possible) list...
@@ -257,7 +276,13 @@ class Chooser:
             # Remove data from before the current offset, as we cannot use it
             # to differentiate.
             assert offset >= current_offset
-            copy.pop(offset - current_offset)
+            try:
+                copy.pop(offset - current_offset)
+            except dt.NotEnoughDataError:
+                # We don't have enough data left for this option; reduce
+                # the possibles to those that have finished decoding.
+                options = [option for option in options if option in set(successful + possible)]
+                break
             current_offset = offset
 
             # Check to see if we have a successful item, and remove any items

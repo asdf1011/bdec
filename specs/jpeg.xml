@@ -12,7 +12,7 @@
         </choice>
 
         <sequenceof name="segments">
-            <choice name="segment:">
+            <choice name="segment">
                 <sequence name="exif">
                     <field name="id:" length="8" value="0xff" />
                     <field name="type:" length="8" value="0xe1" />
@@ -100,7 +100,7 @@
                     <field name="number" length="4" type="integer" />
                     <reference name="length" type="word" />
                     <sequenceof name="identifier">
-                        <choice name="char:">
+                        <choice name="char">
                             <field name="null" length="8" value="0x0"><end-sequenceof/></field>
                             <field name="char" length="8" type="text" />
                         </choice>
@@ -142,14 +142,12 @@
             </choice>
         </sequenceof>
         <sequenceof name="data">
-            <choice name="byte:">
+            <choice name="byte">
                 <field name="eoi:" length="16" value="0xffd9" ><end-sequenceof /></field>
 
-                <sequence name="stuffed ff:">
-                    <!-- 'FF00' bytes should be handled as simply 'FF'. We match 0xFF by using
-                        a min & max, as we don't want having an 'expected value' to hide the value
-                        in the output (it's better that it appear just as a normal byte). -->
-                    <field name="byte" length="8" type="hex" min="0xff" max="0xff" />
+                <!-- 'FF00' bytes should be handled as simply 'FF'. -->
+                <sequence name="byte" value="255" >
+                    <field name="byte:" length="8" value="0xff" />
                     <field name="null:" length="8" value="0x0" />
                 </sequence>
                 <sequence name="restart marker">

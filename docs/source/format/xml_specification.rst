@@ -3,7 +3,7 @@
 Xml specification format
 ========================
 
-Bdec specifications are written in a xml markup format. The specification
+Bdec specifications are written in an xml markup format. The specification
 allows for many of the common (and not so common) features found in most
 binary file formats.
 
@@ -11,7 +11,7 @@ binary file formats.
 Protocol element
 ================
 
-The protocol element is the outer element in a specification.No attributes can
+The protocol element is the outer element in a specification. No attributes can
 be set within the protocol block. The protocol block can have two child 
 elements;
 

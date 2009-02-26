@@ -17,6 +17,7 @@ Choice entries can have up to two attributes.
 
   * A name (optional)
   * A length_ (optional)
+  * An :ref:`if <boolean-expression>` (optional)
 
 The choice must have multiple child entries specifying the different possible
 options (ie: :ref:`fields <format-field>`, :ref:`sequences <format-sequence>`,
@@ -31,10 +32,13 @@ options (ie: :ref:`fields <format-field>`, :ref:`sequences <format-sequence>`,
 Choice length
 -------------
 
-The choice :ref:`length <bdec-expressions>` is an optional value that specifies
-the number of bits the entry will contain. It is only used for validation; if
-the amount of data decoded by the successful option doesn't match the expected 
-length the choice will fail to decode.
+The choice :ref:`length <bdec-expressions>` is an optional attribute that
+specifies the number of bits the entry will contain. It is only used for
+validation; if the amount of data decoded by the successful option doesn't
+match the expected length the choice will fail to decode.
+
+The length value can reference other entries using
+:ref:`expressions <bdec-expressions>`.
 
 
 Examples

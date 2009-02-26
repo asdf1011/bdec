@@ -22,14 +22,16 @@
 #include "buffer.h"
 
 // Convert a buffer to a big endian integer
-int get_integer(BitBuffer* buffer);
+unsigned int get_integer(BitBuffer* buffer);
+unsigned long long get_long_integer(BitBuffer* buffer);
 
 // Both functions decode an integer from the buffer. There
 // must be enough data available.
-int decode_integer(BitBuffer* buffer, int num_bits);
-int decode_little_endian_integer(BitBuffer* buffer, int num_bits);
+unsigned int decode_integer(BitBuffer* buffer, int num_bits);
+unsigned long long decode_long_integer(BitBuffer* buffer, int num_bits);
+unsigned int decode_little_endian_integer(BitBuffer* buffer, int num_bits);
 
 // Helper function to print an xml escaped string
-void print_escaped_string(Buffer* text);
+void print_escaped_string(Text* text);
 
 #endif

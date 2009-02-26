@@ -1,8 +1,11 @@
+
 ----
 bdec
 ----
 
 'bdec', a set of tools for decoding binary files.
+
+.. contents::
 
 
 Overview
@@ -49,7 +52,7 @@ If you're just getting started, the tutorial_ takes you step by step through
 the different concepts used in bdec. Once you've got started, refere to the
 rest of the documentation_ as required.
 
-.. _documentation: docs
+.. _documentation: docs/
 .. _tutorial: docs/tutorial.html
 
 
@@ -122,6 +125,8 @@ Similar projects
 
 Some projects that perform 'generic' binary decoding include;
 
+* TSN.1_ - Commercial product with very similar decoding functionality to bdec.
+  Can create C, C++, and Java decoders and encoders.
 * Hachoir_ - Very powerful decoding library, where binary formats are specified
   in python code (using generators). Quite high level decoding, with complex
   binary files being decoded. Lots of file formats are specified (at least
@@ -135,6 +140,7 @@ Projects that generate decoders from high level specifications;
 * `Google protocol buffers`_ - Define file formats in an easy to read text
   specification, and compile them to Java, C++, or Python decoders and encoders.
 
+.. _TSN.1: http://www.protomatics.com/tsn1.html
 .. _Hachoir: http://hachoir.org/
 .. _Construct: http://construct.wikispaces.com/
 .. _Asn1c: http://lionet.info/asn1c/

@@ -1,4 +1,4 @@
-#   Copyright (C) 2008 Henry Ludemann
+#   Copyright (C) 2008-2009 Henry Ludemann
 #
 #   This file is part of the bdec decoder library.
 #
@@ -20,7 +20,9 @@
 import unittest
 
 import bdec.choice as chc
+from bdec.constraints import Equals, Minimum, Maximum
 import bdec.data as dt
+import bdec.expression as expr
 import bdec.field as fld
 import bdec.inspect.chooser as chsr
 import bdec.sequence as seq
@@ -72,8 +74,12 @@ class TestChooser(unittest.TestCase):
         self.assertEqual(1, len(result))
 
     def test_matching_sequence(self):
-        a = seq.Sequence("a", [fld.Field("unknown a", 8), fld.Field("blah", 8, expected=dt.Data('y'))])
-        b = seq.Sequence("b", [fld.Field("blah", 8, expected=dt.Data('z')), fld.Field("unknown b", 8)])
+        a = seq.Sequence("a", [
+            fld.Field("unknown a", 8),
+            fld.Field("blah", 8, constraints=[Equals(dt.Data('y'))])])
+        b = seq.Sequence("b", [
+            fld.Field("blah", 8, constraints=[Equals(dt.Data('z'))]),
+            fld.Field("unknown b", 8)])
         chooser = chsr.Chooser([a, b])
         self.assertEqual([b], chooser.choose(dt.Data("za")))
         # Note that 'b' shouldn't be possible, as 'a' must be successful
@@ -83,7 +89,7 @@ class TestChooser(unittest.TestCase):
     def test_short_matches_work(self):
         # There was a bug with where an option wouldn't be matched if a longer
         # option matched past the end of the shorter option.
-        a = fld.Field("a", 16, expected=dt.Data("yz"))
+        a = fld.Field("a", 16, constraints=[Equals(dt.Data("yz"))])
         b = fld.Field("b", 8)
         chooser = chsr.Chooser([a, b])
         self.assertEqual([b], chooser.choose(dt.Data("xa")))
@@ -93,8 +99,12 @@ class TestChooser(unittest.TestCase):
         #self.assertEqual([b], chooser.choose(dt.Data("y")))
 
     def test_choose_within_choice(self):
-        a = chc.Choice('a', [fld.Field('a1', 8, expected=dt.Data('a')), fld.Field('a2', 8, expected=dt.Data('A'))])
-        b = chc.Choice('b', [fld.Field('b1', 8, expected=dt.Data('b')), fld.Field('b2', 8, expected=dt.Data('B'))])
+        a = chc.Choice('a', [
+            fld.Field('a1', 8, constraints=[Equals(dt.Data('a'))]),
+            fld.Field('a2', 8, constraints=[Equals(dt.Data('A'))])])
+        b = chc.Choice('b', [
+            fld.Field('b1', 8, constraints=[Equals(dt.Data('b'))]),
+            fld.Field('b2', 8, constraints=[Equals(dt.Data('B'))])])
         chooser = chsr.Chooser([a, b])
         self.assertEqual([a], chooser.choose(dt.Data("a")))
         self.assertEqual([a], chooser.choose(dt.Data("A")))
@@ -107,8 +117,14 @@ class TestChooser(unittest.TestCase):
         # message identifier.
         initial = fld.Field('d', 8)
         common_choice = chc.Choice('common', [fld.Field('c1', 8), fld.Field('c2', 8)])
-        a = seq.Sequence("a", [initial, common_choice, fld.Field('a', 8, expected=dt.Data('a'))])
-        b = seq.Sequence("b", [initial, common_choice, fld.Field('b', 8, expected=dt.Data('b'))])
+        a = seq.Sequence("a", [
+            initial,
+            common_choice,
+            fld.Field('a', 8, constraints=[Equals(dt.Data('a'))])])
+        b = seq.Sequence("b", [
+            initial,
+            common_choice,
+            fld.Field('b', 8, constraints=[Equals(dt.Data('b'))])])
 
         chooser = chsr.Chooser([a, b])
         self.assertEqual([a], chooser.choose(dt.Data("xya")))
@@ -116,8 +132,12 @@ class TestChooser(unittest.TestCase):
         self.assertEqual([], chooser.choose(dt.Data("xyc")))
 
     def test_choice_in_choice(self):
-        alpha = chc.Choice('alpha', [fld.Field('a', 8, expected=dt.Data('a')), fld.Field('b', 8, expected=dt.Data('b'))])
-        num = chc.Choice('num', [fld.Field('1', 8, expected=dt.Data('1')), fld.Field('2', 8, expected=dt.Data('2'))])
+        alpha = chc.Choice('alpha', [
+            fld.Field('a', 8, constraints=[Equals(dt.Data('a'))]),
+            fld.Field('b', 8, constraints=[Equals(dt.Data('b'))])])
+        num = chc.Choice('num', [
+            fld.Field('1', 8, constraints=[Equals(dt.Data('1'))]),
+            fld.Field('2', 8, constraints=[Equals(dt.Data('2'))])])
         alphanum = chc.Choice('alphanum', [alpha, num])
         other = fld.Field('other', 8)
         chooser = chsr.Chooser([alphanum, other])
@@ -130,8 +150,8 @@ class TestChooser(unittest.TestCase):
         # to offer them as a choice of fields with a min and max value (eg:
         # for pdf 'names' only certain characters are valid). It would be
         # good to differentiate on these.
-        a = fld.Field("a", 8, min=0x10, max=0x20)
-        b = fld.Field("b", 8, min=0x25, max=0x35)
+        a = fld.Field("a", 8, constraints=[Minimum(0x10), Maximum(0x20)])
+        b = fld.Field("b", 8, constraints=[Minimum(0x25), Maximum(0x35)])
         chooser = chsr.Chooser([a, b])
         self.assertEqual([], chooser.choose(dt.Data("\x0f")))
         self.assertEqual([a], chooser.choose(dt.Data("\x10")))
@@ -142,7 +162,7 @@ class TestChooser(unittest.TestCase):
     def test_ignores_later_options_when_option_fully_decodes(self):
         # If we get an option that we believe fully decodes, don't list any items
         # lower in the priority chain as potentials.
-        a = fld.Field("a", 8, expected=dt.Data('\x00'))
+        a = fld.Field("a", 8, constraints=[Equals(dt.Data('\x00'))])
         b = fld.Field("b", 8)
         chooser = chsr.Chooser([a, b])
         self.assertEqual([a], chooser.choose(dt.Data("\x00")))
@@ -160,8 +180,8 @@ class TestChooser(unittest.TestCase):
         self.assertEqual([a], chooser.choose(dt.Data("abcd")))
 
     def test_range_choice(self):
-        a = fld.Field('a', 8, min=48, max=57)
-        b = fld.Field('b', 8, expected=dt.Data('['))
+        a = fld.Field('a', 8, constraints=[Minimum(48), Maximum(57)])
+        b = fld.Field('b', 8, constraints=[Equals(dt.Data('['))])
         chooser = chsr.Chooser([a, b])
         self.assertEqual([a], chooser.choose(dt.Data("0")))
         self.assertEqual([b], chooser.choose(dt.Data("[")))
@@ -169,10 +189,12 @@ class TestChooser(unittest.TestCase):
     def test_scaling_of_embedded_choice(self):
         # There was a problem where choosing between items that had multiple 
         # embedded choice items didn't scale.
-        char = chc.Choice('character', [fld.Field('lowercase', 8, min=97, max=122), fld.Field('uppercase', 8, min=65, max=90)])
+        lowercase = fld.Field('lowercase', 8, constraints=[Minimum(97), Maximum(122)])
+        uppercase = fld.Field('uppercase', 8, constraints=[Minimum(65), Maximum(90)])
+        char = chc.Choice('character', [lowercase, uppercase])
         text = seq.Sequence('text', [char, char, char, char, char])
 
-        a = seq.Sequence('a', [fld.Field('a type', 16, expected=dt.Data("BC")), text, text, text, text])
+        a = seq.Sequence('a', [fld.Field('a type', 16, constraints=[Equals(dt.Data("BC"))]), text, text, text, text])
         b = seq.Sequence('b', [fld.Field('b type', 16), text, text, text, text])
         chooser = chsr.Chooser([a, b])
         self.assertEqual([a], chooser.choose(dt.Data('BC' + 'a' * 20)))
@@ -185,13 +207,47 @@ class TestChooser(unittest.TestCase):
             fld.Field('a1', 8),
             fld.Field('a2', 0),
             fld.Field('a3', 8),
-            fld.Field('a4',  8, expected=dt.Data('a'))])
+            fld.Field('a4',  8, constraints=[Equals(dt.Data('a'))])])
         b = seq.Sequence('b',  [
             fld.Field('b1', 16),
-            fld.Field('b2', 8, expected=dt.Data('b'))])
+            fld.Field('b2', 8, constraints=[Equals(dt.Data('b'))])])
         c = fld.Field('c', 8)
         chooser = chsr.Chooser([a, b, c])
         self.assertEqual([a], chooser.choose(dt.Data('xxax')))
         self.assertEqual([b], chooser.choose(dt.Data('xxbx')))
         self.assertEqual([c], chooser.choose(dt.Data('xxcx')))
 
+    def test_sequence_with_equality_constraint(self):
+        # There was a bug where a sequence without children, but with
+        # constraints, would be reported in the 'successful' list instead of
+        # the 'possible' list.
+        #
+        #   <field name='a' length='8' />
+        #   <choice name='b'>
+        #      <sequence name='b1' value='${a}' expected='1' />
+        #      <field name='b2' length="8" />
+        #   </choice>
+        b1 = seq.Sequence('b1', [], value=expr.ValueResult('a'),
+                constraints=[Equals(1)])
+        b2 = fld.Field('b2', length=8)
+        chooser = chsr.Chooser([b1, b2])
+        self.assertEqual([b1, b2], chooser.choose(dt.Data('x')))
+
+    def test_sequence_with_minimum_constraint(self):
+        # Tests for correctly choosing when we have a 'minimum' constraint
+        b1 = seq.Sequence('b1', [], value=expr.ValueResult('a'),
+                constraints=[Minimum(1)])
+        b2 = fld.Field('b2', length=8)
+        chooser = chsr.Chooser([b1, b2])
+        self.assertEqual([b1, b2], chooser.choose(dt.Data('x')))
+
+    def test_not_enough_data_for_any_option(self):
+        a = seq.Sequence('a', [
+            fld.Field('a1', length=8),
+            fld.Field('a2', length=8, constraints=[Equals(dt.Data('\x00'))])])
+        b = seq.Sequence('b', [
+            fld.Field('b1', length=8),
+            fld.Field('b2', length=8, constraints=[Equals(dt.Data('\x01'))])])
+        c = seq.Sequence('c', [])
+        chooser = chsr.Chooser([a, b, c])
+        self.assertEqual([c], chooser.choose(dt.Data('', 0, 0)))

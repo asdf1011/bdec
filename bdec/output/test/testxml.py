@@ -20,6 +20,7 @@
 import unittest
 
 import bdec.choice as chc
+from bdec.constraints import Equals
 import bdec.data as dt
 import bdec.entry as ent
 import bdec.field as fld
@@ -50,8 +51,8 @@ class TestXml(unittest.TestCase):
         self.assertEqual("\x05\x12", data.bytes())
 
     def test_choice_encode(self):
-        a = fld.Field('a', 8, expected=dt.Data('a'))
-        b = fld.Field('b', 8, expected=dt.Data('b'))
+        a = fld.Field('a', 8, constraints=[Equals(dt.Data('a'))])
+        b = fld.Field('b', 8, constraints=[Equals(dt.Data('b'))])
         choice = chc.Choice('blah', [a, b])
         text = "<b />"
         data = reduce(lambda a,b:a+b, xml.encode(choice, text))
@@ -86,16 +87,22 @@ class TestXml(unittest.TestCase):
         self.assertEqual("  bob   ", data.bytes())
 
     def test_nameless_entry(self):
-        hidden = fld.Field('', 8, fld.Field.INTEGER, expected=dt.Data('\x00'))
+        hidden = fld.Field('', 8, fld.Field.INTEGER, constraints=[Equals(0)])
         spec = seq.Sequence('blah', [hidden])
         text = xml.to_string(spec, dt.Data('\x00'))
-        self.assertEqual('<blah>\n</blah>\n', text)
+        self.assertEqual('<blah></blah>\n', text)
 
     def test_verbose_nameless_entry(self):
-        hidden = fld.Field('', 8, fld.Field.INTEGER, expected=dt.Data('\x00'))
+        hidden = fld.Field('', 8, fld.Field.INTEGER, constraints=[Equals(0)])
         spec = seq.Sequence('blah', [hidden])
         text = xml.to_string(spec, dt.Data('\x00'), verbose=True)
-        self.assertEqual('<blah>\n    <_hidden>0<!-- hex (1 bytes): 00 --></_hidden>\n</blah>\n', text)
+        self.assertEqual('<blah>\n    <_hidden><!-- hex (1 bytes): 00 --></_hidden>\n</blah>\n', text)
+
+    def test_field_with_expected_value(self):
+        a = fld.Field('a', 8, fld.Field.INTEGER, constraints=[Equals(0)])
+        spec = seq.Sequence('blah', [a])
+        text = xml.to_string(spec, dt.Data('\x00'))
+        self.assertEqual('<blah>\n    <a></a>\n</blah>\n', text)
 
     def test_different_child_name(self):
         digit = fld.Field('digit:', length=8)
@@ -103,4 +110,9 @@ class TestXml(unittest.TestCase):
         header = seq.Sequence('header', [ent.Child('length', number), fld.Field('data', length=expr.compile('${length} * 8'), format=fld.Field.TEXT)])
         text = xml.to_string(header, dt.Data('5abcde'))
         self.assertEqual('<header>\n    <length>5</length>\n    <data>abcde</data>\n</header>\n', text)
+
+    def test_sequence_with_children_and_value(self):
+        a = seq.Sequence('a', [fld.Field('b', length=8, format=fld.Field.INTEGER)], value=expr.compile('11'))
+        text = xml.to_string(a, dt.Data('\xff'))
+        self.assertEqual('<a>\n    <b>255</b>\n    11\n</a>\n', text)
 

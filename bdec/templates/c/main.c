@@ -1,3 +1,4 @@
+## vim:set syntax=mako:
 /*  Copyright (C) 2008 Henry Ludemann
 
     This file is part of the bdec decoder library.
@@ -49,14 +50,18 @@ int main(int argc, char* argv[])
     fseek(datafile, 0, SEEK_SET);
 
     /* Load the data file into memory */
-    unsigned char* data = malloc(length);
+    unsigned char* data = (unsigned char*)malloc(length);
     fread(data, length, 1, datafile);
     fclose(datafile);
 
     /* Attempt to decode the file */
     BitBuffer buffer = {data, 0, length * 8};
+  %if contains_data(protocol):
     ${settings.ctype(protocol)} result;
     if (!${settings.decode_name(protocol)}(&buffer, &result))
+  %else:
+    if (!${settings.decode_name(protocol)}(&buffer))
+  %endif
     {
         /* Decode failed! */
         fprintf(stderr, "Decode failed!\n");
@@ -65,8 +70,12 @@ int main(int argc, char* argv[])
     }
 
     /* Print the decoded data */
-    ${settings.print_name(protocol)}(&result, 0, "${protocol.name}");
+  %if contains_data(protocol):
+    ${settings.print_name(protocol)}(&result, 0, "${protocol.name | xmlname}");
     ${settings.free_name(protocol)}(&result);
+  %else:
+    ${settings.print_name(protocol)}(0, "${protocol.name | xmlname}");
+  %endif:
     free(data);
     return 0;
 }

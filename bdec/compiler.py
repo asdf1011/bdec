@@ -29,6 +29,7 @@ import pkg_resources
 import sys
 
 import bdec.choice as chc
+import bdec.entry as ent
 import bdec.inspect.param as prm
 import bdec.output.xmlout
 
@@ -81,28 +82,50 @@ def _generate_template(output_dir, filename, lookup, template):
 
 
 class _EntryInfo(prm.CompoundParameters):
-    def __init__(self, utils, entries):
+    def __init__(self, utils, params):
         self._utils = utils
-        queries = []
-        queries.append(prm.ResultParameters(entries))
-        queries.append(prm.ExpressionParameters(entries))
-        queries.append(prm.EndEntryParameters(entries))
-        prm.CompoundParameters.__init__(self, queries)
+        prm.CompoundParameters.__init__(self, params)
+
+    def _get_name_map(self, entry):
+        """Map an unescaped name to an escaped 'local' name."""
+        # We escape the parameter names first to give them the first change of
+        # getting the name they want.
+        param_names = [param.name for param in prm.CompoundParameters.get_params(self, entry)]
+        local_names = [local.name for local in prm.CompoundParameters.get_locals(self, entry)]
+        param_escaped = self._utils.esc_names(param_names, self._utils.variable_name)
+        local_escaped = self._utils.esc_names(local_names, self._utils.variable_name, param_escaped)
+
+        return dict(zip(param_names + local_names, param_escaped + local_escaped))
+
+    def get_local_name(self, entry, name):
+        """Map an unescaped name to the 'local' variable name.
+
+        This may be stored as a local or a variable."""
+        return self._get_name_map(entry)[name]
 
     def get_locals(self, entry):
+        # We don't to have a local that has the same name as the parent, so we
+        # escape the name with respect to the parameter names. We can get
+        # similar names for references with constraints (see the 060 sequence
+        # with constraint xml regression test).
+        names = self._get_name_map(entry)
         for local in prm.CompoundParameters.get_locals(self, entry):
-            name = self._utils.variable_name(local.name)
-            yield prm.Local(name, local.type)
+            yield prm.Local(names[local.name], local.type)
 
     def get_params(self, entry):
+        names = self._get_name_map(entry)
         for param in prm.CompoundParameters.get_params(self, entry):
-            name = self._utils.variable_name(param.name)
-            yield prm.Param(name, param.direction, param.type)
+            yield prm.Param(names[param.name], param.direction, param.type)
             
     def get_passed_variables(self, entry, child):
+        names = self._get_name_map(entry)
         for param in prm.CompoundParameters.get_passed_variables(self, entry, child):
-            name = self._utils.variable_name(param.name)
+            if param.name == 'unknown':
+                name = param.name
+            else:
+                name = names[param.name]
             yield prm.Param(name, param.direction, param.type)
+
 
 class _Settings:
     _REQUIRED_SETTINGS = ['keywords']
@@ -200,26 +223,37 @@ class _Utils:
                 for entry in self.iter_optional_common(child.entry):
                     yield entry
 
-    def esc_names(self, names, escape):
+    def esc_names(self, names, escape, forbidden=[]):
         """Return a list of unique escaped names.
 
         names -- The names to escape.
         escape -- A function to call to escape the name.
+        forbidden -- A list of names that shouldn't be used.
         return -- A list of unique names (of the same size as the input names).
         """
-        names = list(names)
+        names = list(self.esc_name(name) for name in names)
+
+        # Get a simple count of the escaped names, to test if we are expecting
+        # collisions for a given name. If we are expecting collisions, we will
+        # postfix the name with a number.
+        name_count = {}
+        for name in names:
+            name = escape(name)
+            name_count[name] = name_count.get(name, 0) + 1
+
         result = []
         for name in names:
-            name = self.esc_name(name)
-            count = None
+            count = None if name_count[escape(name)] == 1 else 0
             while 1:
                 if count is None:
+                    # We aren't expecting collisions, but may get them anyway,
+                    # so set the 'count' to zero.
                     escaped = escape(name)
                     count = 0
                 else:
                     escaped = escape('%s %i' % (name, count))
                     count += 1
-                if escaped not in result:
+                if escaped not in result and escaped not in forbidden:
                     # We found a unique escaped name
                     result.append(escaped)
                     break
@@ -301,24 +335,34 @@ def generate_code(spec, language, output_dir, common_entries=[]):
     data_checker = prm.DataChecker(entries)
     lookup['settings'] = _Settings.load(language, lookup)
     utils = _Utils(entries, lookup['settings'])
-    info = _EntryInfo(utils, entries)
+
+    params = prm.CompoundParameters([
+        prm.ResultParameters(entries),
+        prm.ExpressionParameters(entries),
+        prm.EndEntryParameters(entries),
+        ])
+    info = _EntryInfo(utils, [params])
+
     lookup['protocol'] = spec
     lookup['common'] = entries
     lookup['esc_name'] = utils.esc_name
     lookup['esc_names'] = utils.esc_names
     lookup['get_params'] = info.get_params
+    lookup['raw_params'] = params
     lookup['get_passed_variables'] = info.get_passed_variables
     lookup['is_end_sequenceof'] = info.is_end_sequenceof
+    lookup['is_hidden'] = ent.is_hidden
     lookup['is_value_referenced'] = info.is_value_referenced
     lookup['is_length_referenced'] = info.is_length_referenced
     lookup['is_recursive'] = utils.is_recursive
-    lookup['child_contains_data'] = lambda child: data_checker.child_has_data(child)
-    lookup['contains_data'] = lambda entry: data_checker.contains_data(entry)
+    lookup['child_contains_data'] = data_checker.child_has_data
+    lookup['contains_data'] = data_checker.contains_data
     lookup['iter_inner_entries'] = utils.iter_inner_entries
     lookup['iter_required_common'] = utils.iter_required_common
     lookup['iter_optional_common'] = utils.iter_optional_common
     lookup['iter_entries'] = utils.iter_entries
     lookup['local_vars'] = info.get_locals
+    lookup['local_name'] = info.get_local_name
     lookup['constant'] = utils.constant_name
     lookup['filename'] = utils.filename
     lookup['function'] = utils.variable_name
@@ -332,5 +376,6 @@ def generate_code(spec, language, output_dir, common_entries=[]):
     for filename, template in entry_templates:
         for entry in entries:
             lookup['entry'] = entry
-            _generate_template(output_dir, utils.filename(filename.replace('source', entry.name)), lookup, template)
+            extension = os.path.splitext(filename)[1]
+            _generate_template(output_dir, utils.filename(entry.name) + extension, lookup, template)
 

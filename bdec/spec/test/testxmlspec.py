@@ -1,4 +1,4 @@
-#   Copyright (C) 2008 Henry Ludemann
+#   Copyright (C) 2008-2009 Henry Ludemann
 #
 #   This file is part of the bdec decoder library.
 #
@@ -22,6 +22,7 @@ import unittest
 
 import bdec
 import bdec.choice as chc
+from bdec.constraints import ConstraintError, Equals
 import bdec.data as dt
 import bdec.entry as ent
 import bdec.expression as expr
@@ -40,7 +41,7 @@ class TestXml(unittest.TestCase):
         self.assertEqual("bob", decoder.name)
         items = list(decoder.decode(dt.Data.from_hex("7a")))
         self.assertEqual(2, len(items))
-        self.assertEqual("01111010", items[1][4])
+        self.assertEqual("01111010", str(items[1][4]))
 
     def test_simple_text_field(self):
         text = """<protocol><field name="bob" length="8" type="text" /></protocol>"""
@@ -65,14 +66,14 @@ class TestXml(unittest.TestCase):
         self.assertEqual("dog", decoder.children[1].name)
         items = list(value for is_starting, name, entry, data, value in decoder.decode(dt.Data.from_hex("7fac")) if not is_starting)
         self.assertEqual(3, len(items))
-        self.assertEqual("7f", items[0])
+        self.assertEqual("7f", str(items[0]))
         self.assertEqual(172, items[1])
 
     def test_bad_expected_value(self):
         text = """<protocol><field name="bob" length="8" value="0xa0" /></protocol>"""
         decoder = xml.loads(text)[0]
         self.assertEqual("bob", decoder.name)
-        self.assertRaises(fld.BadDataError, lambda: list(decoder.decode(dt.Data.from_hex("7a"))))
+        self.assertRaises(ConstraintError, lambda: list(decoder.decode(dt.Data.from_hex("7a"))))
 
     def test_choice(self):
         text = """
@@ -88,7 +89,7 @@ class TestXml(unittest.TestCase):
         self.assertEqual("dog", decoder.children[1].name)
         items = list(value for is_starting, name, entry, data, value in decoder.decode(dt.Data.from_hex("7fac")) if not is_starting)
         self.assertEqual(2, len(items))
-        self.assertEqual("7f", items[0])
+        self.assertEqual("7f", str(items[0]))
 
     def test_sequence_of(self):
         text = """
@@ -102,8 +103,8 @@ class TestXml(unittest.TestCase):
         self.assertEqual("cat", decoder.children[0].name)
         items = list(value for is_starting, name, entry, data, value in decoder.decode(dt.Data.from_hex("7fac")) if not is_starting)
         self.assertEqual(3, len(items))
-        self.assertEqual("7f", items[0])
-        self.assertEqual("ac", items[1])
+        self.assertEqual("7f", str(items[0]))
+        self.assertEqual("ac", str(items[1]))
 
     def test_non_whole_byte_expected_value(self):
         text = """<protocol><field name="bob" length="1" value="0x0" /></protocol>"""
@@ -111,7 +112,7 @@ class TestXml(unittest.TestCase):
         self.assertEqual("bob", decoder.name)
         result = list(decoder.decode(dt.Data.from_hex("7a")))
         self.assertEqual(2, len(result))
-        self.assertEqual(0, int(result[1][2]))
+        self.assertEqual(0, int(result[1][3]))
 
     def test_common(self):
         text = """<protocol> <common> <field name="bob" length="8" /> </common> <reference name="bob" /> </protocol>"""
@@ -120,7 +121,7 @@ class TestXml(unittest.TestCase):
         self.assertEqual(8, decoder.length.value)
         result = list(decoder.decode(dt.Data.from_hex("7a")))
         self.assertEqual(2, len(result))
-        self.assertEqual(0x7a, int(result[1][2]))
+        self.assertEqual(0x7a, int(result[1][3]))
 
     def test_common_item_references_another(self):
         text = """
@@ -138,7 +139,7 @@ class TestXml(unittest.TestCase):
         self.assertEqual("rabbit", decoder.name)
         result = list(decoder.decode(dt.Data.from_hex("7a")))
         self.assertEqual(4, len(result))
-        self.assertEqual(0x7a, int(result[2][2]))
+        self.assertEqual(0x7a, int(result[2][3]))
 
     def test_expression_references_field(self):
         text = """
@@ -152,6 +153,23 @@ class TestXml(unittest.TestCase):
         result = list(value for is_starting, name, entry, data, value in decoder.decode(dt.Data("\x05hello")) if not is_starting)
         self.assertEqual(3, len(result))
         self.assertEqual("hello", result[1])
+
+    def test_failure_when_referencing_sequenceof(self):
+        text = """
+            <protocol>
+                <sequence name="rabbit">
+                    <sequenceof name="length:" count="1" type="integer" >
+                        <field name="cat" length="8" />
+                    </sequenceof>
+                    <field name="bob" length="${length:} * 8" type="text" />
+                </sequence>
+            </protocol>"""
+        try:
+            xml.loads(text)
+            raise Exception('Exception not thrown!')
+        except bdec.spec.LoadError, ex:
+            print str(ex)
+            self.assertTrue("Can't reference " in str(ex))
 
     def test_expression_references_sub_field(self):
         text = """
@@ -280,8 +298,8 @@ class TestXml(unittest.TestCase):
            </protocol>
            """
         protocol = xml.loads(text)[0]
-        self.assertRaises(fld.BadRangeError, list, protocol.decode(dt.Data('\x03')))
-        self.assertRaises(fld.BadRangeError, list, protocol.decode(dt.Data('\x10')))
+        self.assertRaises(ConstraintError, list, protocol.decode(dt.Data('\x03')))
+        self.assertRaises(ConstraintError, list, protocol.decode(dt.Data('\x10')))
         self.assertEqual(4, list(protocol.decode(dt.Data('\x04')))[1][4])
         self.assertEqual(15, list(protocol.decode(dt.Data('\x0f')))[1][4])
 
@@ -407,7 +425,7 @@ class TestXml(unittest.TestCase):
                     <sequence name="array">
                         <field name="opener" length="8" value="0x5b" />
                         <sequenceof name="values">
-                            <choice name="entry:">
+                            <choice name="entry">
                                 <field name="closer" length="8" value="0x5d"><end-sequenceof /></field>
                                 <reference name="object" />
                             </choice>
@@ -425,14 +443,14 @@ class TestXml(unittest.TestCase):
         protocol = xml.loads(text)[0]
         data = dt.Data("[12[34[56]7]8]unused")
         result = inst.decode(protocol, data)
-        self.assertEqual("1", result.object.array.values[0].integer)
-        self.assertEqual("2", result.object.array.values[1].integer)
-        self.assertEqual("3", result.object.array.values[2].array.values[0].integer)
-        self.assertEqual("4", result.object.array.values[2].array.values[1].integer)
-        self.assertEqual("5", result.object.array.values[2].array.values[2].array.values[0].integer)
-        self.assertEqual("6", result.object.array.values[2].array.values[2].array.values[1].integer)
-        self.assertEqual("7", result.object.array.values[2].array.values[3].integer)
-        self.assertEqual("8", result.object.array.values[3].integer)
+        self.assertEqual("1", result.array.values[0].object.integer)
+        self.assertEqual("2", result.array.values[1].object.integer)
+        self.assertEqual("3", result.array.values[2].object.array.values[0].object.integer)
+        self.assertEqual("4", result.array.values[2].object.array.values[1].object.integer)
+        self.assertEqual("5", result.array.values[2].object.array.values[2].object.array.values[0].object.integer)
+        self.assertEqual("6", result.array.values[2].object.array.values[2].object.array.values[1].object.integer)
+        self.assertEqual("7", result.array.values[2].object.array.values[3].object.integer)
+        self.assertEqual("8", result.array.values[3].object.integer)
         self.assertEqual("unused", data.bytes())
 
     def test_all_entries_in_lookup_tree(self):
@@ -455,7 +473,7 @@ class TestXml(unittest.TestCase):
                 </sequence>
             </protocol>
             """
-        protocol, lookup, common = xml.loads(text)
+        protocol, common, lookup = xml.loads(text)
         entries = [protocol]
         names = set()
         while entries:
@@ -476,7 +494,7 @@ class TestXml(unittest.TestCase):
                 <field name="b value" length="${a} * 8" type="integer" />
              </sequence>
           </protocol> """
-        protocol, lookup, common = xml.loads(text)
+        protocol, common, lookup = xml.loads(text)
         items = [value for is_starting, name, entry, entry_data, value in protocol.decode(dt.Data("\x01\x07"))]
         self.assertEqual(1, items[2])
         self.assertEqual(7, items[4])
@@ -500,7 +518,7 @@ class TestXml(unittest.TestCase):
                 <reference name="dog" />
             </protocol>
             """
-        protocol, lookup, common = xml.loads(text)
+        protocol, common, lookup = xml.loads(text)
         for is_starting, name, entry, entry_data, value in protocol.decode(dt.Data('a')):
             if not is_starting and entry.name == "length":
                 result = value
@@ -521,7 +539,7 @@ class TestXml(unittest.TestCase):
                 <reference name="null terminating string:" />
             </protocol>
             """
-        protocol, lookup, common = xml.loads(text)
+        protocol, common, lookup = xml.loads(text)
         data = dt.Data('rabbit\0legs')
         result = ""
         for is_starting, name, entry, entry_data, value in protocol.decode(data):
@@ -650,22 +668,247 @@ class TestXml(unittest.TestCase):
         self.assertEqual('length', items[5][0])
         self.assertEqual(98, items[5][1])
 
+    def test_sequence_expected_value(self):
+        text = '''
+           <protocol>
+               <sequence name="a" value="${b} + ${c}" expected="7" >
+                   <field name="b" length="8" />
+                   <field name="c" length="8" />
+               </sequence>
+           </protocol>
+           '''
+        a = xml.loads(text)[0]
+        list(a.decode(dt.Data('\x02\x05')))
+        list(a.decode(dt.Data('\x07\x00')))
+        self.assertRaises(ConstraintError, list, a.decode(dt.Data('\x05\x01')))
+        self.assertRaises(ConstraintError, list, a.decode(dt.Data('\x02\x06')))
+
+    def test_sequence_minimum_value(self):
+        text = '''
+           <protocol>
+               <sequence name="a" value="${b} + ${c}" min="7" >
+                   <field name="b" length="8" />
+                   <field name="c" length="8" />
+               </sequence>
+           </protocol>
+           '''
+        a = xml.loads(text)[0]
+        list(a.decode(dt.Data('\x06\x02')))
+        list(a.decode(dt.Data('\x03\x04')))
+        self.assertRaises(ConstraintError, list, a.decode(dt.Data('\x03\x03')))
+        self.assertRaises(ConstraintError, list, a.decode(dt.Data('\x00\x06')))
+
+    def test_sequence_maximum_value(self):
+        text = '''
+           <protocol>
+               <sequence name="a" value="${b} + ${c}" max="7" >
+                   <field name="b" length="8" />
+                   <field name="c" length="8" />
+               </sequence>
+           </protocol>
+           '''
+        a = xml.loads(text)[0]
+        list(a.decode(dt.Data('\x06\x01')))
+        list(a.decode(dt.Data('\x01\x01')))
+        self.assertRaises(ConstraintError, list, a.decode(dt.Data('\x08\x00')))
+        self.assertRaises(ConstraintError, list, a.decode(dt.Data('\x03\x09')))
+
+    def test_reference_expected_value(self):
+        text = '''
+            <protocol>
+                <sequence name="a">
+                   <reference name="id" type="dword" expected="18" />
+                   <reference name="length" type="dword" />
+                   <field name="data" length="${length} * 8" type="hex" />
+                </sequence>
+
+                <common>
+                    <field name="dword" type="integer" length="32" />
+                </common>
+            </protocol>
+            '''
+        a = xml.loads(text)[0]
+        list(a.decode(dt.Data('\x00\x00\x00\x12\x00\x00\x00\x04data')))
+        self.assertRaises(ConstraintError, list, a.decode(dt.Data('\x00\x00\x00\x13\x00\x00\x00\x04data')))
+
+    def test_signed_char(self):
+        text = '''
+            <protocol>
+              <field name="a" length="8" type="signed integer" />
+            </protocol>
+            '''
+        a = xml.loads(text)[0]
+        data = dt.Data('\xff')
+        items = list((name, value) for is_starting, name, entry, data, value in a.decode(data) if not is_starting)
+        self.assertEqual(3, len(items))
+        self.assertEqual(-1, items[-1][1])
+
+    def test_error_when_little_endian_non_multiple_of_eight(self):
+        text = '''
+            <protocol>
+              <field name="a" length="10" type="signed integer" encoding="little endian" />
+            </protocol>
+            '''
+        self.assertRaises(xml.XmlError, xml.loads, text)
+
+    def test_signed_litte_endian(self):
+        text = '''
+            <protocol>
+              <field name="a" length="16" type="signed integer" encoding="little endian" />
+            </protocol>
+            '''
+        a = xml.loads(text)[0]
+        items = list((name, value) for is_starting, name, entry, data, value in a.decode(dt.Data('\xff\xff')) if not is_starting)
+        self.assertEqual(-1, items[-1][1])
+
+        items = list((name, value) for is_starting, name, entry, data, value in a.decode(dt.Data('\x01\x00')) if not is_starting)
+        self.assertEqual(1, items[-1][1])
+
+    def test_variable_length_signed_little_endian(self):
+        text = '''
+            <protocol>
+              <sequence name="a">
+                  <field name="length:" length="8" />
+                  <field name="b" length="${length:} * 8" type="signed integer" encoding="little endian" />
+              </sequence>
+            </protocol>
+            '''
+        a = xml.loads(text)[0]
+        data = dt.Data('\x02\xff\xff')
+        items = list((name, value) for is_starting, name, entry, data, value in a.decode(data) if not is_starting)
+        self.assertEqual(0, len(data))
+        self.assertEqual(-1, items[-2][1])
+
+        data = dt.Data('\x04\x01\x00\x00\x00')
+        items = list((name, value) for is_starting, name, entry, data, value in a.decode(data) if not is_starting)
+        self.assertEqual(0, len(data))
+        self.assertEqual(1, items[-2][1])
+
+    def test_optional_entry(self):
+        # Test loading an optional entry
+        text = '''
+            <protocol>
+                <sequence name="a">
+                    <field name="has footer" length="8" />
+                    <field name="data" length="8" />
+                    <field name="footer" length="8" if="${has footer} > 0" />
+                </sequence>
+            </protocol>'''
+        a = xml.loads(text)[0]
+
+        print xml.save(a)
+        # Test decoding without a footer
+        list(a.decode(dt.Data('\x00\x00')))
+
+        # Test decoding with a footer
+        data = dt.Data('\x01\x00\x00')
+        list(a.decode(data))
+        self.assertEqual(0, len(data))
+        self.assertRaises(ConstraintError, list, a.decode(dt.Data('\x01\x00')))
+
+    def test_references_in_optional_entry(self):
+        # Test that references are correctly resolved when they are in an
+        # optional entry (issue196).
+        text = '''
+            <protocol>
+                <sequence name="a">
+                   <field name="exists:" length="8" />
+                   <sequence name="b" if="${exists:}" >
+                       <reference name="value" type="int32" />
+                   </sequence>
+                </sequence>
+
+                <common>
+                   <field name="int32" length="32" type="signed integer" />
+                </common>
+            </protocol>'''
+        a = xml.loads(text)[0]
+
+        # Test decoding when it isn't present
+        data = dt.Data('\x00')
+        list(a.decode(data))
+        self.assertEqual(0, len(data))
+
+        # Test decoding when it is present
+        data = dt.Data('\x01\x00\x00\x00\x01')
+        list(a.decode(data))
+        self.assertEqual(0, len(data))
+
+    def test_expression_references_unknown_entry(self):
+        text = '''
+            <protocol>
+                <sequence name="a">
+                    <field name="b" length="${c}" />
+                </sequence>
+            </protocol>'''
+        try:
+            xml.loads(text)
+        except xml.XmlExpressionError, ex:
+            self.assertEqual("<string>[4]: Expression error - binary 'b' " \
+                    "(big endian) references unknown entry 'c'!" , str(ex))
+
+    def test_conditional_reference(self):
+        text = '''
+            <protocol>
+                <sequence name="a">
+                    <field name="footer present:" length="8" />
+                    <reference name="footer" if="${footer present:}" />
+                </sequence>
+
+                <common>
+                    <sequence name="footer">
+                        <field name="b" length="8" type="integer" />
+                    </sequence>
+                </common>
+            </protocol>'''
+        spec = xml.loads(text)[0]
+        data = dt.Data('\x00')
+        list(spec.decode(data))
+        self.assertEquals(0, len(data))
+        self.assertRaises(bdec.DecodeError, list, spec.decode(dt.Data('\x01')))
+        data = dt.Data('\x01a')
+        list(spec.decode(data))
+
+    def test_correct_error_location(self):
+        text = '''
+            <protocol>
+                <sequence name="a">
+                    <field name="footer present:" length="8" />
+                    <reference name="footer" if="${footer present:}" />
+                </sequence>
+
+                <common>
+                    <sequence name="footer">
+                        <field name="b" length="8" type="integer" />
+                    </sequence>
+                </common>
+            </protocol>'''
+        spec, common, lookup = xml.loads(text)
+        self.assertEqual(3, lookup[spec][1])
+        self.assertEqual(9, lookup[common['footer']][1])
+
+
 class TestSave(unittest.TestCase):
+    """Test decoding of the xml save functionality.
+
+    This is the functionality that can create an xml specification from an
+    in-memory representation."""
+
     def test_simple_field(self):
         a = fld.Field('a', length=8)
-        assert_xml_equivalent(xml.save(a), '<protocol><field name="a" length="8" /></protocol>')
+        assert_xml_equivalent('<protocol><field name="a" length="8" /></protocol>', xml.save(a))
 
     def test_field_expected_value(self):
-        a = fld.Field('a', length=8, expected=dt.Data('\x63'))
+        a = fld.Field('a', length=8, constraints=[Equals(dt.Data('\x63'))])
         assert_xml_equivalent('<protocol><field name="a" length="8" value="0x63" /></protocol>', xml.save(a))
 
     def test_text_field(self):
         a = fld.Field('a', format=fld.Field.TEXT, length=32)
-        assert_xml_equivalent(xml.save(a), '<protocol><field name="a" type="text" length="4 * 8" /></protocol>')
+        assert_xml_equivalent('<protocol><field name="a" type="text" length="4 * 8" /></protocol>', xml.save(a))
 
     def test_text_field_with_expected_value(self):
-        a = fld.Field('a', format=fld.Field.TEXT, length=32, expected=dt.Data('abcd'))
-        assert_xml_equivalent(xml.save(a), '<protocol><field name="a" type="text" length="4 * 8" value="abcd" /></protocol>')
+        a = fld.Field('a', format=fld.Field.TEXT, length=32, constraints=[Equals('abcd')])
+        assert_xml_equivalent('<protocol><field name="a" type="text" length="4 * 8" value="abcd" /></protocol>', xml.save(a))
 
     def test_sequence(self):
         a = seq.Sequence('a', [fld.Field('b', length=8)])
@@ -699,8 +942,8 @@ class TestSave(unittest.TestCase):
 
     def test_choice(self):
         a = chc.Choice('a', [
-            fld.Field('b', length=8, expected=dt.Data('\x01')),
-            fld.Field('c', length=8, expected=dt.Data('\x02'))])
+            fld.Field('b', length=8, constraints=[Equals(dt.Data('\x01'))]),
+            fld.Field('c', length=8, constraints=[Equals(dt.Data('\x02'))])])
         expected = """<protocol>
                         <choice name="a">
                           <field name="b" length="8" value="0x01" />
@@ -738,9 +981,10 @@ class TestSave(unittest.TestCase):
     def test_small_field_with_expected_value(self):
         # Test saving a small field with length that isn't a multiple of
         # either...
-        a = fld.Field('a', length=3, expected=dt.Data('\x02', 5))
+        a = fld.Field('a', length=3, constraints=[Equals(dt.Data('\x02', 5))])
         expected = """
           <protocol>
             <field name="a" length="3" value="0x02" />
           </protocol>"""
         assert_xml_equivalent(expected, xml.save(a))
+

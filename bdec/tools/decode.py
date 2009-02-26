@@ -49,24 +49,30 @@ def _parse_args():
         sys.exit('Specification not set!')
 
     if binary is None:
-        binary = sys.stdin.read()
-    data = dt.Data(binary)
+        binary = sys.stdin
 
-    return (spec, data, verbose)
+    return (spec, binary, verbose)
 
 
 def main():
-    spec, data, verbose = _parse_args()
-
+    spec, binary, verbose = _parse_args()
     try:
-        decoder, lookup, common = load(spec)
+        decoder, common, lookup = load(spec)
     except bdec.spec.LoadError, ex:
         sys.exit(str(ex))
 
+    data = dt.Data(binary)
     try:
         xmlout.to_file(decoder, data, sys.stdout, verbose=verbose)
     except bdec.DecodeError, ex:
-        (filename, line_number, column_number) = lookup[ex.entry]
+        try:
+            (filename, line_number, column_number) = lookup[ex.entry]
+        except KeyError:
+            (filename, line_number, column_number) = ('unknown', 0, 0)
+
+        # We include an extra new line, as the xml is unlikely to have finished
+        # on a new line (issue164).
+        print
         sys.exit("%s[%i]: %s" % (filename, line_number, str(ex)))
 
     try:

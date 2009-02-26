@@ -19,36 +19,67 @@
 import bdec.entry as ent
 import bdec.field as fld
 import bdec.output
+import bdec.sequence as seq
 import bdec.sequenceof as sof
 
 def escape(name):
     return name.replace(' ', '_')
 
-class _Item:
-    pass
+class _Item(object):
+    def __init__(self):
+        self.children = {}
+        self.value = None
+
+    def __getattr__(self, name):
+        return self.children[name]
+
+    def __repr__(self):
+        return unicode(self.children)
+
+    def __int__(self):
+        if not self.value:
+            raise TypeError
+        return int(self.value)
 
 class _DecodedItem:
     """ Class to handle creating python instances from decoded entries """
     def __init__(self, entry):
         self._entry = entry
-        self.children = []
+        self._children = []
 
     def add_entry(self, name, value):
-        self.children.append((name, value))
+        self._children.append((name, value))
 
-    def get_value(self):
+    def get_value(self, value):
         """
         Create a python object representing the decoded protocol entry.
         """
         # We allready have the decoded values for fields; this function shouldn't
         # be used.
-        assert not isinstance(self._entry, fld.Field)
-        if isinstance(self._entry, sof.SequenceOf):
-            result = list(value for name, value in self.children)
+        if isinstance(self._entry, fld.Field):
+            return value
+        if self._entry is None:
+            # For the top level object, return the protocol value (if it
+            # exists).
+            if not self._children:
+                result = None
+            else:
+                result = self._children[0][1]
+        elif isinstance(self._entry, sof.SequenceOf):
+            result = list(value for name, value in self._children)
         else:
-            result = _Item()
-            for name, value in self.children:
-                setattr(result, escape(name), value)
+            if value is not None and not self._children:
+                # This item has no visible children, but has a value; treat it
+                # as the raw value (eg: a sequence with a value).
+                result = value
+            else:
+                result = _Item()
+                if value is not None:
+                    # This object can be convert to an integer
+                    result.value = value
+
+                for name, value in self._children:
+                    result.children[escape(name)] = value
         return result
 
 def decode(decoder, binary):
@@ -61,22 +92,11 @@ def decode(decoder, binary):
             stack.append(_DecodedItem(entry))
         else:
             item = stack.pop()
-            if not entry.is_hidden():
-                if not isinstance(entry, fld.Field):
-                    value = item.get_value()
-                stack[-1].add_entry(entry.name, value)
-            else:
-                # We want to ignore this item, but still add the childs items to the parent.
-                if isinstance(entry, fld.Field):
-                    # For ignored field items, we'll add the value to the parent. This allows
-                    # us to have lists of numbers (eg: sequenceof with an ignored field)
-                    stack[-1].add_entry("", value)
-                else:
-                    for name, value in item.children:
-                        stack[-1].add_entry(name, value)
+            if not ent.is_hidden(name):
+                stack[-1].add_entry(name, item.get_value(value))
 
     assert len(stack) == 1
-    return stack[0].get_value()
+    return stack[0].get_value(None)
 
 def _get_data(obj,child):
     name = child.name
@@ -87,7 +107,7 @@ def _get_data(obj,child):
 
     try: 
         return getattr(obj, name)
-    except AttributeError:
+    except (AttributeError, KeyError):
         raise ent.MissingInstanceError(obj, child)
 
 def encode(protocol, value):

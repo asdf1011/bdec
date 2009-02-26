@@ -19,6 +19,10 @@
 #ifndef BIT_BUFFER_HEADER_FILE
 #define BIT_BUFFER_HEADER_FILE
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // Structure to hold data to be decoded
 typedef struct 
 {
@@ -33,7 +37,40 @@ typedef struct
 typedef struct
 {
     unsigned char* buffer;
-    int length;
+    unsigned int length;
 }Buffer;
 
+typedef struct
+{
+    char* buffer;
+    unsigned int length;
+}Text;
+
+enum Encoding
+{
+    BDEC_BIG_ENDIAN,
+    BDEC_LITTLE_ENDIAN
+};
+
+/**
+ * Decode a data buffer to a float.
+ *
+ * data -- The buffer to decode. The data _MUST_ be 4 bytes long,
+ *   or the code will assert.
+ */
+double decodeFloat(BitBuffer* data, enum Encoding encoding);
+
+/**
+ * Decode a data buffer to a float.
+ *
+ * data -- The buffer to decode. The data _MUST_ be 8 bytes long,
+ *   or the code will assert.
+ */
+double decodeDouble(BitBuffer* data, enum Encoding encoding);
+
+#ifdef __cplusplus
+}
 #endif
+
+#endif
+

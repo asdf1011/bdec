@@ -1,6 +1,10 @@
 <protocol>
-    <sequence name="">
-        <field name="a" length="8" type="integer" />
+    <!--
+      Test that when we hide a parent entry, all child entries are also hidden.
+      -->
+    <sequence name="a">
+        <sequence name="">
+            <field name="b" length="8" type="integer" />
+        </sequence>
     </sequence>
-
 </protocol>

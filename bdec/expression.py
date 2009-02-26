@@ -16,18 +16,26 @@
 #   License along with this library; if not, see
 #   <http://www.gnu.org/licenses/>.
 
+import bdec.data as dt
 import operator
 
-_operators1 = [
-        ('*', operator.mul),
-        ('/', operator.div),
-        ('%', operator.mod),
-        ]
+# A list of supported operators, in order of precedence
+_operators = [
+        [
+            ('*', operator.mul),
+            ('/', operator.div),
+            ('%', operator.mod),
+        ],
+        [
+            ('+', operator.add),
+            ('-', operator.sub),
+        ],
+        [
+            ('<<', operator.lshift),
+            ('>>', operator.rshift),
+        ],
+    ]
 
-_operators2 = [
-        ('+', operator.add),
-        ('-', operator.sub),
-        ]
 
 class UndecodedReferenceError(Exception):
     """
@@ -43,9 +51,14 @@ class ExpressionError(Exception):
     def __str__(self):
         return str(self.error)
 
+
 class Expression(object):
+    """
+    An object that returns a value given the current decode context.
+    """
     def evaluate(self, context):
         raise NotImplementedError
+
 
 class Delayed(Expression):
     """
@@ -67,8 +80,8 @@ class Delayed(Expression):
 
     def __str__(self):
         lookup = {}
-        lookup.update((op, name) for name, op in _operators1)
-        lookup.update((op, name) for name, op in _operators2)
+        for ops in _operators:
+            lookup.update((op, name) for name, op in ops)
         return '(%s %s %s)' % (self.left, lookup[self.op], self.right)
 
 
@@ -80,7 +93,15 @@ class Constant(Expression):
         return self.value
 
     def __str__(self):
-        if isinstance(self.value, int) and self.value % 8 == 0 and \
+        if isinstance(self.value, dt.Data):
+            value = self.value
+            if len(value) % 8:
+                # We can only convert bytes to hex, so added a '0' data
+                # object in front.
+                leading_bits = 8 - len(value) % 8
+                value = dt.Data('\x00', start=0, end=leading_bits) + value
+            return '0x%s' % value.get_hex()
+        elif isinstance(self.value, int) and self.value % 8 == 0 and \
                 self.value / 8 > 1:
             # It can be clearer to return numbers in bytes
             return "%i * 8" % (self.value / 8)
@@ -145,15 +166,8 @@ def _collapse(s,l,t):
         result = next(result)
     return result
 
-def compile(text):
-    """
-    Compile a length expression into an integer convertible object.
-
-    :param name_lookup: A object to call to query a named integer 
-        convertible object.
-    return -- An Expression instance
-    """
-    from pyparsing import Word, alphanums, nums, Forward, StringEnd, ZeroOrMore, ParseException, Combine, CaselessLiteral, srange
+def _int_expression():
+    from pyparsing import Word, alphanums, nums, Forward, ZeroOrMore, Combine, CaselessLiteral, srange
     entry_name = Word(alphanums + ' _+:.-')
     integer = Word(nums).addParseAction(lambda s,l,t: [Constant(int(t[0]))])
     hex = Combine(CaselessLiteral("0x") + Word(srange("[0-9a-fA-F]"))).addParseAction(lambda s,l,t:[Constant(int(t[0][2:], 16))])
@@ -163,16 +177,92 @@ def compile(text):
     expression = Forward()
     factor = hex | integer | named_reference | length_reference | ('(' + expression + ')').addParseAction(lambda s,l,t:t[1])
 
-    ops1 = reduce(operator.or_,
-            [(character + factor).addParseAction(_half(op)) for character, op in _operators1])
-    term = (factor + ZeroOrMore(ops1)).addParseAction(_collapse)
+    entry = factor
+    for ops in _operators:
+        op_parse = reduce(operator.or_,
+                [(character + entry).addParseAction(_half(op)) for character, op in ops])
+        entry = (entry + ZeroOrMore(op_parse)).addParseAction(_collapse)
+    expression << entry
+    return expression
 
-    ops2 = reduce(operator.or_,
-            [(character + term).addParseAction(_half(op)) for character, op in _operators2])
-    expression << (term + ZeroOrMore(ops2)).addParseAction(_collapse)
+def parse(text):
+    """
+    Compile a length expression into an integer convertible object.
 
-    complete = expression + StringEnd()
+    :param name_lookup: A object to call to query a named integer 
+        convertible object.
+    return -- An Expression instance
+    """
+    from pyparsing import StringEnd, ParseException
+    complete = _int_expression() + StringEnd()
     try:
         return complete.parseString(text)[0]
     except ParseException, ex:
         raise ExpressionError(ex)
+# Legacy name for parse function
+compile = parse
+
+def parse_conditional_inverse(text):
+    """
+    Parse a boolean expression.
+
+    text -- A text string to be parsed.
+    return -- A bdec.entry.Entry instance that will decode if the conditional
+        is _false_ (eg: the returned entry can be used as a 'not present' 
+        option in a choice).
+    """
+    from pyparsing import StringEnd, ParseException
+    from pyparsing import Forward, OneOrMore, Literal, ZeroOrMore
+    from bdec.constraints import Equals, Minimum, Maximum, NotEquals
+    import bdec.choice as chc
+    import bdec.sequence as seq
+
+    bool_int_operators = [
+            ('>', Maximum),
+            ('>=', lambda limit: Maximum(Delayed(operator.sub, limit, Constant(1)))),
+            ('<', Minimum),
+            ('<=', lambda limit: Minimum(Delayed(operator.add, limit, Constant(1)))),
+            ('==', NotEquals),
+            ('!=', Equals),
+            ]
+
+
+    # Create an expression for parsing the 'comparators'; eg 'a > b'
+    integer = _int_expression()
+    def create_action(handler):
+        return lambda s,l,t:seq.Sequence('condition:', [], value=t[0], constraints=[handler(t[2])])
+    int_expressions = []
+    for name, handler in bool_int_operators:
+        int_expressions.append((integer + name + integer).addParseAction(create_action(handler)))
+
+    implicit_int_to_bool = integer.copy().addParseAction(
+            lambda s,l,t:seq.Sequence('condition', [], value=t[0], constraints=[Equals(0)]))
+    int_bool_expr = reduce(operator.or_, int_expressions) | implicit_int_to_bool
+
+    # Create an expression for parsing the boolean operations; eg: 'a && b'
+    bool_expr = Forward()
+    factor = int_bool_expr | ('(' + bool_expr + ')').addParseAction(lambda s,l,t:t[1])
+
+    or_ = Literal('||') | 'or'
+    or_expression = OneOrMore(or_ + factor).addParseAction(lambda s,l,t:(seq.Sequence, t[1::2]))
+
+    and_ = Literal('&&') | 'and'
+    and_expression = OneOrMore(and_ + factor).addParseAction(lambda s,l,t:(chc.Choice, t[1::2]))
+
+    # Join all 'and' and 'or' conditions
+    def _collapse_bool(s,l,t):
+        result = t.pop(0)
+        while t:
+            cls, children = t.pop(0)
+            children.insert(0, result)
+            result = cls('condition', children)
+        return result
+    bool_expr << (factor + ZeroOrMore(and_expression | or_expression)).addParseAction(_collapse_bool)
+
+    # Parse the string
+    complete = bool_expr + StringEnd()
+    try:
+        return complete.parseString(text)[0]
+    except ParseException, ex:
+        raise ExpressionError(ex)
+

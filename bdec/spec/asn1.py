@@ -17,6 +17,7 @@
 #   <http://www.gnu.org/licenses/>.
 
 import bdec.choice as chc
+from bdec.constraints import Equals
 import bdec.data as dt
 import bdec.entry as ent
 import bdec.expression as expr
@@ -37,8 +38,7 @@ _CONSTRUCTED = 1
 
 def _field(name, length, value):
     """Create a field with a given name an integer value."""
-    expected = dt.Data.from_int_big_endian(value, length)
-    return fld.Field(name, length=length, format=fld.Field.INTEGER, expected=expected)
+    return fld.Field(name, length=length, format=fld.Field.INTEGER, constraints=[Equals(value)])
 
 def _create_tag(klass, is_constructed, number):
     value = (klass << 6) | (is_constructed << 5) | number
@@ -50,7 +50,7 @@ class _Loader:
     def __init__(self):
         # Load the xml spec that we will use for doing the decoding.
         filename = os.path.join(os.path.dirname(__file__), '..', '..', 'specs', 'asn1.ber.xml')
-        generic_spec, lookup, self._spec = xmlspec.load(filename)
+        generic_spec, self._spec, lookup = xmlspec.load(filename)
 
         # Define the basic asn.1 syntax
         entry = Forward()
@@ -108,7 +108,7 @@ class _Loader:
             name, common =  self._parser.parseString(text)[0]
         except ParseException, ex:
             raise LoadError(ex)
-        return common[0], {}, self._common_entries
+        return common[0], self._common_entries, {}
 
     def _create_constructed(self, name, tag, children):
         """Create a constructed entry.
@@ -141,7 +141,7 @@ class _Loader:
     def _create_named_value(self, s, loc, toks):
         name = toks[0]
         value = int(toks[2])
-        return fld.Field(name, length=8, expected=dt.Data.from_int_little_endian(value, 8))
+        return fld.Field(name, format=fld.Field.INTEGER, length=8, constraints=[Equals(value)])
 
     def _create_integer(self, s, loc, toks):
         if len(toks) == 1:
@@ -158,7 +158,7 @@ class _Loader:
 
     def _create_sequence(self, s, loc, toks):
         tag = _create_tag(_UNIVERSAL, _CONSTRUCTED, 16)
-        return self._create_constructed('', tag, toks[1:])
+        return self._create_constructed('sequence', tag, toks[1:])
 
     def _create_choice(self, s, loc, toks):
         return chc.Choice('choice', toks[1:])

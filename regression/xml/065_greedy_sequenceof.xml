@@ -1,0 +1,7 @@
+
+<protocol>
+    <sequenceof name="greedy">
+        <field name="byte" length="8" type="hex" />
+    </sequenceof>
+</protocol>
+

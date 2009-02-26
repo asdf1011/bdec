@@ -4,6 +4,8 @@
 
 import datetime
 import getpass
+import httplib
+import json
 import os.path
 import re
 import shutil
@@ -38,20 +40,12 @@ def usage():
     print "    f) Prompt if user wants freshmeat & pypi to be notified. If so,"
     print "       README changlog will be used."
 
-_RELEASE_FOCUS = {
-        2: 'Documentation',
-        3: 'Code cleanup',
-        4: 'Minor feature enhancements',
-        5: 'Major feature enhancements',
-        6: 'Minor bugfixes', 
-        7: 'Major bugfixes', 
-        }
-
 _README = os.path.join(root_path, 'README')
 _CHANGELOG = os.path.join(root_path, 'CHANGELOG')
 
 website_dir = os.path.join(root_path, '..', 'website', 'website.integ')
-project_dir = os.path.join(website_dir, 'html', 'projects', 'bdec')
+project_dir = os.path.join(root_path, '..', 'protocollogic', 'protocollogic.com', 'html')
+freshmeat_pass = os.path.join(website_dir, 'freshmeat.txt')
 
 def _check_copyright_statements(subdirs):
     is_missing_copyright = False
@@ -121,18 +115,6 @@ def shorten_changelog(changelog):
             lines.append(line)
     return " ".join(lines)
 
-def get_focus():
-    print 'Focus options are:'
-    for id, text in _RELEASE_FOCUS.iteritems():
-        print id, text
-    default = 7
-    focus = raw_input('What is the release focus? [%s] ' % default)
-    if focus:
-        item = int(focus.strip())
-    else:
-        item = default
-    return _RELEASE_FOCUS[item]
-
 def _get_link(version):
     return 'files/bdec-%s.tar.gz' % version
 
@@ -144,7 +126,7 @@ def _generate_html(contents):
     data = open(generated_readme, 'w')
     data.write(contents)
     data.close()
-    command = "%s %s" % (rst2doc, generated_readme)
+    command = "%s -t -m media %s" % (rst2doc, generated_readme)
     if os.system(command) != 0:
         sys.exit('Failed to update project html index!')
     os.remove(generated_readme)
@@ -202,7 +184,8 @@ def update_website():
     if os.path.exists(html_doc_dir):
         shutil.rmtree(html_doc_dir)
     os.rename('tempdir', html_doc_dir)
-    if os.system('bzr add "%s"' % html_doc_dir) != 0:
+
+    if os.system('git add .;git add -u .') != 0:
         sys.exit('Failed to add the updated html_doc_dir')
 
 def update_release_tarball(version):
@@ -234,7 +217,7 @@ def tag_changes(version):
     else:
         text = raw_input("Tag '%s' exists! Overwrite? [y]" % tag)
 
-    if text and text != 'y':
+    if text.strip() and text != 'y':
         print 'Not tagged.'
     elif os.system('git tag -f "%s"' % tag) != 0:
         sys.exit('Failed to tag!')
@@ -255,8 +238,8 @@ def _edit_message(message):
     return message
 
 def commit_website(version):
-    os.chdir(website_dir)
-    if os.system('bzr diff | less') != 0:
+    os.chdir(project_dir)
+    if os.system('git diff') != 0:
         sys.exit('Stopped after reviewing changes.')
     text = raw_input('Commit website changes? [y]')
     if text and text != 'y':
@@ -264,12 +247,11 @@ def commit_website(version):
         return False
 
     # Commit the website changes
-    os.chdir(website_dir)
     message = _edit_message('Updated bdec project to version %s' % version)
     data = file('.commitmsg', 'w')
     data.write(message)
     data.close()
-    if os.system('bzr commit -F .commitmsg') != 0:
+    if os.system('git commit --template .commitmsg') != 0:
         sys.exit('Failed to commit!')
     os.remove('.commitmsg')
     return True
@@ -281,13 +263,12 @@ def send_email(version, changelog):
 
     data = open('.emailmsg', 'w')
     data.write('To: %s\r\n' % to_addr)
-    data.write('From: Henry Ludemann <bdec@hl.id.au>\r\n')
-    data.write('Reply-To: Henry Ludemann <bdec@hl.id.au>\r\n')
+    data.write('From: Henry Ludemann <henry@protocollogic.com>\r\n')
     data.write('Subject: Bdec %s released\r\n' % version)
     data.write('\r\n')
     data.write('Version %s of the bdec decoder has been released. The changes in this version are;\r\n\r\n' % version)
     data.write(changelog)
-    data.write('\r\n\r\nDownload: http://www.hl.id.au/projects/bdec/#download')
+    data.write('\r\n\r\nDownload: http://www.protocollogic.com/#download')
     data.close()
     if os.system('vi .emailmsg') != 0:
         sys.exit('Stopping due to edit email message failure')
@@ -304,12 +285,62 @@ def send_email(version, changelog):
         smtp.starttls()
         smtp.ehlo()
         smtp.login(user, password)
-        smtp.sendmail('lists@hl.id.au', to_addr, message)
+        smtp.sendmail('henry@protocollogic.com', to_addr, message)
         smtp.quit()
     except smtplib.SMTPAuthenticationError, ex:
         print 'Authenticion error!', ex
 
-def notify(version, changelog, get_focus=get_focus,  system=os.system, confirm=raw_input, should_send_email=True):
+def _get_freshmeat_auth_code():
+    if os.path.exists(freshmeat_pass):
+        print 'Reading freshmeat credentials from', freshmeat_pass
+        data = file(freshmeat_pass, 'r')
+        result = data.read()
+        data.close()
+    else:
+        result = raw_input('Enter freshmeat auth token (from user page):')
+        data = file(freshmeat_pass, 'w')
+        data.write(result)
+        data.close()
+    result = result.strip()
+    if not result:
+        sys.exit('Failed to read freshmeat auth code!')
+    return result
+
+def _get_tags(connection, freshmeat_auth):
+    "Get a comma separate list of freshmeat tags"
+    # First get the available tags
+    release = {
+            'auth_code': freshmeat_auth(),
+            }
+    headers = {"Content-type": "application/json"}
+    conn = connection("freshmeat.net")
+    conn.request("GET", "/projects/bdec/releases.json", json.dumps(release), headers)
+    response = conn.getresponse()
+    data = response.read()
+    conn.close()
+    if response.status >= 400:
+        print response.status, response.reason
+        sys.exit('Failed to query freshmeat tags! (%s)' % data)
+    tags = set()
+    for release in json.loads(data):
+        tags.update(release['release']['tag_list'])
+    tags = list(tags)
+    tags.sort()
+    tags = dict(enumerate(tags))
+
+    # Ask the user what tags they want
+    print 'Tags are:'
+    for id, text in tags.iteritems():
+        print '%i - %s' % (id, text)
+    ids = [1,3]
+    text = raw_input('What is the release focus? [1,3] ')
+    if text.strip():
+        ids = [int(id.strip()) for id in text.split(',')]
+    return ', '.join(tags[id] for id in ids)
+
+def notify(version, changelog, freshmeat_auth=_get_freshmeat_auth_code,
+        connection=httplib.HTTPConnection, system=os.system, confirm=raw_input,
+        should_send_email=True, tag_list=_get_tags):
     # This is a fresmeat limit
     MAX_CHARS = 600
     short_message = shorten_changelog(changelog)
@@ -324,11 +355,25 @@ def notify(version, changelog, get_focus=get_focus,  system=os.system, confirm=r
 
     # Notify freshmeat
     if confirm('Should freshmeat be notified? [y]') in ['', 'y', 'Y']:
-        focus = get_focus()
-        freshmeat = os.path.join(website_dir, 'build', 'freshmeat-submit-1.6', 'freshmeat-submit')
-        command = '%s -n --project bdec --version %s --changes "%s" --release-focus "%s" --gzipped-tar-url http://www.hl.id.au/projects/bdec/files/bdec-%s.tar.gz' % (freshmeat, version, short_message, focus, version)
-        if system(command) != 0:
-            sys.exit('Failed to submit to freshmeat! (%s)' % command)
+        release = {
+                'auth_code': freshmeat_auth(),
+                'release':{
+                    'tag_list':tag_list(connection, freshmeat_auth),
+                    'version':str(version),
+                    'changelog':short_message
+                    },
+                }
+        headers = {"Content-type": "application/json"}
+        conn = connection("freshmeat.net")
+        conn.request("POST", "/projects/bdec/releases.json", json.dumps(release), headers)
+        response = conn.getresponse()
+        data = response.read()
+        conn.close()
+        if response.status >= 400:
+            print response.status, response.reason
+            sys.exit('Failed to submit to freshmeat! (%s)' % data)
+        print "Created release; %s %s\n%s" % (response.status, response.reason, data)
+
     else:
         print 'Not notifying freshmeat.'
 
@@ -347,12 +392,12 @@ def notify(version, changelog, get_focus=get_focus,  system=os.system, confirm=r
 def upload():
     print "Uploading to the server..."
     while 1:
-        os.chdir(website_dir)
-        command = "./upload ftp://ftp.hl.id.au"
+        os.chdir(project_dir)
+        command = "../../google_appengine/appcfg.py update ../"
         if os.system(command) == 0:
             break
         text = raw_input('Failed to upload to the server! Try again? [y]')
-        if text and text != 'y':
+        if text.strip() and text != 'y':
             sys.exit('Not uploaded.')
 
 if __name__ == '__main__':
@@ -375,7 +420,8 @@ if __name__ == '__main__':
     update_release_tarball(version)
 
     os.chdir(root_path)
-    if os.system('git status') != 0:
+    if os.system('git status') == 0:
+        # Git returns non-zero if 'git commit' would do nothing.
         sys.exit('Source tree has changes! Stopping.')
 
     if commit_website(version):

@@ -1,4 +1,4 @@
-#   Copyright (C) 2008 Henry Ludemann
+#   Copyright (C) 2008-2009 Henry Ludemann
 #
 #   This file is part of the bdec decoder library.
 #
@@ -21,6 +21,7 @@ import unittest
 
 import bdec.entry as ent
 import bdec.choice as chc
+from bdec.constraints import Equals, ConstraintError
 import bdec.data as dt
 import bdec.field as fld
 import bdec.sequence as seq
@@ -31,35 +32,35 @@ class TestChoice(unittest.TestCase):
         embedded = [fld.Field("bob", 8), fld.Field("cat", 8)]
         choice = chc.Choice("blah", embedded)
         data = dt.Data.from_hex("017a")
-        results = list(entry for is_starting, name, entry, entry_data, value in choice.decode(data) if not is_starting)
+        results = list((entry, entry_data) for is_starting, name, entry, entry_data, value in choice.decode(data) if not is_starting)
 
         self.assertEqual(2, len(results))
-        self.assertEqual("bob", results[0].name)
-        self.assertEqual(0x01, int(results[0]))
-        self.assertEqual("blah", results[1].name)
+        self.assertEqual("bob", results[0][0].name)
+        self.assertEqual(0x01, int(results[0][1]))
+        self.assertEqual("blah", results[1][0].name)
         self.assertEqual(0x7a, int(data))
 
     def test_second_successful(self):
         embedded = [fld.Field("bob", 24), fld.Field("cat", 8)]
         choice = chc.Choice("blah", embedded)
         data = dt.Data.from_hex("7a")
-        results = list(entry for is_starting, name, entry, entry_data, value in choice.decode(data) if not is_starting)
+        results = list((entry, entry_data) for is_starting, name, entry, entry_data, value in choice.decode(data) if not is_starting)
 
         self.assertEqual(2, len(results))
-        self.assertEqual("cat", results[0].name)
-        self.assertEqual(0x7a, int(results[0]))
-        self.assertEqual("blah", results[1].name)
+        self.assertEqual("cat", results[0][0].name)
+        self.assertEqual(0x7a, int(results[0][1]))
+        self.assertEqual("blah", results[1][0].name)
 
     def test_uses_best_guess_on_failure(self):
         # In this test both embedded choices will fail, but
         # we should get the 'chicken' entry being reported
         # because it managed to decode the most before failing.
-        cat = fld.Field("cat", 8, expected=dt.Data.from_hex("9"))
+        cat = fld.Field("cat", 8, constraints=[Equals(dt.Data.from_hex("9"))])
         embedded = [
             seq.Sequence("chicken", [
                 fld.Field("bob", 24), 
                 cat]),
-            fld.Field("nope", 8, expected=dt.Data.from_hex("7"))]
+            fld.Field("nope", 8, constraints=[Equals(dt.Data.from_hex("7"))])]
         choice = chc.Choice("blah", embedded)
         data = dt.Data.from_hex("01020304")
 
@@ -68,10 +69,10 @@ class TestChoice(unittest.TestCase):
         try:
             for is_starting, name, entry, entry_data, value in choice.decode(data):
                 results.append((is_starting, entry))
-        except fld.BadDataError, ex:
+        except ConstraintError, ex:
             pass
         self.assertTrue(ex is not None)
-        self.assertEqual(cat, ex.field)
+        self.assertEqual(cat, ex.entry)
 
         # The 'cat', 'chicken', and 'blah' entries should have
         # started decoding, and the 'bob' entry should have
@@ -101,12 +102,16 @@ class TestChoice(unittest.TestCase):
 
     def test_encode(self):
         # Test encoding of a number that is encoded in different sizes (depending on the size of the data)
-        byte_len = seq.Sequence("bob", [fld.Field("id:", 1, expected=dt.Data("\x00", 7, 8)), fld.Field("dog", 8, format=fld.Field.INTEGER)])
-        word_len = seq.Sequence("bob", [fld.Field("id:", 1, expected=dt.Data("\x01", 7, 8)), fld.Field("dog", 16, format=fld.Field.INTEGER)])
+        byte_len = seq.Sequence("bob", [
+            fld.Field("id:", 1, constraints=[Equals(dt.Data("\x00", 7, 8))]),
+            fld.Field("dog", 8, format=fld.Field.INTEGER)])
+        word_len = seq.Sequence("bob", [
+            fld.Field("id:", 1, constraints=[Equals(dt.Data("\x01", 7, 8))]),
+            fld.Field("dog", 16, format=fld.Field.INTEGER)])
         choice = chc.Choice("blah", [byte_len, word_len])
 
         # First try encoding a number that will only fit in the 16 bit storage
-        struct = {"blah" : {"bob" : {"dog" : 10023}}}
+        struct = {"bob" : {"dog" : 10023}}
         def query(context, child):
             if child.name not in context:
                 raise ent.MissingInstanceError(context, child)
@@ -115,7 +120,7 @@ class TestChoice(unittest.TestCase):
         self.assertEqual(17, len(data))
 
         # Now try encoding a number that will fit in the 8 bit storage
-        struct = {"blah" : {"bob" : {"dog" : 117}}}
+        struct = {"bob" : {"dog" : 117}}
         data = reduce(lambda a,b:a+b, choice.encode(query, struct))
         self.assertEqual(9, len(data))
 
@@ -126,8 +131,12 @@ class TestChoice(unittest.TestCase):
         self.assertEqual(8, choice.range().max)
 
     def test_reference_common_child(self):
-        byte = seq.Sequence('8 bit:', [fld.Field('id', 8, expected=dt.Data('\x00')), fld.Field('length', 8)])
-        word = seq.Sequence('16 bit:', [fld.Field('id', 8, expected=dt.Data('\x01')), fld.Field('length', 16)])
+        byte = seq.Sequence('8 bit', [
+            fld.Field('id', 8, constraints=[Equals(dt.Data('\x00'))]),
+            fld.Field('length', 8)])
+        word = seq.Sequence('16 bit', [
+            fld.Field('id', 8, constraints=[Equals(dt.Data('\x01'))]),
+            fld.Field('length', 16)])
         length = chc.Choice('variable integer', [byte, word])
         length_value = expr.ValueResult('variable integer.length')
         data = fld.Field('data', length_value, fld.Field.TEXT)
@@ -142,8 +151,14 @@ class TestChoice(unittest.TestCase):
     def test_reference_choice(self):
         # Test that we can correctly reference a choice entry, where each of
         # its children have value types.
-        byte = seq.Sequence('8 bit:', [fld.Field('id', 8, expected=dt.Data('\x00')), fld.Field('length', 8)], value=expr.compile('${length}'))
-        word = seq.Sequence('16 bit:', [fld.Field('id', 8, expected=dt.Data('\x01')), fld.Field('length', 16)], value=expr.compile('${length}'))
+        byte = seq.Sequence('8 bit:', [
+            fld.Field('id', 8, constraints=[Equals(dt.Data('\x00'))]),
+            fld.Field('length', 8)],
+            value=expr.compile('${length}'))
+        word = seq.Sequence('16 bit:', [
+            fld.Field('id', 8, constraints=[Equals(dt.Data('\x01'))]),
+            fld.Field('length', 16)],
+            value=expr.compile('${length}'))
         length = chc.Choice('variable integer', [byte, word])
         data = fld.Field('data', expr.compile('${variable integer}'), fld.Field.TEXT)
         spec = seq.Sequence('spec', [length, data])

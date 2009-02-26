@@ -1,4 +1,4 @@
-#   Copyright (C) 2008 Henry Ludemann
+#   Copyright (C) 2008-2009 Henry Ludemann
 #
 #   This file is part of the bdec decoder library.
 #
@@ -21,12 +21,14 @@ import xml.sax
 from xml.sax import saxutils
 
 import bdec.choice as chc
+from bdec.constraints import Minimum, Maximum, Equals
 import bdec.data as dt
 import bdec.entry as ent
 import bdec.expression as exp
 import bdec.field as fld
 import bdec.inspect.param as prm
 import bdec.spec
+from bdec.spec.integer import Integers, IntegerError
 import bdec.sequence as seq
 import bdec.sequenceof as sof
 
@@ -149,6 +151,7 @@ class _Handler(xml.sax.handler.ContentHandler):
         self.locator = None
         self._end_sequenceof = False
         self._unresolved_references = []
+        self._integers = Integers()
 
     def setDocumentLocator(self, locator):
         self.locator = locator
@@ -167,12 +170,12 @@ class _Handler(xml.sax.handler.ContentHandler):
         if name not in self._handlers:
             raise self._error("Unrecognised element '%s'!" % name)
 
-        self._stack.append((name, attrs, []))
+        self._stack.append((name, attrs, [], self.locator.getLineNumber(), self.locator.getColumnNumber()))
         self._children.append([])
 
     def endElement(self, name):
         assert self._stack[-1][0] == name
-        (name, attrs, breaks) = self._stack.pop()
+        (name, attrs, breaks, lineno, colno) = self._stack.pop()
 
         # We don't pop the children item until after we have called the
         # handler, as it may be used when creating a value reference.
@@ -184,16 +187,58 @@ class _Handler(xml.sax.handler.ContentHandler):
         if attrs.has_key('name'):
             entry_name = attrs['name']
         entry = self._handlers[name](attrs, children, entry_name, length, breaks)
+
+        # Check for value constraints
+        constraints = []
+        if attrs.has_key('min'):
+            minimum = self._parse_expression(attrs['min'])
+            constraints.append(Minimum(minimum))
+        if attrs.has_key('max'):
+            maximum = self._parse_expression(attrs['max'])
+            constraints.append(Maximum(maximum))
+        if attrs.has_key('expected'):
+            expected = self._parse_expression(attrs['expected'])
+            constraints.append(Equals(expected))
+
+        if constraints:
+            if isinstance(entry, _ReferencedEntry):
+                # We found a reference with constraints; create an intermediate
+                # sequence that will have the constraints.
+                reference = entry
+                if not ent.is_hidden(reference.name):
+                    reference.name = '%s:' % reference.name
+                value = self._parse_expression("${%s}" % reference.name)
+                entry = seq.Sequence(entry_name, [reference], value=value)
+                reference.set_parent(entry)
+            entry.constraints += constraints
+
+        # Check for child references
         for child in children:
             if isinstance(child, _ReferencedEntry):
                 child.set_parent(entry)
         self._children.pop()
 
+        if attrs.has_key('if'):
+            # This is a 'conditional' entry; only present if the expression in
+            # 'if' is true. To decode this, we create a choice with a 'not
+            # present' option; this option attempts to decode first, with the
+            # condition inverted.
+            try:
+                not_present = exp.parse_conditional_inverse(attrs['if'])
+                not_present.name = 'not present:'
+            except exp.ExpressionError, ex:
+                raise XmlExpressionError(ex, self._filename, self.locator)
+            assert isinstance(not_present, ent.Entry)
+            optional = chc.Choice('optional %s' % entry_name, [not_present, entry])
+            if isinstance(entry, _ReferencedEntry):
+                entry.set_parent(optional)
+            entry = optional
+
         if entry is not None:
             if self._end_sequenceof:
                 # There is a parent sequence of object that must stop when
                 # this entry decodes.
-                for name, attrs, breaks in reversed(self._stack):
+                for name, attrs, breaks, lineno, colnumber in reversed(self._stack):
                     if name == "sequenceof":
                         breaks.append(entry)
                         if isinstance(entry, _ReferencedEntry):
@@ -204,7 +249,7 @@ class _Handler(xml.sax.handler.ContentHandler):
                 self._end_sequenceof = False
             self._children[-1].append(entry)
 
-            self.lookup[entry] = (self._filename, self.locator.getLineNumber(), self.locator.getColumnNumber())
+            self.lookup[entry] = (self._filename, lineno, colno)
 
         if len(self._stack) == 2 and self._stack[1][0] == 'common':
             # We have to handle common entries _before_ the end of the
@@ -237,6 +282,7 @@ class _Handler(xml.sax.handler.ContentHandler):
         if len(children) != 1:
             raise self._error("Protocol should have a single entry to be decoded!")
 
+        self.common_entries.update(self._integers.common)
         self._resolve_common_references()
         if isinstance(children[0], _ReferencedEntry):
             # If the 'top level' item is a reference, it won't have had a
@@ -247,10 +293,12 @@ class _Handler(xml.sax.handler.ContentHandler):
         # Note the we don't iterate over the unresolved references, as the
         # list can change as we iterate over it (in _get_common_entry).
         while self._unresolved_references:
-            entry = self._unresolved_references.pop()
+            reference = self._unresolved_references.pop()
             # Problem: We are copying the entry while we still have the referenced item in the tree...
             #  we'll have to insert it in the tree before copying it!
-            entry.resolve(self._get_common_entry(entry.getReferenceName()))
+            entry = self._get_common_entry(reference.getReferenceName())
+            assert isinstance(entry, ent.Entry)
+            reference.resolve(entry)
 
         self.decoder = children[0]
 
@@ -282,8 +330,11 @@ class _Handler(xml.sax.handler.ContentHandler):
                 "binary" : fld.Field.BINARY,
                 "hex" : fld.Field.HEX,
                 "integer" : fld.Field.INTEGER,
+                "signed integer" : fld.Field.INTEGER,
                 "text" : fld.Field.TEXT,
+                "float" : fld.Field.FLOAT,
                 }
+
             format = lookup[attributes['type']]
         encoding = None
         if attributes.has_key('encoding'):
@@ -292,38 +343,50 @@ class _Handler(xml.sax.handler.ContentHandler):
                 _integer_encodings = [fld.Field.LITTLE_ENDIAN, fld.Field.BIG_ENDIAN]
                 if encoding not in _integer_encodings:
                     raise self._error("Invalid integer encoding '%s'! Valid values are: %s" % (encoding, ", ".join(_integer_encodings)))
-        min = None
-        if attributes.has_key('min'):
-            min = self._parse_expression(attributes['min']).evaluate({})
-        max = None
-        if attributes.has_key('max'):
-            max = self._parse_expression(attributes['max']).evaluate({})
+
+        if format is fld.Field.INTEGER and attributes['type'] == 'signed integer':
+            # All signed integers are internally represented as sequences with
+            # child big endian numbers. This means the 'core' entries don't
+            # have to know about these types.
+            try:
+                if encoding in [None, fld.Field.BIG_ENDIAN]:
+                    integer = self._integers.signed_big_endian(length)
+                else:
+                    assert encoding == fld.Field.LITTLE_ENDIAN
+                    integer = self._integers.signed_litte_endian(length)
+            except IntegerError, error:
+                raise self._error(str(error))
+            result = _ReferencedEntry(name, integer.name)
+            self._unresolved_references.append(result)
+            return result
 
         # We'll create the field, then use it to create the expected value.
-        result = fld.Field(name, length, format, encoding, None, min, max)
+        result = fld.Field(name, length, format, encoding)
         if attributes.has_key('value'):
+            # Get the correct object type by encoding, then decoding, the text
+            # value.
             expected_text = attributes['value']
             if expected_text.upper()[:2] == "0X":
-                expected = dt.Data.from_hex(expected_text[2:])
-            else:
-                expected = result.encode_value(expected_text)
-
-            expected_length = len(expected)
-            if result.length is not None:
+                # The expected value is in hex, so convert it to a data object.
                 try:
                     expected_length = result.length.evaluate({})
                 except exp.UndecodedReferenceError:
-                    pass
-
-            if len(expected) < expected_length:
-                # When we get shorter expected values, we'll lead with zeros.
-                zeros = dt.Data.from_int_big_endian(0, expected_length - len(expected))
-                expected = zeros + expected
-            else:
-                unused = expected.pop(len(expected) - expected_length)
+                    # We don't know the length of the object; assume it'll be
+                    # the length of the hex.
+                    expected_length = 8 * (len(expected_text) - 2)
+                data = dt.Data('\x00' * (expected_length / 8 + 8))
+                data += dt.Data.from_hex(expected_text[2:])
+                unused = data.pop(len(data) - expected_length)
                 if len(unused) and int(unused) != 0:
-                    raise self._error('Field is %i bits long, but expected data is longer (%i bits)!' % (expected_length, len(unused) + len(expected)))
-            result.expected = expected
+                    raise self._error('Field is %i bits long, but expected data is longer (%i bits)!' % (expected_length, len(unused) + len(data)))
+            else:
+                # The expected data is the string representation of the field's
+                # native format. To get the value, we will convert the string
+                # to data, then back again.
+                data = result.encode_value(expected_text)
+
+            value = result.decode_value(data)
+            result.constraints.append(Equals(value))
         return result
 
     def _sequence(self, attributes, children, name, length, breaks):
@@ -372,14 +435,14 @@ def _load_from_file(file, filename):
         handler.decoder.validate()
         for entry in handler.common_entries.itervalues():
             entry.validate()
-    except ent.MissingExpressionReferenceError, ex:
+    except (ent.MissingExpressionReferenceError, prm.BadReferenceError), ex:
         class Locator:
             def getLineNumber(self):
                 return handler.lookup[ex.entry][1]
             def getColumnNumber(self):
                 return handler.lookup[ex.entry][2]
         raise XmlExpressionError(ex, filename, Locator())
-    return (handler.decoder, handler.lookup, handler.common_entries)
+    return (handler.decoder, handler.common_entries, handler.lookup)
 
 def loads(xml):
     """
@@ -399,45 +462,31 @@ def load(xml):
         result = _load_from_file(xml, "<stream>")
     return result
 
-def _save_field(entry):
-    attributes = [('name', entry.name), ('length', str(entry.length))]
+def _save_field(entry, attributes):
     if entry.format is not fld.Field.BINARY:
         attributes += [('type', entry.format)]
-    if entry.expected is not None:
-        if entry.format in [fld.Field.HEX, fld.Field.BINARY]:
-            data = dt.Data('\x00', start=0, end=len(entry.expected) % 8) + entry.expected
-            # We can only convert bytes to hex, so added a '0' data object in
-            # front.
-            if len(data) % 8 != 0:
-                data = dt.Data('\x00', start=0, end=8 - len(data) % 8) + data
-            value = '0x%s' % data.get_hex()
-        else:
-            value = entry.decode_value(entry.expected)
-        attributes += [('value', value)]
-    attributes += [('min', entry.min), ('max', entry.max)]
     if entry.encoding not in [fld.Field.BIG_ENDIAN, 'ascii']:
         attributes += [('encoding', entry.encoding)]
-    return ('field', attributes)
+    return 'field'
 
-def _save_sequence(entry):
-    attributes = [('name', entry.name), ('value', entry.value)]
+def _save_sequence(entry, attributes):
     if entry.length is not None:
         attributes += [('length', str(entry.length))]
-    return ('sequence', attributes)
+    if entry.value is not None:
+            attributes += [('value', entry.value)]
+    return 'sequence'
 
-def _save_sequenceof(entry):
-    attributes = [('name', entry.name)]
+def _save_sequenceof(entry, attributes):
     if entry.count is not None:
         attributes += [('count', str(entry.count))]
     if entry.length is not None:
         attributes += [('length', str(entry.length))]
-    return ('sequenceof', attributes)
+    return 'sequenceof'
 
-def _save_choice(entry):
-    attributes = [('name', entry.name)]
+def _save_choice(entry, attributes):
     if entry.length is not None:
         attributes += [('length', str(entry.length))]
-    return ('choice', attributes)
+    return 'choice'
 
 _handlers = {fld.Field: _save_field,
         seq.Sequence: _save_sequence,
@@ -493,7 +542,37 @@ def _write_reference(gen, child):
     gen.end('reference')
 
 def _write_entry(gen, entry, common, end_entry):
-    name, attributes = _handlers[type(entry)](entry)
+    attributes = []
+    if entry.name:
+        attributes.append(('name', entry.name))
+    name = _handlers[type(entry)](entry, attributes)
+    if entry.length is not None:
+	attributes.append(('length', str(entry.length)))
+    for constraint in entry.constraints:
+        if isinstance(constraint, bdec.constraints.Minimum):
+            attributes.append(('min', str(constraint.limit)))
+        elif isinstance(constraint, bdec.constraints.Maximum):
+            attributes.append(('max', str(constraint.limit)))
+        elif isinstance(constraint, bdec.constraints.Equals):
+            value = constraint.limit
+            if isinstance(constraint.limit, dt.Data):
+                if len(value) % 8:
+                    # We can only convert bytes to hex, so added a '0' data
+                    # object in front.
+                    leading_bits = 8 - len(entry.expected) % 8
+                    value = dt.Data('\x00', start=0, end=leading_bits) + value
+                value = '0x%s' % value.get_hex()
+            # Field entries expected values currently have a different name...
+            if isinstance(entry, fld.Field):
+                attributes.append(('value', value))
+            else:
+                attributes.append(('expected', value))
+        elif isinstance(constraint, bdec.constraints.NotEquals):
+            # HACK: Print 'not equal' entries...
+            attributes.append(('not_equal', str(constraint.limit)))
+        else:
+            raise NotImplementedError("Don't know how to save contraint '%s'!" % constraint)
+
     gen.start(name, attributes)
     for child in entry.children:
         if child.entry in common:

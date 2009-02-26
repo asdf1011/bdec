@@ -3,8 +3,8 @@
 Welcome to bdec's documentation!
 ================================
 
-Bdec is a library to create decoders and encoders for binary files given a 
-specification.
+Bdec is a set of tools for creating decoders and encoders for binary files
+given a high level specification.
 
 Contents:
 
@@ -14,4 +14,6 @@ Contents:
    overview
    format/index
    tutorial
+   compiling
+   instancedecoder
 

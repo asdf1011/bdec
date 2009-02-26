@@ -49,11 +49,11 @@ class TestUtils(unittest.TestCase):
         names = ['a', 'a', 'a1', 'A', 'a:']
         utils = comp._Utils([], _Settings())
         escaped = utils.esc_names(names, utils.variable_name)
-        self.assertEqual(['a', 'a0', 'a1', 'a2', 'a3'], escaped)
+        self.assertEqual(['a0', 'a1', 'a10', 'a2', 'a3'], escaped)
 
     def test_constant_name_escaping(self):
         names = ['a', 'a', 'a 0', 'A', 'a:']
         utils = comp._Utils([], _Settings())
         escaped = utils.esc_names(names, utils.constant_name)
-        self.assertEqual(['A', 'A_0', 'A_0_0', 'A_1', 'A_2'], escaped)
+        self.assertEqual(['A_0', 'A_1', 'A_0_0', 'A_2', 'A_3'], escaped)
 

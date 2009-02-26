@@ -1,4 +1,4 @@
-#   Copyright (C) 2008 Henry Ludemann
+#   Copyright (C) 2008-2009 Henry Ludemann
 #
 #   This file is part of the bdec decoder library.
 #
@@ -16,30 +16,52 @@
 #   License along with this library; if not, see
 #   <http://www.gnu.org/licenses/>.
 
+"""
+Set of classes for examining entries to determine the dependencies between them.
+
+Is able to represent these dependencies as a 'parameters' passed between the
+entries, and the types (and where valid, the valid ranges of values) of those
+entries.
+"""
+
 
 import bdec
 import bdec.choice as chc
+from bdec.constraints import Equals
 import bdec.entry as ent
 import bdec.field as fld
 import bdec.sequence as seq
 import bdec.sequenceof as sof
 import bdec.expression as expr
+from bdec.inspect.type import VariableType, IntegerType, MultiSourceType, \
+        EntryType, EntryValueType, EntryLengthType, ShouldEndType
 
 
 class BadReferenceError(bdec.DecodeError):
+    def __init__(self, entry):
+        bdec.DecodeError.__init__(self, entry)
+
+    def __str__(self):
+        return "Can't reference %s" % (self.entry)
+
+class BadReferenceTypeError(bdec.DecodeError):
+    def __init__(self, entry):
+        bdec.DecodeError.__init__(self, entry)
+
+    def __str__(self):
+        return "Cannot reference non integer field '%s'" % self.entry
+
+class UnknownReferenceError(BadReferenceError):
     def __init__(self, entry, name):
         bdec.DecodeError.__init__(self, entry)
         self.name = name
 
     def __str__(self):
-        return "Cannot reference '%s' in %s" % (self.name, self.entry)
+        return "%s references unknown entry '%s'!" % (self.entry, self.name)
 
-class BadReferenceTypeError(bdec.DecodeError):
-    def __init__(self, entry):
-        bdec.DecodeError.__init__(self, referenced)
-
-    def __str__(self):
-        return "Cannot reference non integer field '%s'" % self.entry
+class _FailedToResolveError(Exception):
+    def __init__(self, name):
+        self.name = name
 
 class Param(object):
     """Class to represent parameters passed into and out of decodes. """
@@ -49,6 +71,8 @@ class Param(object):
     def __init__(self, name, direction, type):
         self.name = name
         self.direction = direction
+
+        assert isinstance(type, VariableType)
         self.type = type
 
     def __eq__(self, other):
@@ -66,6 +90,7 @@ class Local(object):
     """Object representing a local instance."""
     def __init__(self, name, type):
         self.name = name
+        assert isinstance(type, VariableType)
         self.type = type
 
     def __eq__(self, other):
@@ -139,7 +164,7 @@ class EndEntryParameters(_Parameters):
         result = []
         if isinstance(entry, sof.SequenceOf):
             if entry.end_entries:
-                result.append(Local('should end', int))
+                result.append(Local('should end', ShouldEndType()))
         return result
 
     def get_params(self, entry):
@@ -148,7 +173,7 @@ class EndEntryParameters(_Parameters):
         should pass an output 'should_end' context item.
         """
         if self._has_context_lookup[entry]:
-            return set([Param('should end', Param.OUT,  int)])
+            return set([Param('should end', Param.OUT,  ShouldEndType())])
         return set()
 
     def get_passed_variables(self, entry, child):
@@ -159,11 +184,23 @@ class EndEntryParameters(_Parameters):
     def is_end_sequenceof(self, entry):
         return entry in self._end_sequenceof_entries
 
+
+def _get_reference_name(reference):
+    if isinstance(reference, expr.ValueResult):
+        return reference.name
+    elif isinstance(reference, expr.LengthResult):
+        return reference.name + ' length'
+    raise Exception("Unknown reference type '%s'" % reference)
+
+
 class _VariableParam:
-    def __init__(self, reference, direction):
+    def __init__(self, reference, direction, type):
         assert isinstance(reference, expr.ValueResult) or isinstance(reference, expr.LengthResult)
         self.reference = reference
         self.direction = direction
+        self.types = set()
+        if type is not None:
+            self.types.add(type)
 
     def __hash__(self):
         return hash(self.reference.name)
@@ -173,6 +210,19 @@ class _VariableParam:
 
     def __str__(self):
         return "%s %s" % (self.direction, self.reference)
+
+    def get_type(self):
+        if len(self.types) > 1:
+            type = MultiSourceType(self.types)
+        elif len(self.types) == 1:
+            type = iter(self.types).next()
+        else:
+            raise _FailedToResolveError(self.reference.name)
+        return type
+
+    def get_param(self):
+        """Construct a parameter from this internal parameter type."""
+        return Param(_get_reference_name(self.reference), self.direction, self.get_type())
 
 
 class ExpressionParameters(_Parameters):
@@ -196,11 +246,16 @@ class ExpressionParameters(_Parameters):
         for entry in entries:
             self._populate_references(entry, unreferenced_entries)
 
+        for entry, references in unreferenced_entries.iteritems():
+            for param in self._params[entry]:
+                if not param.types:
+                    raise UnknownReferenceError(entry, iter(references).next().name)
+
     def _collect_references(self, expression):
         """
         Walk an expression object, collecting all named references.
         
-        Returns a list of tuples of (entry instances, variable name).
+        Returns a list of ValueResult / LengthResult instances.
         """
         result = []
         if isinstance(expression, expr.Constant):
@@ -234,7 +289,7 @@ class ExpressionParameters(_Parameters):
         # expressions, and those that are unknown in all of its children.
         if entry.length is not None:
             unreferenced_entries[entry].update(self._collect_references(entry.length))
-        elif isinstance(entry, sof.SequenceOf) and entry.count is not None:
+        if isinstance(entry, sof.SequenceOf) and entry.count is not None:
             unreferenced_entries[entry].update(self._collect_references(entry.count))
 
         # Store the names the child doesn't know about (ie: names that must be
@@ -244,9 +299,9 @@ class ExpressionParameters(_Parameters):
             child_unknowns.update(unreferenced_entries[child.entry])
 
         if isinstance(entry, seq.Sequence) and entry.value is not None:
-            # A sequence's references are treated as child unknowns, as they
-            # are resolved from within the entry (and not passed in).
             child_unknowns.update(self._collect_references(entry.value))
+        for constraint in entry.constraints:
+            child_unknowns.update(self._collect_references(constraint.limit))
 
         # Our unknown list is all the unknowns in our children that aren't
         # present in our known references.
@@ -259,10 +314,20 @@ class ExpressionParameters(_Parameters):
             else:
                 # This value comes from one of our child entries, so drill down
                 # into it.
-                self._add_out_params(entry, unknown)
+                param_type = self._add_out_params(entry, unknown)
+                self._populate_child_input_parameter_type(entry, unknown.name, param_type)
 
         for reference in unreferenced_entries[entry]:
-            self._params[entry].add(_VariableParam(reference, Param.IN))
+            self._params[entry].add(_VariableParam(reference, Param.IN, None))
+
+    def _populate_child_input_parameter_type(self, entry, name, param_type):
+        """ Set the input parameter type of any of children that use the named
+        parameter."""
+        for child in entry.children:
+            for param in self._params[child.entry]:
+                if param.reference.name == name and param.direction == Param.IN:
+                    param.types.add(param_type)
+                    self._populate_child_input_parameter_type(child.entry, name, param_type)
 
     def _get_local_reference(self, entry, child, param):
         """Get the local of a parameter used by a child entry.
@@ -279,7 +344,8 @@ class ExpressionParameters(_Parameters):
         return type(param.reference)(name)
 
     def _add_reference(self, entry, reference):
-        self._params[entry].add(_VariableParam(reference, Param.OUT))
+        param_type = EntryValueType(entry)
+        self._params[entry].add(_VariableParam(reference, Param.OUT, param_type))
         if isinstance(entry, fld.Field):
             if entry.format not in [fld.Field.INTEGER, fld.Field.BINARY]:
                 # We currently only allow integers and binary
@@ -291,12 +357,11 @@ class ExpressionParameters(_Parameters):
                 self._referenced_values.add(entry)
             else:
                 # We can only reference sequences with a value
-                raise BadReferenceError(entry, reference.name)
+                raise BadReferenceError(entry)
         elif isinstance(entry, chc.Choice):
             # When referencing a choice, we want to attempt to reference each
             # of its children.
             child_params = self._local_child_param_name.setdefault(entry, {})
-            self._params[entry].add(_VariableParam(reference, Param.OUT))
             for child in entry.children:
                 child_reference = type(reference)(child.entry.name)
                 self._add_reference(child.entry, child_reference)
@@ -304,7 +369,8 @@ class ExpressionParameters(_Parameters):
                 local_names = child_params.setdefault(child, {})
                 local_names[child_reference.name] = reference.name
         else:
-            raise BadReferenceError(entry, name)
+            raise BadReferenceError(entry)
+        return param_type
 
     def _add_out_params(self, entry, reference):
         """
@@ -313,15 +379,24 @@ class ExpressionParameters(_Parameters):
         entry -- An instance of bdec.entry.Entry
         reference -- An instance of either bdec.expression.ValueResult or
             bdec.expression.LengthResult.
+        return -- A VariableType instance representing the type being referenced.
         """
         if isinstance(entry, chc.Choice):
             # The option names aren't specified in a choice expression
+            option_types = []
             for child in entry.children:
-                self._params[child.entry].add(_VariableParam(reference, Param.OUT))
-                self._add_out_params(child.entry, reference)
+                child_type = self._add_out_params(child.entry, reference)
+                self._params[child.entry].add(_VariableParam(reference, Param.OUT, child_type))
+                option_types.append(child_type)
+            result =  MultiSourceType(option_types)
         elif isinstance(entry, seq.Sequence):
-            was_child_found = False
             child_params = self._local_child_param_name.setdefault(entry, {})
+
+            # Detect the child name, and the name of the reference under that child.
+            names = reference.name.split('.')
+            child_name = names[0]
+            sub_name = ".".join(names[1:])
+
             for child in entry.children:
                 local_names = child_params.setdefault(child, {})
                 if child.name == reference.name:
@@ -330,27 +405,27 @@ class ExpressionParameters(_Parameters):
                     # child, use the childs name.
                     child_reference = type(reference)(child.entry.name)
                     local_names[child.entry.name] = reference.name
-                    was_child_found = True
                     if isinstance(child_reference, expr.ValueResult):
-                        self._add_reference(child.entry, child_reference)
+                        result = self._add_reference(child.entry, child_reference)
                     else:
-                        self._params[child.entry].add(_VariableParam(child_reference, Param.OUT))
+                        result = EntryLengthType(child.entry)
+                        self._params[child.entry].add(_VariableParam(child_reference, Param.OUT, result))
                         self._referenced_lengths.add(child.entry)
-                else:
-                    child_name = reference.name.split('.')[0]
-                    if child.name == child_name:
-                        sub_name = ".".join(reference.name.split('.')[1:])
-                        local_names[sub_name] = reference.name
-                        child_reference = type(reference)(sub_name)
+                    break
+                elif child.name == child_name:
+                    # We found a child item that knows about this parameter
+                    local_names[sub_name] = reference.name
+                    child_reference = type(reference)(sub_name)
 
-                        # We found a child item that knows about this parameter
-                        self._params[child.entry].add(_VariableParam(child_reference, Param.OUT))
-                        self._add_out_params(child.entry, child_reference)
-                        was_child_found = True
-            if not was_child_found:
+                    result = self._add_out_params(child.entry, child_reference)
+                    self._params[child.entry].add(_VariableParam(child_reference, Param.OUT, result))
+                    break
+            else:
                 raise ent.MissingExpressionReferenceError(entry, reference.name)
         else:
-            raise BadReferenceError(entry, reference.name)
+            # We don't know how to resolve a reference to this type of entry!
+            raise BadReferenceError(entry)
+        return result
 
     def get_locals(self, entry):
         """
@@ -359,15 +434,22 @@ class ExpressionParameters(_Parameters):
         Local variables are all child outputs that aren't an output of the
         entry.
         """
-        locals = set()
         params = self._params[entry]
+        locals = {}
         for child in entry.children:
             for child_param in self._params[child.entry]:
                 if child_param.direction == Param.OUT:
                     local = self._get_local_reference(entry, child, child_param)
-                    if _VariableParam(local, child_param.direction) not in params:
-                        locals.add(Local(self._get_reference_name(local), int))
-        result = list(locals)
+                    if _VariableParam(local, child_param.direction, None) not in params:
+                        name = _get_reference_name(local)
+                        locals.setdefault(name, []).append(child_param.get_type())
+        result = []
+        for name, types in locals.items():
+            if len(types) == 1:
+                type = types[0]
+            else:
+                type = MultiSourceType(types)
+            result.append(Local(name, type))
         result.sort(key=lambda a:a.name)
         return result
 
@@ -378,15 +460,10 @@ class ExpressionParameters(_Parameters):
         assert isinstance(entry, bdec.entry.Entry)
         params = list(self._params[entry])
         params.sort(key=lambda a:a.reference.name)
-        result = list(Param(self._get_reference_name(param.reference), param.direction, int) for param in params)
-        return result
-
-    def _get_reference_name(self, reference):
-        if isinstance(reference, expr.ValueResult):
-            return reference.name
-        elif isinstance(reference, expr.LengthResult):
-            return reference.name + ' length'
-        raise Exception("Unknown reference type '%s'" % reference)
+        try:
+            return [param.get_param() for param in params]
+        except _FailedToResolveError, ex:
+            raise UnknownReferenceError(entry, ex.name)
 
     def get_passed_variables(self, entry, child):
         """
@@ -403,7 +480,7 @@ class ExpressionParameters(_Parameters):
         child_params.sort(key=lambda a:a.reference.name)
         for param in child_params:
             local = self._get_local_reference(entry, child, param)
-            yield Param(self._get_reference_name(local), param.direction, int)
+            yield Param(_get_reference_name(local), param.direction, param.get_type())
 
     def is_value_referenced(self, entry):
         """ Is the decoded value of an entry used elsewhere. """
@@ -419,6 +496,7 @@ class DataChecker:
         """A list of entries to check for visibility.
 
         All other entries reachable by these entries can also be checked."""
+        self._common = entries[:]
         self._has_data = {}
         entries = set(entries)
         while entries:
@@ -447,26 +525,63 @@ class DataChecker:
         if entry in self._has_data:
             return
 
-        #self._has_data[entry] = not entry.is_hidden()
-        self._has_data[entry] = False
-
         # This entry isn't yet calculated; do so now.
+        self._has_data[entry] = not entry.is_hidden()
         stack.append(entry)
         for child in entry.children:
-            self._populate(child.entry, stack, intermediates)
-            self._has_data[entry] |= self.child_has_data(child)
+             self._populate(child.entry, stack, intermediates)
         stack.remove(entry)
+
+        if not isinstance(entry, chc.Choice) and not entry.is_hidden():
+            # We are visible; check to see if either we (or any of our
+            # children) contain data.
+            for child in entry.children:
+                if self._has_data[child.entry]:
+                    break
+            else:
+                # None of the children contain data; this entry will only contain
+                # data if implicitly has data itself.
+                if isinstance(entry, fld.Field) or \
+                        (isinstance(entry, seq.Sequence) and entry.value is not None):
+                    # This entry's children don't contain data, but it appears to
+                    # have some implicit data.
+                    for constraint in entry.constraints:
+                        if isinstance(constraint, Equals):
+                            # The 'implicit' data has an expected value, so it
+                            # isn't considered as new data.
+                            self._has_data[entry] = False
+                            break
+                elif isinstance(entry, sof.SequenceOf) and \
+                        not ent.is_hidden(entry.children[0].name):
+                    self._has_data[entry] = True
+                else:
+                    self._has_data[entry] = False
+
+        if not self._has_data[entry]:
+            self._hide_children(entry)
+
+    def _hide_children(self, entry):
+        """Hide all of the non-common children of an entry.
+
+        If an entry doesn't contain data, nor should any of its non common
+        children. This can happen when a parent entry is hidden, but the
+        child entries are visible.
+        """
+        self._has_data[entry] = False
+        for child in entry.children:
+            if child.entry not in self._common:
+                self._hide_children(child.entry)
 
     def contains_data(self, entry):
         """Does an entry contain data."""
-        return self._has_data[entry] or not ent.is_hidden(entry.name)
+        return not ent.is_hidden(entry.name) and self._has_data[entry]
 
     def child_has_data(self, child):
         """Does a bdec.entry.Child instance contain data.
 
         This is different from contains_data when a referenced entry has been
         hidden."""
-        return self._has_data[child.entry] or not ent.is_hidden(child.name)
+        return not ent.is_hidden(child.name) and self._has_data[child.entry]
 
 
 class ResultParameters(_Parameters):
@@ -483,21 +598,21 @@ class ResultParameters(_Parameters):
             if self._checker.contains_data(child.entry) and not self._checker.child_has_data(child):
                 # There is a common entry that appears visible, but has been
                 # hidden locally. We store this entry as a local.
-                locals.append(Local('unused %s' % child.name, child.entry))
+                locals.append(Local('unused %s' % child.name, EntryType(child.entry)))
         return locals
 
     def get_params(self, entry):
         if not self._checker.contains_data(entry):
             return []
-        return [Param('result', Param.OUT, entry)]
+        return [Param('result', Param.OUT, EntryType(entry))]
 
     def get_passed_variables(self, entry, child):
         if not self._checker.contains_data(child.entry):
             return []
         if not self._checker.child_has_data(child):
             # A visible common entry has been hidden locally.
-            return [Param('unused %s' % child.name, Param.OUT, child.entry)]
-        return [Param('unknown', Param.OUT, child.entry)]
+            return [Param('unused %s' % child.name, Param.OUT, EntryType(child.entry))]
+        return [Param('unknown', Param.OUT, EntryType(child.entry))]
 
 
 class CompoundParameters(_Parameters):

@@ -51,7 +51,7 @@
         <sequence name="comment">
             <field name="id:" length="8" value="0x25" />
             <sequenceof name="text">
-                <choice name="entry:">
+                <choice name="entry">
                     <sequence name="end of comment:">
                         <reference name="end of line:" />
                         <end-sequenceof />
@@ -61,7 +61,7 @@
             </sequenceof>
         </sequence>
 
-        <choice name="name character:">
+        <choice name="name character">
             <!-- Valid name characters are in the range [33, 126], except
                  for %, (, ), <, >, [, ], {, }, /, and #. -->
             <field name="char" length="8" type="text" min="33" max="36" />
@@ -78,24 +78,24 @@
 
         <sequence name="name object">
             <field name="id:" length="8" type="text" value="/" />
-            <reference name="name character:" />
-            <sequenceof name="remaining chars:">
-                <choice name="entry:">
-                    <reference name="name character:" />
+            <reference name="name character" />
+            <sequenceof name="remaining chars">
+                <choice name="entry">
+                    <reference name="name character" />
                     <sequence><end-sequenceof/></sequence>
                 </choice>
             </sequenceof>
         </sequence>
 
         <sequence name="integer">
-            <choice name="sign:">
+            <choice name="sign">
                 <field name="positive" length="8" type="text" value="+" />
                 <field name="negative" length="8" type="text" value="-" />
                 <sequence />
             </choice>
             <field name="digit" length="8" type="text" min="48" max="57" />
-            <sequenceof name="number:">
-                <choice name="char:">
+            <sequenceof name="number">
+                <choice name="char">
                     <field name="digit" length="8" type="text" min="48" max="57" />
                     <sequence><end-sequenceof/></sequence>
                 </choice>
@@ -108,11 +108,11 @@
         </choice>
 
         <sequence name="string">
-            <choice name="string type:">
+            <choice name="string type">
                 <sequence name="text">
                     <field name="opener:" length="8" type="text" value="(" />
                     <sequenceof name="chars">
-                        <choice name="entry:">
+                        <choice name="entry">
                             <sequence name="escaped char">
                                 <field name="escape:" length="8" type="text" value="\" />
                                 <field name="char" length="8" type="text" />
@@ -125,7 +125,7 @@
                 <sequence name="hex">
                     <field name="opener:" length="8" type="text" value="&lt;" />
                     <sequenceof name="chars">
-                        <choice name="entry:">
+                        <choice name="entry">
                             <field name="closer:" length="8" type="text" value="&gt;" ><end-sequenceof/></field>
                             <field name="char" length="8" type="text" min="97" max="102" />
                             <field name="char" length="8" type="text" min="65" max="70" />
@@ -146,13 +146,13 @@
 
         <sequence name="dictionary object">
             <field name="opener:" length="16" type="text" value="&lt;&lt;" />
-            <sequenceof name="entries:">
-                <choice name="entry:">
+            <sequenceof name="entries">
+                <choice name="entry">
                     <reference name="whitespace" />
                     <field name="closer:" length="16" type="text" value="&gt;&gt;" ><end-sequenceof /></field>
                     <sequence name="entry">
                         <reference name="name object" />
-                        <reference name="direct object:" />
+                        <reference name="direct object" />
                     </sequence>
                 </choice>
             </sequenceof>
@@ -164,7 +164,7 @@
             <reference name="generation number" type="integer" />
             <reference name="whitespace" />
             <field name="obj:" length="24" type="text" value="obj" />
-            <reference name="direct object:" />
+            <reference name="direct object" />
             <field name="endobj:" length="48" type="text" value="endobj" />
         </sequence>
 
@@ -179,7 +179,7 @@
                 text isn't in the binary data)...
                  -->
              <sequenceof name="data">
-                 <choice name="entry:">
+                 <choice name="entry">
                      <field name="endstream" length="72" type="text" value="endstream" ><end-sequenceof/></field>
                      <field name="byte" length="8" type="hex" />
                  </choice>
@@ -188,17 +188,17 @@
 
         <sequence name="array object">
             <field name="open square bracket:" length="8" type="text" value="[" />
-            <sequenceof name="objects:">
-                <choice name="array entry:">
+            <sequenceof name="objects">
+                <choice name="array entry">
                     <field name="close square bracket:" length="8" type="text" value="]" ><end-sequenceof /></field>
-                    <reference name="direct object:" />
+                    <reference name="direct object" />
                 </choice>
             </sequenceof>
         </sequence>
 
-        <sequence name="direct object:">
+        <sequence name="direct object">
             <reference name="optional whitespace:" />
-            <choice name="object entry:">
+            <choice name="object entry">
                 <reference name="comment" />
                 <reference name="object reference" />
                 <reference name="name object" />
@@ -248,9 +248,9 @@
                 difficult to convert that text value to a numeric value we
                 can use. -->
             <sequenceof name="cross reference entries">
-                <sequence name="entry with whitespace:">
+                <sequence name="entry with whitespace">
                     <reference name="optional whitespace:" />
-                    <choice name="entry:">
+                    <choice name="entry">
                         <reference name="cross reference entry" />
                         <sequence><end-sequenceof/></sequence>
                     </choice>
@@ -262,7 +262,7 @@
         <sequence name="cross reference table">
             <field name="xref:" length="32" type="text" value="xref" />
             <sequenceof name="cross reference sections">
-                <choice name="section:">
+                <choice name="section">
                     <reference name="cross reference section" />
                     <sequence><end-sequenceof/></sequence>
                 </choice>
@@ -270,12 +270,12 @@
         </sequence>
 
         <sequenceof name="body">
-            <sequence name="entry:">
+            <sequence name="entry">
                 <reference name="optional whitespace:" />
-                <choice name="body entry:">
+                <choice name="body entry">
                     <reference name="comment" />
                     <reference name="indirect object" />
-                    <sequence name="cross reference:">
+                    <sequence name="cross reference">
                         <reference name="cross reference table" />
                         <end-sequenceof />
                     </sequence>

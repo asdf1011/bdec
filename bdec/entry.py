@@ -1,4 +1,4 @@
-#   Copyright (C) 2008 Henry Ludemann
+#   Copyright (C) 2008-2009 Henry Ludemann
 #
 #   This file is part of the bdec decoder library.
 #
@@ -20,6 +20,8 @@
 The bdec.entry module defines the core entry class (bdec.entry.Entry) and 
 errors (derived from bdec.DecodeError) common to all entry types.
 """
+
+import operator
 
 import bdec
 import bdec.data as dt
@@ -76,6 +78,13 @@ class MissingExpressionReferenceError(bdec.DecodeError):
     def __str__(self):
         return "%s needs '%s' to decode" % (self.entry, self.missing_context)
 
+class EncodeError(bdec.DecodeError):
+    pass
+
+class NotEnoughContextError(EncodeError):
+    def __str__(self):
+        return "%s needs context to encode" % self.entry
+
 
 def is_hidden(name):
     """Is a name a 'hidden' name.
@@ -106,21 +115,6 @@ class Range:
             max = self.max + other.max
         return Range(min, max)
 
-def _hack_on_end_sequenceof(entry, length, context):
-    context['should end'] = True
-def _hack_on_length_referenced(entry, length, context):
-    context[entry.name + ' length'] = length
-def _hack_create_value_listener(name):
-    def _on_value_referenced(entry, length, context):
-        import bdec.field as fld
-        import bdec.sequence as seq
-        if isinstance(entry, fld.Field):
-            context[name] = int(entry)
-        elif isinstance(entry, seq.Sequence):
-            context[name] = entry.value.evaluate(context)
-        else:
-            raise Exception("Don't know how to read value of %s" % entry)
-    return _on_value_referenced
 
 class Child(object):
     """ A child is embedded in another entry."""
@@ -138,25 +132,31 @@ class Entry(object):
     directly).
     """
 
-    def __init__(self, name, length, children):
+    def __init__(self, name, length, children, constraints=[]):
         """Construct an Entry instance.
 
         children -- A list of Entry instances.
         length -- Optionally specify the size in bits of the entry. Must be an
             instance of bdec.expression.Expression or an integer.
+        constraints -- A list of constraints for the value of this entry.
         """
         if length is not None:
             if isinstance(length, int):
                 length = Constant(length)
             assert isinstance(length, Expression)
         self.name = name
-        self._listeners = []
         self.length = length
         self._children = ()
         self.children = children
 
         self._params = None
         self._parent_param_lookup = {}
+        self._is_end_sequenceof = False
+        self._is_value_referenced = False
+        self._is_length_referenced = False
+        self.constraints = list(constraints)
+        for constraint in self.constraints:
+            assert getattr(constraint, 'check') is not None
 
     def _get_children(self):
         return self._children
@@ -199,34 +199,12 @@ class Entry(object):
             our_params = (param.name for param in lookup.get_passed_variables(self, child))
             self._parent_param_lookup[child] = dict(zip(child_params, our_params))
 
-        if lookup.is_end_sequenceof(self):
-            self.add_listener(_hack_on_end_sequenceof)
-        if lookup.is_value_referenced(self):
-            # This is a bit of a hack... we need to use the correct (fully
-            # specified) name. We'll lookup the parameter to get it.
-            for param in self._params:
-                if param.direction is param.OUT:
-                    self.add_listener(_hack_create_value_listener(param.name))
-        if lookup.is_length_referenced(self):
-            self.add_listener(_hack_on_length_referenced)
+        self._is_end_sequenceof = lookup.is_end_sequenceof(self)
+        self._is_value_referenced = lookup.is_value_referenced(self)
+        self._is_length_referenced = lookup.is_length_referenced(self)
 
         for child in self.children:
             child.entry._set_params(lookup)
-
-    def add_listener(self, listener):
-        """
-        Add a listener to be called when the entry successfully decodes.
-
-        The listener will be called with this entry, and the amount of data
-        decoded as part of this entry (ie: this entry, and all of its
-        children), and the context of this entry.
-
-        Note that the listener will be called for every internal decode, not
-        just the ones that are propageted to the user (for example, if an
-        entry is in a choice that later fails to decode, the listener will
-        still be notified).
-        """
-        self._listeners.append(listener)
 
     def _decode_child(self, child, data, context):
         """
@@ -302,13 +280,20 @@ class Entry(object):
         for is_starting, name, entry, entry_data, value in self._decode(data, context, name):
             if not is_starting:
                 length += len(entry_data)
+            if not is_starting and entry is self:
+                for constraint in self.constraints:
+                    constraint.check(self, value, context)
             yield is_starting, name, entry, entry_data, value
 
+        if self._is_end_sequenceof:
+            context['should end'] = True
+        if self._is_value_referenced:
+            # The last entry to decode will be 'self', so 'value' will be ours.
+            context[self.name] = int(value)
+        if self._is_length_referenced:
+            context[self.name + ' length'] = length
         if self.length is not None and len(data) != 0:
             raise DecodeLengthError(self, data)
-
-        for listener in self._listeners:
-            listener(self, length, context)
 
     def _get_context(self, query, parent):
         # This interface isn't too good; it requires us to load the _entire_ document
@@ -317,39 +302,56 @@ class Entry(object):
         #
         # Problem is, push doesn't work particularly well for bdec.output.instance, nor
         # for choice entries (where we need to re-wind...)
-
         try:
-            context = query(parent, self)
+            return query(parent, self)
         except MissingInstanceError:
-            import bdec.choice as chc
-            if not self.is_hidden() and not isinstance(self, chc.Choice):
-                raise
-            # The instance wasn't included in the input, but as it is hidden, we'll
-            # keep using the current context.
-            context = parent
-        return context
+            if self.is_hidden():
+                return None
+            raise
 
-    def _encode(self, query, context):
+    def get_context(self, query, parent):
+        return self._get_context(query, parent)
+
+    def _encode(self, query, value):
         """
         Encode a data source, with the context being the data to encode.
         """
         raise NotImplementedError()
 
-    def encode(self, query, parent_context):
+    def _fixup_value(self, value):
+        """
+        Allow entries to modify the value to be encoded.
+        """
+        return value
+
+    def encode(self, query, value):
         """Return an iterator of bdec.data.Data instances.
 
         query -- Function to return a value to be encoded when given an entry
           instance and the parent entry's value. If the parent doesn't contain
           the expected instance, MissingInstanceError should be raised.
-        parent_context -- The value of the parent of this instance.
+        value -- This entry's value that is to be encoded.
         """
         encode_length = 0
-        for data in self._encode(query, parent_context):
+        value = self._fixup_value(value)
+        context = {}
+
+        length = None
+        if self.length is not None:
+            try:
+                length = self.length.evaluate(context)
+            except UndecodedReferenceError:
+                raise NotEnoughContextError(self)
+
+        for constraint in self.constraints:
+            constraint.check(self, value, context)
+
+        for data in self._encode(query, value):
             encode_length += len(data)
             yield data
 
-        if self.length is not None and encode_length != self.length.evaluate({}):
-            raise DataLengthError(self, self.length.evaluate({}), encode_length)
+        if length is not None and encode_length != length:
+            raise DataLengthError(self, length, encode_length)
 
     def is_hidden(self):
         """Is this a 'hidden' entry."""

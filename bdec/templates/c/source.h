@@ -37,7 +37,9 @@ extern "C" {
 #endif
 
 <%def name="c_define(entry)" >
-  %if isinstance(entry, Sequence) and settings.ctype(entry) is not 'int':
+  %if not contains_data(entry):
+
+  %elif isinstance(entry, Sequence) and not settings.is_numeric(settings.ctype(entry)):
 ${settings.ctype(entry)}
 {
   %for i, child in enumerate(entry.children):
@@ -46,7 +48,7 @@ ${settings.ctype(entry)}
     %endif
   %endfor
   %if entry.value is not None:
-    int value;
+    ${ctype(EntryValueType(entry))} value;
   %endif
 };
   %elif isinstance(entry, Choice):
@@ -58,6 +60,7 @@ enum ${settings.enum_type_name(entry)}
     %endfor
 };
 
+    %if settings.children_contain_data(entry):
 ${settings.ctype(entry)}
 {
     enum ${settings.enum_type_name(entry)} option;
@@ -74,10 +77,13 @@ ${settings.ctype(entry)}
     %endfor
     }value;
 };
+    %endif
   %elif isinstance(entry, SequenceOf):
 ${settings.ctype(entry)}
 {
+    %if child_contains_data(entry.children[0]):
     ${settings.ctype(entry.children[0].entry)}* items;
+    %endif
     unsigned int count;
 };
   %endif
@@ -90,25 +96,37 @@ ${c_define(e)}
 %endfor
 
 
-// Decode a ${entry.name} instance.
-// Any values already present in result will be ignored and overwritten.
-//   buffer -- The data to decoded.
-//   result -- The decoded structured is stored in this argument. If the data is
-//      decoded successfully, to free any allocated structures you should call
-//      the entry free function. Do not call for decode failures.
-//   return -- 0 for decode failure, non-zero for success.
+/**
+ * Decode a ${entry.name} instance.
+ *
+ *   buffer -- The data to decoded.
+ *   result -- The decoded structured is stored in this argument. If the data
+ *      has decoded successfully, to free any allocated memory you should
+ *      call ${settings.free_name(entry)}.
+ *   return -- 0 for decode failure, non-zero for success.
+ */
 int ${settings.decode_name(entry)}( BitBuffer* buffer${settings.define_params(entry)});
 
-// Free a previously decoded object.
-// Do not attempt to free an object that has not been decoded, or was only
-// partially decoded.
-// Do not free an item multiple times.
-//   value -- The entry whose contents is to be released. The pointer 'value'
-//     will not be freed.
+%if contains_data(entry):
+/**
+ * Free a decoded object.
+ *
+ * Do not attempt to free an object that has not been decoded.
+ *
+ *   value -- The entry whose contents is to be released. The pointer 'value'
+ *     will not be freed.
+ */
 void ${settings.free_name(entry)}(${settings.ctype(entry)}* value);
+%endif
 
-// Print an xml representation of a ${entry.name} object.
-void ${settings.print_name(entry)}(${settings.ctype(entry)}* data, int offset, char* name);
+/**
+ * Print an xml representation of a ${entry.name} object.
+ */
+%if contains_data(entry):
+void ${settings.print_name(entry)}(${settings.ctype(entry)}* data, unsigned int offset, const char* name);
+%else:
+void ${settings.print_name(entry)}(unsigned int offset, const char* name);
+%endif
 
 #ifdef __cplusplus
 }

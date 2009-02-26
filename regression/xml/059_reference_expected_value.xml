@@ -1,0 +1,9 @@
+<protocol>
+    <sequence name="a">
+        <reference name="b" type="integer" expected="8" />
+        <reference name="c" type="integer" expected="3" />
+    </sequence>
+    <common>
+        <field name="integer" length="8" type="integer" />
+    </common>
+</protocol>

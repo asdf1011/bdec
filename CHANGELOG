@@ -1,3 +1,55 @@
+0.6.2 (2010-02-02)
+------------------
+
+Bugfixes:
+
+* Correctly decode sequence values in the instance decoder.
+* Correctly resolve references found in conditional & constraint expressions.
+* Fix exception when we reference an unknown entry in an expression.
+* Report missing reference errors from the entry that defined the reference.
+* Improve the error messages from data errors.
+* Don't throw an exception when choosing and not enough data available.
+* Decode sequence entries with both a min and a max.
+* Correctly handle conditional references.
+* Report errors from the entry opening line & column number, not the closing location.
+* Data objects now supports non-seekable files such as stdin.
+
+
+0.6.1 (2009-12-05)
+------------------
+
+Features:
+
+* C representation for choice entries whose children don't contain data is now
+  an enum. Previously these entries generated a union without members, which is
+  invalid C/C++ (and caused memory errors with g++).
+
+Bugfixes:
+
+* Fix the 'bcompile' script (was crashing).
+* Various C compilation fixes (tests now use gcc instead of g++).
+* Fix the range of 64 bit values.
+
+
+0.6.0 (2009-11-30)
+------------------
+
+Features:
+
+* Decode floating point, signed integer, and 64 bit values.
+* Range analysis on integer types to determine suitable C-types.
+* Conditional entries.
+* Constraints on sequence values.
+
+Bugfixes:
+
+* Whitespace in xml output
+* Fix referenencing length & value of the same entry
+
+Thanks to Fernando Martín for the example patch adding signed integer and
+floating point support.
+
+
 0.5.3 (2009-04-01)
 ------------------
 

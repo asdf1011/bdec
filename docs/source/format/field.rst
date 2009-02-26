@@ -5,33 +5,33 @@
 Field entries
 =============
 
-Field entries are the core element in a specification; they represent all the
-data that is found in the binary file. Some characteristics of this data are;
+Field entries are the core part of a specification; they represent all the
+data that is found in the binary file (entries other than fields are
+responsible for the ordering and repetition of the field entries). The
+type of the field's data is specified in the field's attributes;
 
-  * The data on disk can be many types, such as text (in any encoding),
-    integers, and buffers.
-  * The length of the data can be of any; it may be a fixed length, or it may
-    be :ref:`variable length <bdec-expressions>`. The data may be less than a 
-    byte in length, and it may not be byte aligned.
+  * Type: The data on disk can be many types, such as text (in any encoding),
+    integer (little endian / big endian), and raw binary data.
+  * Length: The length of the data may be a fixed length, or it may be
+    :ref:`variable length <bdec-expressions>`. The data's length may be less
+    than a byte, and it may not be byte aligned.
 
 
 Specification
 =============
 
-Bdec fields can have 4 attributes;
+Bdec fields have the following attributes;
 
   * A name (optional)
   * A :ref:`length <bdec-expressions>` in bits
   * A type_ (optional)
   * An encoding (optional)
   * A value_ (optional)
-  * A min_ value (optional)
-  * A max_ value (optional)
+  * :ref:`Constraint <bdec-constraints>` attributes (optional)
+  * An :ref:`if <boolean-expression>` (optional)
 
 .. _type: `Field types`_
 .. _value: `Expected value`_
-.. _min: `Value ranges`_
-.. _max: `Value ranges`_
 
 
 Field types
@@ -40,13 +40,26 @@ Field types
 There are currently four available field types. If the type is not specified,
 it is assumed to be binary_.
 
-Integers
---------
+Integer
+-------
 
-Integer fields represent numeric values in the data file. There are two types
-of encodings supported, `little endian and big endian`_.
+Integer fields represent numeric values. There are two types of encodings
+supported, `little endian and big endian`_. The 'integer' type can be
+prefixed with 'signed' to specify that the integer can be negative. eg::
 
-The default encoding is big endian.
+  <!-- Unsigned big endian -->
+  <field name="a" type="integer" length="32" />
+   
+  <!-- Unsigned big endian (note that 'unsigned' is redundant) -->
+  <field name="a" type="unsigned integer" length="32" />
+   
+  <!-- Signed big endian (note that 'big endian' is rendundant) -->
+  <field name="a" type="signed integer" encoding="big endian" length="16" />
+   
+  <!-- Signed little endian -->
+  <field name="a" type="signed integer" encoding="little endian" length="64" />
+
+The default encoding is unsigned big endian.
 
 .. _little endian and big endian: http://en.wikipedia.org/wiki/Endianness 
 
@@ -74,27 +87,7 @@ Binary fields represent binary data of any length. It has no encoding.
 Expected value
 ==============
 
-Fields can have a value which specifies the value it expects to find on disk.
-If the value doesn't match, the decode will fail.
-
-The decode attribute can be either in hex (ie: value="0xf3"), or in the type
-of the field (eg: type="text" value="expected string").
-
-
-Value ranges
-============
-
-It is often desirable to set a minimum and a maximum value for fields. For 
-example, you may want to accept all numerical text entries '0' .. '9'. The min
-and max attributes can be used to set a range of valid numerical values for the
-field.
-
-Both min and max are inclusive; ie::
-
-    min <= value <= max
-
-If the decode value falls outside the minimum or maximum, the field fails to
-decode.
+The 'value' attribute is another name for the 'expected' :ref:`constraint <bdec-constraints>` .
 
 
 Examples
