@@ -72,7 +72,7 @@ def _find_executable(name):
 def _get_valgrind():
     path =  _find_executable('valgrind')
     if path is None:
-        print 'Failed to find valgrind executable! Compiled tests will run without valgrind.'
+        print 'Failed to find valgrind! Code will not be tested with valgrind.'
     return path
 
 def generate(spec, common, details):
@@ -116,9 +116,10 @@ def compile_and_run(data, details):
     decode = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     xml = decode.stdout.read()
     stderr = decode.stderr.read()
-    match = re.search('ERROR SUMMARY: (\d+) errors', stderr)
-    assert match is not None, stderr
-    assert match.group(1) == '0', stderr
+    if details.VALGRIND is not None:
+        match = re.search('ERROR SUMMARY: (\d+) errors', stderr)
+        assert match is not None, stderr
+        assert match.group(1) == '0', stderr
 
     return decode.wait(), xml
 
