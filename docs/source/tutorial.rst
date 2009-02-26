@@ -114,9 +114,9 @@ crc. ::
 
      <common>
        <sequence name="unknown chunk">
-          <field name="data length" length="32" type="integer" />
+          <field name="data length:" length="32" type="integer" />
           <field name="type" length="32" type="hex" />
-          <field name="data" length="${data length} * 8" type="hex" />
+          <field name="data" length="${data length:} * 8" type="hex" />
           <field name="crc" length="32" type="hex" />
        </sequence>
      </common>
@@ -125,9 +125,12 @@ crc. ::
 A few things to note:
 
   * We've put the 'unknown chunk' in the common section; it is a good
-    idea to separate logical boundaries in different parts of the 
+    idea to separate logical constructs in different parts of the
     specification.
   * The entry 'data' is a variable length field
+  * The name of the 'data length:' field has a trailing ':'. This acts as a
+    hint to hide the output of 'data length:' field, so it will not be
+    displayed.
 
 Running the decode, we successfully get four chunks decoding, before we run
 out of data with the error::
@@ -135,8 +138,7 @@ out of data with the error::
    ...
         </unknown-chunk>
         <unknown-chunk>
-            <data-length>
-   png.xml[11]: integer 'data length' (big endian) - Asked for 32 bits, but only have 0 bits available!
+   png.xml[11]: integer 'data length:' (big endian) - Asked for 32 bits, but only have 0 bits available!
 
 This is because the sequenceof entry doesn't know when to stop decoding; ie: 
 there isn't a count, a length, or an end-entry. From reading the specification,
@@ -158,16 +160,16 @@ we find that a png file is supposed to end with an 'IEND' chunk. Lets add it! ::
 
      <common>
        <sequence name="unknown chunk">
-          <field name="data length" length="32" type="integer" />
+          <field name="data length:" length="32" type="integer" />
           <field name="type" length="32" type="hex" />
-          <field name="data" length="${data length} * 8" type="hex" />
+          <field name="data" length="${data length:} * 8" type="hex" />
           <field name="crc" length="32" type="hex" />
        </sequence>
 
        <sequence name="end chunk">
-          <field name="data length" length="32" type="integer" />
+          <field name="data length:" length="32" type="integer" />
           <field name="type" length="32" type="text" value="IEND" />
-          <field name="data" length="${data length} * 8" type="hex" />
+          <field name="data" length="${data length:} * 8" type="hex" />
           <field name="crc" length="32" type="hex" />
        </sequence>
      </common>
@@ -209,13 +211,13 @@ read. We can use :ref:`references <format-reference>` to only specify these once
        <field name="dword" type="integer" length="32" />
 
        <sequence name="unknown chunk">
-          <reference name="data length" type="dword" />
+          <reference name="data length:" type="dword" />
           <field name="type" length="32" type="hex" />
 
      ...skipping...
 
        <sequence name="end chunk">
-          <reference name="data length" type="dword" />
+          <reference name="data length:" type="dword" />
           <field name="type" length="32" type="text" value="IEND" />
 
 Even in this simple case, it has made the code easier to read. In more
@@ -246,9 +248,9 @@ includes information about image height, width, the encoding, etc. ::
 
   <common>
     <sequence name="begin chunk">
-      <field name="data length" length="32" type="integer" />
+      <field name="data length:" length="32" type="integer" />
       <field name="type" length="32" type="text" value="IHDR" />
-      <sequence name="header" length="${data length} * 8">
+      <sequence name="header" length="${data length:} * 8">
          <field name="width" length="32" type="integer" />
          <field name="height" length="32" type="integer" />
          <field name="bit depth" length="8" type="integer" />
@@ -305,9 +307,9 @@ to decode this data). That said, we can identify the image data chunk. ::
   ...
 
   <sequence name="image data">
-     <field name="data length" length="32" type="integer" />
+     <field name="data length:" length="32" type="integer" />
      <field name="type" length="32" type="text" value="IDAT" />
-     <field name="data" length="${data length} * 8" type="hex" />
+     <field name="data" length="${data length:} * 8" type="hex" />
      <field name="crc" length="32" type="hex" />
   </sequence>
 
@@ -333,7 +335,7 @@ and a variable length text string to read the value. eg::
        <reference name="text chunk" />
   ...
   <sequence name="text chunk">
-     <field name="data length" length="32" type="integer" />
+     <field name="data length:" length="32" type="integer" />
      <field name="type" length="32" type="text" value="tEXt" />
      <sequenceof name="keyword">
         <choice name="char">
@@ -341,7 +343,7 @@ and a variable length text string to read the value. eg::
            <field name="character" length="8" type="text" />
         </choice>
      </sequenceof>
-     <field name="value" type="text" length="${data length} * 8 - len{keyword}" />
+     <field name="value" type="text" length="${data length:} * 8 - len{keyword}" />
      <field name="crc" length="32" type="hex" />
   </sequence>
 
