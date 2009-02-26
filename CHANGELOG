@@ -1,3 +1,14 @@
+0.5.2 (2009-02-26)
+------------------
+
+Bugfixes:
+
+ * Correctly hide common entries that have been referenced with a hidden name.
+ * Fix out of data error reporting invalid ranges.
+ * Fix compilation errors when  entries named after keywords (such as 'int').
+ * Allow references to be used as common entries.
+
+
 0.5.1 (2009-02-18)
 ------------------
 

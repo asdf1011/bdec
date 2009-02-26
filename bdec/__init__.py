@@ -39,7 +39,7 @@ It can:
 # This is automatically updated by the ./tools/release.py script. Just set
 # the latest version in the README, and this will be updated when the release
 # is made.
-__version__ = "0.5.1"
+__version__ = "0.5.2"
 
 class DecodeError(Exception):
     """ An error raise when decoding fails """
