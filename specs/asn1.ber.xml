@@ -5,6 +5,7 @@
 
     <common>
         <choice name="entry">
+            <reference name="integer" />
             <reference name="unknown primitive" />
             <reference name="unknown constructed" />
         </choice>
@@ -29,6 +30,12 @@
             <sequenceof name="entries" length="${length:} * 8">
                 <reference name="entry" />
             </sequenceof>
+        </sequence>
+
+        <sequence name="integer" value="${value:}">
+            <field name="tag:" length="8" value="0x2" />
+            <reference name="length:" />
+            <field name="value:" length="${length:} * 8" type="integer" />
         </sequence>
 
         <!-- FIXME: Correctly decode large tag numbers (see http://www.w3.org/Protocols/HTTP-NG/asn1.html) -->
