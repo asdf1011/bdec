@@ -44,6 +44,10 @@
         <sequence name="printable string">
             <field name="tag:" length="8" value="0x13" />
             <reference name="length:" />
+            <!-- FIXME: Printable strings can be represented in constructed form,
+              where there are multiple printable string objects emedded within
+              it...
+              -->
             <field name="text" length="${length:} * 8" type="text" />
         </sequence>
 
@@ -55,7 +59,7 @@
             </sequenceof>
         </sequence>
 
-        <!-- FIXME: Correctly decode large tag numbers (see http://www.w3.org/Protocols/HTTP-NG/asn1.html) -->
+        <!-- FIXME: Correctly decode large tag numbers (see 8.1.2.4.3 in X.690-0207.pdf) -->
         <field name="tag number" length="5" type="integer" />
 
         <choice name="class">
@@ -80,6 +84,11 @@
                 <field length="7" value="0x0" />
                 <!-- We cannot decode indefinite types easily, so we'll just
                   eat all of the data, and say we have zero length.
+
+                  NOTE: 8.1.3.2 of X.690-0207.pdf defines that the length of
+                  primitive objects will NOT be indefinite. This means we
+                  could possibly define a sequenceof with using a double null
+                  as an end-sequenceof...
                   -->
                 <sequenceof name="data">
                     <sequence name="byte:">
