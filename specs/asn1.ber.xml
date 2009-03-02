@@ -13,7 +13,7 @@
             <sequence name="type">
                 <reference name="class" />
                 <field name="primitive:" length="1" value="0x0" />
-                <field name="number" length="5" type="integer" />
+                <reference name="tag number" />
             </sequence>
             <reference name="length:" />
             <field name="data" type="hex" length="${length:} * 8" />
@@ -23,13 +23,16 @@
             <sequence name="type">
                 <reference name="class" />
                 <field name="constructed:" length="1" value="0x1" />
-                <field name="number" length="5" type="integer" />
+                <reference name="tag number" />
             </sequence>
             <reference name="length:" />
             <sequenceof name="entries" length="${length:} * 8">
                 <reference name="entry" />
             </sequenceof>
         </sequence>
+
+        <!-- FIXME: Correctly decode large tag numbers (see http://www.w3.org/Protocols/HTTP-NG/asn1.html) -->
+        <field name="tag number" length="5" type="integer" />
 
         <choice name="class">
             <field name="universal" length="2" value="0x0" />
