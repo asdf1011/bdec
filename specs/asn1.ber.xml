@@ -7,9 +7,9 @@
         <choice name="entry">
             <reference name="integer" />
             <reference name="printable string" />
-            <reference name="sequence" />
             <reference name="unknown primitive" />
-            <reference name="unknown constructed" />
+            <reference name="unknown constructed" type="unknown indefinite constructed" />
+            <reference name="unknown constructed" type="unknown definite constructed" />
         </choice>
 
         <sequence name="unknown primitive">
@@ -18,45 +18,48 @@
                 <field name="primitive:" length="1" value="0x0" />
                 <reference name="tag number" />
             </sequence>
-            <reference name="length:" />
+            <reference name="length:" type="definite length:" />
             <field name="data" type="hex" length="${length:} * 8" />
         </sequence>
 
-        <sequence name="unknown constructed">
+        <sequence name="unknown definite constructed">
             <sequence name="type">
                 <reference name="class" />
                 <field name="constructed:" length="1" value="0x1" />
                 <reference name="tag number" />
             </sequence>
-            <reference name="length:" />
+            <reference name="length:" type="definite length:" />
             <sequenceof name="entries" length="${length:} * 8">
                 <reference name="entry" />
             </sequenceof>
         </sequence>
 
-        <!-- Define some built-in asn.1 types. -->
+        <sequence name="unknown indefinite constructed">
+            <sequence name="type">
+                <reference name="class" />
+                <field name="constructed:" length="1" value="0x1" />
+                <reference name="tag number" />
+            </sequence>
+            <field name="length:" length="8" value="0x80" />
+            <sequenceof name="entries">
+                <choice name="entry">
+                    <field length="16" value="0x0"><end-sequenceof /></field>
+                    <reference name="entry" />
+                </choice>
+            </sequenceof>
+        </sequence>
+
+        <!-- Define some built-in primitive asn.1 types. -->
         <sequence name="integer" value="${value:}">
             <field name="tag:" length="8" value="0x2" />
-            <reference name="length:" />
+            <reference name="length:" type="definite length:" />
             <field name="value:" length="${length:} * 8" type="integer" />
         </sequence>
 
         <sequence name="printable string">
             <field name="tag:" length="8" value="0x13" />
-            <reference name="length:" />
-            <!-- FIXME: Printable strings can be represented in constructed form,
-              where there are multiple printable string objects emedded within
-              it...
-              -->
+            <reference name="length:" type="definite length:" />
             <field name="text" length="${length:} * 8" type="text" />
-        </sequence>
-
-        <sequence name="sequence">
-            <field name="tag:" length="8" value="0x30" />
-            <reference name="length:" />
-            <sequenceof name="entries" length="${length:} * 8">
-                <reference name="entry" />
-            </sequenceof>
         </sequence>
 
         <!-- FIXME: Correctly decode large tag numbers (see 8.1.2.4.3 in X.690-0207.pdf) -->
@@ -69,7 +72,7 @@
             <field name="private" length="2" value="0x3" />
         </choice>
 
-        <choice name="length:">
+        <choice name="definite length:">
             <sequence name="single byte:" value="${length:}">
                 <field length="1" value="0x0" />
                 <field name="length:" type="integer" length="7" />
@@ -78,26 +81,6 @@
                 <field length="1" value="0x1" />
                 <field name="length length:" length="7" type="integer" />
                 <field name="length:" type="integer" length="${length length:} * 8" />
-            </sequence>
-            <sequence name="indefinite:" value="0">
-                <field length="1" value="0x1" />
-                <field length="7" value="0x0" />
-                <!-- We cannot decode indefinite types easily, so we'll just
-                  eat all of the data, and say we have zero length.
-
-                  NOTE: 8.1.3.2 of X.690-0207.pdf defines that the length of
-                  primitive objects will NOT be indefinite. This means we
-                  could possibly define a sequenceof with using a double null
-                  as an end-sequenceof...
-                  -->
-                <sequenceof name="data">
-                    <sequence name="byte:">
-                        <field name="end:" length="16" value="0x0">
-                            <end-sequenceof />
-                        </field>
-                        <field name="byte" length="8" type="integer" />
-                    </sequence>
-                </sequenceof>
             </sequence>
         </choice>
     </common>
