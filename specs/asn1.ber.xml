@@ -51,6 +51,21 @@
                 <field name="length length:" length="7" type="integer" />
                 <field name="length:" type="integer" length="${length length:} * 8" />
             </sequence>
+            <sequence name="indefinite:" value="0">
+                <field length="1" value="0x1" />
+                <field length="7" value="0x0" />
+                <!-- We cannot decode indefinite types easily, so we'll just
+                  eat all of the data, and say we have zero length.
+                  -->
+                <sequenceof name="data">
+                    <sequence name="byte:">
+                        <field name="end:" length="16" value="0x0">
+                            <end-sequenceof />
+                        </field>
+                        <field name="byte" length="8" type="integer" />
+                    </sequence>
+                </sequenceof>
+            </sequence>
         </choice>
     </common>
 </protocol>
