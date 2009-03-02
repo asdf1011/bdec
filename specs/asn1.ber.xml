@@ -6,6 +6,7 @@
     <common>
         <choice name="entry">
             <reference name="integer" />
+            <reference name="printable string" />
             <reference name="sequence" />
             <reference name="unknown primitive" />
             <reference name="unknown constructed" />
@@ -38,6 +39,12 @@
             <field name="tag:" length="8" value="0x2" />
             <reference name="length:" />
             <field name="value:" length="${length:} * 8" type="integer" />
+        </sequence>
+
+        <sequence name="printable string">
+            <field name="tag:" length="8" value="0x13" />
+            <reference name="length:" />
+            <field name="text" length="${length:} * 8" type="text" />
         </sequence>
 
         <sequence name="sequence">
