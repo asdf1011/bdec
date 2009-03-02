@@ -1,0 +1,53 @@
+<protocol>
+    <sequence name="ber">
+        <reference name="entry" />
+    </sequence>
+
+    <common>
+        <choice name="entry">
+            <reference name="unknown primitive" />
+            <reference name="unknown constructed" />
+        </choice>
+
+        <sequence name="unknown primitive">
+            <sequence name="type">
+                <reference name="class" />
+                <field name="primitive:" length="1" value="0x0" />
+                <field name="number" length="5" type="integer" />
+            </sequence>
+            <reference name="length:" />
+            <field name="data" type="hex" length="${length:} * 8" />
+        </sequence>
+
+        <sequence name="unknown constructed">
+            <sequence name="type">
+                <reference name="class" />
+                <field name="constructed:" length="1" value="0x1" />
+                <field name="number" length="5" type="integer" />
+            </sequence>
+            <reference name="length:" />
+            <sequenceof name="entries" length="${length:} * 8">
+                <reference name="entry" />
+            </sequenceof>
+        </sequence>
+
+        <choice name="class">
+            <field name="universal" length="2" value="0x0" />
+            <field name="application" length="2" value="0x1" />
+            <field name="context-specific" length="2" value="0x2" />
+            <field name="private" length="2" value="0x3" />
+        </choice>
+
+        <choice name="length:">
+            <sequence name="single byte:" value="${length:}">
+                <field length="1" value="0x0" />
+                <field name="length:" type="integer" length="7" />
+            </sequence>
+            <sequence name="multi byte:" value="${length:}">
+                <field length="1" value="0x1" />
+                <field name="length length:" length="7" type="integer" />
+                <field name="length:" type="integer" length="${length length:} * 8" />
+            </sequence>
+        </choice>
+    </common>
+</protocol>
