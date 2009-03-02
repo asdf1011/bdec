@@ -1,7 +1,5 @@
 <protocol>
-    <sequence name="ber">
-        <reference name="entry" />
-    </sequence>
+    <reference name="entry" />
 
     <common>
         <choice name="entry">
