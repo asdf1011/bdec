@@ -7,8 +7,9 @@
             <reference name="numeric string" />
             <reference name="printable string" />
             <reference name="unknown primitive" />
-            <reference name="unknown constructed" type="unknown indefinite constructed" />
-            <reference name="unknown constructed" type="unknown definite constructed" />
+
+            <reference name="sequence" />
+            <reference name="unknown constructed" />
         </choice>
 
         <sequence name="unknown primitive">
@@ -21,32 +22,32 @@
             <field name="data" type="hex" length="${length:} * 8" />
         </sequence>
 
-        <sequence name="unknown definite constructed">
+        <sequence name="unknown constructed">
             <sequence name="type">
                 <reference name="class" />
                 <field name="constructed:" length="1" value="0x1" />
                 <reference name="tag number" />
             </sequence>
-            <reference name="length:" type="definite length:" />
-            <sequenceof name="entries" length="${length:} * 8">
-                <reference name="entry" />
-            </sequenceof>
+            <reference name="constructed entries" />
         </sequence>
 
-        <sequence name="unknown indefinite constructed">
-            <sequence name="type">
-                <reference name="class" />
-                <field name="constructed:" length="1" value="0x1" />
-                <reference name="tag number" />
+        <choice name="constructed entries">
+            <sequence name="indefinite entries">
+                <field name="length:" length="8" value="0x80" />
+                <sequenceof name="entries">
+                    <choice name="entry">
+                        <field length="16" value="0x0"><end-sequenceof /></field>
+                        <reference name="entry" />
+                    </choice>
+                </sequenceof>
             </sequence>
-            <field name="length:" length="8" value="0x80" />
-            <sequenceof name="entries">
-                <choice name="entry">
-                    <field length="16" value="0x0"><end-sequenceof /></field>
+            <sequence name="definite entries">
+                <reference name="length:" type="definite length:" />
+                <sequenceof name="entries" length="${length:} * 8">
                     <reference name="entry" />
-                </choice>
-            </sequenceof>
-        </sequence>
+                </sequenceof>
+            </sequence>
+        </choice>
 
         <!-- Define some built-in primitive asn.1 types. -->
         <sequence name="integer" value="${value:}">
@@ -66,6 +67,12 @@
             <reference name="length:" type="definite length:" />
             <!-- We'll just treat a numeric string as a normal printable string for now... -->
             <field name="text" length="${length:} * 8" type="text" />
+        </sequence>
+
+        <!-- Define some built-in constructed types -->
+        <sequence name="sequence">
+            <field name="tag:" length="8" value="0x30" />
+            <reference name="constructed entries" />
         </sequence>
 
         <!--
@@ -133,5 +140,6 @@
                 <field name="length:" type="integer" length="${length length:} * 8" />
             </sequence>
         </choice>
+
     </common>
 </protocol>
