@@ -68,8 +68,52 @@
             <field name="text" length="${length:} * 8" type="text" />
         </sequence>
 
-        <!-- FIXME: Correctly decode large tag numbers (see 8.1.2.4.3 in X.690-0207.pdf) -->
-        <field name="tag number" length="5" type="integer" />
+        <!--
+          Define entries capable of decoding the tag number to an integer,
+          including multi-byte tags.
+          -->
+        <sequence name="non-last tag byte:" value="${value:}">
+            <field length="1" value="1" />
+            <field name="value:" length="7" type="integer" />
+        </sequence>
+        <sequence name="single byte tag:" value="${value:}">
+            <field length="1" value="0x0" />
+            <field name="value:" length="7" type="integer" />
+        </sequence>
+        <sequence name="two byte tag:" value="${non-last tag byte:} * 7 + ${single byte tag:}">
+            <reference name="non-last tag byte:" />
+            <reference name="single byte tag:" />
+        </sequence>
+        <sequence name="three byte tag:" value="${non-last tag byte:} * 7 * 7 + ${two byte tag:}">
+            <reference name="non-last tag byte:" />
+            <reference name="two byte tag:" />
+        </sequence>
+        <sequence name="four byte tag:" value="${non-last tag byte:} * 7 * 7 * 7 + ${three byte tag:}">
+            <reference name="non-last tag byte:" />
+            <reference name="three byte tag:" />
+        </sequence>
+        <sequence name="tag number" value="${value:}">
+            <choice name="value:">
+                <sequence name="large tag:" value="${multi byte value:}">
+                    <field length="5" value="0x1f" />
+                    <!--
+                      Even though tag numbers could any number of bytes, it
+                      would be a little insane to actually find that in
+                      practice. Thus we currently limit tag numbers to 4 bytes,
+                      which will allow values of up to two hundren million
+                      (note that finding tag numbers this large 'in the wild'
+                      would be extremely unlikely).
+                      -->
+                    <choice name="multi byte value:">
+                        <reference name="single byte tag:" />
+                        <reference name="two byte tag:" />
+                        <reference name="three byte tag:" />
+                        <reference name="four byte tag:" />
+                    </choice>
+                </sequence>
+                <field name="small tag:" length="5" type="integer" />
+            </choice>
+        </sequence>
 
         <choice name="class">
             <field name="universal" length="2" value="0x0" />
