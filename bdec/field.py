@@ -170,7 +170,7 @@ class Field(bdec.entry.Entry):
                     raise BadDataError(self, self.expected, field_data)
             self._validate_range(field_data)
             value = self.decode_value(field_data)
-        except dt.NotEnoughDataError, ex:
+        except dt.DataError, ex:
             raise FieldDataError(self, ex)
 
         self.data = field_data
