@@ -17,7 +17,7 @@
 #   <http://www.gnu.org/licenses/>.
 
 import bdec.inspect.param
-
+import os.path
 
 class LoadError(Exception):
     pass
@@ -50,7 +50,7 @@ def _get_entry_that_uses_param(inspect, entry, param):
             # it must be the end-user.
             return entry
 
-def validate_no_input_params(entry, lookup):
+def _validate_no_input_params(entry, lookup):
     """ Make sure the decoder doesn't have any unknown references."""
 
     end_entry_params = bdec.inspect.param.EndEntryParameters([entry])
@@ -65,3 +65,24 @@ def validate_no_input_params(entry, lookup):
             user = _get_entry_that_uses_param(params, entry, param.name)
             raise UnknownInputParameter(user, param.name, lookup)
 
+def load(filename, allow_inputs=False):
+    """Load a specification from disk.
+
+    Raises LoadError on error.
+
+    filename -- Filename of the specification to load.
+    allow_inputs -- Allow the main specification entry to have inputs (ie: with
+        inputs it won't be able to decode).
+    """
+    import bdec.spec.asn1 as asn1
+    import bdec.spec.xmlspec as xmlspec
+    loaders = {'.xml':xmlspec, '.asn1':asn1}
+    try:
+        loader = loaders[os.path.splitext(filename)[1]]
+    except KeyError:
+        raise LoadError("Unknown specification format '%s'!" % filename)
+
+    decoder, lookup, common = loader.load(filename)
+    if not allow_inputs:
+        _validate_no_input_params(decoder, lookup)
+    return decoder, lookup, common
