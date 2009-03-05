@@ -34,9 +34,6 @@ class NotEnoughDataError(DataError):
     def __str__(self):
         return "Asked for %i bits, but only have %i bits available!" % (self.requested, self.available)
 
-class IntegerConversionNeedsData(DataError):
-    def __str__(self):
-        return "Cannot convert an empty data buffer to an integer!"
 
 class PoppedNegativeBitsError(DataError):
     """A negative amount of data was requested."""
@@ -307,7 +304,7 @@ class Data:
         Conversion is big endian.
         """
         if not len(self):
-            raise IntegerConversionNeedsData()
+            return 0
 
         data = self.copy()
         result = 0
@@ -352,8 +349,6 @@ class Data:
         """
         Get an integer that has been encoded in little endian format
         """
-        if not len(self):
-            raise IntegerConversionNeedsData()
         result = 0
         for byte, value in enumerate(self._get_bytes()):
             result = result | (value << (8 * byte))
