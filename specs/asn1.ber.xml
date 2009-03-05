@@ -4,6 +4,7 @@
     <common>
         <choice name="entry">
             <reference name="integer" />
+            <reference name="boolean" />
             <reference name="numeric string" />
             <reference name="printable string" />
             <reference name="unknown primitive" />
@@ -54,6 +55,21 @@
             <field name="tag:" length="8" value="0x2" />
             <reference name="length:" type="definite length:" />
             <field name="value:" length="${length:} * 8" type="integer" />
+        </sequence>
+
+        <sequence name="boolean">
+            <field name="tag:" length="8" value="0x1" />
+            <reference name="length:" type="definite length:" />
+            <choice name="value">
+                <field name="false" length="${length:} * 8" value="0x0" />
+                <!--
+                  We use a sequence with an embedded hidden field because we
+                  don't care what the field value is.
+                  -->
+                <sequence name="true">
+                    <field length="${length:} * 8" />
+                </sequence>
+            </choice>
         </sequence>
 
         <sequence name="printable string">
