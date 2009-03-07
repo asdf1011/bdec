@@ -23,7 +23,7 @@ from bdec.expression import Delayed, ValueResult, LengthResult, Constant
 import operator
 import string
 
-keywords=['char', 'int', 'float', 'if', 'then', 'else', 'struct', 'for', 'null']
+keywords=['char', 'int', 'float', 'if', 'then', 'else', 'struct', 'for', 'null', 'value']
 
 _escaped_types = {}
 def escaped_type(entry):
