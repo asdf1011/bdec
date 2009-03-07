@@ -406,6 +406,10 @@ def _save_field(entry):
     if entry.expected is not None:
         if entry.format in [fld.Field.HEX, fld.Field.BINARY]:
             data = dt.Data('\x00', start=0, end=len(entry.expected) % 8) + entry.expected
+            # We can only convert bytes to hex, so added a '0' data object in
+            # front.
+            if len(data) % 8 != 0:
+                data = dt.Data('\x00', start=0, end=8 - len(data) % 8) + data
             value = '0x%s' % data.get_hex()
         else:
             value = entry.decode_value(entry.expected)

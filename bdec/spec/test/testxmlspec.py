@@ -657,7 +657,7 @@ class TestSave(unittest.TestCase):
 
     def test_field_expected_value(self):
         a = fld.Field('a', length=8, expected=dt.Data('\x63'))
-        assert_xml_equivalent(xml.save(a), '<protocol><field name="a" length="8" value="0x63" /></protocol>')
+        assert_xml_equivalent('<protocol><field name="a" length="8" value="0x63" /></protocol>', xml.save(a))
 
     def test_text_field(self):
         a = fld.Field('a', format=fld.Field.TEXT, length=32)
@@ -735,3 +735,12 @@ class TestSave(unittest.TestCase):
                       </protocol>"""
         assert_xml_equivalent(expected, xml.save(a))
 
+    def test_small_field_with_expected_value(self):
+        # Test saving a small field with length that isn't a multiple of
+        # either...
+        a = fld.Field('a', length=3, expected=dt.Data('\x02', 5))
+        expected = """
+          <protocol>
+            <field name="a" length="3" value="0x02" />
+          </protocol>"""
+        assert_xml_equivalent(expected, xml.save(a))
