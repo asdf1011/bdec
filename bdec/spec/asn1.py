@@ -39,13 +39,17 @@ def _field(name, length, value):
     expected = dt.Data.from_int_big_endian(value, length)
     return fld.Field(name, length=length, format=fld.Field.INTEGER, expected=expected)
 
+def _create_tag(klass, is_constructed, number):
+    value = (klass << 6) | (is_constructed << 5) | number
+    return _field('tag:', 8, value)
+
 class _Loader:
     """A class for loading asn1 specifications."""
 
     def __init__(self):
         # Load the xml spec that we will use for doing the decoding.
         filename = os.path.join(os.path.dirname(__file__), '..', '..', 'specs', 'asn1.ber.xml')
-        generic_spec, lookup, self._common = xmlspec.load(filename)
+        generic_spec, lookup, self._spec = xmlspec.load(filename)
 
         # Define the basic asn.1 syntax
         name = Word(alphanums)
@@ -63,6 +67,18 @@ class _Loader:
         module.setParseAction(self._create_module)
 
         self._parser = module + StringEnd()
+        self._common_entries = {}
+
+    def _common(self, name):
+        """Get an entry from the specification.
+
+        Stores it in this decoders 'common' dictionary."""
+        try:
+            return self._common_entries[name]
+        except KeyError:
+            entry = self._spec[name]
+            self._common_entries[name] = entry
+            return entry
 
     def load(self, text):
         """Load a bdec specification from an asn.1 document."""
@@ -70,11 +86,7 @@ class _Loader:
             name, common =  self._parser.parseString(text)[0]
         except ParseException, ex:
             raise LoadError(ex)
-        return common[0], {}, []
-
-    def _create_tag(self, klass, is_primitive, number):
-        value = (klass << 6) | (is_primitive << 5) | number
-        return fld.Field('tag:', 8, expected=dt.Data.from_int_big_endian(value))
+        return common[0], {}, self._common_entries
 
     def _create_constructed(self, name, tag, children):
         """Create a constructed entry.
@@ -89,14 +101,15 @@ class _Loader:
                 children +
                 [_field('', 16, 0x00)])
         definite = seq.Sequence('definite',
-                [tag, self._common['definite length:']] + children)
+                [tag, self._common('definite length:')] + children)
         return chc.Choice(name, [indefinite, definite])
 
     def _create_integer(self, s, loc, toks):
-        return ent.Child(toks[0], self._common['integer'])
+        return ent.Child(toks[0], self._common('integer'))
 
     def _create_sequence(self, s, loc, toks):
-        return self._create_constructed('', self._common['sequence'].children[0], toks[1:])
+        tag = _create_tag(_UNIVERSAL, _CONSTRUCTED, 16)
+        return self._create_constructed('', tag, toks[1:])
 
     def _set_name(self, s, loc, toks):
         entry = toks[2]
