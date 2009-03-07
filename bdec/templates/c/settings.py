@@ -28,10 +28,13 @@ keywords=['char', 'int', 'float', 'if', 'then', 'else', 'struct', 'for', 'null']
 _escaped_types = {}
 def escaped_type(entry):
     if not _escaped_types:
-        # Create a cache of names to types (this function is called many times)
-        entries = list(iter_entries())
-        for e in entries:
-            _escaped_types[e] = esc_name(entries.index(e), entries)
+        # Create a cache of names to types (this function is called many times).
+        # We put the common entries at the start of the list, which will cause
+        # them to have first chance at a unique name.
+        entries = common + list(e for e in iter_entries() if e not in common)
+        names = [e.name for e in entries]
+        escaped = esc_names(names, esc_name)
+        _escaped_types.update(zip(entries, escaped))
     return _escaped_types[entry]
 
 def ctype(entry):
@@ -136,11 +139,11 @@ def enum_value(parent, child_index):
             if isinstance(e, chc.Choice):
                 offsets[e] = range(len(options), len(options) + len(e.children))
                 options.extend(c.name for c in e.children)
-        names = esc_names(options)
+        names = esc_names(options, constant)
         for e in iter_entries():
             if isinstance(e, chc.Choice):
                 _enum_cache[e] = list(names[i] for i in offsets[e])
-    return constant(_enum_cache[parent][child_index])
+    return _enum_cache[parent][child_index]
 
 def decode_name(entry):
     return function('decode ' + escaped_type(entry))
@@ -153,7 +156,7 @@ def var_name(entry, child_index):
     try:
         names = _var_name_cache[entry]
     except KeyError:
-        names = [variable(name) for name in esc_names(c.name for c in entry.children)]
+        names = esc_names((c.name for c in entry.children), variable)
         _var_name_cache[entry] = names
     return names[child_index]
 

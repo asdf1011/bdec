@@ -232,15 +232,15 @@
     memset(result, 0, sizeof(${settings.ctype(entry)}));
     %endif
     BitBuffer temp;
+    <% names = esc_names(('temp %s' % c.name for c in entry.children), variable) %>
     %for i, child in enumerate(entry.children):
       %if child_contains_data(child) and is_recursive(entry, child.entry):
-    <% temp_name = variable('temp ' + esc_name(i, entry.children)) %>
-    ${settings.ctype(child.entry)} ${temp_name};
+    ${settings.ctype(child.entry)} ${names[i]};
       %endif
     %endfor
     %for i, child in enumerate(entry.children):
       %if is_recursive(entry, child.entry):
-    <% temp_name = variable('temp ' + esc_name(i, entry.children)) %>
+    <% temp_name = names[i] %>
       %else:
     <% temp_name = 'result->value.' + settings.var_name(entry, i) %>
       %endif

@@ -200,52 +200,55 @@ class _Utils:
                 for entry in self.iter_optional_common(child.entry):
                     yield entry
 
-    def esc_names(self, names):
-        """Return a list of names matching to each entry in 'iter_entries'"""
-        name_count = {}
-        names = list(names)
-        abs_names = []
-        for i, name in enumerate(names):
-            # We ignore case when checking for matching names, because the
-            # conversion to different uses (eg: type, constant, function)
-            # usually changes the case.
-            name = self._escape_name(name).lower()
-            try:
-                name_count[name] += 1
-            except KeyError:
-                name_count[name] = 0
-            abs_names.append((name, name_count[name]))
+    def esc_names(self, names, escape):
+        """Return a list of unique escaped names.
 
+        names -- The names to escape.
+        escape -- A function to call to escape the name.
+        return -- A list of unique names (of the same size as the input names).
+        """
+        names = list(names)
         result = []
-        for name, count in abs_names:
-            if name_count[name] == 0:
-                # This is the only item with that name
-                result.append(name)
-            else:
-                result.append("%s %i" % (name, count))
+        for name in names:
+            name = self.esc_name(name)
+            count = None
+            while 1:
+                if count is None:
+                    escaped = escape(name)
+                    count = 0
+                else:
+                    escaped = escape('%s %i' % (name, count))
+                    count += 1
+                if escaped not in result:
+                    # We found a unique escaped name
+                    result.append(escaped)
+                    break
         assert len(result) == len(names)
         return result
 
-    def esc_name(self, index, iter_entries):
-        return self.esc_names(e.name for e in iter_entries)[index]
-
-    def _escape_name(self, name):
+    def esc_name(self, name):
+        """Escape a name so it doesn't include invalid characters."""
         if not name:
             return "_hidden"
         result = "".join(char for char in name if char in _VALID_CHARS)
         if result[0] in _NUMBERS:
             result = '_' + result
-        if result in self._settings.keywords:
-            result += '_'
         return result
 
+    def _check_keywords(self, name):
+        if name in self._settings.keywords:
+            return '%s_' % name
+        return name
+
     def _camelcase(self, name):
-        words = self._escape_name(name).split()
-        return "".join(word[0].upper() + word[1:].lower() for word in words)
+        words = self.esc_name(name).split()
+        result = "".join(word[0].upper() + word[1:].lower() for word in words)
+        return self._check_keywords(result)
 
     def _delimiter(self, name, delim):
-        words = self._escape_name(name).split()
-        return delim.join(words)
+        words = self.esc_name(name).split()
+        result = delim.join(words)
+        return self._check_keywords(result)
 
     def variable_name(self, name):
         name = self._delimiter(name, ' ')

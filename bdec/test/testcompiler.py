@@ -22,6 +22,10 @@ import bdec.compiler as comp
 import bdec.field as fld
 import bdec.sequence as seq
 
+class _Settings:
+    def __init__(self):
+        self.keywords = []
+
 class TestUtils(unittest.TestCase):
     def test_is_not_recursive(self):
         a = fld.Field('a', 8)
@@ -40,4 +44,16 @@ class TestUtils(unittest.TestCase):
         self.assertTrue(utils.is_recursive(b, a))
         self.assertTrue(utils.is_recursive(d, b))
         self.assertTrue(not utils.is_recursive(d, c))
+
+    def test_name_escaping(self):
+        names = ['a', 'a', 'a1', 'A', 'a:']
+        utils = comp._Utils([], _Settings())
+        escaped = utils.esc_names(names, utils.variable_name)
+        self.assertEqual(['a', 'a0', 'a1', 'a2', 'a3'], escaped)
+
+    def test_constant_name_escaping(self):
+        names = ['a', 'a', 'a 0', 'A', 'a:']
+        utils = comp._Utils([], _Settings())
+        escaped = utils.esc_names(names, utils.constant_name)
+        self.assertEqual(['A', 'A_0', 'A_0_0', 'A_1', 'A_2'], escaped)
 
