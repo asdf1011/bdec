@@ -95,7 +95,15 @@ class _Loader:
         # FIXME: Handle extra entries after the expected ones...
         # FIXME: Combine the indefinite & definite sections, and use a
         # conditional after the children to eat the rest of the data,
-        # depending on whether they are expected or not.
+        # depending on whether they are expected or not. This would mean we
+        # don't need to add the children to the common entries...
+        self._common_entries[tag.name] = tag
+        for child in children:
+            if isinstance(child, ent.Child):
+                child = child.entry
+            if child not in self._common_entries:
+                self._common_entries[child.name] = child
+
         indefinite = seq.Sequence('indefinite',
                 [tag, _field('', 8, 0x80)] +
                 children +
