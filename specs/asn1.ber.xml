@@ -5,6 +5,7 @@
         <choice name="entry">
             <reference name="integer" />
             <reference name="boolean" />
+            <reference name="null" />
             <reference name="object identifier" />
             <reference name="numeric string" />
             <reference name="printable string" />
@@ -71,6 +72,11 @@
                     <field length="${length:} * 8" />
                 </sequence>
             </choice>
+        </sequence>
+
+        <sequence name="null">
+            <field name="tag:" length="8" value="0x5" />
+            <field name="length:" length="8" value="0x0" />
         </sequence>
 
         <sequence name="object identifier">
