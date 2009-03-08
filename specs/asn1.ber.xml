@@ -84,13 +84,11 @@
         <sequence name="object identifier">
             <field name="tag:" length="8" value="0x6" />
             <reference name="length:" type="definite length:" />
-            <reference name="combined first id:" type="multi byte value:" />
-            <sequence name="id 1" value="${combined first id:} / 40" />
-            <sequence name="id 2" value="${combined first id:} % 40" />
+            <reference name="combined first id:" type="multi byte value" />
+            <sequence name="id" value="${combined first id:} / 40" />
+            <sequence name="id" value="${combined first id:} % 40" />
             <sequenceof name="ids" length="${length:} * 8 - len{combined first id:}">
-                <sequence name="id" value="${multi byte value:}">
-                    <reference name="multi byte value:" />
-                </sequence>
+                <reference name="id" type="multi byte value" />
             </sequenceof>
         </sequence>
 
@@ -162,18 +160,20 @@
           (note that finding tag numbers this large 'in the wild'
           would be extremely unlikely).
           -->
-        <choice name="multi byte value:">
-            <reference name="single byte tag:" />
-            <reference name="two byte tag:" />
-            <reference name="three byte tag:" />
-            <reference name="four byte tag:" />
-        </choice>
+        <sequence name="multi byte value" value="${value:}">
+            <choice name="value:">
+                <reference name="single byte tag:" />
+                <reference name="two byte tag:" />
+                <reference name="three byte tag:" />
+                <reference name="four byte tag:" />
+            </choice>
+        </sequence>
 
         <sequence name="tag number" value="${value:}">
             <choice name="value:">
-                <sequence name="large tag:" value="${multi byte value:}">
+                <sequence name="large tag:" value="${large number:}">
                     <field length="5" value="0x1f" />
-                    <reference name="multi byte value:" />
+                    <reference name="large number:" type="multi byte value" />
                 </sequence>
                 <field name="small tag:" length="5" type="integer" />
             </choice>
