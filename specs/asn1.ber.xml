@@ -5,6 +5,7 @@
         <choice name="entry">
             <reference name="integer" />
             <reference name="boolean" />
+            <reference name="bit string" />
             <reference name="null" />
             <reference name="object identifier" />
             <reference name="numeric string" />
@@ -74,6 +75,13 @@
                     <field length="${length:} * 8" />
                 </sequence>
             </choice>
+        </sequence>
+
+        <sequence name="bit string">
+            <field name="tag:" length="8" value="0x3" />
+            <reference name="length:" type="definite length:" />
+            <field name="num unused bits:" length="8" type="integer" />
+            <field name="bits" length="${length:} * 8 - 8 - ${num unused bits:}" />
         </sequence>
 
         <sequence name="null">
