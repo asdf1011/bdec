@@ -12,6 +12,7 @@
             <reference name="unknown primitive" />
 
             <reference name="sequence" />
+            <reference name="set" />
             <reference name="unknown constructed" />
         </choice>
 
@@ -108,6 +109,11 @@
         <!-- Define some built-in constructed types -->
         <sequence name="sequence">
             <field name="tag:" length="8" value="0x30" />
+            <reference name="constructed entries" />
+        </sequence>
+
+        <sequence name="set">
+            <field name="tag:" length="8" value="0x31" />
             <reference name="constructed entries" />
         </sequence>
 
