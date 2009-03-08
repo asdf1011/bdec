@@ -53,31 +53,44 @@ class _Loader:
 
         # Define the basic asn.1 syntax
         name = Word(alphanums)
-        entry = name + 'INTEGER'
+        integer = name + 'INTEGER'
+        boolean = name + 'BOOLEAN'
+        entry = integer | boolean
         entries = '{' + entry + ZeroOrMore(',' + entry) + '}'
-        sequence = Literal('SEQUENCE') + entries
-        construct = name + '::=' + sequence
+        sequence = 'SEQUENCE' + entries
+        choice = 'CHOICE' + entries
+        construct = name + '::=' + (sequence | choice)
         module = name + 'DEFINITIONS' + '::=' + 'BEGIN' + ZeroOrMore(construct) + 'END'
 
         # Set actions to be performed for the different parts of the syntax.
-        entry.setParseAction(self._create_integer)
+        integer.setParseAction(self._create_integer)
+        boolean.setParseAction(self._create_boolean)
         entries.setParseAction(self._get_children)
         sequence.setParseAction(self._create_sequence)
+        choice.setParseAction(self._create_choice)
         construct.setParseAction(self._set_name)
         module.setParseAction(self._create_module)
 
         self._parser = module + StringEnd()
         self._common_entries = {}
 
-    def _common(self, name):
-        """Get an entry from the specification.
+    def _add_common(self, entry):
+        """Add all specification common entries to 'our' common list."""
+        if entry.name not in self._common_entries:
+            if entry.name in self._spec:
+                self._common_entries[entry.name] = entry
+            for child in entry.children:
+                self._add_common(child.entry)
 
-        Stores it in this decoders 'common' dictionary."""
+    def _common(self, name):
+        """Get a common entry from the specification.
+
+        Stores it in this decoder's 'common' dictionary."""
         try:
             return self._common_entries[name]
         except KeyError:
             entry = self._spec[name]
-            self._common_entries[name] = entry
+            self._add_common(entry)
             return entry
 
     def load(self, text):
@@ -115,9 +128,15 @@ class _Loader:
     def _create_integer(self, s, loc, toks):
         return ent.Child(toks[0], self._common('integer'))
 
+    def _create_boolean(self, s, loc, toks):
+        return ent.Child(toks[0], self._common('boolean'))
+
     def _create_sequence(self, s, loc, toks):
         tag = _create_tag(_UNIVERSAL, _CONSTRUCTED, 16)
         return self._create_constructed('', tag, toks[1:])
+
+    def _create_choice(self, s, loc, toks):
+        return chc.Choice('choice', toks[1:])
 
     def _set_name(self, s, loc, toks):
         entry = toks[2]
