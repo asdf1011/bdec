@@ -443,7 +443,7 @@ ${recursiveDecode(entry, False)}
       %endif
       <% next_offset = (ws_offset + 4) if not item.is_hidden() else ws_offset %>
       %if isinstance(item, Sequence) and settings.ctype(item) == 'int':
-    printf("%*i\n", offset + ${ws_offset+4}, ${varname}); 
+    printf("%*c%i\n", offset + ${ws_offset+4}, ' ', ${varname});
       %elif isinstance(item, Sequence):
         %for i, child in enumerate(item.children):
           %if child_contains_data(child):
