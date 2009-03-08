@@ -9,6 +9,7 @@
             <reference name="object identifier" />
             <reference name="numeric string" />
             <reference name="printable string" />
+            <reference name="utc time" />
             <reference name="unknown primitive" />
 
             <reference name="sequence" />
@@ -106,6 +107,18 @@
             <field name="text" length="${length:} * 8" type="text" />
         </sequence>
 
+        <sequence name="utc time">
+            <field name="tag:" length="8" value="0x17" />
+            <field name="length:" length="8" type="integer" value="13"/>
+            <reference name="year" type="two digits" />
+            <reference name="month" type="two digits" />
+            <reference name="day" type="two digits" />
+            <reference name="hour" type="two digits" />
+            <reference name="minute" type="two digits" />
+            <reference name="second" type="two digits" />
+            <field type="text" length="8" value="Z" />
+        </sequence>
+
         <!-- Define some built-in constructed types -->
         <sequence name="sequence">
             <field name="tag:" length="8" value="0x30" />
@@ -185,5 +198,12 @@
             </sequence>
         </choice>
 
+        <sequence name="digit" value="${char:} - 48">
+            <field name="char:" length="8" type="integer" min="48" max="58" />
+        </sequence>
+        <sequence name="two digits" value="${digit 1:} * 10 + ${digit 2:}">
+            <reference name="digit 1:" type="digit" />
+            <reference name="digit 2:" type="digit" />
+        </sequence>
     </common>
 </protocol>
