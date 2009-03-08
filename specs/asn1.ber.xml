@@ -5,6 +5,7 @@
         <choice name="entry">
             <reference name="integer" />
             <reference name="boolean" />
+            <reference name="object identifier" />
             <reference name="numeric string" />
             <reference name="printable string" />
             <reference name="unknown primitive" />
@@ -72,6 +73,19 @@
             </choice>
         </sequence>
 
+        <sequence name="object identifier">
+            <field name="tag:" length="8" value="0x6" />
+            <reference name="length:" type="definite length:" />
+            <reference name="combined first id:" type="multi byte value:" />
+            <sequence name="id 1" value="${combined first id:} / 40" />
+            <sequence name="id 2" value="${combined first id:} % 40" />
+            <sequenceof name="ids" length="${length:} * 8 - len{combined first id:}">
+                <sequence name="id" value="${multi byte value:}">
+                    <reference name="multi byte value:" />
+                </sequence>
+            </sequenceof>
+        </sequence>
+
         <sequence name="printable string">
             <field name="tag:" length="8" value="0x13" />
             <reference name="length:" type="definite length:" />
@@ -103,36 +117,38 @@
             <field length="1" value="0x0" />
             <field name="value:" length="7" type="integer" />
         </sequence>
-        <sequence name="two byte tag:" value="${non-last tag byte:} * 7 + ${single byte tag:}">
+        <sequence name="two byte tag:" value="${non-last tag byte:} * 128 + ${single byte tag:}">
             <reference name="non-last tag byte:" />
             <reference name="single byte tag:" />
         </sequence>
-        <sequence name="three byte tag:" value="${non-last tag byte:} * 7 * 7 + ${two byte tag:}">
+        <sequence name="three byte tag:" value="${non-last tag byte:} * 128 * 128 + ${two byte tag:}">
             <reference name="non-last tag byte:" />
             <reference name="two byte tag:" />
         </sequence>
-        <sequence name="four byte tag:" value="${non-last tag byte:} * 7 * 7 * 7 + ${three byte tag:}">
+        <sequence name="four byte tag:" value="${non-last tag byte:} * 128 * 128 * 128 + ${three byte tag:}">
             <reference name="non-last tag byte:" />
             <reference name="three byte tag:" />
         </sequence>
+        <!--
+          Even though tag numbers could any number of bytes, it
+          would be a little insane to actually find that in
+          practice. Thus we currently limit tag numbers to 4 bytes,
+          which will allow values of up to two hundren million
+          (note that finding tag numbers this large 'in the wild'
+          would be extremely unlikely).
+          -->
+        <choice name="multi byte value:">
+            <reference name="single byte tag:" />
+            <reference name="two byte tag:" />
+            <reference name="three byte tag:" />
+            <reference name="four byte tag:" />
+        </choice>
+
         <sequence name="tag number" value="${value:}">
             <choice name="value:">
                 <sequence name="large tag:" value="${multi byte value:}">
                     <field length="5" value="0x1f" />
-                    <!--
-                      Even though tag numbers could any number of bytes, it
-                      would be a little insane to actually find that in
-                      practice. Thus we currently limit tag numbers to 4 bytes,
-                      which will allow values of up to two hundren million
-                      (note that finding tag numbers this large 'in the wild'
-                      would be extremely unlikely).
-                      -->
-                    <choice name="multi byte value:">
-                        <reference name="single byte tag:" />
-                        <reference name="two byte tag:" />
-                        <reference name="three byte tag:" />
-                        <reference name="four byte tag:" />
-                    </choice>
+                    <reference name="multi byte value:" />
                 </sequence>
                 <field name="small tag:" length="5" type="integer" />
             </choice>
