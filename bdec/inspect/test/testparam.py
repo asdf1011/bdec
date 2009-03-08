@@ -324,6 +324,31 @@ class TestExpressionParameters(unittest.TestCase):
         self.assertEqual([prm.Param('c.a', prm.Param.IN, int)],
                 list(lookup.get_passed_variables(e, e.children[1])))
 
+    def test_length_and_value_reference(self):
+        # Test a length reference and a value reference to the same entry.
+        a = fld.Field('a', length=8)
+        c = fld.Field('c', length=expr.compile('len{a}'))
+        d = fld.Field('d', length=expr.compile('${a}'))
+        b = seq.Sequence('b', [a, c, d])
+
+        # Lets just try a quick decode to make sure we've specified it ok...
+        #list(b.decode(dt.Data('\x08cd')))
+
+        # Now test the parameters being passed around.
+        lookup = prm.ExpressionParameters([b])
+        self.assertEqual([prm.Param('a', prm.Param.OUT, int), prm.Param('a length', prm.Param.OUT, int)],
+                lookup.get_params(a))
+        self.assertEqual([prm.Param('a', prm.Param.OUT, int), prm.Param('a length', prm.Param.OUT, int)],
+                list(lookup.get_passed_variables(b, b.children[0])))
+        self.assertEqual([prm.Param('a length', prm.Param.IN, int)],
+                list(lookup.get_passed_variables(b, b.children[1])))
+        self.assertEqual([prm.Param('a length', prm.Param.IN, int)],
+                lookup.get_params(c))
+        self.assertEqual([prm.Local('a', int), prm.Local('a length', int)],
+                lookup.get_locals(b))
+        self.assertTrue(lookup.is_length_referenced(a))
+
+
 
 class TestEndEntryParameters(unittest.TestCase):
     def test_end_entry_lookup(self):

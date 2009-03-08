@@ -169,7 +169,7 @@ class _VariableParam:
         return hash(self.reference.name)
 
     def __eq__(self, other):
-        return self.reference.name == other.reference.name and self.direction == other.direction
+        return type(self.reference) == type(other.reference) and self.reference.name == other.reference.name and self.direction == other.direction
 
     def __str__(self):
         return "%s %s" % (self.direction, self.reference)
