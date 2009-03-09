@@ -140,7 +140,12 @@ class _Loader:
 
     def _set_name(self, s, loc, toks):
         entry = toks[2]
-        entry.name = toks[0]
+        name = toks[0]
+        if isinstance(entry, chc.Choice):
+            for child in entry.children:
+                child.name = name
+        else:
+            entry.name = name
         return entry
 
     def _get_children(self, s, loc, toks):
