@@ -321,7 +321,8 @@ class Entry(object):
         try:
             context = query(parent, self)
         except MissingInstanceError:
-            if not self.is_hidden():
+            import bdec.choice as chc
+            if not self.is_hidden() and not isinstance(self, chc.Choice):
                 raise
             # The instance wasn't included in the input, but as it is hidden, we'll
             # keep using the current context.

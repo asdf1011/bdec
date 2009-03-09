@@ -24,6 +24,7 @@ import xml.sax.saxutils
 import xml.sax.xmlreader
 
 import bdec.entry as ent
+import bdec.choice as chc
 import bdec.field as fld
 import bdec.sequenceof as sof
 
@@ -56,7 +57,7 @@ def to_file(decoder, binary, output, encoding="utf-8", verbose=False):
     offset = 0
     is_first = True
     for is_starting, name, entry, data, value in decoder.decode(binary):
-        if not verbose and ent.is_hidden(name):
+        if not verbose and (ent.is_hidden(name) or isinstance(entry, chc.Choice)):
             continue
 
         if not is_starting:

@@ -53,7 +53,7 @@ class TestXml(unittest.TestCase):
         a = fld.Field('a', 8, expected=dt.Data('a'))
         b = fld.Field('b', 8, expected=dt.Data('b'))
         choice = chc.Choice('blah', [a, b])
-        text = "<blah><b /></blah>"
+        text = "<b />"
         data = reduce(lambda a,b:a+b, xml.encode(choice, text))
         self.assertEqual("b", data.bytes())
 

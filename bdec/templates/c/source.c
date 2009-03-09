@@ -436,6 +436,21 @@ ${recursiveDecode(entry, False)}
     #error Don't know how to print ${item}
         %endif
       %endif
+    %elif isinstance(item, Choice):
+    switch(${varname}.option)
+    {
+      %for i, child in enumerate(item.children):
+    case ${enum_value(item, i)}:
+        %if child_contains_data(child):
+          <% child_var = "%s.value.%s" % (varname, settings.var_name(item, i)) %>
+          %if is_recursive(entry, child.entry):
+            <% child_var = '(*%s)' % child_var %>
+          %endif
+${recursivePrint(child.entry, '"%s"' % xmlname(child.name), child_var, ws_offset, iter_postfix) | ws(4)}
+        %endif
+        break;
+      %endfor
+    }
     %else:
     ## Print everything other than fields
       %if not item.is_hidden():
@@ -460,26 +475,11 @@ ${recursivePrint(child.entry, '"%s"' % xmlname(child.name), '%s.%s' % (varname, 
     {
 ${recursivePrint(item.children[0].entry, '"%s"' % xmlname(item.children[0].name), '%s.items[%s]' % (varname, iter_name), next_offset, iter_postfix) | ws(4)}
     }
-      %elif isinstance(item, Choice):
-    switch(${varname}.option)
-    {
-        %for i, child in enumerate(item.children):
-    case ${enum_value(item, i)}:
-          %if child_contains_data(child):
-            <% child_var = "%s.value.%s" % (varname, settings.var_name(item, i)) %>
-            %if is_recursive(entry, child.entry):
-              <% child_var = '(*%s)' % child_var %>
-            %endif
-${recursivePrint(child.entry, '"%s"' % xmlname(child.name), child_var, next_offset, iter_postfix) | ws(4)}
-          %endif
-        break;
-        %endfor
-    }
       %else:
     #error Don't know how to print ${item}
       %endif
     %endif
-    %if not item.is_hidden():
+    %if not item.is_hidden() and not isinstance(item, chc.Choice):
       %if not isinstance(item, Field):
     ${printText("</%s>\\n", name, ws_offset)}
       %elif name.startswith('"'):
