@@ -19,12 +19,13 @@
 import bdec.choice as chc
 import bdec.data as dt
 import bdec.entry as ent
+import bdec.expression as expr
 import bdec.field as fld
 import bdec.sequence as seq
 from bdec.spec import LoadError, xmlspec
 import os.path
-from pyparsing import Word, alphanums, Literal, StringEnd, ZeroOrMore,\
-    ParseException, OneOrMore
+from pyparsing import Word, nums, alphanums, Literal, StringEnd, ZeroOrMore,\
+    ParseException, OneOrMore, Optional, Forward
 
 _UNIVERSAL = 0
 _APPLICATION = 1
@@ -52,17 +53,25 @@ class _Loader:
         generic_spec, lookup, self._spec = xmlspec.load(filename)
 
         # Define the basic asn.1 syntax
+        entry = Forward()
         name = Word(alphanums)
-        integer = name + 'INTEGER'
-        boolean = name + 'BOOLEAN'
-        entry = integer | boolean
-        entries = '{' + entry + ZeroOrMore(',' + entry) + '}'
+        named_value = name + '(' + Word(nums) + ')'
+        named_entry = name + entry
+        entries = '{' + named_entry + ZeroOrMore(',' + named_entry) + '}'
+
+        integer = 'INTEGER' + Optional('{' + named_value + ZeroOrMore(',' + named_value) + '}')
+        boolean = Literal('BOOLEAN')
         sequence = 'SEQUENCE' + entries
         choice = 'CHOICE' + entries
-        construct = name + '::=' + (sequence | choice)
-        module = name + 'DEFINITIONS' + '::=' + 'BEGIN' + ZeroOrMore(construct) + 'END'
+
+        entry << (integer | boolean | sequence | choice)
+
+        construct = name + '::=' + entry
+        module = name + 'DEFINITIONS' + '::=' + 'BEGIN' + OneOrMore(construct) + 'END'
 
         # Set actions to be performed for the different parts of the syntax.
+        named_value.setParseAction(self._create_named_value)
+        named_entry.setParseAction(self._set_entry_name)
         integer.setParseAction(self._create_integer)
         boolean.setParseAction(self._create_boolean)
         entries.setParseAction(self._get_children)
@@ -125,8 +134,24 @@ class _Loader:
                 [tag, self._common('definite length:')] + children)
         return chc.Choice(name, [indefinite, definite])
 
+    def _set_entry_name(self, s, loc, toks):
+        toks[1].name = toks[0]
+        return toks[1]
+
+    def _create_named_value(self, s, loc, toks):
+        name = toks[0]
+        value = int(toks[2])
+        return fld.Field(name, length=8, expected=dt.Data.from_int_little_endian(value, 8))
+
     def _create_integer(self, s, loc, toks):
-        return ent.Child(toks[0], self._common('integer'))
+        if len(toks) == 1:
+            return ent.Child('integer', self._common('integer'))
+
+        # This is an integer with a range of values.
+        values = toks[2:-1:2]
+        choice = chc.Choice('integer range:', values)
+        tag = _create_tag(_UNIVERSAL, _PRIMITIVE, 2)
+        return seq.Sequence('integer', [tag, choice])
 
     def _create_boolean(self, s, loc, toks):
         return ent.Child(toks[0], self._common('boolean'))
