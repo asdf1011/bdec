@@ -85,3 +85,7 @@ def main():
     except dt.NotEnoughDataError:
         # All the data has been decoded.
         pass
+
+if __name__ == '__main__':
+    main()
+

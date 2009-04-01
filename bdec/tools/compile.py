@@ -46,3 +46,6 @@ def main():
     except:
         sys.exit(mako.exceptions.text_error_template().render())
 
+if __name__ == '__main__':
+    main()
+
