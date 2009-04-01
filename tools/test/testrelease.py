@@ -3,7 +3,7 @@ import os.path
 import unittest
 
 import bdec
-from tools.release import strip_changelog, get_changelog, notify
+from tools.release import shorten_changelog, get_changelog, notify
 
 class TestRelease(unittest.TestCase):
     def test_changelog(self):
@@ -33,11 +33,11 @@ This is the current version
         self.assertEqual(2, len(changelog))
         self.assertEqual('9.9.9', changelog[0][0])
         self.assertEqual('blah blah', changelog[0][1])
-        self.assertEqual('Blah blah: Did this. Did that. Ding dong: Went there. Came back.', strip_changelog(changelog[0][2]))
+        self.assertEqual('Blah blah: Did this. Did that. Ding dong: Went there. Came back.', shorten_changelog(changelog[0][2]))
 
         self.assertEqual('1.2.3', changelog[1][0])
         self.assertEqual('be bop', changelog[1][1])
-        self.assertEqual('This is the current version', strip_changelog(changelog[1][2]))
+        self.assertEqual('This is the current version', shorten_changelog(changelog[1][2]))
 
     def test_notify(self):
         commands = []
