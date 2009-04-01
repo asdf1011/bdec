@@ -177,3 +177,21 @@ class TestChooser(unittest.TestCase):
         chooser = chsr.Chooser([a, b])
         self.assertEqual([a], chooser.choose(dt.Data('BC' + 'a' * 20)))
         self.assertEqual([b], chooser.choose(dt.Data('CD' + 'a' * 20)))
+
+    def test_distinction_after_zero_length_entry(self):
+        # There was an error where we would choose the wrong values when the
+        # choice came after a zero fields (issue165).
+        a = seq.Sequence('a', [
+            fld.Field('a1', 8),
+            fld.Field('a2', 0),
+            fld.Field('a3', 8),
+            fld.Field('a4',  8, expected=dt.Data('a'))])
+        b = seq.Sequence('b',  [
+            fld.Field('b1', 16),
+            fld.Field('b2', 8, expected=dt.Data('b'))])
+        c = fld.Field('c', 8)
+        chooser = chsr.Chooser([a, b, c])
+        self.assertEqual([a], chooser.choose(dt.Data('xxax')))
+        self.assertEqual([b], chooser.choose(dt.Data('xxbx')))
+        self.assertEqual([c], chooser.choose(dt.Data('xxcx')))
+

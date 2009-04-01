@@ -258,6 +258,7 @@ class Chooser:
             # to differentiate.
             assert offset >= current_offset
             copy.pop(offset - current_offset)
+            current_offset = offset
 
             # Check to see if we have a successful item, and remove any items
             # after that item (as they cannot succeed).
@@ -271,7 +272,7 @@ class Chooser:
             if length:
                 try:
                     value = int(copy.pop(length))
-                    current_offset = offset + length
+                    current_offset += length
                 except dt.NotEnoughDataError:
                     # We don't have enough data left for this option; reduce
                     # the possibles to those that have finished decoding.
@@ -281,7 +282,6 @@ class Chooser:
                 if lookup:
                     # We found a range of bits that can be used to distinguish
                     # between the diffent options.
-                    fallback_entries = set(undistinguished + successful + possible)
                     filter = successful + possible + undistinguished
                     try:
                         filter += lookup[value]
