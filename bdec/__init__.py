@@ -36,10 +36,7 @@ It can:
  * Be defined in a textual format (bdec.spec)
 """
 
-# This is automatically updated by the ./tools/release.py script. Just set
-# the latest version in the README, and this will be updated when the release
-# is made.
-__version__ = "0.5.2"
+__version__ = "0.5.3"
 
 class DecodeError(Exception):
     """ An error raise when decoding fails """
