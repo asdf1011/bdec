@@ -107,15 +107,13 @@ class SequenceOf(bdec.entry.Entry):
                 yield item
         yield (False, name, self, dt.Data(), None)
 
-    def _encode(self, query, parent):
-        children = self._get_context(query, parent)
-
+    def _encode(self, query, value):
         count = 0
-        for child in children:
+        for child in value:
             count += 1
             for data in self.children[0].entry.encode(query, child):
                 yield data
 
         if self.count is not None and self.count.evaluate({}) != count:
-            raise InvalidSequenceOfCount(self, self.count, count)
+            raise InvalidSequenceOfCount(self, self.count.evaluate({}), count)
 

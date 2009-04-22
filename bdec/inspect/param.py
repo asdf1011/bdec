@@ -419,6 +419,7 @@ class DataChecker:
         """A list of entries to check for visibility.
 
         All other entries reachable by these entries can also be checked."""
+        self._common = entries[:]
         self._has_data = {}
         entries = set(entries)
         while entries:
@@ -447,26 +448,38 @@ class DataChecker:
         if entry in self._has_data:
             return
 
-        #self._has_data[entry] = not entry.is_hidden()
-        self._has_data[entry] = False
-
         # This entry isn't yet calculated; do so now.
+        self._has_data[entry] = not entry.is_hidden()
         stack.append(entry)
         for child in entry.children:
-            self._populate(child.entry, stack, intermediates)
-            self._has_data[entry] |= self.child_has_data(child)
+             self._populate(child.entry, stack, intermediates)
         stack.remove(entry)
+
+        if not self._has_data[entry]:
+            self._hide_children(entry)
+
+    def _hide_children(self, entry):
+        """Hide all of the non-common children of an entry.
+
+        If an entry doesn't contain data, nor should any of its non common
+        children. This can happen when a parent entry is hidden, but the
+        child entries are visible.
+        """
+        self._has_data[entry] = False
+        for child in entry.children:
+            if child.entry not in self._common:
+                self._hide_children(child.entry)
 
     def contains_data(self, entry):
         """Does an entry contain data."""
-        return self._has_data[entry] or not ent.is_hidden(entry.name)
+        return not ent.is_hidden(entry.name) and self._has_data[entry]
 
     def child_has_data(self, child):
         """Does a bdec.entry.Child instance contain data.
 
         This is different from contains_data when a referenced entry has been
         hidden."""
-        return self._has_data[child.entry] or not ent.is_hidden(child.name)
+        return not ent.is_hidden(child.name) and self._has_data[child.entry]
 
 
 class ResultParameters(_Parameters):

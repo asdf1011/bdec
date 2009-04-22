@@ -378,22 +378,19 @@ class TestResultParameters(unittest.TestCase):
         self.assertEqual([], lookup.get_params(a))
 
     def test_hidden_entry_visible_child(self):
+        # If an entry is hidden, but it has visible children, we want the entry
+        # to be hidden regardless.
         a = fld.Field('a', 8)
         b = seq.Sequence('', [a])
         lookup = prm.ResultParameters([b])
-        self.assertEqual([prm.Param('result', prm.Param.OUT, b)], lookup.get_params(b))
+        self.assertEqual([], lookup.get_params(b))
+        self.assertEqual([], lookup.get_params(a))
 
-    def test_hidden_common(self):
-        # There was a bug where a common entry was temporarily marked as having
-        # no visible children (ie: no results), despite finally resolving to 
-        # being visible. The bug is that any use of this intermediate check 
-        # will use the incorrect 'not visible' state.
-        #
-        # To test this we create an entry that can either be a a number character, or
-        # an embedded instance of the same entry (surrounded by '<' and '>').
+    def test_recursive_common(self):
+        # Test a recursive parser to decode xml style data
 
-        embedded = seq.Sequence('embedded:', [])
-        item = chc.Choice('item:', [embedded, fld.Field('data', 8, min=ord('0'), max=ord('9'))])
+        embedded = seq.Sequence('embedded', [])
+        item = chc.Choice('item', [embedded, fld.Field('data', 8, min=ord('0'), max=ord('9'))])
         embedded.children = [
                 fld.Field('', length=8, expected=dt.Data('<')),
                 item,
@@ -415,9 +412,20 @@ class TestResultParameters(unittest.TestCase):
         # name. This is common for integers defined at the common level.
         a = fld.Field('a', 8, fld.Field.INTEGER)
         b = seq.Sequence('b', [ent.Child('a:', a)])
-        lookup = prm.ResultParameters([b])
+        lookup = prm.ResultParameters([a, b])
         self.assertEqual([prm.Param('result', prm.Param.OUT, a)], lookup.get_params(a))
         self.assertEqual([prm.Param('result', prm.Param.OUT, b)], lookup.get_params(b))
         self.assertEqual([prm.Local('unused a:', a)], lookup.get_locals(b))
         self.assertEqual([prm.Param('unused a:', prm.Param.OUT, a)], lookup.get_passed_variables(b, b.children[0]))
+
+class TestDataChecker(unittest.TestCase):
+    def test_hidden_entry_visible_child(self):
+        # Test that when the parent entry is hidden, the child entry is hidden
+        # too.
+        a = fld.Field('a', 8)
+        b = seq.Sequence('b:', [a])
+        checker = prm.DataChecker([b])
+        self.assertFalse(checker.contains_data(a))
+        self.assertFalse(checker.contains_data(b))
+        self.assertFalse(checker.child_has_data(b.children[0]))
 

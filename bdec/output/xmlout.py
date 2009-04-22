@@ -56,8 +56,18 @@ def to_file(decoder, binary, output, encoding="utf-8", verbose=False):
     handler = _XMLGenerator(output, encoding)
     offset = 0
     is_first = True
+    hidden_count = 0
     for is_starting, name, entry, data, value in decoder.decode(binary):
-        if not verbose and (ent.is_hidden(name) or isinstance(entry, chc.Choice)):
+        # If we have an entry that is hidden, all entries under that should
+        # also be hidden.
+        if is_starting:
+            if hidden_count or ent.is_hidden(name):
+                hidden_count += 1
+        is_hidden = hidden_count != 0
+        if not is_starting and hidden_count:
+            hidden_count -= 1
+
+        if not verbose and (is_hidden or isinstance(entry, chc.Choice)):
             continue
 
         if not is_starting:
@@ -88,11 +98,6 @@ def to_string(decoder, binary, verbose=False):
     to_file(decoder, binary, buffer, verbose=verbose)
     return buffer.getvalue()
 
-class _DummyElement:
-    """Class to workaround the fact that entries of a sequenceof are asked for themselves. """
-    def __init__(self, child):
-        self.childNodes = [child]
-
 class _SequenceOfIter:
     """A class to iterate over xml children entries from a sequenceof. """
     def __init__(self, child_nodes, child):
@@ -102,11 +107,7 @@ class _SequenceOfIter:
     def __iter__(self):
         for node in self._child_nodes:
             if node.nodeType == xml.dom.Node.ELEMENT_NODE:
-                # The object we return now will get asked for the child object,
-                # but we allready have the child object. To work around this we
-                # will create a 'dummy' element, with just this one node.
-                yield _DummyElement(node)
-
+                yield _get_element_value(node, self._child)
 
 def _query_element(obj, child):
     """
@@ -114,25 +115,39 @@ def _query_element(obj, child):
 
     If the child has no sub-elements itself, return the element text contents.
     """
-    name = escape_name(child.name)
-    for child_node in obj.childNodes:
-        if child_node.nodeType == xml.dom.Node.ELEMENT_NODE and child_node.tagName == name:
-            if isinstance(child, sof.SequenceOf):
-                # This element represents a sequence of, so we'll return an
-                # object to iterate over the children.
-                return _SequenceOfIter(child_node.childNodes, child.children[0].entry)
+    try:
+        childNodes = obj.childNodes
+    except AttributeError:
+        raise ent.MissingInstanceError(obj, child)
 
-            text = ""
-            for subchild in child_node.childNodes:
-                if subchild.nodeType == xml.dom.Node.ELEMENT_NODE:
-                    # This element has sub-elements, so return the element itself.
-                    return child_node
-                elif subchild.nodeType == xml.dom.Node.TEXT_NODE:
-                    text += subchild.data
-            # No sub-elements; just return the text of the element.
-            return text
+    name = escape_name(child.name)
+    for child_node in childNodes:
+        if child_node.nodeType == xml.dom.Node.ELEMENT_NODE and child_node.tagName == name:
+            return _get_element_value(child_node, child)
 
     raise ent.MissingInstanceError(obj, child)
+
+def _get_element_value(element, entry):
+    """Get an instance that can be encoded for a given xml element node.
+
+    element -- The xml element to be encoded.
+    entry -- The entry this element represents.
+    """
+    if isinstance(entry, sof.SequenceOf):
+        # This element represents a sequence of, so we'll return an
+        # object to iterate over the children.
+        return _SequenceOfIter(element.childNodes, entry.children[0].entry)
+
+    text = ""
+    for child in element.childNodes:
+        if child.nodeType == xml.dom.Node.ELEMENT_NODE:
+            # This element has sub-elements, so return the high-level element
+            # itself.
+            return element
+        elif child.nodeType == xml.dom.Node.TEXT_NODE:
+            text += child.data
+    # No sub-elements; this element is a 'value' type.
+    return text
 
 def encode(protocol, xmldata):
     """
@@ -143,5 +158,6 @@ def encode(protocol, xmldata):
     if isinstance(xmldata, basestring):
         xmldata = StringIO.StringIO(xmldata)
     document = xml.dom.minidom.parse(xmldata)
-    return protocol.encode(_query_element, document) 
+    value = protocol.get_context(_query_element, document)
+    return protocol.encode(_query_element, value)
 

@@ -79,7 +79,7 @@ class TestField(unittest.TestCase):
 
     def test_encode(self):
         field = fld.Field("bob", 8, format=fld.Field.INTEGER)
-        result = field.encode(lambda name, context: 0x3f, None)
+        result = field.encode(None, 0x3f)
         self.assertEqual(0x3f, int(result.next()))
 
     def test_encoded_size_matches_expected_size(self):
@@ -87,16 +87,16 @@ class TestField(unittest.TestCase):
         When we specify a size for a field, what we actually encode should match it.
         """
         text = fld.Field("bob", 48, format=fld.Field.TEXT)
-        self.assertEqual("rabbit", text.encode(lambda name, context: "rabbit", None).next().bytes())
-        self.assertRaises(ent.DataLengthError, list, text.encode(lambda name, context: "boxfish", None))
+        self.assertEqual("rabbit", text.encode(None, "rabbit").next().bytes())
+        self.assertRaises(ent.DataLengthError, list, text.encode(None, "boxfish"))
 
         binary = fld.Field("bob", 8, format=fld.Field.BINARY)
-        self.assertEqual("\x39", binary.encode(lambda name, context: "00111001", None).next().bytes())
-        self.assertRaises(ent.DataLengthError, list, binary.encode(lambda name, context: "1011", None))
+        self.assertEqual("\x39", binary.encode(None, "00111001").next().bytes())
+        self.assertRaises(ent.DataLengthError, list, binary.encode(None, "1011"))
 
         hex = fld.Field("bob", 8, format=fld.Field.HEX)
-        self.assertEqual("\xe7", hex.encode(lambda name, context: "e7", None).next().bytes())
-        self.assertRaises(ent.DataLengthError, list, hex.encode(lambda name, context: "ecd", None))
+        self.assertEqual("\xe7", hex.encode(None, "e7").next().bytes())
+        self.assertRaises(ent.DataLengthError, list, hex.encode(None, "ecd"))
 
     def test_string_conversion(self):
         # Just test that we can convert fields to a string sanely... the actual format
@@ -107,19 +107,9 @@ class TestField(unittest.TestCase):
         field = fld.Field("bob", 8, format=fld.Field.INTEGER)
         self.assertRaises(fld.BadFormatError, field.encode(lambda name, context: "rabbit", None).next)
 
-    def test_encode_of_missing_visible_field_with_expected_value_fails(self):
-        field = fld.Field("bob", 8, expected=dt.Data("c"))
-        class MissingField:
-            pass
-        def fail_query(obj, name):
-            raise MissingField()
-        self.assertRaises(MissingField, field.encode(fail_query, None).next)
-
     def test_encode_of_field_with_expected_value_fails_when_given_bad_data(self):
         field = fld.Field("bob", 8, fld.Field.TEXT, expected=dt.Data("c"))
-        def bad_data_query(obj, name):
-            return "d"
-        self.assertRaises(fld.BadDataError, field.encode(bad_data_query, None).next)
+        self.assertRaises(fld.BadDataError, field.encode(None, "d").next)
 
     def test_encode_of_field_with_expected_value_succeeds_with_missing_data(self):
         """

@@ -41,16 +41,16 @@ class TestSequenceOf(unittest.TestCase):
             ("blah", None)]
         self.assertEqual(expected, actual)
 
-    def test_encoding(self):
+    def test_encode(self):
         sequenceof = sof.SequenceOf("blah", fld.Field("cat", 8, format=fld.Field.INTEGER), 3)
-        data = {"blah" : [{"cat":5}, {"cat":9}, {"cat":0xf6}]}
+        data = [5, 9, 0xf6]
         query = lambda context, child: context[child.name] 
         data = reduce(lambda a,b:a+b, sequenceof.encode(query, data))
         self.assertEqual("\x05\x09\xf6", data.bytes())
 
     def test_invalid_encoding_count(self):
         sequenceof = sof.SequenceOf("blah", fld.Field("cat", 8, format=fld.Field.INTEGER), 3)
-        data = {"blah" : [{"cat":5}, {"cat":9}]}
+        data = [5, 9]
         query = lambda context, child: context[child.name] 
         self.assertRaises(sof.InvalidSequenceOfCount, list, sequenceof.encode(query, data))
 
@@ -72,7 +72,7 @@ class TestSequenceOf(unittest.TestCase):
 
     def test_encoding_greedy_sequenceof(self):
         sequenceof = sof.SequenceOf("blah", fld.Field("cat", 8, format=fld.Field.INTEGER), None)
-        data = {"blah" : [{"cat":5}, {"cat":9}, {"cat":0xf6}]}
+        data = [5, 9, 0xf6]
         query = lambda context, child: context[child.name] 
         data = reduce(lambda a,b:a+b, sequenceof.encode(query, data))
         self.assertEqual("\x05\x09\xf6", data.bytes())

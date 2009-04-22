@@ -47,10 +47,10 @@ class Sequence(bdec.entry.Entry):
             value = self.value.evaluate(context)
         yield (False, name, self, dt.Data(), value)
 
-    def _encode(self, query, parent):
-        structure = self._get_context(query, parent)
+    def _encode(self, query, value):
         for child in self.children:
-            for data in child.entry.encode(query, structure):
+            child_value = child.entry.get_context(query, value)
+            for data in child.entry.encode(query, child_value):
                 yield data
             
     def _range(self, ignore_entries):

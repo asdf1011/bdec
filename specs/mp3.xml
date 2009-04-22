@@ -5,7 +5,7 @@
     -->
 <protocol>
     <common>
-        <sequence name="syncsafe integer:" value="((${byte 1:} * 128 + ${byte 2:}) * 128 + ${byte 3:}) * 128 + ${byte 4:}">
+        <sequence name="syncsafe integer" value="((${byte 1:} * 128 + ${byte 2:}) * 128 + ${byte 3:}) * 128 + ${byte 4:}">
             <field name="null:" length="1" value="0x0" />
             <field name="byte 1:" length="7" type="integer" />
             <field name="null:" length="1" value="0x0" />
@@ -18,8 +18,8 @@
 
         <sequence name="id3v2:frame">
             <field name="id" length="32" type="text" />
-            <reference name="frame length:" type="syncsafe integer:" />
-            <sequence name="contents:" length="${frame length:} * 8 + 16">
+            <reference name="frame length:" type="syncsafe integer" />
+            <sequence name="contents" length="${frame length:} * 8 + 16">
                 <sequence name="status flags">
                     <choice name="tag alter preservation" >
                         <field name="preserve" length="1" value="0x0" />
@@ -41,18 +41,18 @@
                     <field name="unused" length="3" />
                 </sequence>
                 <choice name="contents">
-                    <sequence name="iso-8859-1:">
+                    <sequence name="iso-8859-1">
                         <field name="id:" length="8" value="0x0" />
                         <field name="text" length="${frame length:} * 8 - 8" type="text" encoding="iso-8859-1" />
                     </sequence>
-                    <sequence name="utf16-bom:">
+                    <sequence name="utf16-bom">
                         <choice name="utf id:">
                             <field name="id:" length="8" value="0x1" />
                             <field name="id:" length="8" value="0x2" />
                         </choice>
                         <field name="text" length="${frame length:} * 8 - 8" type="text" encoding="utf-16-be" />
                     </sequence>
-                    <sequence name="utf8:">
+                    <sequence name="utf8">
                         <field name="id:" length="8" value="0x3" />
                         <field name="text" length="${frame length:} * 8 - 8" type="text" encoding="utf-8" />
                     </sequence>
@@ -72,7 +72,7 @@
                 <field name="footer present" length="1" />
                 <field name="unused" length="4" />
             </sequence>
-            <reference name="total frames length:" type="syncsafe integer:" />
+            <reference name="total frames length:" type="syncsafe integer" />
             <sequenceof name="frames" length="${total frames length:} * 8">
                 <reference name="id3v2:frame" />
             </sequenceof>
@@ -165,17 +165,17 @@
     </common>
 
     <sequence name="mp3">
-        <choice name="optional id3 v2:">
+        <choice name="optional id3 v2">
             <reference name="id3 v2" />
             <sequence />
         </choice>
         <sequenceof name="frames">
-            <choice name="frame:">
+            <choice name="frame">
                 <reference name="frame" />
                 <sequence><end-sequenceof/></sequence>
             </choice>
         </sequenceof>
-        <choice name="optional id3 v1:">
+        <choice name="optional id3 v1">
             <reference name="id3 v1" />
             <sequence />
         </choice>

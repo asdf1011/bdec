@@ -199,7 +199,7 @@ class Data:
         except UnicodeDecodeError:
             raise BadTextEncodingError(self, encoding)
 
-    def __str__(self):
+    def __repr__(self):
         """Return a textual representation of the data."""
         if len(self) % 8 == 0:
             return 'hex (%i bytes): %s' % (len(self) / 8, self.get_hex())

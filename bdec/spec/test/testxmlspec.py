@@ -407,7 +407,7 @@ class TestXml(unittest.TestCase):
                     <sequence name="array">
                         <field name="opener" length="8" value="0x5b" />
                         <sequenceof name="values">
-                            <choice name="entry:">
+                            <choice name="entry">
                                 <field name="closer" length="8" value="0x5d"><end-sequenceof /></field>
                                 <reference name="object" />
                             </choice>
@@ -425,14 +425,14 @@ class TestXml(unittest.TestCase):
         protocol = xml.loads(text)[0]
         data = dt.Data("[12[34[56]7]8]unused")
         result = inst.decode(protocol, data)
-        self.assertEqual("1", result.object.array.values[0].integer)
-        self.assertEqual("2", result.object.array.values[1].integer)
-        self.assertEqual("3", result.object.array.values[2].array.values[0].integer)
-        self.assertEqual("4", result.object.array.values[2].array.values[1].integer)
-        self.assertEqual("5", result.object.array.values[2].array.values[2].array.values[0].integer)
-        self.assertEqual("6", result.object.array.values[2].array.values[2].array.values[1].integer)
-        self.assertEqual("7", result.object.array.values[2].array.values[3].integer)
-        self.assertEqual("8", result.object.array.values[3].integer)
+        self.assertEqual("1", result.array.values[0].object.integer)
+        self.assertEqual("2", result.array.values[1].object.integer)
+        self.assertEqual("3", result.array.values[2].object.array.values[0].object.integer)
+        self.assertEqual("4", result.array.values[2].object.array.values[1].object.integer)
+        self.assertEqual("5", result.array.values[2].object.array.values[2].object.array.values[0].object.integer)
+        self.assertEqual("6", result.array.values[2].object.array.values[2].object.array.values[1].object.integer)
+        self.assertEqual("7", result.array.values[2].object.array.values[3].object.integer)
+        self.assertEqual("8", result.array.values[3].object.integer)
         self.assertEqual("unused", data.bytes())
 
     def test_all_entries_in_lookup_tree(self):

@@ -41,20 +41,11 @@ class BadDataError(FieldError):
     """Error raised when expected data didn't match the data found."""
     def __init__(self, field, expected, actual):
         FieldError.__init__(self, field)
-        assert isinstance(expected, dt.Data)
-        assert isinstance(actual, dt.Data)
         self.expected = expected
         self.actual = actual
 
     def __str__(self):
-        expected = self.field.decode_value(self.expected)
-        try:
-            actual = self.field.decode_value(self.actual)
-        except bdec.DecodeError:
-            # We couldn't convert the object to the expected format,
-            # so we'll display it as binary.
-            actual = self.actual.get_binary_text()
-        return "'%s' expected %s, got %s" % (self.field.name, repr(expected), repr(actual))
+        return "'%s' expected %s, got %s" % (self.field.name, repr(self.expected), repr(self.actual))
 
 class BadRangeError(FieldError):
     """Error raised when the data found wasn't within the allowable range."""
@@ -218,46 +209,34 @@ class Field(bdec.entry.Entry):
         except dt.DataError, ex:
             raise FieldDataError(self, ex)
 
-    def _encode(self, query, context):
-        """
-        Note that we override 'encode', not '_encode', as we do not want to query
-        for items with an expected value.
-        """
+    def get_context(self, query, context):
+        try:
+            result = query(context, self)
+        except bdec.entry.MissingInstanceError:
+            if not self.is_hidden():
+                raise
+            if self.expected is None:
+                raise
+            result = None
+        return result
+
+    def _encode(self, query, value):
+        expected = None
         if self.expected is not None:
-            if self.is_hidden():
-                try:
-                    data = query(context, self)
-                except bdec.entry.MissingInstanceError:
-                    # The hidden variable wasn't included in the output, so just
-                    # use the 'expected' value.
-                    yield self.expected
-                    return
-            else:
-                # We are an expected value, but not hidden (and so must be present
-                # in the data to be encoded).
-                data = query(context, self)
-                
-            if data is None or data == "":
-                # The expected value object was present, but didn't have any data (eg:
-                # the xml output may not include expected values).
-                yield self.expected
-                return
-        else:
-            # We don't have any expected data, so we'll query it from the input.
-            try:
-                data = query(context, self)
-            except bdec.entry.MissingInstanceError:
-                if not self.is_hidden():
-                    # The field wasn't hidden, but we failed to query the data.
-                    raise
-                data = context
+            expected = self.decode_value(self.expected)
 
-        self._validate_range(data)
+        if expected is not None and value in [None, '']:
+            # We handle strings as a prompt to use the expected value. This is
+            # because the named item may be in the output, but not necessarily
+            # the value (eg: in the xml representation, it is clearer to not
+            # display the expected value).
+            value = expected
 
-        result = self.encode_value(data)
-        if self.expected is not None and result != self.expected:
-            raise BadDataError(self, self.expected, result)
-        yield result
+        self._validate_range(value)
+        if expected is not None and value != expected:
+            raise BadDataError(self, self.expected, value)
+
+        yield self.encode_value(value)
 
     def __str__(self):
         return "%s '%s' (%s)" % (self.format, self.name, self.encoding)

@@ -106,7 +106,7 @@ class TestChoice(unittest.TestCase):
         choice = chc.Choice("blah", [byte_len, word_len])
 
         # First try encoding a number that will only fit in the 16 bit storage
-        struct = {"blah" : {"bob" : {"dog" : 10023}}}
+        struct = {"bob" : {"dog" : 10023}}
         def query(context, child):
             if child.name not in context:
                 raise ent.MissingInstanceError(context, child)
@@ -115,7 +115,7 @@ class TestChoice(unittest.TestCase):
         self.assertEqual(17, len(data))
 
         # Now try encoding a number that will fit in the 8 bit storage
-        struct = {"blah" : {"bob" : {"dog" : 117}}}
+        struct = {"bob" : {"dog" : 117}}
         data = reduce(lambda a,b:a+b, choice.encode(query, struct))
         self.assertEqual(9, len(data))
 

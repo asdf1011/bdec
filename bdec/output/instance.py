@@ -43,7 +43,14 @@ class _DecodedItem:
         # We allready have the decoded values for fields; this function shouldn't
         # be used.
         assert not isinstance(self._entry, fld.Field)
-        if isinstance(self._entry, sof.SequenceOf):
+        if self._entry is None:
+            # For the top level object, return the protocol value (if it
+            # exists).
+            if not self.children:
+                result = None
+            else:
+                result = self.children[0][1]
+        elif isinstance(self._entry, sof.SequenceOf):
             result = list(value for name, value in self.children)
         else:
             result = _Item()
@@ -65,15 +72,6 @@ def decode(decoder, binary):
                 if not isinstance(entry, fld.Field):
                     value = item.get_value()
                 stack[-1].add_entry(entry.name, value)
-            else:
-                # We want to ignore this item, but still add the childs items to the parent.
-                if isinstance(entry, fld.Field):
-                    # For ignored field items, we'll add the value to the parent. This allows
-                    # us to have lists of numbers (eg: sequenceof with an ignored field)
-                    stack[-1].add_entry("", value)
-                else:
-                    for name, value in item.children:
-                        stack[-1].add_entry(name, value)
 
     assert len(stack) == 1
     return stack[0].get_value()

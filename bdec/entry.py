@@ -310,41 +310,36 @@ class Entry(object):
         for listener in self._listeners:
             listener(self, length, context)
 
-    def _get_context(self, query, parent):
+    def get_context(self, query, parent):
         # This interface isn't too good; it requires us to load the _entire_ document
         # into memory. This is because it supports 'searching backwards', plus the
         # reference to the root element is kept. Maybe a push system would be better?
         #
         # Problem is, push doesn't work particularly well for bdec.output.instance, nor
         # for choice entries (where we need to re-wind...)
-
         try:
-            context = query(parent, self)
+            return query(parent, self)
         except MissingInstanceError:
-            import bdec.choice as chc
-            if not self.is_hidden() and not isinstance(self, chc.Choice):
-                raise
-            # The instance wasn't included in the input, but as it is hidden, we'll
-            # keep using the current context.
-            context = parent
-        return context
+            if self.is_hidden():
+                return None
+            raise
 
-    def _encode(self, query, context):
+    def _encode(self, query, value):
         """
         Encode a data source, with the context being the data to encode.
         """
         raise NotImplementedError()
 
-    def encode(self, query, parent_context):
+    def encode(self, query, value):
         """Return an iterator of bdec.data.Data instances.
 
         query -- Function to return a value to be encoded when given an entry
           instance and the parent entry's value. If the parent doesn't contain
           the expected instance, MissingInstanceError should be raised.
-        parent_context -- The value of the parent of this instance.
+        value -- This entry's value that is to be encoded.
         """
         encode_length = 0
-        for data in self._encode(query, parent_context):
+        for data in self._encode(query, value):
             encode_length += len(data)
             yield data
 
