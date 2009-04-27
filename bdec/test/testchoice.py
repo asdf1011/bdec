@@ -1,4 +1,4 @@
-#   Copyright (C) 2008 Henry Ludemann
+#   Copyright (C) 2008-2009 Henry Ludemann
 #
 #   This file is part of the bdec decoder library.
 #
@@ -21,6 +21,7 @@ import unittest
 
 import bdec.entry as ent
 import bdec.choice as chc
+from bdec.constraints import ConstraintError
 import bdec.data as dt
 import bdec.field as fld
 import bdec.sequence as seq
@@ -68,10 +69,10 @@ class TestChoice(unittest.TestCase):
         try:
             for is_starting, name, entry, entry_data, value in choice.decode(data):
                 results.append((is_starting, entry))
-        except fld.BadDataError, ex:
+        except ConstraintError, ex:
             pass
         self.assertTrue(ex is not None)
-        self.assertEqual(cat, ex.field)
+        self.assertEqual(cat, ex.entry)
 
         # The 'cat', 'chicken', and 'blah' entries should have
         # started decoding, and the 'bob' entry should have
@@ -126,8 +127,8 @@ class TestChoice(unittest.TestCase):
         self.assertEqual(8, choice.range().max)
 
     def test_reference_common_child(self):
-        byte = seq.Sequence('8 bit:', [fld.Field('id', 8, expected=dt.Data('\x00')), fld.Field('length', 8)])
-        word = seq.Sequence('16 bit:', [fld.Field('id', 8, expected=dt.Data('\x01')), fld.Field('length', 16)])
+        byte = seq.Sequence('8 bit', [fld.Field('id', 8, expected=dt.Data('\x00')), fld.Field('length', 8)])
+        word = seq.Sequence('16 bit', [fld.Field('id', 8, expected=dt.Data('\x01')), fld.Field('length', 16)])
         length = chc.Choice('variable integer', [byte, word])
         length_value = expr.ValueResult('variable integer.length')
         data = fld.Field('data', length_value, fld.Field.TEXT)

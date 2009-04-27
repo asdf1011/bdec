@@ -1,4 +1,4 @@
-#   Copyright (C) 2008 Henry Ludemann
+#   Copyright (C) 2008-2009 Henry Ludemann
 #
 #   This file is part of the bdec decoder library.
 #
@@ -22,6 +22,7 @@ import unittest
 
 import bdec
 import bdec.choice as chc
+from bdec.constraints import ConstraintError
 import bdec.data as dt
 import bdec.entry as ent
 import bdec.expression as expr
@@ -40,7 +41,7 @@ class TestXml(unittest.TestCase):
         self.assertEqual("bob", decoder.name)
         items = list(decoder.decode(dt.Data.from_hex("7a")))
         self.assertEqual(2, len(items))
-        self.assertEqual("01111010", items[1][4])
+        self.assertEqual("01111010", str(items[1][4]))
 
     def test_simple_text_field(self):
         text = """<protocol><field name="bob" length="8" type="text" /></protocol>"""
@@ -65,14 +66,14 @@ class TestXml(unittest.TestCase):
         self.assertEqual("dog", decoder.children[1].name)
         items = list(value for is_starting, name, entry, data, value in decoder.decode(dt.Data.from_hex("7fac")) if not is_starting)
         self.assertEqual(3, len(items))
-        self.assertEqual("7f", items[0])
+        self.assertEqual("7f", str(items[0]))
         self.assertEqual(172, items[1])
 
     def test_bad_expected_value(self):
         text = """<protocol><field name="bob" length="8" value="0xa0" /></protocol>"""
         decoder = xml.loads(text)[0]
         self.assertEqual("bob", decoder.name)
-        self.assertRaises(fld.BadDataError, lambda: list(decoder.decode(dt.Data.from_hex("7a"))))
+        self.assertRaises(ConstraintError, lambda: list(decoder.decode(dt.Data.from_hex("7a"))))
 
     def test_choice(self):
         text = """
@@ -88,7 +89,7 @@ class TestXml(unittest.TestCase):
         self.assertEqual("dog", decoder.children[1].name)
         items = list(value for is_starting, name, entry, data, value in decoder.decode(dt.Data.from_hex("7fac")) if not is_starting)
         self.assertEqual(2, len(items))
-        self.assertEqual("7f", items[0])
+        self.assertEqual("7f", str(items[0]))
 
     def test_sequence_of(self):
         text = """
@@ -102,8 +103,8 @@ class TestXml(unittest.TestCase):
         self.assertEqual("cat", decoder.children[0].name)
         items = list(value for is_starting, name, entry, data, value in decoder.decode(dt.Data.from_hex("7fac")) if not is_starting)
         self.assertEqual(3, len(items))
-        self.assertEqual("7f", items[0])
-        self.assertEqual("ac", items[1])
+        self.assertEqual("7f", str(items[0]))
+        self.assertEqual("ac", str(items[1]))
 
     def test_non_whole_byte_expected_value(self):
         text = """<protocol><field name="bob" length="1" value="0x0" /></protocol>"""
@@ -280,8 +281,8 @@ class TestXml(unittest.TestCase):
            </protocol>
            """
         protocol = xml.loads(text)[0]
-        self.assertRaises(fld.BadRangeError, list, protocol.decode(dt.Data('\x03')))
-        self.assertRaises(fld.BadRangeError, list, protocol.decode(dt.Data('\x10')))
+        self.assertRaises(ConstraintError, list, protocol.decode(dt.Data('\x03')))
+        self.assertRaises(ConstraintError, list, protocol.decode(dt.Data('\x10')))
         self.assertEqual(4, list(protocol.decode(dt.Data('\x04')))[1][4])
         self.assertEqual(15, list(protocol.decode(dt.Data('\x0f')))[1][4])
 

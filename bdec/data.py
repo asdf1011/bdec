@@ -1,4 +1,4 @@
-#   Copyright (C) 2008 Henry Ludemann
+#   Copyright (C) 2008-2009 Henry Ludemann
 #
 #   This file is part of the bdec decoder library.
 #
@@ -135,12 +135,6 @@ class Data:
         end - The bit the data ends at. If None, the data ends at the end of
            the buffer.
         """
-        if start is None:
-            start = 0
-
-        assert end is None or start <= end
-        self._start = start
-        self._end = end
 
         # Note: We can detect the length of string and empty buffers at
         # initialisation time; it is a speed win to do so. However, that means
@@ -156,6 +150,13 @@ class Data:
             self._buffer = _FileBuffer(buffer)
         else:
             raise Exception("Unknown data source '%s'" % type(buffer)) 
+
+        if start is None:
+            start = 0
+
+        assert end is None or start <= end
+        self._start = start
+        self._end = end
 
     def pop(self, length):
         """Return a data instance for representing the start of this data.

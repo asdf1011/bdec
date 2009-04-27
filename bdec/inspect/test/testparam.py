@@ -1,4 +1,4 @@
-#   Copyright (C) 2008 Henry Ludemann
+#   Copyright (C) 2008-2009 Henry Ludemann
 #
 #   This file is part of the bdec decoder library.
 #
@@ -21,6 +21,7 @@ import unittest
 
 import bdec
 import bdec.choice as chc
+from bdec.constraints import Maximum, Minimum
 import bdec.data as dt
 import bdec.entry as ent
 import bdec.field as fld
@@ -237,8 +238,11 @@ class TestExpressionParameters(unittest.TestCase):
             list(params.get_passed_variables(f, f.children[0])))
 
     def test_renamed_common_reference(self):
-        digit = seq.Sequence('digit', [
-            fld.Field('text digit', 8, min=48, max=58)],
+        text_digit = fld.Field('text digit', 8)
+        text_digit.constraints.append(Minimum(48))
+        text_digit.constraints.append(Maximum(58))
+
+        digit = seq.Sequence('digit', [text_digit],
             value=expr.compile("${text digit} - 48"))
         b = seq.Sequence('b', [
             ent.Child('length', digit),
@@ -390,11 +394,14 @@ class TestResultParameters(unittest.TestCase):
         # Test a recursive parser to decode xml style data
 
         embedded = seq.Sequence('embedded', [])
-        item = chc.Choice('item', [embedded, fld.Field('data', 8, min=ord('0'), max=ord('9'))])
+        digit = fld.Field('data', 8)
+        digit.constraints.append(Minimum(ord('0')))
+        digit.constraints.append(Maximum(ord('9')))
+        item = chc.Choice('item', [embedded, digit])
         embedded.children = [
-                fld.Field('', length=8, expected=dt.Data('<')),
+                fld.Field('', length=8, format=fld.Field.TEXT, expected=dt.Data('<')),
                 item,
-                fld.Field('', length=8, expected=dt.Data('>'))]
+                fld.Field('', length=8, format=fld.Field.TEXT, expected=dt.Data('>'))]
 
         # Lets just test that we can decode things correctly...
         list(item.decode(dt.Data('8')))

@@ -1,4 +1,4 @@
-#   Copyright (C) 2008 Henry Ludemann
+#   Copyright (C) 2008-2009 Henry Ludemann
 #
 #   This file is part of the bdec decoder library.
 #
@@ -399,45 +399,31 @@ def load(xml):
         result = _load_from_file(xml, "<stream>")
     return result
 
-def _save_field(entry):
-    attributes = [('name', entry.name), ('length', str(entry.length))]
+def _save_field(entry, attributes):
     if entry.format is not fld.Field.BINARY:
         attributes += [('type', entry.format)]
-    if entry.expected is not None:
-        if entry.format in [fld.Field.HEX, fld.Field.BINARY]:
-            data = dt.Data('\x00', start=0, end=len(entry.expected) % 8) + entry.expected
-            # We can only convert bytes to hex, so added a '0' data object in
-            # front.
-            if len(data) % 8 != 0:
-                data = dt.Data('\x00', start=0, end=8 - len(data) % 8) + data
-            value = '0x%s' % data.get_hex()
-        else:
-            value = entry.decode_value(entry.expected)
-        attributes += [('value', value)]
-    attributes += [('min', entry.min), ('max', entry.max)]
     if entry.encoding not in [fld.Field.BIG_ENDIAN, 'ascii']:
         attributes += [('encoding', entry.encoding)]
-    return ('field', attributes)
+    return 'field'
 
-def _save_sequence(entry):
-    attributes = [('name', entry.name), ('value', entry.value)]
+def _save_sequence(entry, attributes):
     if entry.length is not None:
         attributes += [('length', str(entry.length))]
-    return ('sequence', attributes)
+    if entry.value is not None:
+            attributes += [('value', entry.value)]
+    return 'sequence'
 
-def _save_sequenceof(entry):
-    attributes = [('name', entry.name)]
+def _save_sequenceof(entry, attributes):
     if entry.count is not None:
         attributes += [('count', str(entry.count))]
     if entry.length is not None:
         attributes += [('length', str(entry.length))]
-    return ('sequenceof', attributes)
+    return 'sequenceof'
 
-def _save_choice(entry):
-    attributes = [('name', entry.name)]
+def _save_choice(entry, attributes):
     if entry.length is not None:
         attributes += [('length', str(entry.length))]
-    return ('choice', attributes)
+    return 'choice'
 
 _handlers = {fld.Field: _save_field,
         seq.Sequence: _save_sequence,
@@ -493,7 +479,32 @@ def _write_reference(gen, child):
     gen.end('reference')
 
 def _write_entry(gen, entry, common, end_entry):
-    name, attributes = _handlers[type(entry)](entry)
+    attributes = [('name', entry.name)]
+    name = _handlers[type(entry)](entry, attributes)
+    if entry.length is not None:
+	attributes.append(('length', str(entry.length)))
+    for constraint in entry.constraints:
+        if isinstance(constraint, bdec.constraints.Minimum):
+            attributes.append(('min', str(constraint.limit)))
+        elif isinstance(constraint, bdec.constraints.Maximum):
+            attributes.append(('max', str(constraint.limit)))
+        elif isinstance(constraint, bdec.constraints.Equals):
+            value = constraint.limit
+            if isinstance(constraint.limit, dt.Data):
+                if len(value) % 8:
+                    # We can only convert bytes to hex, so added a '0' data
+                    # object in front.
+                    leading_bits = 8 - len(entry.expected) % 8
+                    value = dt.Data('\x00', start=0, end=leading_bits) + value
+                value = '0x%s' % value.get_hex()
+            # Field entries expected values currently have a different name...
+            if isinstance(entry, fld.Field):
+                attributes.append(('value', value))
+            else:
+                attributes.append(('expected', value))
+        else:
+            raise NotImplementedError("Don't know how to save contraint '%s'!" % constraint)
+
     gen.start(name, attributes)
     for child in entry.children:
         if child.entry in common:

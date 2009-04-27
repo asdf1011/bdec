@@ -1,4 +1,4 @@
-#   Copyright (C) 2008 Henry Ludemann
+#   Copyright (C) 2008-2009 Henry Ludemann
 #
 #   This file is part of the bdec decoder library.
 #
@@ -20,6 +20,7 @@
 import unittest
 
 import bdec.choice as chc
+from bdec.constraints import Minimum, Maximum
 import bdec.data as dt
 import bdec.field as fld
 import bdec.inspect.chooser as chsr
@@ -130,8 +131,12 @@ class TestChooser(unittest.TestCase):
         # to offer them as a choice of fields with a min and max value (eg:
         # for pdf 'names' only certain characters are valid). It would be
         # good to differentiate on these.
-        a = fld.Field("a", 8, min=0x10, max=0x20)
-        b = fld.Field("b", 8, min=0x25, max=0x35)
+        a = fld.Field("a", 8)
+        a.constraints.append(Minimum(0x10))
+        a.constraints.append(Maximum(0x20))
+        b = fld.Field("b", 8)
+        b.constraints.append(Minimum(0x25))
+        b.constraints.append(Maximum(0x35))
         chooser = chsr.Chooser([a, b])
         self.assertEqual([], chooser.choose(dt.Data("\x0f")))
         self.assertEqual([a], chooser.choose(dt.Data("\x10")))
@@ -160,7 +165,9 @@ class TestChooser(unittest.TestCase):
         self.assertEqual([a], chooser.choose(dt.Data("abcd")))
 
     def test_range_choice(self):
-        a = fld.Field('a', 8, min=48, max=57)
+        a = fld.Field('a', 8)
+        a.constraints.append(Minimum(48))
+        a.constraints.append(Maximum(57))
         b = fld.Field('b', 8, expected=dt.Data('['))
         chooser = chsr.Chooser([a, b])
         self.assertEqual([a], chooser.choose(dt.Data("0")))
@@ -169,7 +176,13 @@ class TestChooser(unittest.TestCase):
     def test_scaling_of_embedded_choice(self):
         # There was a problem where choosing between items that had multiple 
         # embedded choice items didn't scale.
-        char = chc.Choice('character', [fld.Field('lowercase', 8, min=97, max=122), fld.Field('uppercase', 8, min=65, max=90)])
+        lowercase = fld.Field('lowercase', 8)
+        lowercase.constraints.append(Minimum(97))
+        lowercase.constraints.append(Maximum(122))
+        uppercase = fld.Field('uppercase', 8)
+        uppercase.constraints.append(Minimum(65))
+        uppercase.constraints.append(Maximum(90))
+        char = chc.Choice('character', [lowercase, uppercase])
         text = seq.Sequence('text', [char, char, char, char, char])
 
         a = seq.Sequence('a', [fld.Field('a type', 16, expected=dt.Data("BC")), text, text, text, text])

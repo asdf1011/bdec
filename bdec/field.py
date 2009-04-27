@@ -1,4 +1,4 @@
-#   Copyright (C) 2008 Henry Ludemann
+#   Copyright (C) 2008-2009 Henry Ludemann
 #
 #   This file is part of the bdec decoder library.
 #
@@ -22,6 +22,7 @@ use.
 """
 
 import bdec.data as dt
+from bdec.constraints import Equals, Maximum, Minimum
 import bdec.entry
 import bdec.expression
 
@@ -37,35 +38,6 @@ class FieldError(bdec.DecodeError):
     def __str__(self):
         return "%s: %s" % (self.__class__, self.field)
 
-class BadDataError(FieldError):
-    """Error raised when expected data didn't match the data found."""
-    def __init__(self, field, expected, actual):
-        FieldError.__init__(self, field)
-        self.expected = expected
-        self.actual = actual
-
-    def __str__(self):
-        return "'%s' expected %s, got %s" % (self.field.name, repr(self.expected), repr(self.actual))
-
-class BadRangeError(FieldError):
-    """Error raised when the data found wasn't within the allowable range."""
-    def __init__(self, field, actual):
-        FieldError.__init__(self, field)
-        self.actual = actual
-
-    def _range(self):
-        if self.field.min is not None:
-            result = "[%i, " % int(self.field.min)
-        else:
-            result = "(-inf, "
-        if self.field.max is not None:
-            result += "%i]" % int(self.field.max)
-        else:
-            result += "inf)"
-        return result
-
-    def __str__(self):
-        return "'%s' value %s not in range %s" % (self.field.name, self.actual, self._range())
 
 class BadEncodingError(FieldError):
     """Error raised when data couldn't be converted to a text fields encoding."""
@@ -131,22 +103,26 @@ class Field(bdec.entry.Entry):
         self.encoding = encoding
         self.data = None
         self.expected = expected
-        assert min is None or isinstance(min, int)
-        assert max is None or isinstance(max, int)
-        self.min = min
-        self.max = max
+        if min is not None:
+            self.constraints.append(Minimum(min))
+        if max is not None:
+            self.constraints.append(Maximum(max))
 
-    def _set_expected(self, expected):
-        assert expected is None or isinstance(expected, dt.Data)
-        if expected is not None and self.length is not None:
-            try:
-                length = self.length.evaluate({})
-                if length != len(expected):
-                    raise FieldDataError(self, 'Expected data should have a length of %i, got %i' % (length, len(expected)))
-            except bdec.expression.UndecodedReferenceError:
-                pass
-        self._expected = expected
-    expected = property(lambda self: self._expected, _set_expected)
+    def _set_expected(self, value):
+        self._expected = value
+        if value is not None:
+            assert isinstance(value, dt.Data)
+            self.constraints.append(Equals(self.decode_value(value)))
+
+            # If we have a length, just check that it matches the expected data
+            if self.length is not None:
+                try:
+                    length = self.length.evaluate({})
+                    if length != len(value):
+                        raise FieldDataError(self, 'Expected data has length %i, but field has length %i!' % (len(value), length))
+                except bdec.entry.UndecodedReferenceError:
+                    pass
+    expected = property(lambda self:self._expected, _set_expected)
 
     def _decode(self, data, context, name):
         """ see bdec.entry.Entry._decode """
@@ -156,10 +132,6 @@ class Field(bdec.entry.Entry):
         # As this popped data is not guaranteed to be available, we have to
         # wrap all access to it in an exception handler.
         try:
-            if self.expected is not None:
-                if self.expected != field_data:
-                    raise BadDataError(self, self.expected, field_data)
-            self._validate_range(field_data)
             value = self.decode_value(field_data)
         except dt.DataError, ex:
             raise FieldDataError(self, ex)
@@ -176,7 +148,9 @@ class Field(bdec.entry.Entry):
 
     def _encode_data(self, data):
         length = self.length.evaluate({})
-        if self.format == self.BINARY:
+        if isinstance(data, dt.Data):
+            result = data.copy()
+        elif self.format == self.BINARY:
             result = dt.Data.from_binary_text(self._convert_type(data, str))
         elif self.format == self.HEX:
             result = dt.Data.from_hex(self._convert_type(data, str))
@@ -209,7 +183,7 @@ class Field(bdec.entry.Entry):
         except dt.DataError, ex:
             raise FieldDataError(self, ex)
 
-    def get_context(self, query, context):
+    def _get_context(self, query, context):
         try:
             result = query(context, self)
         except bdec.entry.MissingInstanceError:
@@ -217,42 +191,23 @@ class Field(bdec.entry.Entry):
                 raise
             if self.expected is None:
                 raise
-            result = None
+            result = self.decode_value(self.expected)
         return result
 
-    def _encode(self, query, value):
-        expected = None
-        if self.expected is not None:
-            expected = self.decode_value(self.expected)
-
-        if expected is not None and value in [None, '']:
+    def _fixup_value(self, value):
+        if self.expected is not None and value in [None, '']:
             # We handle strings as a prompt to use the expected value. This is
             # because the named item may be in the output, but not necessarily
             # the value (eg: in the xml representation, it is clearer to not
             # display the expected value).
-            value = expected
+            value = self.decode_value(self.expected)
+        return value
 
-        self._validate_range(value)
-        if expected is not None and value != expected:
-            raise BadDataError(self, self.expected, value)
-
+    def _encode(self, query, value):
         yield self.encode_value(value)
 
     def __str__(self):
         return "%s '%s' (%s)" % (self.format, self.name, self.encoding)
-
-    def _validate_range(self, data):
-        """
-        Validate any range constraints that may have been placed on this field.
-        """
-        if self.min is not None or self.max is not None:
-            value = self._decode_int(data)
-            if self.min is not None:
-                if value < int(self.min):
-                    raise BadRangeError(self, value)
-            if self.max is not None:
-                if value > int(self.max):
-                    raise BadRangeError(self, value)
 
     def __int__(self):
         return self._decode_int(self.data)
@@ -273,9 +228,15 @@ class Field(bdec.entry.Entry):
         Get a python instance from a data object.
         """
         if self.format == self.BINARY:
-            result = data.get_binary_text()
+            result = data.copy()
+            text = result.get_binary_text()
+            result.__str__ = lambda:text
+            return result
         elif self.format == self.HEX:
-            result = data.get_hex()
+            result = data.copy()
+            text = result.get_hex()
+            result.__str__ = lambda:text
+            return result
         elif self.format == self.TEXT:
             result = data.text(self.encoding)
         elif self.format == self.INTEGER:

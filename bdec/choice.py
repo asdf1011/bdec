@@ -1,4 +1,4 @@
-#   Copyright (C) 2008 Henry Ludemann
+#   Copyright (C) 2008-2009 Henry Ludemann
 #
 #   This file is part of the bdec decoder library.
 #
@@ -33,7 +33,7 @@ class Choice(bdec.entry.Entry):
         assert len(children) > 0
         self._chooser = None
 
-    def get_context(self, query, parent):
+    def _get_context(self, query, parent):
         try:
             return query(parent, self)
         except bdec.entry.MissingInstanceError:

@@ -1,4 +1,4 @@
-#   Copyright (C) 2008 Henry Ludemann
+#   Copyright (C) 2008-2009 Henry Ludemann
 #
 #   This file is part of the bdec decoder library.
 #
@@ -19,6 +19,7 @@
 #!/usr/bin/env python
 import unittest
 
+from bdec.constraints import ConstraintError
 import bdec.entry as ent
 import bdec.data as dt
 import bdec.field as fld
@@ -45,11 +46,11 @@ class TestField(unittest.TestCase):
 
     def test_binary_type(self):
         actual = self._get_decode_value("017a", 12, fld.Field.BINARY)
-        self.assertEqual("0000 00010111", actual)
+        self.assertEqual("0000 00010111", str(actual))
 
     def test_hexstring_type(self):
         actual = self._get_decode_value("017a", 12, fld.Field.HEX)
-        self.assertEqual("017", actual)
+        self.assertEqual("017", str(actual))
 
     def test_string_type(self):
         raw = "chicken"
@@ -68,7 +69,7 @@ class TestField(unittest.TestCase):
     def test_bad_expected_data(self):
         field = fld.Field("bob", 8, expected=dt.Data.from_hex('fe'))
         data = dt.Data.from_hex("f7")
-        self.assertRaises(fld.BadDataError, lambda: list(field.decode(data)))
+        self.assertRaises(ConstraintError, lambda: list(field.decode(data)))
 
     def test_good_expected_data(self):
         field = fld.Field("bob", 8, expected=dt.Data.from_hex('fe'))
@@ -109,18 +110,18 @@ class TestField(unittest.TestCase):
 
     def test_encode_of_field_with_expected_value_fails_when_given_bad_data(self):
         field = fld.Field("bob", 8, fld.Field.TEXT, expected=dt.Data("c"))
-        self.assertRaises(fld.BadDataError, field.encode(None, "d").next)
+        self.assertRaises(ConstraintError, field.encode(None, "d").next)
 
     def test_encode_of_field_with_expected_value_succeeds_with_missing_data(self):
         """
         Some outputs won't include expected data values.
 
         For example, xml-output may not display expected field values (to
-        make for clearer outptu).
+        make for clearer output).
         """
         field = fld.Field("bob", 8, expected=dt.Data("c"))
         def no_data_query(obj, name):
-            return ""
+            return ''
         self.assertEqual("c", field.encode(no_data_query, None).next().bytes())
 
     def test_listener(self):

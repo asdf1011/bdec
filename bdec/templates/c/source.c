@@ -2,13 +2,14 @@
 
 <%! 
   from bdec.choice import Choice
+  from bdec.constraints import Equals
   from bdec.data import Data
   from bdec.field import Field
   from bdec.sequence import Sequence
   from bdec.sequenceof import SequenceOf
  %>
 
-/*  Portions Copyright (C) 2008 Henry Ludemann
+/*  Portions Copyright (C) 2008-2009 Henry Ludemann
 
     This file is part of the bdec decoder library.
 
@@ -38,11 +39,13 @@
 #include "variable_integer.h"
 
 <%def name="compare_binary_expected(entry, expected)">
-  %if len(entry.expected) < 32:
-    if (get_integer(&actual) != ${int(entry.expected)})
+  %if len(expected) < 32:
+    if (get_integer(&value) != ${int(expected)})
   %else:
-    BitBuffer expected = {(unsigned char*)${settings.c_string(expected.bytes())}, 0, ${len(entry.expected)}};
+    <% data = expected + Data('\x00', 0, (8 - len(expected) % 8) if len(expected) % 8 <  8 else 0) %>
+    BitBuffer expected = {(unsigned char*)${settings.c_string(data.bytes())}, 0, ${len(expected)}};
     int isMatch = 1;
+    BitBuffer actual = value;
     while (expected.num_bits > 0)
     {
         if (decode_integer(&expected, 1) != decode_integer(&actual, 1))
@@ -55,12 +58,41 @@
   %endif
 </%def>
 
+<%def name="checkConstraints(entry, value)">
+  %for constraint in entry.constraints:
+    %if isinstance(constraint, Equals):
+      %if settings.ctype(entry) == 'int':
+    if (${value} != ${str(constraint.limit)})
+      %elif settings.ctype(entry) == 'BitBuffer':
+    ${compare_binary_expected(entry, constraint.limit)}
+      %elif settings.ctype(entry) == 'Buffer':
+    if (memcmp(${value}.buffer, ${settings.c_string(entry.encode_value(constraint.limit).bytes())}, ${value}.length) != 0)
+      %else:
+      <%raise Exception("Don't know how to compare '%s' types for equality!" % constraint) %>
+      %endif
+    %else:
+      ## For all constraints other than equality we treat the value as an integer...
+      %if settings.ctype(entry) == 'int':
+    if (${value} ${constraint.type} ${str(constraint.limit)})
+      %elif settings.ctype(entry) == 'BitBuffer':
+    if (get_integer(&${value}) ${constraint.type} ${str(constraint.limit)})
+      %elif settings.ctype(entry) == 'Buffer':
+    if (${value}.length != 1 || ${value}.buffer[0] ${constraint.type} ${str(constraint.limit)})
+      %else:
+      <%raise Exception("Don't know how to compare '%s' types!" % constraint) %>
+      %endif
+    %endif
+    {
+      %if contains_data(entry):
+        ${settings.free_name(entry)}(&value);
+      %endif
+        return 0;
+    }
+  %endfor
+</%def>
+
 <%def name="decodeField(entry)">
     ${settings.ctype(entry)} value;
-  %if entry.min is not None or entry.max is not None:
-    BitBuffer field_data = *buffer;
-    field_data.num_bits = ${settings.value(entry.length)};
-  %endif
   %if entry.format == Field.INTEGER:
     %if entry.encoding == Field.BIG_ENDIAN:
     value = decode_integer(buffer, ${settings.value(entry.length)});
@@ -102,49 +134,7 @@
   %else:
     #error Unknown field type ${entry}
   %endif
-     %if entry.expected is not None:
-       %if entry.format == entry.INTEGER:
-    if (value != ${entry.decode_value(entry.expected)})
-       %elif entry.format == entry.BINARY:
-           <% 
-           extra_bits = 8 - len(entry.expected) % 8
-           expected = entry.expected + Data('\x00', start=0, end=extra_bits)
-           %>
-    BitBuffer actual = value;
-    ${compare_binary_expected(entry, expected)}
-       %elif entry.format == entry.HEX:
-    BitBuffer actual = {value.buffer, 0, value.length * 8};
-    ${compare_binary_expected(entry, entry.expected)}
-       %elif entry.format == entry.TEXT:
-    if (memcmp(value.buffer, ${settings.c_string(entry.expected.bytes())}, value.length) != 0)
-       %else:
-#error Field of type ${entry.format} not currently supported for an expected value!
-       %endif
-    {
-      %if entry.format != Field.INTEGER:
-        ${settings.free_name(entry)}(&value);
-      %endif
-        return 0;
-    }
-     %endif
-    %if entry.min is not None:
-    if (get_integer(&field_data) < ${settings.value(entry.min)})
-    {
-      %if entry.format != Field.INTEGER:
-        ${settings.free_name(entry)}(&value);
-      %endif
-        return 0;
-    }
-    %endif
-    %if entry.max is not None:
-    if (get_integer(&field_data) > ${settings.value(entry.max)})
-    {
-      %if entry.format != Field.INTEGER:
-        ${settings.free_name(entry)}(&value);
-      %endif
-        return 0;
-    }
-    %endif
+    ${checkConstraints(entry, 'value')}
     %if contains_data(entry):
     (*result) = value;
     %else:

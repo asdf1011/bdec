@@ -1,4 +1,4 @@
-#   Copyright (C) 2008 Henry Ludemann
+#   Copyright (C) 2008-2009 Henry Ludemann
 #
 #   This file is part of the bdec decoder library.
 #
@@ -20,6 +20,8 @@
 The bdec.entry module defines the core entry class (bdec.entry.Entry) and 
 errors (derived from bdec.DecodeError) common to all entry types.
 """
+
+import operator
 
 import bdec
 import bdec.data as dt
@@ -106,8 +108,6 @@ class Range:
             max = self.max + other.max
         return Range(min, max)
 
-def _hack_on_end_sequenceof(entry, length, context):
-    context['should end'] = True
 def _hack_on_length_referenced(entry, length, context):
     context[entry.name + ' length'] = length
 def _hack_create_value_listener(name):
@@ -157,6 +157,8 @@ class Entry(object):
 
         self._params = None
         self._parent_param_lookup = {}
+        self._is_end_sequenceof = False
+        self.constraints = []
 
     def _get_children(self):
         return self._children
@@ -199,8 +201,7 @@ class Entry(object):
             our_params = (param.name for param in lookup.get_passed_variables(self, child))
             self._parent_param_lookup[child] = dict(zip(child_params, our_params))
 
-        if lookup.is_end_sequenceof(self):
-            self.add_listener(_hack_on_end_sequenceof)
+        self._is_end_sequenceof = lookup.is_end_sequenceof(self)
         if lookup.is_value_referenced(self):
             # This is a bit of a hack... we need to use the correct (fully
             # specified) name. We'll lookup the parameter to get it.
@@ -302,6 +303,11 @@ class Entry(object):
         for is_starting, name, entry, entry_data, value in self._decode(data, context, name):
             if not is_starting:
                 length += len(entry_data)
+            if not is_starting and entry is self:
+                for constraint in self.constraints:
+                    constraint.check(self, value)
+                if self._is_end_sequenceof:
+                    context['should end'] = True
             yield is_starting, name, entry, entry_data, value
 
         if self.length is not None and len(data) != 0:
@@ -310,7 +316,7 @@ class Entry(object):
         for listener in self._listeners:
             listener(self, length, context)
 
-    def get_context(self, query, parent):
+    def _get_context(self, query, parent):
         # This interface isn't too good; it requires us to load the _entire_ document
         # into memory. This is because it supports 'searching backwards', plus the
         # reference to the root element is kept. Maybe a push system would be better?
@@ -324,11 +330,20 @@ class Entry(object):
                 return None
             raise
 
+    def get_context(self, query, parent):
+        return self._get_context(query, parent)
+
     def _encode(self, query, value):
         """
         Encode a data source, with the context being the data to encode.
         """
         raise NotImplementedError()
+
+    def _fixup_value(self, value):
+        """
+        Allow entries to modify the value to be encoded.
+        """
+        return value
 
     def encode(self, query, value):
         """Return an iterator of bdec.data.Data instances.
@@ -339,6 +354,11 @@ class Entry(object):
         value -- This entry's value that is to be encoded.
         """
         encode_length = 0
+        value = self._fixup_value(value)
+
+        for constraint in self.constraints:
+            constraint.check(self, value)
+
         for data in self._encode(query, value):
             encode_length += len(data)
             yield data
