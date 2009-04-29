@@ -87,7 +87,7 @@ class Field(bdec.entry.Entry):
     LITTLE_ENDIAN = "little endian"
     BIG_ENDIAN = "big endian"
 
-    def __init__(self, name, length, format=BINARY, encoding=None, expected=None, min=None, max=None):
+    def __init__(self, name, length, format=BINARY, encoding=None, expected=None):
         bdec.entry.Entry.__init__(self, name, length, [])
         assert format in self._formats
 
@@ -103,10 +103,6 @@ class Field(bdec.entry.Entry):
         self.encoding = encoding
         self.data = None
         self.expected = expected
-        if min is not None:
-            self.constraints.append(Minimum(min))
-        if max is not None:
-            self.constraints.append(Maximum(max))
 
     def _set_expected(self, value):
         self._expected = value

@@ -1,4 +1,4 @@
-#   Copyright (C) 2008 Henry Ludemann
+#   Copyright (C) 2008, 2009 Henry Ludemann
 #
 #   This file is part of the bdec decoder library.
 #
@@ -19,8 +19,10 @@
 #!/usr/bin/env python
 
 import unittest
+from bdec.constraints import ConstraintError, Equals
 import bdec.data as dt
 import bdec.entry as ent
+import bdec.expression as expr
 import bdec.field as fld
 import bdec.sequence as seq
 
@@ -73,3 +75,12 @@ class TestSequence(unittest.TestCase):
         sequence = seq.Sequence("blah", children)
         self.assertEqual(16, sequence.range().min)
         self.assertEqual(16, sequence.range().max)
+
+    def test_sequence_expected_value(self):
+        a = seq.Sequence('a', [fld.Field('b', 8), fld.Field('c', 8)], value=expr.compile('${b} + ${c}'))
+        a.constraints.append(Equals(7))
+        list(a.decode(dt.Data('\x03\x04')))
+        list(a.decode(dt.Data('\x06\x01')))
+        self.assertRaises(ConstraintError, list, a.decode(dt.Data('\x05\x01')))
+        self.assertRaises(ConstraintError, list, a.decode(dt.Data('\x07\x01')))
+

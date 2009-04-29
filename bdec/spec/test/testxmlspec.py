@@ -651,6 +651,52 @@ class TestXml(unittest.TestCase):
         self.assertEqual('length', items[5][0])
         self.assertEqual(98, items[5][1])
 
+    def test_sequence_expected_value(self):
+        text = '''
+           <protocol>
+               <sequence name="a" value="${b} + ${c}" expected="7" >
+                   <field name="b" length="8" />
+                   <field name="c" length="8" />
+               </sequence>
+           </protocol>
+           '''
+        a = xml.loads(text)[0]
+        list(a.decode(dt.Data('\x02\x05')))
+        list(a.decode(dt.Data('\x07\x00')))
+        self.assertRaises(ConstraintError, list, a.decode(dt.Data('\x05\x01')))
+        self.assertRaises(ConstraintError, list, a.decode(dt.Data('\x02\x06')))
+
+    def test_sequence_minimum_value(self):
+        text = '''
+           <protocol>
+               <sequence name="a" value="${b} + ${c}" min="7" >
+                   <field name="b" length="8" />
+                   <field name="c" length="8" />
+               </sequence>
+           </protocol>
+           '''
+        a = xml.loads(text)[0]
+        list(a.decode(dt.Data('\x06\x02')))
+        list(a.decode(dt.Data('\x03\x04')))
+        self.assertRaises(ConstraintError, list, a.decode(dt.Data('\x03\x03')))
+        self.assertRaises(ConstraintError, list, a.decode(dt.Data('\x00\x06')))
+
+    def test_sequence_maximum_value(self):
+        text = '''
+           <protocol>
+               <sequence name="a" value="${b} + ${c}" max="7" >
+                   <field name="b" length="8" />
+                   <field name="c" length="8" />
+               </sequence>
+           </protocol>
+           '''
+        a = xml.loads(text)[0]
+        list(a.decode(dt.Data('\x06\x01')))
+        list(a.decode(dt.Data('\x01\x01')))
+        self.assertRaises(ConstraintError, list, a.decode(dt.Data('\x08\x00')))
+        self.assertRaises(ConstraintError, list, a.decode(dt.Data('\x03\x09')))
+
+
 class TestSave(unittest.TestCase):
     def test_simple_field(self):
         a = fld.Field('a', length=8)
@@ -745,3 +791,4 @@ class TestSave(unittest.TestCase):
             <field name="a" length="3" value="0x02" />
           </protocol>"""
         assert_xml_equivalent(expected, xml.save(a))
+

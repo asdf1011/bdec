@@ -21,6 +21,7 @@ import xml.sax
 from xml.sax import saxutils
 
 import bdec.choice as chc
+from bdec.constraints import Minimum, Maximum, Equals
 import bdec.data as dt
 import bdec.entry as ent
 import bdec.expression as exp
@@ -184,6 +185,19 @@ class _Handler(xml.sax.handler.ContentHandler):
         if attrs.has_key('name'):
             entry_name = attrs['name']
         entry = self._handlers[name](attrs, children, entry_name, length, breaks)
+
+        # Check for value constraints
+        if attrs.has_key('min'):
+            minimum = self._parse_expression(attrs['min']).evaluate({})
+            entry.constraints.append(Minimum(minimum))
+        if attrs.has_key('max'):
+            maximum = self._parse_expression(attrs['max']).evaluate({})
+            entry.constraints.append(Maximum(maximum))
+        if attrs.has_key('expected'):
+            expected = self._parse_expression(attrs['expected']).evaluate({})
+            entry.constraints.append(Equals(expected))
+
+        # Check for child references
         for child in children:
             if isinstance(child, _ReferencedEntry):
                 child.set_parent(entry)
@@ -292,15 +306,9 @@ class _Handler(xml.sax.handler.ContentHandler):
                 _integer_encodings = [fld.Field.LITTLE_ENDIAN, fld.Field.BIG_ENDIAN]
                 if encoding not in _integer_encodings:
                     raise self._error("Invalid integer encoding '%s'! Valid values are: %s" % (encoding, ", ".join(_integer_encodings)))
-        min = None
-        if attributes.has_key('min'):
-            min = self._parse_expression(attributes['min']).evaluate({})
-        max = None
-        if attributes.has_key('max'):
-            max = self._parse_expression(attributes['max']).evaluate({})
 
         # We'll create the field, then use it to create the expected value.
-        result = fld.Field(name, length, format, encoding, None, min, max)
+        result = fld.Field(name, length, format, encoding, None)
         if attributes.has_key('value'):
             expected_text = attributes['value']
             if expected_text.upper()[:2] == "0X":
