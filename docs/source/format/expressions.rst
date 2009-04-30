@@ -7,8 +7,8 @@ Expressions
 
 Expressions are used to represent an integral value; for example, the length
 of a :ref:`field <format-field>`. Expressions can contain numbers_, `perform 
-numerical operations`_, `reference the values`_ of decoded fields, and
-`reference the length`_ of a previous entry.
+numerical operations`_, `reference the value`_ of previously decoded fields,
+and `reference the length`_ of a previous decoded entry.
 
 .. _perform numerical operations: `Numerical operations`_
 .. _reference the values: `Value references`_
@@ -18,19 +18,20 @@ numerical operations`_, `reference the values`_ of decoded fields, and
 Numbers
 =======
 
-The simplest expression is just a simple decimal number. For example, a field
-that is one byte long can have an expression of "8" (eg: 8 bits).
+The simplest expression is just a decimal number. For example, a field that is
+one byte long can have an length expression of "8" (ie: 8 bits).
 
 
 Value references
 ================
 
 Many fields in a data file need to reference the values of other fields. For
-example, variable length fields are typically stored as a length field, then
-a data field. Expressions can reference the value of a previously decoded data
-field by referring to it by name_::
+example, variable length fields are typically stored as a length field,
+followed by a data field. Expressions can reference the value of the previously
+decoded length field by referring to it by name_::
 
-    length="${data length}"
+    <field name="data length" length="8" />
+    <field name="variable length data" length="${data length}" />
 
 .. _name: `Resolving names`_
 

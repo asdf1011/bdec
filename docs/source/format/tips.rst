@@ -81,3 +81,39 @@ use a common entry that defines types that are used regularly, such as::
      </sequence>
      ...
    </common>
+
+
+Optional entry flags
+====================
+
+Often the header of a format has a flag which indicates whether an optional
+block of data is present. While it is possible to create a choice with the two
+options, this isn't clear or convenient, eg::
+
+  <choice name="header">
+     <sequence name="header with footer">
+        <field name="footer present" length="8" value="0x1" />
+        ...
+        <reference name="footer" />
+     </sequence>
+     <sequence name="header without footer">
+        <field name="footer not present" length="8" value="0x0" />
+        ...
+     </sequence>
+  </choice>
+
+This is verbose and difficult to follow. It is possible instead to use a
+sequence with an expected value :ref:`constraint <bdec-constraints>`::
+
+  <sequence name="header">
+     <field name="footer present:" length="8" />
+     ...
+     <choice name="optional footer">
+        <sequence name="footer">
+           <sequence name="is_present:" value="${footer present:}" expected="1" />
+           ...
+        </sequence>
+        <sequence />
+     </choice>
+  </sequence>
+
