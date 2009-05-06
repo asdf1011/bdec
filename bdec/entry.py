@@ -138,12 +138,13 @@ class Entry(object):
     directly).
     """
 
-    def __init__(self, name, length, children):
+    def __init__(self, name, length, children, constraints=[]):
         """Construct an Entry instance.
 
         children -- A list of Entry instances.
         length -- Optionally specify the size in bits of the entry. Must be an
             instance of bdec.expression.Expression or an integer.
+        constraints -- A list of constraints for the value of this entry.
         """
         if length is not None:
             if isinstance(length, int):
@@ -158,7 +159,9 @@ class Entry(object):
         self._params = None
         self._parent_param_lookup = {}
         self._is_end_sequenceof = False
-        self.constraints = []
+        self.constraints = list(constraints)
+        for constraint in self.constraints:
+            assert getattr(constraint, 'check') is not None
 
     def _get_children(self):
         return self._children

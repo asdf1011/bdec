@@ -20,6 +20,7 @@
 import unittest
 
 import bdec.choice as chc
+from bdec.constraints import Equals
 import bdec.data as dt
 import bdec.field as fld
 import bdec.sequence as seq
@@ -82,7 +83,7 @@ class TestSequenceOf(unittest.TestCase):
         self.assertRaises(sof.NegativeSequenceofLoop, list, sequenceof.decode(dt.Data("")))
 
     def test_end_entries(self):
-        null = fld.Field("null", 8, expected=dt.Data('\x00'))
+        null = fld.Field("null", 8, constraints=[Equals(dt.Data('\x00'))])
         char = fld.Field("char", 8)
         sequenceof = sof.SequenceOf("null terminated string", chc.Choice('entry', [null, char]), None, end_entries=[null])
         actual = []

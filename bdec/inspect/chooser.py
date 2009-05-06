@@ -71,7 +71,7 @@ class _ProtocolStream:
             options = []
             for i in range(min, max + 1):
                 value = dt.Data.from_int_big_endian(i, entry.length.evaluate({}))
-                options.append(fld.Field(entry.name, entry.length, format=fld.Field.INTEGER, expected=value))
+                options.append(fld.Field(entry.name, entry.length, format=fld.Field.INTEGER, constraints=[Equals(value)]))
             self.entry = chc.Choice('mock %s' % entry.name, options)
         else:
             self.entry = entry

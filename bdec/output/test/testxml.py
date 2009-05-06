@@ -20,6 +20,7 @@
 import unittest
 
 import bdec.choice as chc
+from bdec.constraints import Equals
 import bdec.data as dt
 import bdec.entry as ent
 import bdec.field as fld
@@ -50,8 +51,8 @@ class TestXml(unittest.TestCase):
         self.assertEqual("\x05\x12", data.bytes())
 
     def test_choice_encode(self):
-        a = fld.Field('a', 8, expected=dt.Data('a'))
-        b = fld.Field('b', 8, expected=dt.Data('b'))
+        a = fld.Field('a', 8, constraints=[Equals(dt.Data('a'))])
+        b = fld.Field('b', 8, constraints=[Equals(dt.Data('b'))])
         choice = chc.Choice('blah', [a, b])
         text = "<b />"
         data = reduce(lambda a,b:a+b, xml.encode(choice, text))
@@ -86,13 +87,13 @@ class TestXml(unittest.TestCase):
         self.assertEqual("  bob   ", data.bytes())
 
     def test_nameless_entry(self):
-        hidden = fld.Field('', 8, fld.Field.INTEGER, expected=dt.Data('\x00'))
+        hidden = fld.Field('', 8, fld.Field.INTEGER, constraints=[Equals(0)])
         spec = seq.Sequence('blah', [hidden])
         text = xml.to_string(spec, dt.Data('\x00'))
         self.assertEqual('<blah>\n</blah>\n', text)
 
     def test_verbose_nameless_entry(self):
-        hidden = fld.Field('', 8, fld.Field.INTEGER, expected=dt.Data('\x00'))
+        hidden = fld.Field('', 8, fld.Field.INTEGER, constraints=[Equals(0)])
         spec = seq.Sequence('blah', [hidden])
         text = xml.to_string(spec, dt.Data('\x00'), verbose=True)
         self.assertEqual('<blah>\n    <_hidden>0<!-- hex (1 bytes): 00 --></_hidden>\n</blah>\n', text)

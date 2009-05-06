@@ -87,8 +87,8 @@ class Field(bdec.entry.Entry):
     LITTLE_ENDIAN = "little endian"
     BIG_ENDIAN = "big endian"
 
-    def __init__(self, name, length, format=BINARY, encoding=None, expected=None):
-        bdec.entry.Entry.__init__(self, name, length, [])
+    def __init__(self, name, length, format=BINARY, encoding=None, constraints=[]):
+        bdec.entry.Entry.__init__(self, name, length, [], constraints)
         assert format in self._formats
 
         if encoding is None:
@@ -102,10 +102,6 @@ class Field(bdec.entry.Entry):
         self.format = format
         self.encoding = encoding
         self.data = None
-
-        if expected is not None:
-            assert isinstance(expected, dt.Data)
-            self.constraints.append(Equals(self.decode_value(expected)))
 
     def _get_expected(self):
         for constraint in self.constraints:
@@ -179,18 +175,20 @@ class Field(bdec.entry.Entry):
         except bdec.entry.MissingInstanceError:
             if not self.is_hidden():
                 raise
-            if self.expected is None:
+            expected = self._get_expected()
+            if expected is None:
                 raise
-            result = self.decode_value(self.expected)
+            result = self.decode_value(expected)
         return result
 
     def _fixup_value(self, value):
-        if self.expected is not None and value in [None, '']:
+        expected = self._get_expected()
+        if expected is not None and value in [None, '']:
             # We handle strings as a prompt to use the expected value. This is
             # because the named item may be in the output, but not necessarily
             # the value (eg: in the xml representation, it is clearer to not
             # display the expected value).
-            value = self.decode_value(self.expected)
+            value = self.decode_value(expected)
         return value
 
     def _encode(self, query, value):

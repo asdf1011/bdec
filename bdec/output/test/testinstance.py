@@ -20,6 +20,7 @@
 import unittest
 
 import bdec.choice as chc
+from bdec.constraints import Equals
 import bdec.data as dt
 import bdec.field as fld
 import bdec.sequence as seq
@@ -113,6 +114,6 @@ class TestInstance(unittest.TestCase):
         self.assertEqual("\x6e", self._encode(field, blah))
 
     def test_encode_of_missing_hidden_field_doesnt_use_parent_context(self):
-        field = fld.Field("bob:", 8, expected=dt.Data("c"))
+        field = fld.Field("bob:", 8, constraints=[Equals(dt.Data("c"))])
         self.assertEqual("c", self._encode(field, None))
 

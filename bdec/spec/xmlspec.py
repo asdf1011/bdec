@@ -320,7 +320,7 @@ class _Handler(xml.sax.handler.ContentHandler):
                     raise self._error("Invalid integer encoding '%s'! Valid values are: %s" % (encoding, ", ".join(_integer_encodings)))
 
         # We'll create the field, then use it to create the expected value.
-        result = fld.Field(name, length, format, encoding, None)
+        result = fld.Field(name, length, format, encoding)
         if attributes.has_key('value'):
             # Get the correct object type by encoding, then decoding, the text
             # value.

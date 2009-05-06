@@ -22,7 +22,7 @@ import unittest
 
 import bdec
 import bdec.choice as chc
-from bdec.constraints import ConstraintError
+from bdec.constraints import ConstraintError, Equals
 import bdec.data as dt
 import bdec.entry as ent
 import bdec.expression as expr
@@ -717,19 +717,19 @@ class TestXml(unittest.TestCase):
 class TestSave(unittest.TestCase):
     def test_simple_field(self):
         a = fld.Field('a', length=8)
-        assert_xml_equivalent(xml.save(a), '<protocol><field name="a" length="8" /></protocol>')
+        assert_xml_equivalent('<protocol><field name="a" length="8" /></protocol>', xml.save(a))
 
     def test_field_expected_value(self):
-        a = fld.Field('a', length=8, expected=dt.Data('\x63'))
+        a = fld.Field('a', length=8, constraints=[Equals(dt.Data('\x63'))])
         assert_xml_equivalent('<protocol><field name="a" length="8" value="0x63" /></protocol>', xml.save(a))
 
     def test_text_field(self):
         a = fld.Field('a', format=fld.Field.TEXT, length=32)
-        assert_xml_equivalent(xml.save(a), '<protocol><field name="a" type="text" length="4 * 8" /></protocol>')
+        assert_xml_equivalent('<protocol><field name="a" type="text" length="4 * 8" /></protocol>', xml.save(a))
 
     def test_text_field_with_expected_value(self):
-        a = fld.Field('a', format=fld.Field.TEXT, length=32, expected=dt.Data('abcd'))
-        assert_xml_equivalent(xml.save(a), '<protocol><field name="a" type="text" length="4 * 8" value="abcd" /></protocol>')
+        a = fld.Field('a', format=fld.Field.TEXT, length=32, constraints=[Equals('abcd')])
+        assert_xml_equivalent('<protocol><field name="a" type="text" length="4 * 8" value="abcd" /></protocol>', xml.save(a))
 
     def test_sequence(self):
         a = seq.Sequence('a', [fld.Field('b', length=8)])
@@ -763,8 +763,8 @@ class TestSave(unittest.TestCase):
 
     def test_choice(self):
         a = chc.Choice('a', [
-            fld.Field('b', length=8, expected=dt.Data('\x01')),
-            fld.Field('c', length=8, expected=dt.Data('\x02'))])
+            fld.Field('b', length=8, constraints=[Equals(dt.Data('\x01'))]),
+            fld.Field('c', length=8, constraints=[Equals(dt.Data('\x02'))])])
         expected = """<protocol>
                         <choice name="a">
                           <field name="b" length="8" value="0x01" />
@@ -802,7 +802,7 @@ class TestSave(unittest.TestCase):
     def test_small_field_with_expected_value(self):
         # Test saving a small field with length that isn't a multiple of
         # either...
-        a = fld.Field('a', length=3, expected=dt.Data('\x02', 5))
+        a = fld.Field('a', length=3, constraints=[Equals(dt.Data('\x02', 5))])
         expected = """
           <protocol>
             <field name="a" length="3" value="0x02" />

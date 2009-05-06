@@ -19,7 +19,7 @@
 #!/usr/bin/env python
 import unittest
 
-from bdec.constraints import ConstraintError
+from bdec.constraints import Equals, ConstraintError
 import bdec.entry as ent
 import bdec.data as dt
 import bdec.field as fld
@@ -67,12 +67,12 @@ class TestField(unittest.TestCase):
         self.assertEqual(8, actual)
 
     def test_bad_expected_data(self):
-        field = fld.Field("bob", 8, expected=dt.Data.from_hex('fe'))
+        field = fld.Field("bob", 8, constraints=[Equals(0xf8)])
         data = dt.Data.from_hex("f7")
         self.assertRaises(ConstraintError, lambda: list(field.decode(data)))
 
     def test_good_expected_data(self):
-        field = fld.Field("bob", 8, expected=dt.Data.from_hex('fe'))
+        field = fld.Field("bob", 8, constraints=[Equals(0xfe)])
         data = dt.Data.from_hex("fe")
         result = list(field.decode(data))
         self.assertEqual(2, len(result))
@@ -109,7 +109,7 @@ class TestField(unittest.TestCase):
         self.assertRaises(fld.BadFormatError, field.encode(lambda name, context: "rabbit", None).next)
 
     def test_encode_of_field_with_expected_value_fails_when_given_bad_data(self):
-        field = fld.Field("bob", 8, fld.Field.TEXT, expected=dt.Data("c"))
+        field = fld.Field("bob", 8, constraints=[Equals(dt.Data('c'))])
         self.assertRaises(ConstraintError, field.encode(None, "d").next)
 
     def test_encode_of_field_with_expected_value_succeeds_with_missing_data(self):
@@ -119,7 +119,7 @@ class TestField(unittest.TestCase):
         For example, xml-output may not display expected field values (to
         make for clearer output).
         """
-        field = fld.Field("bob", 8, expected=dt.Data("c"))
+        field = fld.Field("bob", 8, constraints=[Equals(dt.Data("c"))])
         def no_data_query(obj, name):
             return ''
         self.assertEqual("c", field.encode(no_data_query, None).next().bytes())

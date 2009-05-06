@@ -21,7 +21,7 @@ import unittest
 
 import bdec
 import bdec.choice as chc
-from bdec.constraints import Maximum, Minimum
+from bdec.constraints import Equals, Maximum, Minimum
 import bdec.data as dt
 import bdec.entry as ent
 import bdec.field as fld
@@ -115,8 +115,8 @@ class TestExpressionParameters(unittest.TestCase):
         """
         Test the parameter names when we have items selected under a choice.
         """
-        byte = seq.Sequence('8 bit:', [fld.Field('id', 8, expected=dt.Data('\x00')), fld.Field('length', 8)])
-        word = seq.Sequence('16 bit:', [fld.Field('id', 8, expected=dt.Data('\x01')), fld.Field('length', 16)])
+        byte = seq.Sequence('8 bit:', [fld.Field('id', 8, constraints=[Equals(dt.Data('\x00'))]), fld.Field('length', 8)])
+        word = seq.Sequence('16 bit:', [fld.Field('id', 8, constraints=[Equals(dt.Data('\x01'))]), fld.Field('length', 16)])
         length = chc.Choice('variable integer', [byte, word])
         length_value = expr.ValueResult('variable integer.length')
         data = fld.Field('data', length_value)
@@ -143,8 +143,12 @@ class TestExpressionParameters(unittest.TestCase):
         # Note that the 'integer' option has a fixed length...
         length = fld.Field('length:', 8)
         length_value = expr.ValueResult('length:')
-        text = seq.Sequence('text', [fld.Field('id:',  8, expected=dt.Data('\x00')), fld.Field('value', length_value, fld.Field.TEXT)])
-        integer = seq.Sequence('integer', [fld.Field('id:',  8, expected=dt.Data('\x01')), fld.Field('value', 16, fld.Field.INTEGER)])
+        text = seq.Sequence('text', [
+            fld.Field('id:',  8, constraints=[Equals(dt.Data('\x00'))]),
+            fld.Field('value', length_value, fld.Field.TEXT)])
+        integer = seq.Sequence('integer', [
+            fld.Field('id:',  8, constraints=[Equals(dt.Data('\x01'))]),
+            fld.Field('value', 16, fld.Field.INTEGER)])
         spec = seq.Sequence('spec', [length, chc.Choice('data', [text, integer])])
 
         vars = prm.ExpressionParameters([spec])
@@ -238,9 +242,7 @@ class TestExpressionParameters(unittest.TestCase):
             list(params.get_passed_variables(f, f.children[0])))
 
     def test_renamed_common_reference(self):
-        text_digit = fld.Field('text digit', 8)
-        text_digit.constraints.append(Minimum(48))
-        text_digit.constraints.append(Maximum(58))
+        text_digit = fld.Field('text digit', 8, constraints=[Minimum(48), Maximum(58)])
 
         digit = seq.Sequence('digit', [text_digit],
             value=expr.compile("${text digit} - 48"))
@@ -356,7 +358,7 @@ class TestExpressionParameters(unittest.TestCase):
 
 class TestEndEntryParameters(unittest.TestCase):
     def test_end_entry_lookup(self):
-        null = fld.Field("null", 8, expected=dt.Data('\x00'))
+        null = fld.Field("null", 8, constraints=[Equals(dt.Data('\x00'))])
         char = fld.Field("char", 8)
         entry = chc.Choice('entry', [null, char])
         string = sof.SequenceOf("null terminated string", entry, None, end_entries=[null])
@@ -394,14 +396,12 @@ class TestResultParameters(unittest.TestCase):
         # Test a recursive parser to decode xml style data
 
         embedded = seq.Sequence('embedded', [])
-        digit = fld.Field('data', 8)
-        digit.constraints.append(Minimum(ord('0')))
-        digit.constraints.append(Maximum(ord('9')))
+        digit = fld.Field('data', 8, constraints=[Minimum(ord('0')), Maximum(ord('9'))])
         item = chc.Choice('item', [embedded, digit])
         embedded.children = [
-                fld.Field('', length=8, format=fld.Field.TEXT, expected=dt.Data('<')),
+                fld.Field('', length=8, format=fld.Field.TEXT, constraints=[Equals('<')]),
                 item,
-                fld.Field('', length=8, format=fld.Field.TEXT, expected=dt.Data('>'))]
+                fld.Field('', length=8, format=fld.Field.TEXT, constraints=[Equals('>')])]
 
         # Lets just test that we can decode things correctly...
         list(item.decode(dt.Data('8')))
