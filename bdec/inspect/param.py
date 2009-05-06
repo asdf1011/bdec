@@ -244,8 +244,6 @@ class ExpressionParameters(_Parameters):
             child_unknowns.update(unreferenced_entries[child.entry])
 
         if isinstance(entry, seq.Sequence) and entry.value is not None:
-            # A sequence's references are treated as child unknowns, as they
-            # are resolved from within the entry (and not passed in).
             child_unknowns.update(self._collect_references(entry.value))
 
         # Our unknown list is all the unknowns in our children that aren't

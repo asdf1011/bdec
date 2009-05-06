@@ -58,10 +58,10 @@
   %endif
 </%def>
 
-<%def name="checkConstraints(entry, value)">
+<%def name="checkConstraints(entry, value, result)">
   %for constraint in entry.constraints:
     %if isinstance(constraint, Equals):
-      %if settings.ctype(entry) == 'int':
+      %if settings.ctype(entry) == 'int' or isinstance(entry, Sequence):
     if (${value} != ${str(constraint.limit)})
       %elif settings.ctype(entry) == 'BitBuffer':
     ${compare_binary_expected(entry, constraint.limit)}
@@ -84,7 +84,7 @@
     %endif
     {
       %if contains_data(entry):
-        ${settings.free_name(entry)}(&value);
+        ${settings.free_name(entry)}(${result});
       %endif
         return 0;
     }
@@ -131,10 +131,14 @@
     buffer->buffer += buffer->start_bit / 8;
     buffer->start_bit %= 8;
     buffer->num_bits -= value.num_bits;
+
+    %if is_value_referenced(entry):
+    *${entry.name |variable} = get_integer(&value);
+    %endif
   %else:
     #error Unknown field type ${entry}
   %endif
-    ${checkConstraints(entry, 'value')}
+    ${checkConstraints(entry, 'value', '&value')}
     %if contains_data(entry):
     (*result) = value;
     %else:
@@ -158,6 +162,7 @@
     %endfor
     %if entry.value is not None:
     int value = ${settings.value(entry.value)};
+    ${checkConstraints(entry, 'value', 'result')}
       %if contains_data(entry):
         %if settings.ctype(entry) == 'int':
     *result = value;
