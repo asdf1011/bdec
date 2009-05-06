@@ -187,15 +187,27 @@ class _Handler(xml.sax.handler.ContentHandler):
         entry = self._handlers[name](attrs, children, entry_name, length, breaks)
 
         # Check for value constraints
+        constraints = []
         if attrs.has_key('min'):
             minimum = self._parse_expression(attrs['min']).evaluate({})
-            entry.constraints.append(Minimum(minimum))
+            constraints.append(Minimum(minimum))
         if attrs.has_key('max'):
             maximum = self._parse_expression(attrs['max']).evaluate({})
-            entry.constraints.append(Maximum(maximum))
+            constraints.append(Maximum(maximum))
         if attrs.has_key('expected'):
             expected = self._parse_expression(attrs['expected']).evaluate({})
-            entry.constraints.append(Equals(expected))
+            constraints.append(Equals(expected))
+        if constraints:
+            if isinstance(entry, _ReferencedEntry):
+                # We found a reference with constraints; create an intermediate
+                # sequence that will have the constraints.
+                reference = entry
+                if not ent.is_hidden(reference.name):
+                    reference.name = '%s:' % reference.name
+                value = exp.compile("${%s}" % reference.name)
+                entry = seq.Sequence(entry_name, [reference], value=value)
+                reference.set_parent(entry)
+            entry.constraints += constraints
 
         # Check for child references
         for child in children:

@@ -696,6 +696,23 @@ class TestXml(unittest.TestCase):
         self.assertRaises(ConstraintError, list, a.decode(dt.Data('\x08\x00')))
         self.assertRaises(ConstraintError, list, a.decode(dt.Data('\x03\x09')))
 
+    def test_reference_expected_value(self):
+        text = '''
+            <protocol>
+                <sequence name="a">
+                   <reference name="id" type="dword" expected="18" />
+                   <reference name="length" type="dword" />
+                   <field name="data" length="${length} * 8" type="hex" />
+                </sequence>
+
+                <common>
+                    <field name="dword" type="integer" length="32" />
+                </common>
+            </protocol>
+            '''
+        a = xml.loads(text)[0]
+        list(a.decode(dt.Data('\x00\x00\x00\x12\x00\x00\x00\x04data')))
+        self.assertRaises(ConstraintError, list, a.decode(dt.Data('\x00\x00\x00\x13\x00\x00\x00\x04data')))
 
 class TestSave(unittest.TestCase):
     def test_simple_field(self):
