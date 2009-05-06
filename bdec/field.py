@@ -102,23 +102,17 @@ class Field(bdec.entry.Entry):
         self.format = format
         self.encoding = encoding
         self.data = None
-        self.expected = expected
 
-    def _set_expected(self, value):
-        self._expected = value
-        if value is not None:
-            assert isinstance(value, dt.Data)
-            self.constraints.append(Equals(self.decode_value(value)))
+        if expected is not None:
+            assert isinstance(expected, dt.Data)
+            self.constraints.append(Equals(self.decode_value(expected)))
 
-            # If we have a length, just check that it matches the expected data
-            if self.length is not None:
-                try:
-                    length = self.length.evaluate({})
-                    if length != len(value):
-                        raise FieldDataError(self, 'Expected data has length %i, but field has length %i!' % (len(value), length))
-                except bdec.entry.UndecodedReferenceError:
-                    pass
-    expected = property(lambda self:self._expected, _set_expected)
+    def _get_expected(self):
+        for constraint in self.constraints:
+            if isinstance(constraint, Equals):
+                return constraint.limit
+        return None
+    expected = property(_get_expected)
 
     def _decode(self, data, context, name):
         """ see bdec.entry.Entry._decode """

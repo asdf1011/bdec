@@ -322,28 +322,24 @@ class _Handler(xml.sax.handler.ContentHandler):
         # We'll create the field, then use it to create the expected value.
         result = fld.Field(name, length, format, encoding, None)
         if attributes.has_key('value'):
+            # Get the correct object type by encoding, then decoding, the text
+            # value.
             expected_text = attributes['value']
             if expected_text.upper()[:2] == "0X":
-                expected = dt.Data.from_hex(expected_text[2:])
-            else:
-                expected = result.encode_value(expected_text)
-
-            expected_length = len(expected)
-            if result.length is not None:
-                try:
-                    expected_length = result.length.evaluate({})
-                except exp.UndecodedReferenceError:
-                    pass
-
-            if len(expected) < expected_length:
-                # When we get shorter expected values, we'll lead with zeros.
-                zeros = dt.Data.from_int_big_endian(0, expected_length - len(expected))
-                expected = zeros + expected
-            else:
-                unused = expected.pop(len(expected) - expected_length)
+                # The expected value is in hex, so convert it to a data object.
+                data = dt.Data.from_hex(expected_text[2:])
+                expected_length = result.length.evaluate({})
+                unused = data.pop(len(data) - expected_length)
                 if len(unused) and int(unused) != 0:
-                    raise self._error('Field is %i bits long, but expected data is longer (%i bits)!' % (expected_length, len(unused) + len(expected)))
-            result.expected = expected
+                    raise self._error('Field is %i bits long, but expected data is longer (%i bits)!' % (expected_length, len(unused) + len(data)))
+            else:
+                # The expected data is the string representation of the field's
+                # native format. To get the value, we will convert the string
+                # to data, then back again.
+                data = result.encode_value(expected_text)
+
+            value = result.decode_value(data)
+            result.constraints.append(Equals(value))
         return result
 
     def _sequence(self, attributes, children, name, length, breaks):
