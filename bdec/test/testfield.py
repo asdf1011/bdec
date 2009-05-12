@@ -31,11 +31,11 @@ class TestField(unittest.TestCase):
 
         calls = []
         for is_starting, name, entry, entry_data, value in field.decode(data):
-            calls.append(entry)
+            calls.append((entry, entry_data))
         self.assertEqual(2, len(calls))
-        self.assertEqual(field, calls[0])
-        self.assertEqual(field, calls[1])
-        self.assertEqual(1, int(calls[1].data))
+        self.assertEqual(field, calls[0][0])
+        self.assertEqual(field, calls[1][0])
+        self.assertEqual(1, int(calls[1][1]))
         self.assertEqual(0x7a, int(data))
 
     def _get_decode_value(self, hex, length, format, encoding=""):
@@ -76,7 +76,7 @@ class TestField(unittest.TestCase):
         data = dt.Data.from_hex("fe")
         result = list(field.decode(data))
         self.assertEqual(2, len(result))
-        self.assertEqual("fe", result[1][2].data.get_hex())
+        self.assertEqual("fe", result[1][3].get_hex())
 
     def test_encode(self):
         field = fld.Field("bob", 8, format=fld.Field.INTEGER)
@@ -123,15 +123,6 @@ class TestField(unittest.TestCase):
         def no_data_query(obj, name):
             return ''
         self.assertEqual("c", field.encode(no_data_query, None).next().bytes())
-
-    def test_listener(self):
-        field = fld.Field("bob", 8)
-        callbacks = []
-        field.add_listener(lambda entry, length, context: callbacks.append((entry, length)))
-        self.assertEqual(0, len(callbacks))
-        list(field.decode(dt.Data('a')))
-        self.assertEqual('a',  callbacks[0][0].data.bytes())
-        self.assertEqual(8,  callbacks[0][1])
 
     def test_range(self):
         field = fld.Field("bob", 8, min=8, max=15)

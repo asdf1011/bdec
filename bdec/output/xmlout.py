@@ -87,7 +87,7 @@ def to_file(decoder, binary, output, encoding="utf-8", verbose=False):
             handler.characters(text)
 
             if verbose and isinstance(entry, fld.Field):
-                handler.comment(str(entry.data))
+                handler.comment(str(data))
 
         if not is_starting:
             handler.endElement(escape_name(name))

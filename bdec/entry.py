@@ -138,7 +138,6 @@ class Entry(object):
                 length = Constant(length)
             assert isinstance(length, Expression)
         self.name = name
-        self._listeners = []
         self.length = length
         self._children = ()
         self.children = children
@@ -199,21 +198,6 @@ class Entry(object):
 
         for child in self.children:
             child.entry._set_params(lookup)
-
-    def add_listener(self, listener):
-        """
-        Add a listener to be called when the entry successfully decodes.
-
-        The listener will be called with this entry, and the amount of data
-        decoded as part of this entry (ie: this entry, and all of its
-        children), and the context of this entry.
-
-        Note that the listener will be called for every internal decode, not
-        just the ones that are propageted to the user (for example, if an
-        entry is in a choice that later fails to decode, the listener will
-        still be notified).
-        """
-        self._listeners.append(listener)
 
     def _decode_child(self, child, data, context):
         """
@@ -302,9 +286,6 @@ class Entry(object):
 
         if self.length is not None and len(data) != 0:
             raise DecodeLengthError(self, data)
-
-        for listener in self._listeners:
-            listener(self, length, context)
 
     def _get_context(self, query, parent):
         # This interface isn't too good; it requires us to load the _entire_ document

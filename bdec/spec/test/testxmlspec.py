@@ -112,7 +112,7 @@ class TestXml(unittest.TestCase):
         self.assertEqual("bob", decoder.name)
         result = list(decoder.decode(dt.Data.from_hex("7a")))
         self.assertEqual(2, len(result))
-        self.assertEqual(0, int(result[1][2]))
+        self.assertEqual(0, int(result[1][3]))
 
     def test_common(self):
         text = """<protocol> <common> <field name="bob" length="8" /> </common> <reference name="bob" /> </protocol>"""
@@ -121,7 +121,7 @@ class TestXml(unittest.TestCase):
         self.assertEqual(8, decoder.length.value)
         result = list(decoder.decode(dt.Data.from_hex("7a")))
         self.assertEqual(2, len(result))
-        self.assertEqual(0x7a, int(result[1][2]))
+        self.assertEqual(0x7a, int(result[1][3]))
 
     def test_common_item_references_another(self):
         text = """
@@ -139,7 +139,7 @@ class TestXml(unittest.TestCase):
         self.assertEqual("rabbit", decoder.name)
         result = list(decoder.decode(dt.Data.from_hex("7a")))
         self.assertEqual(4, len(result))
-        self.assertEqual(0x7a, int(result[2][2]))
+        self.assertEqual(0x7a, int(result[2][3]))
 
     def test_expression_references_field(self):
         text = """

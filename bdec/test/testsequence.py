@@ -35,14 +35,14 @@ class TestSequence(unittest.TestCase):
         calls = []
         for is_starting, name, entry, entry_data, value in sequence.decode(data):
             if not is_starting:
-                calls.append(entry)
+                calls.append((entry, entry_data))
 
         self.assertEqual(3, len(calls))
-        self.assertEqual(embedded[0], calls[0])
-        self.assertEqual(0x01, int(calls[0]))
-        self.assertEqual(embedded[1], calls[1])
-        self.assertEqual(0x7a, int(calls[1]))
-        self.assertEqual(sequence, calls[2])
+        self.assertEqual(embedded[0], calls[0][0])
+        self.assertEqual(0x01, int(calls[0][1]))
+        self.assertEqual(embedded[1], calls[1][0])
+        self.assertEqual(0x7a, int(calls[1][1]))
+        self.assertEqual(sequence, calls[2][0])
 
     def test_encode(self):
         embedded = [fld.Field("bob", 8, format=fld.Field.INTEGER), fld.Field("cat", 8, format=fld.Field.INTEGER)]
@@ -51,17 +51,6 @@ class TestSequence(unittest.TestCase):
         query = lambda context, child: context[child.name]
         data = reduce(lambda a,b:a+b, sequence.encode(query, struct))
         self.assertEqual("\x01\x7a", data.bytes())
-
-    def test_listener(self):
-        embedded = [fld.Field("bob", 8, format=fld.Field.INTEGER), fld.Field("cat", 8, format=fld.Field.INTEGER)]
-        sequence = seq.Sequence("blah", embedded)
-        callbacks = []
-        sequence.add_listener(lambda entry, length, context: callbacks.append((entry, length)))
-        self.assertEqual(0, len(callbacks))
-        list(sequence.decode(dt.Data.from_hex("017a")))
-        self.assertEqual(1, len(callbacks))
-        self.assertEqual(sequence, callbacks[0][0])
-        self.assertEqual(16, callbacks[0][1])
 
     def test_bad_length(self):
         embedded = [fld.Field("bob", 8, format=fld.Field.INTEGER), fld.Field("cat", 8, format=fld.Field.INTEGER)]

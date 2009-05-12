@@ -101,7 +101,6 @@ class Field(bdec.entry.Entry):
 
         self.format = format
         self.encoding = encoding
-        self.data = None
 
     def _get_expected(self):
         for constraint in self.constraints:
@@ -121,8 +120,6 @@ class Field(bdec.entry.Entry):
             value = self.decode_value(field_data)
         except dt.DataError, ex:
             raise FieldDataError(self, ex)
-
-        self.data = field_data
 
         yield (False, name, self, field_data, value)
 
@@ -196,9 +193,6 @@ class Field(bdec.entry.Entry):
 
     def __str__(self):
         return "%s '%s' (%s)" % (self.format, self.name, self.encoding)
-
-    def __int__(self):
-        return self._decode_int(self.data)
 
     def _decode_int(self, data):
         if self.encoding == self.LITTLE_ENDIAN:
