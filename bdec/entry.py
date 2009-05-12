@@ -108,19 +108,6 @@ class Range:
             max = self.max + other.max
         return Range(min, max)
 
-def _hack_on_length_referenced(entry, length, context):
-    context[entry.name + ' length'] = length
-def _hack_create_value_listener(name):
-    def _on_value_referenced(entry, length, context):
-        import bdec.field as fld
-        import bdec.sequence as seq
-        if isinstance(entry, fld.Field):
-            context[name] = int(entry)
-        elif isinstance(entry, seq.Sequence):
-            context[name] = entry.value.evaluate(context)
-        else:
-            raise Exception("Don't know how to read value of %s" % entry)
-    return _on_value_referenced
 
 class Child(object):
     """ A child is embedded in another entry."""
@@ -159,6 +146,8 @@ class Entry(object):
         self._params = None
         self._parent_param_lookup = {}
         self._is_end_sequenceof = False
+        self._is_value_referenced = False
+        self._is_length_referenced = False
         self.constraints = list(constraints)
         for constraint in self.constraints:
             assert getattr(constraint, 'check') is not None
@@ -205,14 +194,8 @@ class Entry(object):
             self._parent_param_lookup[child] = dict(zip(child_params, our_params))
 
         self._is_end_sequenceof = lookup.is_end_sequenceof(self)
-        if lookup.is_value_referenced(self):
-            # This is a bit of a hack... we need to use the correct (fully
-            # specified) name. We'll lookup the parameter to get it.
-            for param in self._params:
-                if param.direction is param.OUT:
-                    self.add_listener(_hack_create_value_listener(param.name))
-        if lookup.is_length_referenced(self):
-            self.add_listener(_hack_on_length_referenced)
+        self._is_value_referenced = lookup.is_value_referenced(self)
+        self._is_length_referenced = lookup.is_length_referenced(self)
 
         for child in self.children:
             child.entry._set_params(lookup)
@@ -311,6 +294,10 @@ class Entry(object):
                     constraint.check(self, value)
                 if self._is_end_sequenceof:
                     context['should end'] = True
+                if self._is_value_referenced:
+                    context[self.name] = int(value)
+                if self._is_length_referenced:
+                    context[self.name + ' length'] = length
             yield is_starting, name, entry, entry_data, value
 
         if self.length is not None and len(data) != 0:
