@@ -276,14 +276,15 @@ class Entry(object):
             if not is_starting and entry is self:
                 for constraint in self.constraints:
                     constraint.check(self, value)
-                if self._is_end_sequenceof:
-                    context['should end'] = True
-                if self._is_value_referenced:
-                    context[self.name] = int(value)
-                if self._is_length_referenced:
-                    context[self.name + ' length'] = length
             yield is_starting, name, entry, entry_data, value
 
+        if self._is_end_sequenceof:
+            context['should end'] = True
+        if self._is_value_referenced:
+            # The last entry to decode will be 'self', so 'value' will be ours.
+            context[self.name] = int(value)
+        if self._is_length_referenced:
+            context[self.name + ' length'] = length
         if self.length is not None and len(data) != 0:
             raise DecodeLengthError(self, data)
 
