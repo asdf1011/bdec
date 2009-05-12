@@ -200,7 +200,7 @@ class ExpressionParameters(_Parameters):
         """
         Walk an expression object, collecting all named references.
         
-        Returns a list of tuples of (entry instances, variable name).
+        Returns a list of ValueResult / LengthResult instances.
         """
         result = []
         if isinstance(expression, expr.Constant):
@@ -318,8 +318,13 @@ class ExpressionParameters(_Parameters):
                 self._params[child.entry].add(_VariableParam(reference, Param.OUT))
                 self._add_out_params(child.entry, reference)
         elif isinstance(entry, seq.Sequence):
-            was_child_found = False
             child_params = self._local_child_param_name.setdefault(entry, {})
+
+            # Detect the child name, and the name of the reference under that child.
+            names = reference.name.split('.')
+            child_name = names[0]
+            sub_name = ".".join(names[1:])
+
             for child in entry.children:
                 local_names = child_params.setdefault(child, {})
                 if child.name == reference.name:
@@ -328,26 +333,24 @@ class ExpressionParameters(_Parameters):
                     # child, use the childs name.
                     child_reference = type(reference)(child.entry.name)
                     local_names[child.entry.name] = reference.name
-                    was_child_found = True
                     if isinstance(child_reference, expr.ValueResult):
                         self._add_reference(child.entry, child_reference)
                     else:
                         self._params[child.entry].add(_VariableParam(child_reference, Param.OUT))
                         self._referenced_lengths.add(child.entry)
-                else:
-                    child_name = reference.name.split('.')[0]
-                    if child.name == child_name:
-                        sub_name = ".".join(reference.name.split('.')[1:])
-                        local_names[sub_name] = reference.name
-                        child_reference = type(reference)(sub_name)
+                    break
+                elif child.name == child_name:
+                    # We found a child item that knows about this parameter
+                    local_names[sub_name] = reference.name
+                    child_reference = type(reference)(sub_name)
 
-                        # We found a child item that knows about this parameter
-                        self._params[child.entry].add(_VariableParam(child_reference, Param.OUT))
-                        self._add_out_params(child.entry, child_reference)
-                        was_child_found = True
-            if not was_child_found:
+                    self._params[child.entry].add(_VariableParam(child_reference, Param.OUT))
+                    self._add_out_params(child.entry, child_reference)
+                    break
+            else:
                 raise ent.MissingExpressionReferenceError(entry, reference.name)
         else:
+            # We don't know how to resolve a reference to this type of entry!
             raise BadReferenceError(entry, reference.name)
 
     def get_locals(self, entry):

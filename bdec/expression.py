@@ -44,8 +44,12 @@ class ExpressionError(Exception):
         return str(self.error)
 
 class Expression(object):
+    """
+    An object that returns a value given the current decode context.
+    """
     def evaluate(self, context):
         raise NotImplementedError
+
 
 class Delayed(Expression):
     """
