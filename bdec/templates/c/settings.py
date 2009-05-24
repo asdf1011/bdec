@@ -17,9 +17,11 @@
 #   <http://www.gnu.org/licenses/>.
 
 import bdec.choice as chc
+from bdec.entry import Entry
 import bdec.field as fld
 import bdec.sequence as seq
 from bdec.expression import Delayed, ValueResult, LengthResult, Constant
+from bdec.inspect.param import IntegerParam, EntryParam
 import operator
 import string
 
@@ -37,11 +39,9 @@ def escaped_type(entry):
         _escaped_types.update(zip(entries, escaped))
     return _escaped_types[entry]
 
-def ctype(entry):
-    """Return the c type name for an entry"""
-    if entry is int:
-        return 'int'
-    elif isinstance(entry, fld.Field):
+def _entry_type(entry):
+    assert isinstance(entry, Entry), "Expected an Entry instance, got '%s'!" % entry
+    if isinstance(entry, fld.Field):
         if entry.format == fld.Field.INTEGER:
             return 'int'
         if entry.format == fld.Field.TEXT:
@@ -60,18 +60,24 @@ def ctype(entry):
     else:
         return "struct " + typename(escaped_type(entry))
 
-def _param_type(param):
-    if param.type is int:
+def ctype(variable):
+    """Return the c type name for an entry"""
+    if isinstance(variable, Entry):
+        return _entry_type(variable)
+    elif isinstance(variable, EntryParam):
+        return _entry_type(variable.entry)
+    elif isinstance(variable, IntegerParam):
         return 'int'
-    return ctype(param.type)
+    else:
+        raise Exception("Unknown parameter type '%s'!" % variable)
 
 def define_params(entry):
     result = ""
     for param in get_params(entry):
         if param.direction is param.IN:
-            result += ", %s %s" % (_param_type(param), param.name)
+            result += ", %s %s" % (ctype(param.type), param.name)
         else:
-            result += ", %s* %s" % (_param_type(param), param.name)
+            result += ", %s* %s" % (ctype(param.type), param.name)
     return result
 
 def params(parent, i, result_name):

@@ -320,7 +320,7 @@ ${static}void ${settings.free_name(entry)}(${settings.ctype(entry)}* value)
 ${static}int ${settings.decode_name(entry)}(BitBuffer* buffer${settings.define_params(entry)})
 {
   %for local in local_vars(entry):
-    ${ctype(local.type)} ${local.name};
+    ${settings.ctype(local.type)} ${local.name};
   %endfor
   %if is_length_referenced(entry):
     int ${'initial length' |variable} = buffer->num_bits;
