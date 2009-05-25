@@ -32,6 +32,8 @@ import bdec.field as fld
 import bdec.sequence as seq
 import bdec.sequenceof as sof
 import bdec.expression as expr
+from bdec.inspect.type import VariableType, IntegerType, MultiSourceType, \
+        EntryType, EntryValueType, EntryLengthType, ShouldEndType
 
 
 class BadReferenceError(bdec.DecodeError):
@@ -48,79 +50,6 @@ class BadReferenceTypeError(bdec.DecodeError):
 
     def __str__(self):
         return "Cannot reference non integer field '%s'" % self.entry
-
-
-class VariableType:
-    """Base class for all parameter types."""
-    def __hash__(self):
-        return hash(self.__class__)
-
-
-class EntryParam(VariableType):
-    """Parameter value whose source is another entry."""
-    def __init__(self, entry):
-        self.entry = entry
-
-    def __hash__(self):
-        return hash(self.entry)
-
-    def __eq__(self, other):
-        if not isinstance(other, EntryParam):
-            return False
-        return other.entry is self.entry
-
-
-class IntegerParam(VariableType):
-    """Base class for describing the type of an integer."""
-    pass
-
-
-class _ShouldEndParameter(IntegerParam):
-    """Parameter used to pass the 'should end' up to the parent."""
-    def __eq__(self, other):
-        return isinstance(other, _ShouldEndParameter)
-
-
-class _LengthParameter(IntegerParam):
-    """Parameter value whose source is the length of another entry."""
-    def __init__(self, entry):
-        self.entry = entry
-
-    def __hash__(self):
-        return hash(self.entry)
-
-    def __eq__(self, other):
-        return isinstance(other, _LengthParameter) and self.entry is other.entry
-
-
-class _ValueParameter(IntegerParam):
-    """Parameter value whose source is the integer value of another entry."""
-    def __init__(self, entry):
-        self.entry = entry
-
-    def __hash__(self):
-        return hash(self.entry)
-
-    def __eq__(self, other):
-        return isinstance(other, _ValueParameter) and self.entry is other.entry
-
-
-class _MultiSourceParameter(IntegerParam):
-    """Parameter whose value comes from multiple locations."""
-    def __init__(self, sources):
-        for source in sources:
-            assert isinstance(source, VariableType)
-        self.sources = sources
-
-    def __eq__(self, other):
-        if not isinstance(other, _MultiSourceParameter):
-            return False
-        if len(self.sources) != len(other.sources):
-            return False
-        for a, b in zip(self.sources, other.sources):
-            if a != b:
-                return False
-        return True
 
 
 class Param(object):
@@ -224,7 +153,7 @@ class EndEntryParameters(_Parameters):
         result = []
         if isinstance(entry, sof.SequenceOf):
             if entry.end_entries:
-                result.append(Local('should end', _ShouldEndParameter()))
+                result.append(Local('should end', ShouldEndType()))
         return result
 
     def get_params(self, entry):
@@ -233,7 +162,7 @@ class EndEntryParameters(_Parameters):
         should pass an output 'should_end' context item.
         """
         if self._has_context_lookup[entry]:
-            return set([Param('should end', Param.OUT,  _ShouldEndParameter())])
+            return set([Param('should end', Param.OUT,  ShouldEndType())])
         return set()
 
     def get_passed_variables(self, entry, child):
@@ -273,7 +202,7 @@ class _VariableParam:
 
     def get_type(self):
         if len(self.types) > 1:
-            type = _MultiSourceParameter(self.types)
+            type = MultiSourceType(self.types)
         elif len(self.types) == 1:
             type = iter(self.types).next()
         else:
@@ -397,7 +326,7 @@ class ExpressionParameters(_Parameters):
         return type(param.reference)(name)
 
     def _add_reference(self, entry, reference):
-        param_type = _ValueParameter(entry)
+        param_type = EntryValueType(entry)
         self._params[entry].add(_VariableParam(reference, Param.OUT, param_type))
         if isinstance(entry, fld.Field):
             if entry.format not in [fld.Field.INTEGER, fld.Field.BINARY]:
@@ -441,7 +370,7 @@ class ExpressionParameters(_Parameters):
                 child_type = self._add_out_params(child.entry, reference)
                 self._params[child.entry].add(_VariableParam(reference, Param.OUT, child_type))
                 option_types.append(child_type)
-            result =  _MultiSourceParameter(option_types)
+            result =  MultiSourceType(option_types)
         elif isinstance(entry, seq.Sequence):
             child_params = self._local_child_param_name.setdefault(entry, {})
 
@@ -461,7 +390,7 @@ class ExpressionParameters(_Parameters):
                     if isinstance(child_reference, expr.ValueResult):
                         result = self._add_reference(child.entry, child_reference)
                     else:
-                        result = _LengthParameter(entry)
+                        result = EntryLengthType(child.entry)
                         self._params[child.entry].add(_VariableParam(child_reference, Param.OUT, result))
                         self._referenced_lengths.add(child.entry)
                     break
@@ -501,7 +430,7 @@ class ExpressionParameters(_Parameters):
             if len(types) == 1:
                 type = types[0]
             else:
-                type = _MultiSourceParameter(types)
+                type = MultiSourceType(types)
             result.append(Local(name, type))
         result.sort(key=lambda a:a.name)
         return result
@@ -623,21 +552,21 @@ class ResultParameters(_Parameters):
             if self._checker.contains_data(child.entry) and not self._checker.child_has_data(child):
                 # There is a common entry that appears visible, but has been
                 # hidden locally. We store this entry as a local.
-                locals.append(Local('unused %s' % child.name, EntryParam(child.entry)))
+                locals.append(Local('unused %s' % child.name, EntryType(child.entry)))
         return locals
 
     def get_params(self, entry):
         if not self._checker.contains_data(entry):
             return []
-        return [Param('result', Param.OUT, EntryParam(entry))]
+        return [Param('result', Param.OUT, EntryType(entry))]
 
     def get_passed_variables(self, entry, child):
         if not self._checker.contains_data(child.entry):
             return []
         if not self._checker.child_has_data(child):
             # A visible common entry has been hidden locally.
-            return [Param('unused %s' % child.name, Param.OUT, EntryParam(child.entry))]
-        return [Param('unknown', Param.OUT, EntryParam(child.entry))]
+            return [Param('unused %s' % child.name, Param.OUT, EntryType(child.entry))]
+        return [Param('unknown', Param.OUT, EntryType(child.entry))]
 
 
 class CompoundParameters(_Parameters):

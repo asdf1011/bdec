@@ -19,6 +19,7 @@
 import operator
 
 from bdec import DecodeError
+from bdec.inspect.type import Range
 
 class ConstraintError(DecodeError):
     def __init__(self, entry, actual, comparison, limit):
@@ -41,6 +42,10 @@ class Minimum:
         if int(value) < self.limit:
             raise ConstraintError(entry, int(value), '<', self.limit)
 
+    def range(self, range):
+        return Range(self.limit, None)
+
+
 class Maximum:
     def __init__(self, limit):
         self.limit = limit
@@ -52,6 +57,10 @@ class Maximum:
             value = ord(value)
         if int(value) > self.limit:
             raise ConstraintError(entry, int(value), '>', self.limit)
+
+    def range(self, range):
+        return Range(None, self.limit)
+
 
 class Equals:
     def __init__(self, expected):
@@ -65,4 +74,7 @@ class Equals:
         else:
             if value !=  self.limit:
                 raise ConstraintError(entry, value, '!=', self.limit)
+
+    def range(self):
+        return Range(self.limit, self.limit)
 

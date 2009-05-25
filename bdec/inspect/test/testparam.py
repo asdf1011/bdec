@@ -26,15 +26,15 @@ import bdec.data as dt
 import bdec.entry as ent
 import bdec.field as fld
 import bdec.inspect.param as prm
-from bdec.inspect.param import EntryParam, IntegerParam
+from bdec.inspect.type import EntryType, IntegerType, EntryLengthType
 import bdec.sequence as seq
 import bdec.sequenceof as sof
 import bdec.expression as expr
 
-class _Integer(IntegerParam):
+class _Integer(IntegerType):
     """Test class that identifies an integer parameter."""
     def __eq__(self, other):
-        return isinstance(other, IntegerParam)
+        return isinstance(other, IntegerType)
 
 
 class TestExpressionParameters(unittest.TestCase):
@@ -87,8 +87,8 @@ class TestExpressionParameters(unittest.TestCase):
         self.assertEqual([prm.Local('a length', _Integer())], vars.get_locals(spec))
         self.assertFalse(vars.is_length_referenced(a1))
         self.assertTrue(vars.is_length_referenced(a))
-        self.assertEqual([prm.Param('a length', prm.Param.OUT, _Integer())], vars.get_params(a))
-        self.assertEqual([prm.Param('a length', prm.Param.IN, _Integer())], vars.get_params(b))
+        self.assertEqual([prm.Param('a length', prm.Param.OUT, EntryLengthType(a))], vars.get_params(a))
+        self.assertEqual([prm.Param('a length', prm.Param.IN, EntryLengthType(a))], vars.get_params(b))
 
     def test_sequence_value(self):
         # Define an integer with a custom byte ordering
@@ -407,8 +407,8 @@ class TestEndEntryParameters(unittest.TestCase):
         string = sof.SequenceOf("null terminated string", entry, None, end_entries=[null])
 
         lookup = prm.EndEntryParameters([string])
-        self.assertEqual(set([prm.Param('should end', prm.Param.OUT, prm._ShouldEndParameter())]), lookup.get_params(null))
-        self.assertEqual(set([prm.Param('should end', prm.Param.OUT, prm._ShouldEndParameter())]), lookup.get_params(entry))
+        self.assertEqual(set([prm.Param('should end', prm.Param.OUT, prm.ShouldEndType())]), lookup.get_params(null))
+        self.assertEqual(set([prm.Param('should end', prm.Param.OUT, prm.ShouldEndType())]), lookup.get_params(entry))
         self.assertEqual([prm.Local('should end', _Integer())], lookup.get_locals(string))
         self.assertTrue(lookup.is_end_sequenceof(null))
 
@@ -417,9 +417,9 @@ class TestResultParameters(unittest.TestCase):
         a = fld.Field('a', 8)
         b = seq.Sequence('b', [a])
         lookup = prm.ResultParameters([b])
-        self.assertEqual([prm.Param('result', prm.Param.OUT, EntryParam(a))], lookup.get_params(a))
-        self.assertEqual([prm.Param('unknown', prm.Param.OUT, EntryParam(a))], lookup.get_passed_variables(b, b.children[0]))
-        self.assertEqual([prm.Param('result', prm.Param.OUT, EntryParam(b))], lookup.get_params(b))
+        self.assertEqual([prm.Param('result', prm.Param.OUT, EntryType(a))], lookup.get_params(a))
+        self.assertEqual([prm.Param('unknown', prm.Param.OUT, EntryType(a))], lookup.get_passed_variables(b, b.children[0]))
+        self.assertEqual([prm.Param('result', prm.Param.OUT, EntryType(b))], lookup.get_params(b))
 
     def test_hidden_field(self):
         a = fld.Field('', 8)
@@ -454,8 +454,8 @@ class TestResultParameters(unittest.TestCase):
         self.assertRaises(bdec.DecodeError, list, item.decode(dt.Data('<5')))
 
         lookup = prm.ResultParameters([item])
-        self.assertEqual([prm.Param('result', prm.Param.OUT, EntryParam(item))], lookup.get_params(item))
-        self.assertEqual([prm.Param('result', prm.Param.OUT, EntryParam(embedded))], lookup.get_params(embedded))
+        self.assertEqual([prm.Param('result', prm.Param.OUT, EntryType(item))], lookup.get_params(item))
+        self.assertEqual([prm.Param('result', prm.Param.OUT, EntryType(embedded))], lookup.get_params(embedded))
 
     def test_hidden_reference(self):
         # Test a visible common reference that is hidden through its reference
@@ -463,10 +463,10 @@ class TestResultParameters(unittest.TestCase):
         a = fld.Field('a', 8, fld.Field.INTEGER)
         b = seq.Sequence('b', [ent.Child('a:', a)])
         lookup = prm.ResultParameters([a, b])
-        self.assertEqual([prm.Param('result', prm.Param.OUT, EntryParam(a))], lookup.get_params(a))
-        self.assertEqual([prm.Param('result', prm.Param.OUT, EntryParam(b))], lookup.get_params(b))
-        self.assertEqual([prm.Local('unused a:', EntryParam(a))], lookup.get_locals(b))
-        self.assertEqual([prm.Param('unused a:', prm.Param.OUT, EntryParam(a))], lookup.get_passed_variables(b, b.children[0]))
+        self.assertEqual([prm.Param('result', prm.Param.OUT, EntryType(a))], lookup.get_params(a))
+        self.assertEqual([prm.Param('result', prm.Param.OUT, EntryType(b))], lookup.get_params(b))
+        self.assertEqual([prm.Local('unused a:', EntryType(a))], lookup.get_locals(b))
+        self.assertEqual([prm.Param('unused a:', prm.Param.OUT, EntryType(a))], lookup.get_passed_variables(b, b.children[0]))
 
 class TestDataChecker(unittest.TestCase):
     def test_hidden_entry_visible_child(self):
