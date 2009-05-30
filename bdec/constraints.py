@@ -42,7 +42,7 @@ class Minimum:
         if int(value) < self.limit:
             raise ConstraintError(entry, int(value), '<', self.limit)
 
-    def range(self, range):
+    def range(self):
         return Range(self.limit, None)
 
 
@@ -58,7 +58,7 @@ class Maximum:
         if int(value) > self.limit:
             raise ConstraintError(entry, int(value), '>', self.limit)
 
-    def range(self, range):
+    def range(self):
         return Range(None, self.limit)
 
 

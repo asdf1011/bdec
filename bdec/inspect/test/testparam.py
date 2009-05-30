@@ -398,6 +398,18 @@ class TestExpressionParameters(unittest.TestCase):
         self.assertEqual([prm.Param('a', prm.Param.OUT, _Integer())], list(lookup.get_passed_variables(c, c.children[1])))
         self.assertEqual([prm.Local('a', _Integer())], lookup.get_locals(c))
 
+    def test_sequence_with_referenced_value(self):
+        a = fld.Field('a', length=8)
+        b = seq.Sequence('b', [ent.Child('b:', a)], value=expr.compile('${b:}'))
+        c = fld.Field('c', length=expr.compile('${b} * 8'))
+        d = seq.Sequence('d', [a, b, c])
+        lookup = prm.ExpressionParameters([a, d])
+        self.assertEqual([prm.Local('b:', _Integer())], lookup.get_locals(b))
+        self.assertEqual([prm.Param('a', prm.Param.OUT, _Integer())], lookup.get_params(a))
+        self.assertEqual([prm.Param('b', prm.Param.OUT, _Integer())], lookup.get_params(b))
+        self.assertEqual([prm.Param('b', prm.Param.IN, _Integer())], lookup.get_params(c))
+        self.assertEqual([], lookup.get_params(d))
+
 
 class TestEndEntryParameters(unittest.TestCase):
     def test_end_entry_lookup(self):

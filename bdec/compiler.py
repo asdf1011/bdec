@@ -81,28 +81,51 @@ def _generate_template(output_dir, filename, lookup, template):
 
 
 class _EntryInfo(prm.CompoundParameters):
-    def __init__(self, utils, entries):
+    def __init__(self, utils, params):
         self._utils = utils
-        queries = []
-        queries.append(prm.ResultParameters(entries))
-        queries.append(prm.ExpressionParameters(entries))
-        queries.append(prm.EndEntryParameters(entries))
-        prm.CompoundParameters.__init__(self, queries)
+        prm.CompoundParameters.__init__(self, params)
+
+    def _get_name_map(self, entry):
+        """Map an unescaped name to an escaped 'local' name."""
+        # It is possible that locals would escape to the same name as a
+        # parameter (for example, references with constraints, see the 060
+        # sequence with constraint xml regression test). To avoid this, we
+        # escape parameter names and locals together.
+        names = [param.name for param in prm.CompoundParameters.get_params(self, entry)]
+        names.extend(local.name for local in prm.CompoundParameters.get_locals(self, entry))
+
+        escaped = self._utils.esc_names(names, self._utils.variable_name)
+        return dict(zip(names, escaped))
+
+    def get_local_name(self, entry, name):
+        """Map an unescaped name to the 'local' variable name.
+
+        This may be stored as a local or a variable."""
+        return self._get_name_map(entry)[name]
 
     def get_locals(self, entry):
+        # We don't to have a local that has the same name as the parent, so we
+        # escape the name with respect to the parameter names. We can get
+        # similar names for references with constraints (see the 060 sequence
+        # with constraint xml regression test).
+        names = self._get_name_map(entry)
         for local in prm.CompoundParameters.get_locals(self, entry):
-            name = self._utils.variable_name(local.name)
-            yield prm.Local(name, local.type)
+            yield prm.Local(names[local.name], local.type)
 
     def get_params(self, entry):
+        names = self._get_name_map(entry)
         for param in prm.CompoundParameters.get_params(self, entry):
-            name = self._utils.variable_name(param.name)
-            yield prm.Param(name, param.direction, param.type)
+            yield prm.Param(names[param.name], param.direction, param.type)
             
     def get_passed_variables(self, entry, child):
+        names = self._get_name_map(entry)
         for param in prm.CompoundParameters.get_passed_variables(self, entry, child):
-            name = self._utils.variable_name(param.name)
+            if param.name == 'unknown':
+                name = param.name
+            else:
+                name = names[param.name]
             yield prm.Param(name, param.direction, param.type)
+
 
 class _Settings:
     _REQUIRED_SETTINGS = ['keywords']
@@ -301,12 +324,20 @@ def generate_code(spec, language, output_dir, common_entries=[]):
     data_checker = prm.DataChecker(entries)
     lookup['settings'] = _Settings.load(language, lookup)
     utils = _Utils(entries, lookup['settings'])
-    info = _EntryInfo(utils, entries)
+
+    params = prm.CompoundParameters([
+        prm.ResultParameters(entries),
+        prm.ExpressionParameters(entries),
+        prm.EndEntryParameters(entries),
+        ])
+    info = _EntryInfo(utils, [params])
+
     lookup['protocol'] = spec
     lookup['common'] = entries
     lookup['esc_name'] = utils.esc_name
     lookup['esc_names'] = utils.esc_names
     lookup['get_params'] = info.get_params
+    lookup['raw_params'] = params
     lookup['get_passed_variables'] = info.get_passed_variables
     lookup['is_end_sequenceof'] = info.is_end_sequenceof
     lookup['is_value_referenced'] = info.is_value_referenced
@@ -319,6 +350,7 @@ def generate_code(spec, language, output_dir, common_entries=[]):
     lookup['iter_optional_common'] = utils.iter_optional_common
     lookup['iter_entries'] = utils.iter_entries
     lookup['local_vars'] = info.get_locals
+    lookup['local_name'] = info.get_local_name
     lookup['constant'] = utils.constant_name
     lookup['filename'] = utils.filename
     lookup['function'] = utils.variable_name

@@ -77,18 +77,25 @@ def _delayed_range(delayed, entry, parameters):
 def _constant_range(constant, entry, parameters):
     return Range(int(constant.value), int(constant.value))
 
-def _reference_value_range(value, entry, parameters):
+def _get_param(entry, name, parameters):
+    """Get the parameter 'input' to entry with a given name."""
     for param in parameters.get_params(entry):
-        if param.name == value.name:
-            return param.type.range(parameters)
-    raise Exception("Failed to find parameter '%s' in params for entry '%s'!" % (value.name, entry))
+        if param.name == name:
+            return param
+    # The param wasn't passed _into_ this entry; check to see if it comes out
+    # of one of its children...
+    for child in entry.children:
+        for param in parameters.get_passed_variables(entry, child):
+            if param.name == name:
+                return param
+    raise Exception("Failed to find parameter '%s' in params for entry '%s'!" % (name, entry))
+
+def _reference_value_range(value, entry, parameters):
+    return _get_param(entry, value.name, parameters).type.range(parameters)
 
 def _reference_length_range(value, entry, parameters):
     name = value.name + ' length'
-    for param in parameters.get_params(entry):
-        if param.name == name:
-            return param.type.range(parameters)
-    raise Exception("Failed to find parameter '%s' in params for entry '%s'!" % (value.name, entry))
+    return _get_param(entry, name, parameters).type.range(parameters)
 
 _handlers = {
         Constant: _constant_range,
@@ -162,8 +169,8 @@ class EntryLengthType(IntegerType):
     def range(self, parameter):
         if self.entry.length is None:
             # We don't know how long this entry is.
-            # FIXME: We could try examining its children...
-            return Range()
+            # TODO: We could try examining its children...
+            return Range(0, None)
         return _range(self.entry.length, self.entry ,parameter)
 
 
@@ -179,6 +186,7 @@ class EntryValueType(IntegerType):
         return isinstance(other, EntryValueType) and self.entry is other.entry
 
     def range(self, parameters):
+        import bdec.choice as chc
         import bdec.field as fld
         import bdec.sequence as seq
         if isinstance(self.entry, fld.Field):
@@ -186,9 +194,14 @@ class EntryValueType(IntegerType):
             result = Range(0, pow(2, length_range.max) - 1)
         elif isinstance(self.entry, seq.Sequence):
             result = _range(self.entry.value, self.entry, parameters)
+        elif isinstance(self.entry, chc.Choice):
+            ranges = [EntryValueType(child.entry).range(parameters) for child in self.entry.children]
+            result = reduce(Range.union, ranges)
+        else:
+            raise NotImplementedError("Don't know how to query the value range of entry '%s'!'" % self.entry)
 
-        for constaint in self.entry.constraints:
-            result = result.intersect(constaint.range(parameters))
+        for constraint in self.entry.constraints:
+            result = result.intersect(constraint.range())
         return result
 
 
@@ -210,19 +223,6 @@ class MultiSourceType(IntegerType):
         return True
 
     def range(self, parameters):
-        range = Range()
-        for source in self.sources:
-            range = range.union(source)
-        return range
-
-
-
-class ExpressionRanges:
-    """A class to evaluate the possible ranges of an integer expression."""
-    def __init__(self, entries):
-        # TODO: Use the expression parameter inspection to determine the
-        # sources of the expression paramters, and use that (combined with
-        # the 'range' method') to determine the possible integer range for
-        # any given expression value.
-        pass
+        ranges = (source.range(parameters) for source in self.sources)
+        return reduce(Range.union, ranges)
 

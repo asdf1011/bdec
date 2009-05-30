@@ -37,7 +37,7 @@ extern "C" {
 #endif
 
 <%def name="c_define(entry)" >
-  %if isinstance(entry, Sequence) and settings.ctype(entry) is not 'int':
+  %if isinstance(entry, Sequence) and not settings.is_numeric(settings.ctype(entry)):
 ${settings.ctype(entry)}
 {
   %for i, child in enumerate(entry.children):
@@ -46,7 +46,7 @@ ${settings.ctype(entry)}
     %endif
   %endfor
   %if entry.value is not None:
-    int value;
+    ${ctype(EntryValueType(entry))} value;
   %endif
 };
   %elif isinstance(entry, Choice):
@@ -108,7 +108,7 @@ int ${settings.decode_name(entry)}( BitBuffer* buffer${settings.define_params(en
 void ${settings.free_name(entry)}(${settings.ctype(entry)}* value);
 
 // Print an xml representation of a ${entry.name} object.
-void ${settings.print_name(entry)}(${settings.ctype(entry)}* data, int offset, char* name);
+void ${settings.print_name(entry)}(${settings.ctype(entry)}* data, unsigned int offset, char* name);
 
 #ifdef __cplusplus
 }

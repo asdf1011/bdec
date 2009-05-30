@@ -65,7 +65,7 @@ int main(int argc, char* argv[])
     }
 
     /* Print the decoded data */
-    ${settings.print_name(protocol)}(&result, 0, "${protocol.name}");
+    ${settings.print_name(protocol)}(&result, 0, "${protocol.name | xmlname}");
     ${settings.free_name(protocol)}(&result);
     free(data);
     return 0;

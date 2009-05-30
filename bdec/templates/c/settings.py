@@ -21,11 +21,14 @@ from bdec.entry import Entry
 import bdec.field as fld
 import bdec.sequence as seq
 from bdec.expression import Delayed, ValueResult, LengthResult, Constant
-from bdec.inspect.param import IntegerParam, EntryParam
+from bdec.inspect.type import EntryValueType, IntegerType, EntryType
 import operator
 import string
 
 keywords=['char', 'int', 'float', 'if', 'then', 'else', 'struct', 'for', 'null', 'value']
+
+def is_numeric(type):
+    return type in ['int', 'unsigned int']
 
 _escaped_types = {}
 def escaped_type(entry):
@@ -39,11 +42,18 @@ def escaped_type(entry):
         _escaped_types.update(zip(entries, escaped))
     return _escaped_types[entry]
 
+def _integer_type(type):
+    """Choose an appropriate integral type for the given type."""
+    range = type.range(raw_params)
+    if range.min is not None and range.min >= 0:
+        return 'unsigned int'
+    return 'int'
+
 def _entry_type(entry):
     assert isinstance(entry, Entry), "Expected an Entry instance, got '%s'!" % entry
     if isinstance(entry, fld.Field):
         if entry.format == fld.Field.INTEGER:
-            return 'int'
+            return _integer_type(EntryValueType(entry))
         if entry.format == fld.Field.TEXT:
             return 'Buffer'
         elif entry.format == fld.Field.HEX:
@@ -64,10 +74,10 @@ def ctype(variable):
     """Return the c type name for an entry"""
     if isinstance(variable, Entry):
         return _entry_type(variable)
-    elif isinstance(variable, EntryParam):
+    elif isinstance(variable, EntryType):
         return _entry_type(variable.entry)
-    elif isinstance(variable, IntegerParam):
-        return 'int'
+    elif isinstance(variable, IntegerType):
+        return _integer_type(variable)
     else:
         raise Exception("Unknown parameter type '%s'!" % variable)
 
@@ -80,7 +90,7 @@ def define_params(entry):
             result += ", %s* %s" % (ctype(param.type), param.name)
     return result
 
-def params(parent, i, result_name):
+def call_params(parent, i, result_name):
     # How we should reference the variable passed to the child is from the
     # following table;
     #
@@ -116,17 +126,19 @@ _OPERATORS = {
         operator.__add__ : '+',
         }
 
-def value(expr):
+def value(entry, expr):
   if isinstance(expr, int):
       return str(expr)
   elif isinstance(expr, Constant):
       return str(expr.value)
   elif isinstance(expr, ValueResult):
-      return variable(expr.name)
+      return local_name(entry, expr.name)
   elif isinstance(expr, LengthResult):
-      return variable(expr.name + ' length')
+      return local_name(entry, expr.name + ' length')
   elif isinstance(expr, Delayed):
-      return "(%s %s %s)" % (value(expr.left), _OPERATORS[expr.op], value(expr.right)) 
+      left = value(entry, expr.left)
+      right = value(entry, expr.right)
+      return "(%s %s %s)" % (left, _OPERATORS[expr.op], right) 
   else:
       raise Exception('Unknown length value', expression)
 

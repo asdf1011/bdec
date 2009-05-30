@@ -17,11 +17,13 @@
 #   <http://www.gnu.org/licenses/>.
 
 
+from bdec.choice import Choice
 from bdec.constraints import Minimum, Maximum, Equals
 from bdec.expression import compile
 from bdec.field import Field
 from bdec.inspect.param import ExpressionParameters
-from bdec.inspect.type import _range, Range, EntryValueType, EntryLengthType
+from bdec.inspect.type import _range, Range, EntryValueType, EntryLengthType, \
+        MultiSourceType
 from bdec.sequence import Sequence
 import unittest
 
@@ -106,3 +108,17 @@ class TestRange(unittest.TestCase):
         self.assertEqual(36, range.min)
         self.assertEqual(36, range.max)
 
+    def test_multi_source_range(self):
+        a = Field('a', length=8, constraints=[Minimum(5), Maximum(10)])
+        b = Field('b', length=8, constraints=[Minimum(20), Maximum(30)])
+        range = MultiSourceType([EntryValueType(a), EntryValueType(b)]).range(None)
+        self.assertEqual(5, range.min)
+        self.assertEqual(30, range.max)
+
+    def test_choice_value_range(self):
+        a = Field('a', length=8, constraints=[Minimum(5), Maximum(10)])
+        b = Field('b', length=8, constraints=[Minimum(20), Maximum(30)])
+        c = Choice('c', [a, b])
+        range = EntryValueType(c).range(None)
+        self.assertEqual(5, range.min)
+        self.assertEqual(30, range.max)
