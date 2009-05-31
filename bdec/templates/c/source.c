@@ -62,7 +62,7 @@
   %for constraint in entry.constraints:
     %if isinstance(constraint, Equals):
       %if settings.is_numeric(settings.ctype(entry)) or isinstance(entry, Sequence):
-    if (${value} != ${str(constraint.limit)})
+    if (${value} != ${int(constraint.limit)})
       %elif settings.ctype(entry) == 'BitBuffer':
     ${compare_binary_expected(entry, constraint.limit)}
       %elif settings.ctype(entry) == 'Buffer':
@@ -93,11 +93,11 @@
 
 <%def name="decodeField(entry)">
     ${settings.ctype(entry)} value;
-  %if entry.format == Field.INTEGER:
-    %if entry.encoding == Field.BIG_ENDIAN:
-    value = decode_integer(buffer, ${settings.value(entry, entry.length)});
-    %else:
+  %if settings.is_numeric(settings.ctype(entry)):
+    %if entry.encoding == Field.LITTLE_ENDIAN:
     value = decode_little_endian_integer(buffer, ${settings.value(entry, entry.length)});
+    %else:
+    value = decode_integer(buffer, ${settings.value(entry, entry.length)});
     %endif
     %if is_value_referenced(entry):
     *${entry.name |variable} = value;
@@ -272,7 +272,9 @@ ${recursiveDecode(child.entry)}
 ${static}void ${settings.free_name(entry)}(${settings.ctype(entry)}* value)
 {
   %if isinstance(entry, Field):
-    %if entry.format == Field.TEXT:
+    %if settings.is_numeric(settings.ctype(entry)):
+
+    %elif entry.format == Field.TEXT:
     free(value->buffer);
     %elif entry.format == Field.HEX:
     free(value->buffer);
@@ -416,14 +418,20 @@ ${recursiveDecode(entry, False)}
     }
         %elif item.format == Field.BINARY:
         <% copy_name = variable('copy of ' + item.name + str(iter_postfix.next())) %>
-        <% iter_name = variable(item.name + ' counter' + str(iter_postfix.next())) %>
+        <% iter_name = variable(item.name + ' whitespace counter' + str(iter_postfix.next())) %>
+        %if settings.is_numeric(settings.ctype(item)):
+          <% length = int(settings.value(item, item.length)) %>
+    BitBuffer ${copy_name} = {&${varname}, 8 - ${length}, ${length}};
+        %else:
     BitBuffer ${copy_name} = ${varname};
-    unsigned int ${iter_name};
-    for (${iter_name} = 0; ${iter_name} < ${varname}.num_bits; ++${iter_name})
+        %endif
+    unsigned int ${iter_name} = ${copy_name}.num_bits > 8 ? ${copy_name}.num_bits % 8 : 8;
+    for (; ${copy_name}.num_bits != 0; --${iter_name})
     {
-        if (${iter_name} > 0 && (${varname}.num_bits - ${iter_name}) % 8 == 0)
+        if (${iter_name} == 0)
         {
             putchar(' ');
+            ${iter_name} = 8;
         }
         printf("%i", decode_integer(&${copy_name}, 1));
     }

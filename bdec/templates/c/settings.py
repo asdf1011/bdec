@@ -21,14 +21,14 @@ from bdec.entry import Entry
 import bdec.field as fld
 import bdec.sequence as seq
 from bdec.expression import Delayed, ValueResult, LengthResult, Constant
-from bdec.inspect.type import EntryValueType, IntegerType, EntryType
+from bdec.inspect.type import EntryLengthType, EntryValueType, IntegerType, EntryType
 import operator
 import string
 
 keywords=['char', 'int', 'float', 'if', 'then', 'else', 'struct', 'for', 'null', 'value']
 
 def is_numeric(type):
-    return type in ['int', 'unsigned int']
+    return type in ['int', 'unsigned int', 'unsigned char']
 
 _escaped_types = {}
 def escaped_type(entry):
@@ -59,6 +59,12 @@ def _entry_type(entry):
         elif entry.format == fld.Field.HEX:
             return 'Buffer'
         elif entry.format == fld.Field.BINARY:
+            range = EntryLengthType(entry).range(raw_params)
+            if range.min is not None and range.min == range.max and range.min <= 8:
+                # If we have a fixed size buffer, stash it in an integer. We
+                # only allow bitstrings under a 'char', otherwise we start
+                # getting endian issues....
+                return 'unsigned char'
             return 'BitBuffer'
         else:
             raise Exception("Unhandled field format '%s'!" % entry)
