@@ -19,9 +19,53 @@
 """A set of classes for determining the types and range of entry parameters.
 """
 
+import decimal
 import operator
 
 from bdec.expression import Delayed, Constant, ValueResult, LengthResult
+
+
+class _Infinite:
+    def __mul__(self, other):
+        if other == 0:
+            return 0
+        if not _is_positive(other):
+            return _MinusInfinite()
+        return self
+
+    def __rmul__(self, other):
+        return self.__mul__(other)
+
+    def __cmp__(self, other):
+        if isinstance(other, _Infinite):
+            return 0
+        return 1
+
+
+class _MinusInfinite:
+    def __mul__(self, other):
+        if other == 0:
+            return 0
+        if not _is_positive(other):
+            return _Infinite()
+        return self
+
+    def __rmul__(self, other):
+        return self.__mul__(other)
+
+    def __cmp__(self, other):
+        if isinstance(other, _MinusInfinite):
+            return 0
+        return -1
+
+
+def _is_positive(number):
+    if isinstance(number, _Infinite):
+        return True
+    if isinstance(number, _MinusInfinite):
+        return False
+    return number >= 0
+
 
 class Range:
     """A range of possible values.
@@ -35,8 +79,8 @@ class Range:
 
     def intersect(self, other):
         """Return the intesection of self and other."""
-        # max of None and X will always return X
         result = Range()
+        # max of None and X will always return X
         result.min = max(self.min, other.min)
         if self.max is not None:
             if other.max is not None:
@@ -62,17 +106,81 @@ class Range:
     def __repr__(self):
         return "[%s, %s]" % (self.min, self.max)
 
-_ranges = {
-        operator.mul : lambda left, right: Range(left.min * right.min, left.max * right.max),
-        operator.div : lambda left, right: Range(left.min / right.max, left.max / right.min),
-        operator.mod : lambda left, right: Range(0, right.max - 1),
-        operator.add : lambda left, right: Range(left.min + right.min, left.max + right.max),
-        operator.sub : lambda left, right: Range(left.min - right.max, left.max - right.min),
-        }
+    def __add__(self, other):
+        if self.min is None or other.min is None:
+            min = None
+        else:
+            min = self.min + other.min
+        if self.max is None or other.max is None:
+            max = None
+        else:
+            max = self.max + other.max
+        return Range(min, max)
+
+    def __sub__(self, other):
+        if self.min is None or other.max is None:
+            min = None
+        else:
+            min = self.min - other.max
+        if self.max is None or other.min is None:
+            max = None
+        else:
+            max = self.max - other.min
+        return Range(min, max)
+
+    def __mul__(self, other):
+        minx = self.min if self.min is not None else _MinusInfinite()
+        maxx = self.max if self.max is not None else _Infinite()
+        miny = other.min if other.min is not None else _MinusInfinite()
+        maxy = other.max if other.max is not None else _Infinite()
+
+        values = []
+        values.append(minx * miny)
+        values.append(minx * maxy)
+        values.append(maxx * miny)
+        values.append(maxx * maxy)
+
+        values.sort()
+        min = values[0] if isinstance(values[0], int) else None
+        max = values[3] if isinstance(values[3], int) else None
+        return Range(min, max)
+
+    def __div__(self, other):
+         # Instead of implementing division, we'll just figure out the inverse,
+         # and multiply the two together.
+        if other.min == 0:
+            miny = _Infinite()
+        elif other.min is None:
+            miny = 0
+        else:
+            miny = 1 / decimal.Decimal(other.min)
+
+        if other.max == 0:
+            maxy = _Infinite()
+        elif other.min is None:
+            maxy = 0
+        else:
+            maxy = 1 / decimal.Decimal(other.max)
+
+        minx = self.min if self.min is not None else _MinusInfinite()
+        maxx = self.max if self.max is not None else _Infinite()
+
+        values = []
+        values.append(minx * miny)
+        values.append(minx * maxy)
+        values.append(maxx * miny)
+        values.append(maxx * maxy)
+
+        values.sort()
+        min = int(values[0]) if isinstance(values[0], decimal.Decimal) else None
+        max = int(values[3]) if isinstance(values[3], decimal.Decimal) else None
+        return Range(min, max)
+
+
 def _delayed_range(delayed, entry, parameters):
-    return _ranges[delayed.op](
-            _range(delayed.left, entry, parameters),
-            _range(delayed.right, entry, parameters))
+    left = _range(delayed.left, entry, parameters)
+    right = _range(delayed.right, entry, parameters)
+    return delayed.op(left, right)
 
 def _constant_range(constant, entry, parameters):
     return Range(int(constant.value), int(constant.value))

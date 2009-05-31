@@ -39,6 +39,76 @@ class TestRange(unittest.TestCase):
         b = Range(0, 10)
         self.assertEqual(Range(0, 10), a.intersect(b))
 
+    def test_add(self):
+        a = Range(10, 20)
+        b = Range(-5, 10)
+        self.assertEqual(Range(5, 30), a + b)
+        self.assertEqual(Range(5, 30), b + a)
+
+    def test_add_none(self):
+        a = Range(10, 20)
+        b = Range(-5, None)
+        self.assertEqual(Range(5, None), a + b)
+        self.assertEqual(Range(5, None), b + a)
+
+    def test_subtract(self):
+        a = Range(100, 150)
+        b = Range(0, 10)
+        self.assertEqual(Range(90, 150), a - b)
+        self.assertEqual(Range(-150, -90), b - a)
+
+    def test_subtract_none(self):
+        a = Range(100, None)
+        b = Range(5, 10)
+        self.assertEqual(Range(90, None), a - b)
+        self.assertEqual(Range(None, -90), b - a)
+
+    def test_multiply(self):
+        a = Range(2, 3)
+        b = Range(10, 11)
+        self.assertEqual(Range(20, 33), a * b)
+
+    def test_multiply_no_max(self):
+        a = Range(2, 3)
+        b = Range(10, None)
+        self.assertEqual(Range(20, None), a * b)
+
+    def test_multiply_negative(self):
+        a = Range(2, 3)
+        b = Range(-7, -5)
+        self.assertEqual(Range(-21, -10), a * b)
+        self.assertEqual(Range(-21, -10), b * a)
+
+    def test_multiply_two_negatives(self):
+        a = Range(-2, -3)
+        b = Range(-7, -5)
+        self.assertEqual(Range(10, 21), a * b)
+        self.assertEqual(Range(10, 21), b * a)
+
+    def test_multiply_no_min(self):
+        a = Range(2, 5)
+        b = Range(None, 10)
+        self.assertEqual(Range(None, 50), a * b)
+        self.assertEqual(Range(None, 50), b * a)
+
+    def test_divide(self):
+        a = Range(40, 80)
+        b = Range(1, 8)
+        self.assertEqual(Range(5, 80), a / b)
+
+    def test_divide_zero(self):
+        a = Range(40, 80)
+        b = Range(0, 8)
+        self.assertEqual(Range(5, None), a / b)
+
+    def test_divide_ininite_by_infite(self):
+        a = Range(None, None)
+        b = Range(None, None)
+        self.assertEqual(Range(None, None), a / b)
+
+
+class TestExpressionRange(unittest.TestCase):
+
     def test_constant_range(self):
         a = compile('8')
         self.assertEqual(8, _range(a).min)
@@ -68,6 +138,9 @@ class TestRange(unittest.TestCase):
         a = compile('95 - (100 - 20)')
         self.assertEqual(15, _range(a).min)
         self.assertEqual(15, _range(a).max)
+
+
+class TestTypeRange(unittest.TestCase):
 
     def test_field_range(self):
         a = Field('a', length=8)
