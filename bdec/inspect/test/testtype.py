@@ -47,8 +47,7 @@ class TestExpressionRange(unittest.TestCase):
 
     def test_mod_range(self):
         a = compile('100 % 2')
-        self.assertEqual(0, _range(a).min)
-        self.assertEqual(1, _range(a).max)
+        self.assertEqual(Range(0, 1), _range(a))
 
     def test_add_range(self):
         a = compile('(10 + 3) + 7')

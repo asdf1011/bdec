@@ -98,4 +98,13 @@ class TestRange(unittest.TestCase):
         b = Range(None, None)
         self.assertEqual(Range(None, None), a / b)
 
+    def test_mod(self):
+        a = Range(10, 20)
+        b = Range(1, 8)
+        self.assertEqual(Range(0, 7), a % b)
+
+    def test_mod_none(self):
+        a = Range(10, 20)
+        b = Range(0, None)
+        self.assertEqual(Range(0, 20), a % b)
 

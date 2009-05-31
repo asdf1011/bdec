@@ -173,3 +173,14 @@ class Range:
         min = int(values[0]) if isinstance(values[0], decimal.Decimal) else None
         max = int(values[3]) if isinstance(values[3], decimal.Decimal) else None
         return Range(min, max)
+
+    def __mod__(self, other):
+        if other.max is not None:
+            # FIXME: This assumes 'a % b' returns a postive integer; this isn't
+            # true for all languages. What do we do?
+            return Range(0, other.max - 1)
+        if self.max is not None:
+            if other.max is None or self.max < other.max:
+                return Range(0, self.max)
+        return Range(0, other.max)
+
