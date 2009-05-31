@@ -17,7 +17,7 @@ http://staff.washington.edu/dittrich/misc/fatgen103.pdf.
             <field name="jump instruction" length="24" type="hex" />
             <field name="oem name" length="64" type="text" />
             <reference name="bytes per sector" type="word" />
-            <reference name="sectors per cluster" type="byte" />
+            <reference name="sectors per cluster" type="byte" min="1" />
             <reference name="reserved sector count" type="word" />
             <reference name="number of file allocation tables" type="byte" />
             <reference name="max root directory entries" type="word" />
