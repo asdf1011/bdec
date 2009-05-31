@@ -327,8 +327,9 @@ class _Handler(xml.sax.handler.ContentHandler):
             expected_text = attributes['value']
             if expected_text.upper()[:2] == "0X":
                 # The expected value is in hex, so convert it to a data object.
-                data = dt.Data.from_hex(expected_text[2:])
                 expected_length = result.length.evaluate({})
+                data = dt.Data('\x00' * (expected_length / 8 + 8))
+                data += dt.Data.from_hex(expected_text[2:])
                 unused = data.pop(len(data) - expected_length)
                 if len(unused) and int(unused) != 0:
                     raise self._error('Field is %i bits long, but expected data is longer (%i bits)!' % (expected_length, len(unused) + len(data)))

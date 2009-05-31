@@ -1,0 +1,9 @@
+<protocol>
+    <sequence name="bob">
+        <reference name="sectors per cluster" type="byte" min="1" />
+        <field name="sectors" length="${sectors per cluster} * 8" />
+    </sequence>
+    <common>
+        <field name="byte" length="8" type="integer" />
+    </common>
+</protocol>
