@@ -67,6 +67,10 @@ def main():
         xmlout.to_file(decoder, data, sys.stdout, verbose=verbose)
     except bdec.DecodeError, ex:
         (filename, line_number, column_number) = lookup[ex.entry]
+
+        # We include an extra new line, as the xml is unlikely to have finished
+        # on a new line (issue164).
+        print
         sys.exit("%s[%i]: %s" % (filename, line_number, str(ex)))
 
     try:
