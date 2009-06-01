@@ -21,9 +21,11 @@
 
 import operator
 
+import bdec.choice as chc
 from bdec.expression import Delayed, Constant, ValueResult, LengthResult
+import bdec.field as fld
 from bdec.inspect.range import Range
-
+import bdec.sequence as seq
 
 
 def _delayed_range(delayed, entry, parameters):
@@ -143,9 +145,6 @@ class EntryValueType(IntegerType):
         return isinstance(other, EntryValueType) and self.entry is other.entry
 
     def range(self, parameters):
-        import bdec.choice as chc
-        import bdec.field as fld
-        import bdec.sequence as seq
         if isinstance(self.entry, fld.Field):
             length_range = _range(self.entry.length, self.entry, parameters)
             result = Range(0, pow(2, length_range.max) - 1)

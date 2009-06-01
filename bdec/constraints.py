@@ -19,7 +19,7 @@
 import operator
 
 from bdec import DecodeError
-from bdec.inspect.type import Range
+from bdec.inspect.range import Range
 
 class ConstraintError(DecodeError):
     def __init__(self, entry, actual, comparison, limit):
