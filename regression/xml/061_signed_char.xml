@@ -1,0 +1,6 @@
+<protocol>
+    <sequence name="a">
+        <field name="b" length="8" type="signed integer" />
+    </sequence>
+</protocol>
+

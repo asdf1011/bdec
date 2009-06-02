@@ -28,6 +28,7 @@ import bdec.expression as exp
 import bdec.field as fld
 import bdec.inspect.param as prm
 import bdec.spec
+from bdec.spec.integer import Integers
 import bdec.sequence as seq
 import bdec.sequenceof as sof
 
@@ -150,6 +151,7 @@ class _Handler(xml.sax.handler.ContentHandler):
         self.locator = None
         self._end_sequenceof = False
         self._unresolved_references = []
+        self._integers = Integers()
 
     def setDocumentLocator(self, locator):
         self.locator = locator
@@ -263,6 +265,7 @@ class _Handler(xml.sax.handler.ContentHandler):
         if len(children) != 1:
             raise self._error("Protocol should have a single entry to be decoded!")
 
+        self.common_entries.update(self._integers.common)
         self._resolve_common_references()
         if isinstance(children[0], _ReferencedEntry):
             # If the 'top level' item is a reference, it won't have had a
@@ -308,8 +311,10 @@ class _Handler(xml.sax.handler.ContentHandler):
                 "binary" : fld.Field.BINARY,
                 "hex" : fld.Field.HEX,
                 "integer" : fld.Field.INTEGER,
+                "signed integer" : fld.Field.INTEGER,
                 "text" : fld.Field.TEXT,
                 }
+
             format = lookup[attributes['type']]
         encoding = None
         if attributes.has_key('encoding'):
@@ -318,6 +323,16 @@ class _Handler(xml.sax.handler.ContentHandler):
                 _integer_encodings = [fld.Field.LITTLE_ENDIAN, fld.Field.BIG_ENDIAN]
                 if encoding not in _integer_encodings:
                     raise self._error("Invalid integer encoding '%s'! Valid values are: %s" % (encoding, ", ".join(_integer_encodings)))
+
+        if format is fld.Field.INTEGER and attributes['type'] == 'signed integer':
+            if encoding in [None, fld.Field.BIG_ENDIAN]:
+                integer = self._integers.signed_big_endian(length)
+                result = _ReferencedEntry(name, integer.name)
+                self._unresolved_references.append(result)
+                return result
+            else:
+                # FIXME: Handle little endian numbers...
+                raise NotImplementedError()
 
         # We'll create the field, then use it to create the expected value.
         result = fld.Field(name, length, format, encoding)

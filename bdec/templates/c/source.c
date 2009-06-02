@@ -406,7 +406,7 @@ ${recursiveDecode(entry, False)}
       %if not item.is_hidden():
     ${printText("<%s>", name , ws_offset)}
         %if item.format == Field.INTEGER:
-    printf("%i", ${varname}); 
+    printf("${settings.printf_format(item)}", ${varname}); 
         %elif item.format == Field.TEXT:
     print_escaped_string(&${varname});
         %elif item.format == Field.HEX:
@@ -461,7 +461,7 @@ ${recursivePrint(child.entry, '"%s"' % xmlname(child.name), child_var, ws_offset
       %endif
       <% next_offset = (ws_offset + 4) if not item.is_hidden() else ws_offset %>
       %if isinstance(item, Sequence) and settings.is_numeric(settings.ctype(item)):
-    printf("%*c%i\n", offset + ${ws_offset+4}, ' ', ${varname});
+    printf("%*c${settings.printf_format(item)}\n", offset + ${ws_offset+4}, ' ', ${varname});
       %elif isinstance(item, Sequence):
         %for i, child in enumerate(item.children):
           %if child_contains_data(child):
@@ -469,7 +469,7 @@ ${recursivePrint(child.entry, '"%s"' % xmlname(child.name), '%s.%s' % (varname, 
           %endif
         %endfor
         %if item.value is not None and not item.is_hidden():
-    printf("%*i\n", offset + ${ws_offset+4}, ${varname}.value); 
+    printf("%*i\n", offset + ${ws_offset+4}, ${varname}.value);
         %endif
       %elif isinstance(item, SequenceOf):
         <% iter_name = variable(item.name + ' counter' + str(iter_postfix.next())) %>

@@ -714,6 +714,19 @@ class TestXml(unittest.TestCase):
         list(a.decode(dt.Data('\x00\x00\x00\x12\x00\x00\x00\x04data')))
         self.assertRaises(ConstraintError, list, a.decode(dt.Data('\x00\x00\x00\x13\x00\x00\x00\x04data')))
 
+    def test_signed_char(self):
+        text = '''
+            <protocol>
+              <field name="a" length="8" type="signed integer" />
+            </protocol>
+            '''
+        a = xml.loads(text)[0]
+        data = dt.Data('\xff')
+        items = list((name, value) for is_starting, name, entry, data, value in a.decode(data) if not is_starting)
+        self.assertEqual(3, len(items))
+        self.assertEqual(-1, items[-1][1])
+
+
 class TestSave(unittest.TestCase):
     def test_simple_field(self):
         a = fld.Field('a', length=8)
@@ -808,4 +821,3 @@ class TestSave(unittest.TestCase):
             <field name="a" length="3" value="0x02" />
           </protocol>"""
         assert_xml_equivalent(expected, xml.save(a))
-
