@@ -747,6 +747,26 @@ class TestXml(unittest.TestCase):
         items = list((name, value) for is_starting, name, entry, data, value in a.decode(dt.Data('\x01\x00')) if not is_starting)
         self.assertEqual(1, items[-1][1])
 
+    def test_variable_length_signed_little_endian(self):
+        text = '''
+            <protocol>
+              <sequence name="a">
+                  <field name="length:" length="8" />
+                  <field name="b" length="${length:} * 8" type="signed integer" encoding="little endian" />
+              </sequence>
+            </protocol>
+            '''
+        a = xml.loads(text)[0]
+        data = dt.Data('\x02\xff\xff')
+        items = list((name, value) for is_starting, name, entry, data, value in a.decode(data) if not is_starting)
+        self.assertEqual(0, len(data))
+        self.assertEqual(-1, items[-2][1])
+
+        data = dt.Data('\x04\x01\x00\x00\x00')
+        items = list((name, value) for is_starting, name, entry, data, value in a.decode(data) if not is_starting)
+        self.assertEqual(0, len(data))
+        self.assertEqual(1, items[-2][1])
+
 
 class TestSave(unittest.TestCase):
     def test_simple_field(self):

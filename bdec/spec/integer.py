@@ -22,6 +22,7 @@ Classes for defining higher level integer encodings in a low level representatio
 
 import operator
 
+from bdec.choice import Choice
 from bdec.expression import compile, Constant, Delayed, UndecodedReferenceError
 from bdec.field import Field
 from bdec.sequence import Sequence
@@ -63,14 +64,29 @@ class Integers:
         return result
 
     def _variable_length_signed_little_endian(self, length_expr):
-        # TODO: Use a choice of fixed length little endian integers? (issue172)
-        raise NotImplementedError()
+        name = 'variable length integer'
+        try:
+            result = self.common[name]
+        except KeyError:
+            options = [
+                    self.signed_litte_endian(Constant(32)),
+                    self.signed_litte_endian(Constant(24)),
+                    self.signed_litte_endian(Constant(16)),
+                    self.signed_litte_endian(Constant(8)),
+                    ]
+            # We wrap the choice inside a sequence, as choices don't currently
+            # 'compile' to integers (and sequences do).
+            var_name = 'variable integer types:'
+            result = Sequence(name, [Choice(var_name, options)],
+                    value=compile('${%s}' % var_name))
+            self.common[name] = result
+        return result
 
     def signed_litte_endian(self, length_expr):
         try:
             length = length_expr.evaluate({})
         except UndecodedReferenceError:
-            return self._variable_length_signed_little_endian(self, length_expr)
+            return self._variable_length_signed_little_endian(length_expr)
 
         if length % 8 != 0:
             raise IntegerError('The length of little endian fields must be a multiple of 8.')
