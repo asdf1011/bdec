@@ -18,16 +18,23 @@
 
 import operator
 
-_operators1 = [
-        ('*', operator.mul),
-        ('/', operator.div),
-        ('%', operator.mod),
-        ]
+# A list of supported operators, in order of precedence
+_operators = [
+        [
+            ('*', operator.mul),
+            ('/', operator.div),
+            ('%', operator.mod),
+        ],
+        [
+            ('+', operator.add),
+            ('-', operator.sub),
+        ],
+        [
+            ('<<', operator.lshift),
+            ('>>', operator.rshift),
+        ],
+    ]
 
-_operators2 = [
-        ('+', operator.add),
-        ('-', operator.sub),
-        ]
 
 class UndecodedReferenceError(Exception):
     """
@@ -71,8 +78,8 @@ class Delayed(Expression):
 
     def __str__(self):
         lookup = {}
-        lookup.update((op, name) for name, op in _operators1)
-        lookup.update((op, name) for name, op in _operators2)
+        for ops in _operators:
+            lookup.update((op, name) for name, op in ops)
         return '(%s %s %s)' % (self.left, lookup[self.op], self.right)
 
 
@@ -167,13 +174,13 @@ def compile(text):
     expression = Forward()
     factor = hex | integer | named_reference | length_reference | ('(' + expression + ')').addParseAction(lambda s,l,t:t[1])
 
-    ops1 = reduce(operator.or_,
-            [(character + factor).addParseAction(_half(op)) for character, op in _operators1])
-    term = (factor + ZeroOrMore(ops1)).addParseAction(_collapse)
+    entry = factor
+    for ops in _operators:
+        op_parse = reduce(operator.or_,
+                [(character + entry).addParseAction(_half(op)) for character, op in ops])
+        entry = (entry + ZeroOrMore(op_parse)).addParseAction(_collapse)
 
-    ops2 = reduce(operator.or_,
-            [(character + term).addParseAction(_half(op)) for character, op in _operators2])
-    expression << (term + ZeroOrMore(ops2)).addParseAction(_collapse)
+    expression << entry
 
     complete = expression + StringEnd()
     try:

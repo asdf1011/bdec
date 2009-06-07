@@ -108,3 +108,16 @@ class TestRange(unittest.TestCase):
         b = Range(0, None)
         self.assertEqual(Range(0, 20), a % b)
 
+    def test_shift_left(self):
+        a = Range(0, 8)
+        b = Range(5, 5)
+        self.assertEqual(Range(0, 256), a << b)
+
+    def test_shift_right(self):
+        a = Range(256, 256)
+        b = Range(5, 5)
+        self.assertEqual(Range(8, 8), a >> b)
+
+        a = Range(256, 256)
+        c = Range(0, 5)
+        self.assertEqual(Range(8, 256), a >> c)

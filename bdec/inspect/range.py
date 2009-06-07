@@ -184,3 +184,9 @@ class Range:
                 return Range(0, self.max)
         return Range(0, other.max)
 
+    def __lshift__(self, other):
+        return Range(self.min << other.min, self.max << other.max)
+
+    def __rshift__(self, other):
+        return Range(self.min >> other.max, self.max >> other.min)
+

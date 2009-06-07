@@ -67,3 +67,14 @@ class TestExpression(unittest.TestCase):
     def test_hex(self):
         self.assertEqual(5, eval("0x5"))
         self.assertEqual(255, eval("0xfF"))
+
+    def test_shift_left(self):
+        self.assertEqual(256, eval("2 - 1 << 8"))
+        self.assertEqual(16, eval("1 << 4"))
+        self.assertEqual(1, eval("1 << 0"))
+
+    def test_shift_right(self):
+        self.assertEqual(1, eval("200 + 56 >> 8"))
+        self.assertEqual(8, eval("8 * 1 >> 0"))
+        self.assertEqual(2, eval("8 / 1 >> 2"))
+

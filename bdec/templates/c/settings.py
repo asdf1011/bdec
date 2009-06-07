@@ -139,6 +139,8 @@ _OPERATORS = {
         operator.__mul__ : '*',
         operator.__sub__ : '-',
         operator.__add__ : '+',
+        operator.lshift : '<<',
+        operator.rshift : '>>',
         }
 
 def value(entry, expr):
