@@ -28,7 +28,7 @@ import bdec.expression as exp
 import bdec.field as fld
 import bdec.inspect.param as prm
 import bdec.spec
-from bdec.spec.integer import Integers
+from bdec.spec.integer import Integers, IntegerError
 import bdec.sequence as seq
 import bdec.sequenceof as sof
 
@@ -325,14 +325,20 @@ class _Handler(xml.sax.handler.ContentHandler):
                     raise self._error("Invalid integer encoding '%s'! Valid values are: %s" % (encoding, ", ".join(_integer_encodings)))
 
         if format is fld.Field.INTEGER and attributes['type'] == 'signed integer':
-            if encoding in [None, fld.Field.BIG_ENDIAN]:
-                integer = self._integers.signed_big_endian(length)
-                result = _ReferencedEntry(name, integer.name)
-                self._unresolved_references.append(result)
-                return result
-            else:
-                # FIXME: Handle little endian numbers...
-                raise NotImplementedError()
+            # All signed integers are internally represented as sequences with
+            # child big endian numbers. This means the 'core' entries don't
+            # have to know about these types.
+            try:
+                if encoding in [None, fld.Field.BIG_ENDIAN]:
+                    integer = self._integers.signed_big_endian(length)
+                else:
+                    assert encoding == fld.Field.LITTLE_ENDIAN
+                    integer = self._integers.signed_litte_endian(length)
+            except IntegerError, error:
+                raise self._error(str(error))
+            result = _ReferencedEntry(name, integer.name)
+            self._unresolved_references.append(result)
+            return result
 
         # We'll create the field, then use it to create the expected value.
         result = fld.Field(name, length, format, encoding)

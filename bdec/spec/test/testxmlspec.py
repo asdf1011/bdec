@@ -726,6 +726,27 @@ class TestXml(unittest.TestCase):
         self.assertEqual(3, len(items))
         self.assertEqual(-1, items[-1][1])
 
+    def test_error_when_little_endian_non_multiple_of_eight(self):
+        text = '''
+            <protocol>
+              <field name="a" length="10" type="signed integer" encoding="little endian" />
+            </protocol>
+            '''
+        self.assertRaises(xml.XmlError, xml.loads, text)
+
+    def test_signed_litte_endian(self):
+        text = '''
+            <protocol>
+              <field name="a" length="16" type="signed integer" encoding="little endian" />
+            </protocol>
+            '''
+        a = xml.loads(text)[0]
+        items = list((name, value) for is_starting, name, entry, data, value in a.decode(dt.Data('\xff\xff')) if not is_starting)
+        self.assertEqual(-1, items[-1][1])
+
+        items = list((name, value) for is_starting, name, entry, data, value in a.decode(dt.Data('\x01\x00')) if not is_starting)
+        self.assertEqual(1, items[-1][1])
+
 
 class TestSave(unittest.TestCase):
     def test_simple_field(self):
@@ -821,3 +842,4 @@ class TestSave(unittest.TestCase):
             <field name="a" length="3" value="0x02" />
           </protocol>"""
         assert_xml_equivalent(expected, xml.save(a))
+

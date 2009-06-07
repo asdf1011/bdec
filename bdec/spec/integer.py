@@ -26,6 +26,9 @@ from bdec.expression import compile, Constant, Delayed, UndecodedReferenceError
 from bdec.field import Field
 from bdec.sequence import Sequence
 
+class IntegerError(Exception):
+    pass
+
 class Integers:
     """
     Class for generating integer entry decoders.
@@ -34,7 +37,7 @@ class Integers:
         self.common = {}
 
     def _variable_length_signed_big_endian(self, length):
-        # FIXME: We could perhaps add a shift '<<' operator?
+        # FIXME: We could perhaps add a shift '<<' operator? (issue170)
         raise NotImplementedError()
 
     def signed_big_endian(self, length_expr):
@@ -43,7 +46,7 @@ class Integers:
         except UndecodedReferenceError:
             return self._variable_length_signed_big_endian(length_expr)
 
-        name = 'integer %i' % length
+        name = 'big endian integer %i' % length
         try:
             result = self.common[name]
         except KeyError:
@@ -56,6 +59,42 @@ class Integers:
             # the constant may be too big a number).
             expression = compile('${signed:} * (0 - %i - 1) + ${value:}' % (minimum - 1))
             result = Sequence(name, [is_signed, value], value=expression)
+            self.common[name] = result
+        return result
+
+    def _variable_length_signed_little_endian(self, length_expr):
+        # TODO: Use a choice of fixed length little endian integers? (issue172)
+        raise NotImplementedError()
+
+    def signed_litte_endian(self, length_expr):
+        try:
+            length = length_expr.evaluate({})
+        except UndecodedReferenceError:
+            return self._variable_length_signed_little_endian(self, length_expr)
+
+        if length % 8 != 0:
+            raise IntegerError('The length of little endian fields must be a multiple of 8.')
+
+        name = 'little endian integer %s' % length
+        try:
+            result = self.common[name]
+        except KeyError:
+            children = []
+            num_bytes = length / 8
+            for i in range(num_bytes - 1):
+                children.append(Field('byte %i:' % i, 8))
+            children.append(Field('signed:', 1))
+            children.append(Field('byte %i:' % (num_bytes - 1), 7))
+            # We define the minimum as being '-number - 1' to avoid compiler
+            # warnings in C, where there are no negative constants, just
+            # constants that are then negated (and the positive version of
+            # the constant may be too big a number).
+            maximum = 1 << (length - 1)
+            names = ['${byte %i:}' % i for i in range(num_bytes)]
+            names.reverse()
+            reference = reduce(lambda left, right: '(%s) * 256 + %s' % (left, right), names)
+            value_text = '${signed:} * (0 - %i - 1) + %s' % (maximum - 1, reference)
+            result = Sequence(name, children, value=compile(value_text))
             self.common[name] = result
         return result
 
