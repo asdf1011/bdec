@@ -229,12 +229,12 @@
     BitBuffer temp;
     <% names = esc_names(('temp %s' % c.name for c in entry.children), variable) %>
     %for i, child in enumerate(entry.children):
-      %if child_contains_data(child) and is_recursive(entry, child.entry):
+      %if child_contains_data(child) and (is_recursive(entry, child.entry) or not contains_data(entry)):
     ${settings.ctype(child.entry)} ${names[i]};
       %endif
     %endfor
     %for i, child in enumerate(entry.children):
-      %if is_recursive(entry, child.entry):
+      %if is_recursive(entry, child.entry) or not contains_data(entry):
     <% temp_name = names[i] %>
       %else:
     <% temp_name = 'result->value.' + settings.var_name(entry, i) %>
