@@ -37,28 +37,14 @@ class Integers:
     def __init__(self):
         self.common = {}
 
-    def _variable_length_signed_big_endian(self, length):
-        # FIXME: We could perhaps add a shift '<<' operator? (issue170)
-        raise NotImplementedError()
-
     def signed_big_endian(self, length_expr):
-        try:
-            length = length_expr.evaluate({})
-        except UndecodedReferenceError:
-            return self._variable_length_signed_big_endian(length_expr)
-
-        name = 'big endian integer %i' % length
+        name = 'big endian integer'
         try:
             result = self.common[name]
         except KeyError:
             is_signed = Field('signed:', 1)
-            value = Field('value:', length - 1)
-            minimum = pow(2, length - 1)
-            # We define the minimum as being '-number - 1' to avoid compiler
-            # warnings in C, where there are no negative constants, just
-            # constants that are then negated (and the positive version of
-            # the constant may be too big a number).
-            expression = compile('${signed:} * (0 - %i - 1) + ${value:}' % (minimum - 1))
+            value = Field('value:', Delayed(operator.sub, length_expr, Constant(1)))
+            expression = compile('${signed:} * ((0 - 1) << (%s - 1)) + ${value:}' % (length_expr))
             result = Sequence(name, [is_signed, value], value=expression)
             self.common[name] = result
         return result
