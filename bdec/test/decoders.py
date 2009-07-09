@@ -144,7 +144,8 @@ class _CompiledDecoder:
 
 
 class _CDecoder(_CompiledDecoder):
-    COMPILER = "gcc"
+    # We compile using g++ because it is stricter than gcc
+    COMPILER = "g++"
     COMPILER_FLAGS = ["-Wall", "-Werror", '-g', '-o']
     FILE_TYPE = "c"
     LANGUAGE = "c"
