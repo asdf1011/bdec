@@ -25,15 +25,14 @@ from bdec.inspect.type import EntryLengthType, EntryValueType, IntegerType, Entr
 import operator
 import string
 
-keywords=['char', 'int', 'float', 'if', 'then', 'else', 'struct', 'for', 'null', 'value', 'signed']
+keywords=['char', 'int', 'float', 'if', 'then', 'else', 'struct', 'for', 'null', 'value', 'signed', 'true', 'false']
 unsigned_types = ['unsigned int', 'unsigned char']
 signed_types = ['int']
 
 def is_numeric(type):
     return type in signed_types or type in unsigned_types
 
-def printf_format(entry):
-    type = ctype(entry)
+def printf_format(type):
     if type in signed_types:
         return '%i'
     assert type in unsigned_types

@@ -49,7 +49,7 @@ int main(int argc, char* argv[])
     fseek(datafile, 0, SEEK_SET);
 
     /* Load the data file into memory */
-    unsigned char* data = malloc(length);
+    unsigned char* data = (unsigned char*)malloc(length);
     fread(data, length, 1, datafile);
     fclose(datafile);
 

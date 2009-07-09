@@ -33,7 +33,7 @@ typedef struct
 typedef struct
 {
     unsigned char* buffer;
-    int length;
+    unsigned int length;
 }Buffer;
 
 #endif

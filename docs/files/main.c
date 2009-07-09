@@ -27,7 +27,7 @@ int main(int argc, char* argv[])
     fseek(datafile, 0, SEEK_SET);
 
     /* Load the data file into memory */
-    unsigned char* data = malloc(length);
+    unsigned char* data = (unsigned char*)malloc(length);
     fread(data, length, 1, datafile);
     fclose(datafile);
 
@@ -46,7 +46,7 @@ int main(int argc, char* argv[])
     printf("Image height = %i\n", result.beginChunk.header.height);
 
     /* Look any text chunks, and print them. */
-    int i, j;
+    unsigned int i, j;
     for (i = 0; i < result.chunks.count; ++i)
     {
         if (result.chunks.items[i].option == TEXT_CHUNK)

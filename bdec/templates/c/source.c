@@ -105,7 +105,7 @@
   %elif entry.format == Field.TEXT:
     unsigned int i;
     value.length = ${settings.value(entry, entry.length)} / 8;
-    value.buffer = malloc(value.length + 1);
+    value.buffer = (unsigned char*)malloc(value.length + 1);
     value.buffer[value.length] = 0;
     for (i = 0; i < value.length; ++i)
     {
@@ -115,7 +115,7 @@
     unsigned int i;
     assert((${settings.value(entry, entry.length)}) % 8 == 0);
     value.length = ${settings.value(entry, entry.length)} / 8;
-    value.buffer = malloc(value.length);
+    value.buffer = (unsigned char*)malloc(value.length);
     for (i = 0; i < value.length; ++i)
     {
         value.buffer[i] = decode_integer(buffer, 8);
@@ -125,7 +125,7 @@
     value.num_bits = ${settings.value(entry, entry.length)};
     // 0 bits = 0 bytes, 1-8 bits = 1 byte, 9-16 bytes = 2 bytes...
     unsigned int numBytes = (buffer->start_bit + buffer->num_bits + 7) / 8;
-    value.buffer = malloc(numBytes);
+    value.buffer = (unsigned char*)malloc(numBytes);
     memcpy(value.buffer, buffer->buffer, numBytes);
     buffer->start_bit += value.num_bits;
     buffer->buffer += buffer->start_bit / 8;
@@ -177,13 +177,14 @@
 </%def>
 
 <%def name="decodeSequenceOf(entry)">
+    <% child_type = settings.ctype(entry.children[0].entry) %>
     %if entry.count is not None:
     unsigned int i;
     unsigned int num_items;
     num_items = ${settings.value(entry, entry.count)};
       %if contains_data(entry):
     result->count = num_items;
-    result->items = malloc(sizeof(${settings.ctype(entry.children[0].entry)}) * result->count);
+    result->items = (${child_type}*)malloc(sizeof(${child_type}) * result->count);
       %endif
     for (i = 0; i < num_items; ++i)
     {
@@ -203,7 +204,7 @@
       %if contains_data(entry):
         i = result->count;
         ++result->count;
-        result->items = realloc(result->items, sizeof(${settings.ctype(entry.children[0].entry)}) * (result->count));
+        result->items = (${child_type}*)realloc(result->items, sizeof(${child_type}) * (result->count));
       %endif
     %endif
         if (!${settings.decode_name(entry.children[0].entry)}(buffer${settings.call_params(entry, 0, '&result->items[i]')}))
@@ -247,7 +248,8 @@
       %endif
         *buffer = temp;
       %if child_contains_data(child) and is_recursive(entry, child.entry):
-        result->value.${settings.var_name(entry, i)} = malloc(sizeof(${settings.ctype(child.entry)}));
+        <% child_type = settings.ctype(child.entry) %>
+        result->value.${settings.var_name(entry, i)} = (${child_type}*)malloc(sizeof(${child_type}));
         *result->value.${settings.var_name(entry, i)} = ${temp_name};
       %endif
     }
@@ -370,60 +372,61 @@ ${static}int ${settings.decode_name(entry)}(BitBuffer* buffer${settings.define_p
 
 ${recursiveDecode(entry, False)}
 
-<%def name="printText(text, value, ws_offset)">
-  %if ws_offset == 0:
-    ## We have to print in two runs, as we cannot print zero space characters 
-    ## in a single print statement.
-    if (offset + ${ws_offset} > 0)
+<%def name="print_whitespace()">
+    if (offset > 0)
     {
-        printf("%*c", offset + ${ws_offset}, ' ');
+        printf("%*c", offset, ' ');
     }
-    %if value.startswith('"'):
-    printf("${text % value[1:-1]}");
-    %else:
-    printf("${text}", ${value});
-    %endif
-  %else:
-    %if value.startswith('"'):
-    printf("%*c${text % value[1:-1]}", offset + ${ws_offset}, ' ');
-    %else:
-    printf("%*c${text}", offset + ${ws_offset}, ' ', ${value});
-    %endif
-  %endif
 </%def>
+
 
 ## Recursively create the function for printing the entries.
 ##
 ## We buffer the output, as the generated output will be filtered to adjust
 ## the whitespace offset.
-<%def name="recursivePrint(item, name, varname, ws_offset, iter_postfix)" buffered="True">
-  %if item in common and item is not entry:
-    %if contains_data(item):
-    ${settings.print_name(item)}(&${varname}, offset + ${ws_offset}, ${name});
-    %endif
-  %elif contains_data(item):
-    %if isinstance(item, Field):
-      %if not item.is_hidden():
-    ${printText("<%s>", name , ws_offset)}
-        %if item.format == Field.INTEGER:
-    printf("${settings.printf_format(item)}", ${varname}); 
-        %elif item.format == Field.TEXT:
-    print_escaped_string(&${varname});
-        %elif item.format == Field.HEX:
-        <% iter_name = variable(item.name + ' counter' + str(iter_postfix.next())) %>
+<%def name="print_child(child, name)" buffered="True">
+   %if child_contains_data(child):
+${settings.print_name(child.entry)}(${name}, offset + 2, ${'"%s"' % xmlname(child.name)});
+   %endif
+</%def>
+
+<%def name="recursivePrint(entry, is_static)" buffered="True">
+%for child in entry.children:
+  %if child_contains_data(child) and  child.entry not in common:
+${recursivePrint(child.entry, True)}
+  %endif
+%endfor
+
+<% static = "static " if is_static else "" %>
+${static}void ${settings.print_name(entry)}(${settings.ctype(entry)}* data, unsigned int offset, const char* name)
+{
+  %if contains_data(entry):
+    ${print_whitespace()}
+    %if isinstance(entry, Field):
+      %if entry.format == Field.INTEGER:
+    printf(${'"<%s>' + settings.printf_format(settings.ctype(entry)) + '</%s>\\n"'}, name, *data, name);
+      %elif entry.format == Field.TEXT:
+    printf(${'"<%s>"'}, name);
+    print_escaped_string(data);
+    printf(${'"</%s>\\n"'}, name);
+      %elif entry.format == Field.HEX:
+    printf(${'"<%s>"'}, name);
+        <% iter_name = variable(entry.name + ' counter') %>
     unsigned int ${iter_name};
-    for (${iter_name} = 0; ${iter_name} < ${varname}.length; ++${iter_name})
+    for (${iter_name} = 0; ${iter_name} < data->length; ++${iter_name})
     {
-        printf("%02x", ${varname}.buffer[${iter_name}]);
+        printf("%02x", data->buffer[${iter_name}]);
     }
-        %elif item.format == Field.BINARY:
-        <% copy_name = variable('copy of ' + item.name + str(iter_postfix.next())) %>
-        <% iter_name = variable(item.name + ' whitespace counter' + str(iter_postfix.next())) %>
-        %if settings.is_numeric(settings.ctype(item)):
-          <% length = int(settings.value(item, item.length)) %>
-    BitBuffer ${copy_name} = {&${varname}, 8 - ${length}, ${length}};
+    printf(${'"</%s>\\n"'}, name);
+      %elif entry.format == Field.BINARY:
+    printf(${'"<%s>"'}, name);
+        <% copy_name = variable('copy of ' + entry.name) %>
+        <% iter_name = variable(entry.name + ' whitespace counter') %>
+        %if settings.is_numeric(settings.ctype(entry)):
+          <% length = int(settings.value(entry, entry.length)) %>
+    BitBuffer ${copy_name} = {data, 8 - ${length}, ${length}};
         %else:
-    BitBuffer ${copy_name} = ${varname};
+    BitBuffer ${copy_name} = *data;
         %endif
     unsigned int ${iter_name} = ${copy_name}.num_bits > 8 ? ${copy_name}.num_bits % 8 : 8;
     for (; ${copy_name}.num_bits != 0; --${iter_name})
@@ -435,67 +438,57 @@ ${recursiveDecode(entry, False)}
         }
         printf("%i", decode_integer(&${copy_name}, 1));
     }
-        %else:
-    #error Don't know how to print ${item}
-        %endif
+    printf(${'"</%s>\\n"'}, name);
+      %else:
+    <% raise Exception("Don't know how to print %s" % entry) %>
       %endif
-    %elif isinstance(item, Choice):
-    switch(${varname}.option)
+    %elif settings.is_numeric(settings.ctype(entry)):
+    printf(${'"<%s>' + settings.printf_format(settings.ctype(entry)) + '</%s>\\n"'}, name, *data, name);
+    %elif isinstance(entry, Choice):
+    switch(data->option)
     {
-      %for i, child in enumerate(item.children):
-    case ${enum_value(item, i)}:
+      %for i, child in enumerate(entry.children):
+    case ${enum_value(entry, i)}:
         %if child_contains_data(child):
-          <% child_var = "%s.value.%s" % (varname, settings.var_name(item, i)) %>
-          %if is_recursive(entry, child.entry):
-            <% child_var = '(*%s)' % child_var %>
+          <% child_var = "data->value.%s" % (settings.var_name(entry, i)) %>
+          %if not is_recursive(entry, child.entry):
+            <% child_var = '&%s' % child_var %>
           %endif
-${recursivePrint(child.entry, '"%s"' % xmlname(child.name), child_var, ws_offset, iter_postfix) | ws(4)}
+        ${print_child(child, child_var)|ws(8)}
         %endif
         break;
       %endfor
     }
-    %else:
-    ## Print everything other than fields
-      %if not item.is_hidden():
-    ${printText("<%s>\\n", name, ws_offset)}
-      %endif
-      <% next_offset = (ws_offset + 4) if not item.is_hidden() else ws_offset %>
-      %if isinstance(item, Sequence) and settings.is_numeric(settings.ctype(item)):
-    printf("%*c${settings.printf_format(item)}\n", offset + ${ws_offset+4}, ' ', ${varname});
-      %elif isinstance(item, Sequence):
-        %for i, child in enumerate(item.children):
-          %if child_contains_data(child):
-${recursivePrint(child.entry, '"%s"' % xmlname(child.name), '%s.%s' % (varname, settings.var_name(item, i)), next_offset, iter_postfix)}
-          %endif
-        %endfor
-        %if item.value is not None and not item.is_hidden():
-    printf("%*i\n", offset + ${ws_offset+4}, ${varname}.value);
+    %elif isinstance(entry, Sequence):
+    printf(${'"<%s>\\n"'}, name);
+      %for i, child in enumerate(entry.children):
+        %if child_contains_data(child):
+    ${print_child(child, "&data->%s" % settings.var_name(entry, i))|ws(4)}
         %endif
-      %elif isinstance(item, SequenceOf):
-        <% iter_name = variable(item.name + ' counter' + str(iter_postfix.next())) %>
+      %endfor
+      %if entry.value is not None and not entry.is_hidden():
+    ${print_whitespace()}
+    <% format = settings.printf_format(settings.ctype(EntryValueType(entry))) %>
+    printf("%*${format[1]}\\n", offset + 2, data->value);
+      %endif
+    ${print_whitespace()}
+    printf(${'"</%s>\\n"'}, name);
+    %elif isinstance(entry, SequenceOf):
+    printf(${'"<%s>\\n"'}, name);
+        <% iter_name = variable(entry.name + ' counter') %>
     unsigned int ${iter_name};
-    for (${iter_name} = 0; ${iter_name} < ${varname}.count; ++${iter_name})
+    for (${iter_name} = 0; ${iter_name} < data->count; ++${iter_name})
     {
-${recursivePrint(item.children[0].entry, '"%s"' % xmlname(item.children[0].name), '%s.items[%s]' % (varname, iter_name), next_offset, iter_postfix) | ws(4)}
+        ${print_child(entry.children[0], '&data->items[%s]' % (iter_name))|ws(8)}
     }
-      %else:
-    #error Don't know how to print ${item}
-      %endif
-    %endif
-    %if not item.is_hidden() and not isinstance(item, chc.Choice):
-      %if not isinstance(item, Field):
-    ${printText("</%s>\\n", name, ws_offset)}
-      %elif name.startswith('"'):
-    printf("</${name[1:-1]}>\n");
-      %else:
-    printf("</${'%s'}>\n", ${name});
-      %endif
+    ${print_whitespace()}
+    printf(${'"</%s>\\n"'}, name);
+    %else:
+      <% raise Exception("Don't know how to print %s!" % entry) %>
     %endif
   %endif
+}
 </%def>
 
-void ${settings.print_name(entry)}(${settings.ctype(entry)}* data, unsigned int offset, char* name)
-{
-${recursivePrint(entry, 'name', '(*data)', 0, iter(xrange(100)))}
-}
+${recursivePrint(entry, False)}
 
