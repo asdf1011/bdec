@@ -65,8 +65,10 @@
     if (${value} != ${int(constraint.limit)})
       %elif settings.ctype(entry) == 'BitBuffer':
     ${compare_binary_expected(entry, constraint.limit)}
-      %elif settings.ctype(entry) == 'Buffer':
-    if (memcmp(${value}.buffer, ${settings.c_string(entry.encode_value(constraint.limit).bytes())}, ${value}.length) != 0)
+      %elif settings.ctype(entry) in ['Buffer', 'Text']:
+      <% expected = entry.encode_value(constraint.limit) %>
+    if (${value}.length != ${len(expected) / 8} ||
+            memcmp(${value}.buffer, ${settings.c_string(expected.bytes())}, ${len(expected) / 8}) != 0)
       %else:
       <%raise Exception("Don't know how to compare '%s' types for equality in entry '%s'!" % (constraint, entry)) %>
       %endif
@@ -76,8 +78,8 @@
     if (${value} ${constraint.type} ${str(constraint.limit)})
       %elif settings.ctype(entry) == 'BitBuffer':
     if (get_integer(&${value}) ${constraint.type} ${str(constraint.limit)})
-      %elif settings.ctype(entry) == 'Buffer':
-    if (${value}.length != 1 || ${value}.buffer[0] ${constraint.type} ${str(constraint.limit)})
+      %elif settings.ctype(entry) in ['Buffer', 'Text']:
+    if (${value}.length != 1 || (unsigned int)${value}.buffer[0] ${constraint.type} ${str(constraint.limit)})
       %else:
       <%raise Exception("Don't know how to compare '%s' types!" % constraint) %>
       %endif
@@ -105,7 +107,7 @@
   %elif entry.format == Field.TEXT:
     unsigned int i;
     value.length = ${settings.value(entry, entry.length)} / 8;
-    value.buffer = (unsigned char*)malloc(value.length + 1);
+    value.buffer = (char*)malloc(value.length + 1);
     value.buffer[value.length] = 0;
     for (i = 0; i < value.length; ++i)
     {

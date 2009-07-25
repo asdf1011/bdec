@@ -77,7 +77,7 @@ int decode_little_endian_integer(BitBuffer* buffer, int num_bits)
     return result;
 }
 
-void print_escaped_string(Buffer* text)
+void print_escaped_string(Text* text)
 {
     char c;
     unsigned int i;

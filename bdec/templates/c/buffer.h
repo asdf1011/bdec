@@ -36,4 +36,10 @@ typedef struct
     unsigned int length;
 }Buffer;
 
+typedef struct
+{
+    char* buffer;
+    unsigned int length;
+}Text;
+
 #endif

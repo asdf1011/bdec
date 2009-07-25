@@ -26,6 +26,11 @@ import operator
 import string
 
 keywords=['char', 'int', 'float', 'if', 'then', 'else', 'struct', 'for', 'null', 'value', 'signed', 'true', 'false']
+
+# Also define our types as keywords, as we don't want the generated names to
+# clash with our types.
+keywords += ['Buffer', 'Text', 'BitBuffer']
+
 unsigned_types = ['unsigned int', 'unsigned char']
 signed_types = ['int']
 
@@ -63,7 +68,7 @@ def _entry_type(entry):
         if entry.format == fld.Field.INTEGER:
             return _integer_type(EntryValueType(entry))
         if entry.format == fld.Field.TEXT:
-            return 'Buffer'
+            return 'Text'
         elif entry.format == fld.Field.HEX:
             return 'Buffer'
         elif entry.format == fld.Field.BINARY:
