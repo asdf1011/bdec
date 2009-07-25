@@ -37,12 +37,11 @@ from bdec.inspect.type import VariableType, IntegerType, MultiSourceType, \
 
 
 class BadReferenceError(bdec.DecodeError):
-    def __init__(self, entry, name):
+    def __init__(self, entry):
         bdec.DecodeError.__init__(self, entry)
-        self.name = name
 
     def __str__(self):
-        return "Cannot reference '%s' in %s" % (self.name, self.entry)
+        return "Can't reference %s" % (self.entry)
 
 class BadReferenceTypeError(bdec.DecodeError):
     def __init__(self, entry):
@@ -339,7 +338,7 @@ class ExpressionParameters(_Parameters):
                 self._referenced_values.add(entry)
             else:
                 # We can only reference sequences with a value
-                raise BadReferenceError(entry, reference.name)
+                raise BadReferenceError(entry)
         elif isinstance(entry, chc.Choice):
             # When referencing a choice, we want to attempt to reference each
             # of its children.
@@ -351,7 +350,7 @@ class ExpressionParameters(_Parameters):
                 local_names = child_params.setdefault(child, {})
                 local_names[child_reference.name] = reference.name
         else:
-            raise BadReferenceError(entry, name)
+            raise BadReferenceError(entry)
         return param_type
 
     def _add_out_params(self, entry, reference):
@@ -406,7 +405,7 @@ class ExpressionParameters(_Parameters):
                 raise ent.MissingExpressionReferenceError(entry, reference.name)
         else:
             # We don't know how to resolve a reference to this type of entry!
-            raise BadReferenceError(entry, reference.name)
+            raise BadReferenceError(entry)
         return result
 
     def get_locals(self, entry):

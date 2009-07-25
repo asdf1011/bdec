@@ -154,6 +154,23 @@ class TestXml(unittest.TestCase):
         self.assertEqual(3, len(result))
         self.assertEqual("hello", result[1])
 
+    def test_failure_when_referencing_sequenceof(self):
+        text = """
+            <protocol>
+                <sequence name="rabbit">
+                    <sequenceof name="length:" count="1" type="integer" >
+                        <field name="cat" length="8" />
+                    </sequenceof>
+                    <field name="bob" length="${length:} * 8" type="text" />
+                </sequence>
+            </protocol>"""
+        try:
+            xml.loads(text)
+            raise Exception('Exception not thrown!')
+        except bdec.spec.LoadError, ex:
+            print str(ex)
+            self.assertTrue("Can't reference " in str(ex))
+
     def test_expression_references_sub_field(self):
         text = """
             <protocol>

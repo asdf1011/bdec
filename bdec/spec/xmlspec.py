@@ -410,7 +410,7 @@ def _load_from_file(file, filename):
         handler.decoder.validate()
         for entry in handler.common_entries.itervalues():
             entry.validate()
-    except ent.MissingExpressionReferenceError, ex:
+    except (ent.MissingExpressionReferenceError, prm.BadReferenceError), ex:
         class Locator:
             def getLineNumber(self):
                 return handler.lookup[ex.entry][1]
