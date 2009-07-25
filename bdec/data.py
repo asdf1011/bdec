@@ -89,6 +89,9 @@ class _ByteBuffer:
     def read_byte(self, offset):
         raise NotImplementedError()
 
+    def __len__(self):
+        raise NotImplementedError()
+
 
 class _FileBuffer(_ByteBuffer):
     """Byte buffer that reads from a seekable file."""
@@ -105,6 +108,13 @@ class _FileBuffer(_ByteBuffer):
         self._offset = offset + 1
         return ord(result)
 
+    def __len__(self):
+        pos = self._file.tell()
+        self._file.seek(0, os.SEEK_END)
+        result = self._file.tell()
+        self._file.seek(pos)
+        return result
+
 
 class _MemoryBuffer(_ByteBuffer):
     """Byte buffer that reads directly from in memory data."""
@@ -116,6 +126,9 @@ class _MemoryBuffer(_ByteBuffer):
         if offset >= len(self._buffer):
             raise _OutOfDataError()
         return ord(self._buffer[offset])
+
+    def __len__(self):
+        return len(self._buffer)
 
 
 class Data:
@@ -259,12 +272,7 @@ class Data:
         if self._end is not None:
             return self._end - self._start
 
-        # We don't know the size of the buffer, so we'll have to iterate over
-        # the whole lot to find it.
-        i = 0
-        for bit in self._get_bits():
-            i += 1
-        return i
+        return len(self._buffer) * 8 - self._start
 
     def empty(self):
         """Check to see if we have data left.
