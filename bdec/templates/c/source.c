@@ -422,7 +422,7 @@ ${static}void ${settings.print_name(entry)}(unsigned int offset, const char* nam
     ${print_whitespace()}
     %if isinstance(entry, Field):
       %if not contains_data(entry):
-    printf(${'"<%s />"'}, name);
+    printf(${'"<%s />\\n"'}, name);
       %elif entry.format == Field.INTEGER:
     printf(${'"<%s>' + settings.printf_format(settings.ctype(entry)) + '</%s>\\n"'}, name, *data, name);
       %elif entry.format == Field.TEXT:
