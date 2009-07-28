@@ -27,6 +27,7 @@ entries.
 
 import bdec
 import bdec.choice as chc
+from bdec.constraints import Equals
 import bdec.entry as ent
 import bdec.field as fld
 import bdec.sequence as seq
@@ -509,6 +510,31 @@ class DataChecker:
         for child in entry.children:
              self._populate(child.entry, stack, intermediates)
         stack.remove(entry)
+
+        if not isinstance(entry, chc.Choice) and not entry.is_hidden():
+            # We are visible; check to see if either we (or any of our
+            # children) contain data.
+            for child in entry.children:
+                if self._has_data[child.entry]:
+                    break
+            else:
+                # None of the children contain data; this entry will only contain
+                # data if implicitly has data itself.
+                if isinstance(entry, fld.Field) or \
+                        (isinstance(entry, seq.Sequence) and entry.value is not None):
+                    # This entry's children don't contain data, but it appears to
+                    # have some implicit data.
+                    for constraint in entry.constraints:
+                        if isinstance(constraint, Equals):
+                            # The 'implicit' data has an expected value, so it
+                            # isn't considered as new data.
+                            self._has_data[entry] = False
+                            break
+                elif isinstance(entry, sof.SequenceOf) and \
+                        not ent.is_hidden(entry.children[0].name):
+                    self._has_data[entry] = True
+                else:
+                    self._has_data[entry] = False
 
         if not self._has_data[entry]:
             self._hide_children(entry)

@@ -96,7 +96,13 @@ class TestXml(unittest.TestCase):
         hidden = fld.Field('', 8, fld.Field.INTEGER, constraints=[Equals(0)])
         spec = seq.Sequence('blah', [hidden])
         text = xml.to_string(spec, dt.Data('\x00'), verbose=True)
-        self.assertEqual('<blah>\n    <_hidden>0<!-- hex (1 bytes): 00 --></_hidden>\n</blah>\n', text)
+        self.assertEqual('<blah>\n    <_hidden><!-- hex (1 bytes): 00 --></_hidden>\n</blah>\n', text)
+
+    def test_field_with_expected_value(self):
+        a = fld.Field('a', 8, fld.Field.INTEGER, constraints=[Equals(0)])
+        spec = seq.Sequence('blah', [a])
+        text = xml.to_string(spec, dt.Data('\x00'))
+        self.assertEqual('<blah>\n    <a></a>\n</blah>\n', text)
 
     def test_different_child_name(self):
         digit = fld.Field('digit:', length=8)

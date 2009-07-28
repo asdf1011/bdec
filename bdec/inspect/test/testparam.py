@@ -472,6 +472,9 @@ class TestResultParameters(unittest.TestCase):
     def test_hidden_reference(self):
         # Test a visible common reference that is hidden through its reference
         # name. This is common for integers defined at the common level.
+        #
+        # Note that in this case 'b' won't have an output, because all of the
+        # fields it defines are hidden, and so doesn't have a type itself.
         a = fld.Field('a', 8, fld.Field.INTEGER)
         b = seq.Sequence('b', [ent.Child('a:', a)])
         lookup = prm.ResultParameters([a, b])
@@ -479,6 +482,18 @@ class TestResultParameters(unittest.TestCase):
         self.assertEqual([prm.Param('result', prm.Param.OUT, EntryType(b))], lookup.get_params(b))
         self.assertEqual([prm.Local('unused a:', EntryType(a))], lookup.get_locals(b))
         self.assertEqual([prm.Param('unused a:', prm.Param.OUT, EntryType(a))], lookup.get_passed_variables(b, b.children[0]))
+
+    def test_sequence_value(self):
+        a = fld.Field('a:', 8, fld.Field.INTEGER)
+        b = seq.Sequence('b', [a], expr.compile('${a:}'))
+        lookup = prm.ResultParameters([b])
+        self.assertEqual([], lookup.get_params(a))
+        self.assertEqual([prm.Param('result', prm.Param.OUT, EntryType(b))],
+                lookup.get_params(b))
+        self.assertEqual([], lookup.get_locals(a))
+        self.assertEqual([], lookup.get_locals(b))
+        self.assertEqual([], lookup.get_passed_variables(b, b.children[0]))
+
 
 class TestDataChecker(unittest.TestCase):
     def test_hidden_entry_visible_child(self):

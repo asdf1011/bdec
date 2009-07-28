@@ -186,14 +186,18 @@
     num_items = ${settings.value(entry, entry.count)};
       %if contains_data(entry):
     result->count = num_items;
+        %if child_contains_data(entry.children[0]):
     result->items = (${child_type}*)malloc(sizeof(${child_type}) * result->count);
+        %endif
       %endif
     for (i = 0; i < num_items; ++i)
     {
     %else:
       %if contains_data(entry):
     unsigned int i;
+        %if child_contains_data(entry.children[0]):
     result->items = 0;
+        %endif
     result->count = 0;
       %endif
       %if entry.length is not None:
@@ -206,12 +210,14 @@
       %if contains_data(entry):
         i = result->count;
         ++result->count;
+        %if child_contains_data(entry.children[0]):
         result->items = (${child_type}*)realloc(result->items, sizeof(${child_type}) * (result->count));
+        %endif
       %endif
     %endif
         if (!${settings.decode_name(entry.children[0].entry)}(buffer${settings.call_params(entry, 0, '&result->items[i]')}))
         {
-      %if contains_data(entry):
+      %if child_contains_data(entry.children[0]):
             unsigned int j;
             for (j=0; j< i; ++j)
             {
@@ -292,12 +298,14 @@ ${static}void ${settings.free_name(entry)}(${settings.ctype(entry)}* value)
         %endif
     %endfor
   %elif isinstance(entry, SequenceOf):
+    %if child_contains_data(entry.children[0]):
     unsigned int i;
     for (i = 0; i < value->count; ++i)
     {
         ${settings.free_name(entry.children[0].entry)}(&value->items[i]);
     }
     free(value->items);
+    %endif
   %elif isinstance(entry, Choice):
     switch(value->option)
     {
@@ -387,25 +395,35 @@ ${recursiveDecode(entry, False)}
 ## We buffer the output, as the generated output will be filtered to adjust
 ## the whitespace offset.
 <%def name="print_child(child, name)" buffered="True">
-   %if child_contains_data(child):
+   %if not is_hidden(child.name):
+     %if contains_data(child.entry):
 ${settings.print_name(child.entry)}(${name}, offset + 2, ${'"%s"' % xmlname(child.name)});
+     %else:
+${settings.print_name(child.entry)}(offset + 2, ${'"%s"' % xmlname(child.name)});
+     %endif
    %endif
 </%def>
 
 <%def name="recursivePrint(entry, is_static)" buffered="True">
 %for child in entry.children:
-  %if child_contains_data(child) and  child.entry not in common:
+  %if not is_hidden(child.name) and  child.entry not in common:
 ${recursivePrint(child.entry, True)}
   %endif
 %endfor
 
 <% static = "static " if is_static else "" %>
+%if contains_data(entry):
 ${static}void ${settings.print_name(entry)}(${settings.ctype(entry)}* data, unsigned int offset, const char* name)
+%else:
+${static}void ${settings.print_name(entry)}(unsigned int offset, const char* name)
+%endif
 {
-  %if contains_data(entry):
+  %if not entry.is_hidden():
     ${print_whitespace()}
     %if isinstance(entry, Field):
-      %if entry.format == Field.INTEGER:
+      %if not contains_data(entry):
+    printf(${'"<%s />"'}, name);
+      %elif entry.format == Field.INTEGER:
     printf(${'"<%s>' + settings.printf_format(settings.ctype(entry)) + '</%s>\\n"'}, name, *data, name);
       %elif entry.format == Field.TEXT:
     printf(${'"<%s>"'}, name);
@@ -451,7 +469,7 @@ ${static}void ${settings.print_name(entry)}(${settings.ctype(entry)}* data, unsi
     {
       %for i, child in enumerate(entry.children):
     case ${enum_value(entry, i)}:
-        %if child_contains_data(child):
+        %if not is_hidden(child.name):
           <% child_var = "data->value.%s" % (settings.var_name(entry, i)) %>
           %if not is_recursive(entry, child.entry):
             <% child_var = '&%s' % child_var %>
@@ -464,7 +482,7 @@ ${static}void ${settings.print_name(entry)}(${settings.ctype(entry)}* data, unsi
     %elif isinstance(entry, Sequence):
     printf(${'"<%s>\\n"'}, name);
       %for i, child in enumerate(entry.children):
-        %if child_contains_data(child):
+        %if not is_hidden(child.name):
     ${print_child(child, "&data->%s" % settings.var_name(entry, i))|ws(4)}
         %endif
       %endfor

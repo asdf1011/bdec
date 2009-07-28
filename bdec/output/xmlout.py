@@ -83,8 +83,9 @@ def to_file(decoder, binary, output, encoding="utf-8", verbose=False):
             offset = offset + 4
 
         if value is not None:
-            text = _xml_strip(unicode(value))
-            handler.characters(text)
+            if not isinstance(entry, fld.Field) or entry.expected is None:
+                text = _xml_strip(unicode(value))
+                handler.characters(text)
 
             if verbose and isinstance(entry, fld.Field):
                 handler.comment(str(data))

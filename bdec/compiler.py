@@ -29,6 +29,7 @@ import pkg_resources
 import sys
 
 import bdec.choice as chc
+import bdec.entry as ent
 import bdec.inspect.param as prm
 import bdec.output.xmlout
 
@@ -340,11 +341,12 @@ def generate_code(spec, language, output_dir, common_entries=[]):
     lookup['raw_params'] = params
     lookup['get_passed_variables'] = info.get_passed_variables
     lookup['is_end_sequenceof'] = info.is_end_sequenceof
+    lookup['is_hidden'] = ent.is_hidden
     lookup['is_value_referenced'] = info.is_value_referenced
     lookup['is_length_referenced'] = info.is_length_referenced
     lookup['is_recursive'] = utils.is_recursive
-    lookup['child_contains_data'] = lambda child: data_checker.child_has_data(child)
-    lookup['contains_data'] = lambda entry: data_checker.contains_data(entry)
+    lookup['child_contains_data'] = data_checker.child_has_data
+    lookup['contains_data'] = data_checker.contains_data
     lookup['iter_inner_entries'] = utils.iter_inner_entries
     lookup['iter_required_common'] = utils.iter_required_common
     lookup['iter_optional_common'] = utils.iter_optional_common

@@ -37,7 +37,9 @@ extern "C" {
 #endif
 
 <%def name="c_define(entry)" >
-  %if isinstance(entry, Sequence) and not settings.is_numeric(settings.ctype(entry)):
+  %if not contains_data(entry):
+
+  %elif isinstance(entry, Sequence) and not settings.is_numeric(settings.ctype(entry)):
 ${settings.ctype(entry)}
 {
   %for i, child in enumerate(entry.children):
@@ -77,7 +79,9 @@ ${settings.ctype(entry)}
   %elif isinstance(entry, SequenceOf):
 ${settings.ctype(entry)}
 {
+    %if child_contains_data(entry.children[0]):
     ${settings.ctype(entry.children[0].entry)}* items;
+    %endif
     unsigned int count;
 };
   %endif
@@ -99,6 +103,7 @@ ${c_define(e)}
 //   return -- 0 for decode failure, non-zero for success.
 int ${settings.decode_name(entry)}( BitBuffer* buffer${settings.define_params(entry)});
 
+%if contains_data(entry):
 // Free a previously decoded object.
 // Do not attempt to free an object that has not been decoded, or was only
 // partially decoded.
@@ -106,9 +111,14 @@ int ${settings.decode_name(entry)}( BitBuffer* buffer${settings.define_params(en
 //   value -- The entry whose contents is to be released. The pointer 'value'
 //     will not be freed.
 void ${settings.free_name(entry)}(${settings.ctype(entry)}* value);
+%endif
 
 // Print an xml representation of a ${entry.name} object.
+%if contains_data(entry):
 void ${settings.print_name(entry)}(${settings.ctype(entry)}* data, unsigned int offset, const char* name);
+%else:
+void ${settings.print_name(entry)}(unsigned int offset, const char* name);
+%endif
 
 #ifdef __cplusplus
 }
