@@ -87,16 +87,24 @@ class SequenceOf(bdec.entry.Entry):
                 raise NegativeSequenceofLoop(self, count)
 
             for i in range(count):
-                yield i
+                yield None
         elif self.length is not None:
             while 1:
                 if data.empty():
-                    # We ran out of data on a greedy sequence...
+                    # We ran out of data on a fixed length buffer decode...
+                    break
+                yield None
+        elif self.end_entries:
+            while 1:
+                if context['should end']:
                     break
                 yield None
         else:
+            # Nothing to stop the decode; no count, lenght, or end entries.
+            # This is a greedy sequenceof; decode until all the data is gone.
             while 1:
-                if context['should end']:
+                if data.empty():
+                    # We ran out of data on a fixed length buffer decode...
                     break
                 yield None
 

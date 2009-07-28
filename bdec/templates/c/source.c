@@ -200,11 +200,11 @@
         %endif
     result->count = 0;
       %endif
-      %if entry.length is not None:
-    while (buffer->num_bits > 0)
-      %else:
+      %if entry.end_entries:
     ${'should end'|variable} = 0;
     while (!${'should end' |variable})
+      %else:
+    while (buffer->num_bits > 0)
       %endif
     {
       %if contains_data(entry):

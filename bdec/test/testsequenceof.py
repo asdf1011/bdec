@@ -56,6 +56,14 @@ class TestSequenceOf(unittest.TestCase):
         self.assertRaises(sof.InvalidSequenceOfCount, list, sequenceof.encode(query, data))
 
     def test_greedy_decode(self):
+        sequenceof = sof.SequenceOf("blah", fld.Field("cat", 8, format=fld.Field.TEXT), None, length=None)
+        rawdata = dt.Data("date")
+        items = [value for is_starting, name, entry, data, value in sequenceof.decode(rawdata) if isinstance(entry, fld.Field) and not is_starting]
+        self.assertEqual(4, len(items))
+        self.assertEqual('date', ''.join(items))
+        self.assertEqual('', rawdata.bytes())
+
+    def test_length_decode(self):
         sequenceof = sof.SequenceOf("blah", fld.Field("cat", 8, format=fld.Field.TEXT), None, length=32)
         rawdata = dt.Data("dateunused")
         items = [value for is_starting, name, entry, data, value in sequenceof.decode(rawdata) if isinstance(entry, fld.Field) and not is_starting]
@@ -63,7 +71,7 @@ class TestSequenceOf(unittest.TestCase):
         self.assertEqual('date', ''.join(items))
         self.assertEqual('unused', rawdata.bytes())
 
-    def test_run_out_of_data_greedy(self):
+    def test_run_out_of_data_length(self):
         sequenceof = sof.SequenceOf("blah", fld.Field("cat", 8, format=fld.Field.TEXT), None, length=32)
         rawdata = dt.Data("date")
         items = [value for is_starting, name, entry, data, value in sequenceof.decode(rawdata) if isinstance(entry, fld.Field) and not is_starting]
