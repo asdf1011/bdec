@@ -79,9 +79,7 @@ specification are in bits, not bytes (so we need to multiply by eight). This
 decodes to::
 
   <png>
-    <signature>
-        89504e470d0a1a0a
-    </signature>
+    <signature />
   </png>
   Over 8 bytes undecoded!
   hex (8 bytes): 0000000d49484452
