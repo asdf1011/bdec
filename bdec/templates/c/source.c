@@ -394,12 +394,12 @@ ${recursiveDecode(entry, False)}
 ##
 ## We buffer the output, as the generated output will be filtered to adjust
 ## the whitespace offset.
-<%def name="print_child(child, name)" buffered="True">
+<%def name="print_child(child, name, offset=2)" buffered="True">
    %if not is_hidden(child.name):
      %if contains_data(child.entry):
-${settings.print_name(child.entry)}(${name}, offset + 2, ${'"%s"' % xmlname(child.name)});
+${settings.print_name(child.entry)}(${name}, offset + ${offset}, ${'"%s"' % xmlname(child.name)});
      %else:
-${settings.print_name(child.entry)}(offset + 2, ${'"%s"' % xmlname(child.name)});
+${settings.print_name(child.entry)}(offset + ${offset}, ${'"%s"' % xmlname(child.name)});
      %endif
    %endif
 </%def>
@@ -419,8 +419,8 @@ ${static}void ${settings.print_name(entry)}(unsigned int offset, const char* nam
 %endif
 {
   %if not entry.is_hidden():
-    ${print_whitespace()}
     %if isinstance(entry, Field):
+    ${print_whitespace()}
       %if not contains_data(entry):
     printf(${'"<%s />\\n"'}, name);
       %elif entry.format == Field.INTEGER:
@@ -463,6 +463,7 @@ ${static}void ${settings.print_name(entry)}(unsigned int offset, const char* nam
     <% raise Exception("Don't know how to print %s" % entry) %>
       %endif
     %elif settings.is_numeric(settings.ctype(entry)):
+    ${print_whitespace()}
     printf(${'"<%s>' + settings.printf_format(settings.ctype(entry)) + '</%s>\\n"'}, name, *data, name);
     %elif isinstance(entry, Choice):
     switch(data->option)
@@ -474,12 +475,13 @@ ${static}void ${settings.print_name(entry)}(unsigned int offset, const char* nam
           %if not is_recursive(entry, child.entry):
             <% child_var = '&%s' % child_var %>
           %endif
-        ${print_child(child, child_var)|ws(8)}
+        ${print_child(child, child_var, 0)|ws(8)}
         %endif
         break;
       %endfor
     }
     %elif isinstance(entry, Sequence):
+    ${print_whitespace()}
     printf(${'"<%s>\\n"'}, name);
       %for i, child in enumerate(entry.children):
         %if not is_hidden(child.name):
@@ -494,6 +496,7 @@ ${static}void ${settings.print_name(entry)}(unsigned int offset, const char* nam
     ${print_whitespace()}
     printf(${'"</%s>\\n"'}, name);
     %elif isinstance(entry, SequenceOf):
+    ${print_whitespace()}
     printf(${'"<%s>\\n"'}, name);
         <% iter_name = variable(entry.name + ' counter') %>
     unsigned int ${iter_name};
