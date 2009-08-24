@@ -23,7 +23,8 @@ import weakref
 
 class DataError(Exception):
     """Base class for all data errors."""
-    pass
+    def __unicode__(self):
+        return str(self)
 
 class NotEnoughDataError(DataError):
     """Not enough data was available to fulfill the request."""
