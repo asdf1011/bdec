@@ -49,20 +49,20 @@ def _parse_args():
         sys.exit('Specification not set!')
 
     if binary is None:
-        binary = sys.stdin.read()
-    data = dt.Data(binary)
+        binary = sys.stdin
 
-    return (spec, data, verbose)
+    return (spec, binary, verbose)
 
 
 def main():
-    spec, data, verbose = _parse_args()
+    spec, binary, verbose = _parse_args()
     try:
         decoder, lookup, common = xmlspec.load(spec)
         bdec.spec.validate_no_input_params(decoder, lookup)
     except bdec.spec.LoadError, ex:
         sys.exit(str(ex))
 
+    data = dt.Data(binary)
     try:
         xmlout.to_file(decoder, data, sys.stdout, verbose=verbose)
     except bdec.DecodeError, ex:
