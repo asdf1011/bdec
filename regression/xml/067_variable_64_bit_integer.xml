@@ -1,0 +1,13 @@
+<protocol>
+    <reference name="a" type="variable integer" />
+
+    <common>
+        <sequence name="variable integer" value="${var int:}">
+            <choice name="var int:">
+                <field length="64" type="integer" />
+                <field length="32" type="integer" />
+                <field length="8" type="integer" />
+            </choice>
+        </sequence>
+    </common>
+</protocol>

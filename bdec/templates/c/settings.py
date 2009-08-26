@@ -16,32 +16,33 @@
 #   License along with this library; if not, see
 #   <http://www.gnu.org/licenses/>.
 
+import operator
+import string
+
 import bdec.choice as chc
 from bdec.entry import Entry
 import bdec.field as fld
 import bdec.sequence as seq
 from bdec.expression import Delayed, ValueResult, LengthResult, Constant
+from bdec.inspect.param import Local, Param
 from bdec.inspect.type import EntryLengthType, EntryValueType, IntegerType, EntryType
-import operator
-import string
 
-keywords=['char', 'int', 'float', 'if', 'then', 'else', 'struct', 'for', 'null', 'value', 'signed', 'true', 'false']
+keywords=['char', 'int', 'short', 'long', 'float', 'if', 'then', 'else', 'struct', 'for', 'null', 'value', 'signed', 'true', 'false']
 
 # Also define our types as keywords, as we don't want the generated names to
 # clash with our types.
 keywords += ['Buffer', 'Text', 'BitBuffer']
 
-unsigned_types = ['unsigned int', 'unsigned char']
-signed_types = ['int']
+unsigned_types = {'unsigned char':(8, '%i'), 'unsigned int':(32, '%u'), 'unsigned long long':(64, '%llu')}
+signed_types = {'int':(32, '%i'), 'long long':(64, '%lli')}
 
 def is_numeric(type):
     return type in signed_types or type in unsigned_types
 
 def printf_format(type):
-    if type in signed_types:
-        return '%i'
-    assert type in unsigned_types
-    return '%u'
+    a = unsigned_types.copy()
+    a.update(signed_types)
+    return a[type][1]
 
 _escaped_types = {}
 def escaped_type(entry):
@@ -55,12 +56,31 @@ def escaped_type(entry):
         _escaped_types.update(zip(entries, escaped))
     return _escaped_types[entry]
 
+def _int_types():
+    possible = [(name, -1 << (info[0] - 1), (1 << (info[0] - 1)) - 1) for name, info in signed_types.items()]
+    possible.extend((name, 0, (1 << info[0]) - 1) for name, info in unsigned_types.items())
+    possible.sort(key=lambda a:a[2])
+    for name, minimum, maximum in possible:
+        yield name, minimum, maximum
+
+def _biggest(types):
+    """ Return the biggest possible type."""
+    return reduce(lambda a, b: a if a[1][0] > b[1][0] else b, types.items())[0]
+
 def _integer_type(type):
     """Choose an appropriate integral type for the given type."""
     range = type.range(raw_params)
-    if range.min is not None and range.min >= 0:
-        return 'unsigned int'
-    return 'int'
+    if range.min is None:
+        return _biggest(signed_types)
+    if range.max is None:
+        return _biggest(unsigned_types)
+
+    for name, minimum, maximum in _int_types():
+        if range.min >= minimum and range.max <= maximum:
+            return name
+
+    # We don't have big enough type for this number...
+    return _biggest(signed_types)
 
 def _entry_type(entry):
     assert isinstance(entry, Entry), "Expected an Entry instance, got '%s'!" % entry
@@ -85,7 +105,7 @@ def _entry_type(entry):
             not reduce(lambda a,b: a and b, (child_contains_data(child) for child in entry.children), True):
         # This sequence has hidden children and a value; we can treat this as
         # an integer.
-        return 'int'
+        return _integer_type(EntryValueType(entry))
     else:
         return "struct " + typename(escaped_type(entry))
 
@@ -109,6 +129,59 @@ def define_params(entry):
             result += ", %s* %s" % (ctype(param.type), param.name)
     return result
 
+def option_output_temporaries(entry, child_index):
+    """Return a dictionary of {name : temp_name}.
+
+    This maps the option entries name to a local's name. This is done because
+    each of the options may have a different type for the same named output
+    (for example, the different options may be of type int, unsigned char,
+    long long...) meaning we cannot pass the choice's output directly by
+    pointer.
+    """
+    # If we are a choice entry, a single output parameter of the choice
+    # may come from one of multiple types of children, each of which might
+    # have a different integer type (eg: byte, int, long long). To handle this
+    # we use local variables for all outputs from a choice, before assigning
+    # them to the 'real' output at the end.
+    assert isinstance(entry, chc.Choice)
+    result = {}
+    params = [param.name for param in get_params(entry)]
+    params.extend(local.name for local in local_vars(entry))
+
+    for param in get_passed_variables(entry, entry.children[child_index]):
+        if param.direction == param.OUT and param.name in params:
+            # We found a parameter that is output from the entry; to
+            # avoid the possibility that this is a different type to
+            # the parent output, we stash it in a temporary location.
+            result[param.name] = '%s%i' % (param.name, child_index)
+    return result
+
+def local_variables(entry):
+    for local in local_vars(entry):
+        yield local
+    if isinstance(entry, chc.Choice):
+        for i, child in enumerate(entry.children):
+            lookup = option_output_temporaries(entry, i)
+            for param in get_passed_variables(entry, entry.children[i]):
+                try:
+                    # Create a temporary local for this parameter...
+                    yield Local(lookup[param.name], param.type)
+                except KeyError:
+                    # This variable isn't output from the choice...
+                    pass
+
+def _passed_variables(entry, child_index):
+    temp = {}
+    if isinstance(entry, chc.Choice):
+        temp = option_output_temporaries(entry, child_index)
+
+    for param in get_passed_variables(entry, entry.children[child_index]):
+        try:
+            # First check to see if the parameter is one that we map locally...
+            yield Param(temp[param.name], param.OUT, param.type)
+        except KeyError:
+            yield param
+
 def call_params(parent, i, result_name):
     # How we should reference the variable passed to the child is from the
     # following table;
@@ -120,9 +193,9 @@ def call_params(parent, i, result_name):
     #         Output param |   *name    |    name     |
     #                       --------------------------
     result = ""
-    locals = list(local.name for local in local_vars(parent))
+    locals = list(local.name for local in local_variables(parent))
     params = dict((param.name, param.direction) for param in get_params(parent))
-    for param in get_passed_variables(parent, parent.children[i]):
+    for param in _passed_variables(parent, i):
         if param.direction is param.OUT and param.name == 'unknown':
             result += ', %s' % result_name
         elif param.name in locals or params[param.name] == param.IN:

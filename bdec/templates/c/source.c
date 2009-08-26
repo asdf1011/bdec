@@ -251,6 +251,13 @@
     <% if_ = "if" if i == 0 else 'else if' %>
     ${if_} (temp = *buffer, ${settings.decode_name(child.entry)}(&temp${settings.call_params(entry, i, "&%s" % temp_name)}))
     {
+      %for name, temp in settings.option_output_temporaries(entry, i).items():
+        %if name not in [local.name for local in local_vars(entry)]:
+        *${name} = ${temp};
+        %else:
+        ${name} = ${temp};
+        %endif
+      %endfor
       %if contains_data(entry):
         result->option = ${settings.enum_value(entry, i)};
       %endif
@@ -333,7 +340,7 @@ ${static}void ${settings.free_name(entry)}(${settings.ctype(entry)}* value)
 
 ${static}int ${settings.decode_name(entry)}(BitBuffer* buffer${settings.define_params(entry)})
 {
-  %for local in local_vars(entry):
+  %for local in settings.local_variables(entry):
     ${settings.ctype(local.type)} ${local.name};
   %endfor
   %if is_length_referenced(entry):
