@@ -77,7 +77,7 @@
       %if settings.is_numeric(settings.ctype(entry)):
     if (${value} ${constraint.type} ${str(constraint.limit)})
       %elif settings.ctype(entry) == 'BitBuffer':
-    if (get_integer(&${value}) ${constraint.type} ${str(constraint.limit)})
+    if (${get_integer(entry)}(&${value}) ${constraint.type} ${str(constraint.limit)})
       %elif settings.ctype(entry) in ['Buffer', 'Text']:
     if (${value}.length != 1 || (unsigned int)${value}.buffer[0] ${constraint.type} ${str(constraint.limit)})
       %else:
@@ -99,7 +99,11 @@
     %if entry.encoding == Field.LITTLE_ENDIAN:
     value = decode_little_endian_integer(buffer, ${settings.value(entry, entry.length)});
     %else:
+      %if EntryValueType(entry).range(raw_params).max <= 0xffffffff:
     value = decode_integer(buffer, ${settings.value(entry, entry.length)});
+      %else:
+    value = decode_long_integer(buffer, ${settings.value(entry, entry.length)});
+      %endif
     %endif
     %if is_value_referenced(entry):
     *${entry.name |variable} = value;
@@ -135,7 +139,7 @@
     buffer->num_bits -= value.num_bits;
 
     %if is_value_referenced(entry):
-    *${entry.name |variable} = get_integer(&value);
+    *${entry.name |variable} = ${get_integer(entry)}(&value);
     %endif
   %else:
     #error Unknown field type ${entry}
@@ -463,7 +467,7 @@ ${static}void ${settings.print_name(entry)}(unsigned int offset, const char* nam
             putchar(' ');
             ${iter_name} = 8;
         }
-        printf("%i", decode_integer(&${copy_name}, 1));
+        printf("%u", decode_integer(&${copy_name}, 1));
     }
     printf(${'"</%s>\\n"'}, name);
       %else:

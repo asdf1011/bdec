@@ -29,8 +29,8 @@ import bdec.sequence as seq
 
 
 def _delayed_range(delayed, entry, parameters):
-    left = _range(delayed.left, entry, parameters)
-    right = _range(delayed.right, entry, parameters)
+    left = expression_range(delayed.left, entry, parameters)
+    right = expression_range(delayed.right, entry, parameters)
     return delayed.op(left, right)
 
 def _constant_range(constant, entry, parameters):
@@ -63,7 +63,7 @@ _handlers = {
         LengthResult: _reference_length_range,
         }
 
-def _range(expression, entry=None, parameters=None):
+def expression_range(expression, entry=None, parameters=None):
     """Return a Range instance representing the possible ranges of the expression.
 
     exression -- The expression to calculate the  range for.
@@ -130,7 +130,7 @@ class EntryLengthType(IntegerType):
             # We don't know how long this entry is.
             # TODO: We could try examining its children...
             return Range(0, None)
-        return _range(self.entry.length, self.entry ,parameter)
+        return expression_range(self.entry.length, self.entry ,parameter)
 
 
 class EntryValueType(IntegerType):
@@ -146,10 +146,10 @@ class EntryValueType(IntegerType):
 
     def range(self, parameters):
         if isinstance(self.entry, fld.Field):
-            length_range = _range(self.entry.length, self.entry, parameters)
+            length_range = expression_range(self.entry.length, self.entry, parameters)
             result = Range(0, pow(2, length_range.max) - 1)
         elif isinstance(self.entry, seq.Sequence):
-            result = _range(self.entry.value, self.entry, parameters)
+            result = expression_range(self.entry.value, self.entry, parameters)
         elif isinstance(self.entry, chc.Choice):
             ranges = [EntryValueType(child.entry).range(parameters) for child in self.entry.children]
             result = reduce(Range.union, ranges)

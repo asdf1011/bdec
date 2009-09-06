@@ -22,7 +22,7 @@ from bdec.constraints import Minimum, Maximum, Equals
 from bdec.expression import compile
 from bdec.field import Field
 from bdec.inspect.param import ExpressionParameters
-from bdec.inspect.type import _range, Range, EntryValueType, EntryLengthType, \
+from bdec.inspect.type import expression_range, Range, EntryValueType, EntryLengthType, \
         MultiSourceType
 from bdec.sequence import Sequence
 import unittest
@@ -32,32 +32,32 @@ class TestExpressionRange(unittest.TestCase):
 
     def test_constant_range(self):
         a = compile('8')
-        self.assertEqual(8, _range(a).min)
-        self.assertEqual(8, _range(a).max)
+        self.assertEqual(8, expression_range(a).min)
+        self.assertEqual(8, expression_range(a).max)
 
     def test_multiple_range(self):
         a = compile('8 * 1 * 4')
-        self.assertEqual(32, _range(a).min)
-        self.assertEqual(32, _range(a).max)
+        self.assertEqual(32, expression_range(a).min)
+        self.assertEqual(32, expression_range(a).max)
 
     def test_divide_range(self):
         a = compile('16 / 2 / 4')
-        self.assertEqual(2, _range(a).min)
-        self.assertEqual(2, _range(a).max)
+        self.assertEqual(2, expression_range(a).min)
+        self.assertEqual(2, expression_range(a).max)
 
     def test_mod_range(self):
         a = compile('100 % 2')
-        self.assertEqual(Range(0, 1), _range(a))
+        self.assertEqual(Range(0, 1), expression_range(a))
 
     def test_add_range(self):
         a = compile('(10 + 3) + 7')
-        self.assertEqual(20, _range(a).min)
-        self.assertEqual(20, _range(a).max)
+        self.assertEqual(20, expression_range(a).min)
+        self.assertEqual(20, expression_range(a).max)
 
     def test_subtract_range(self):
         a = compile('95 - (100 - 20)')
-        self.assertEqual(15, _range(a).min)
-        self.assertEqual(15, _range(a).max)
+        self.assertEqual(15, expression_range(a).min)
+        self.assertEqual(15, expression_range(a).max)
 
 
 class TestTypeRange(unittest.TestCase):

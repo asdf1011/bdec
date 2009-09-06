@@ -25,7 +25,7 @@ import bdec.field as fld
 import bdec.sequence as seq
 from bdec.expression import Delayed, ValueResult, LengthResult, Constant
 from bdec.inspect.param import Local, Param
-from bdec.inspect.type import EntryLengthType, EntryValueType, IntegerType, EntryType
+from bdec.inspect.type import EntryLengthType, EntryValueType, IntegerType, EntryType, expression_range
 
 keywords=['char', 'int', 'short', 'long', 'float', 'if', 'then', 'else', 'struct', 'for', 'null', 'value', 'signed', 'true', 'false']
 
@@ -69,7 +69,9 @@ def _biggest(types):
 
 def _integer_type(type):
     """Choose an appropriate integral type for the given type."""
-    range = type.range(raw_params)
+    return _type_from_range(type.range(raw_params))
+
+def _type_from_range(range):
     if range.min is None:
         return _biggest(signed_types)
     if range.max is None:
@@ -81,6 +83,17 @@ def _integer_type(type):
 
     # We don't have big enough type for this number...
     return _biggest(signed_types)
+
+def get_integer(entry):
+    """ Choose either the 'int' or the 'long long' decoder.
+
+    entry -- The entry we are decoding. Looks at it's possible length when
+        deciding which decode function to use.
+    """
+    if EntryValueType(entry).range(raw_params).max <= 0xffffffff:
+        return 'get_integer'
+    else:
+        return 'get_long_integer'
 
 def _entry_type(entry):
     assert isinstance(entry, Entry), "Expected an Entry instance, got '%s'!" % entry
@@ -221,10 +234,20 @@ _OPERATORS = {
         }
 
 def value(entry, expr):
+  """
+  Convert an expression object to a valid C expression.
+
+  entry -- The entry that will use this value.
+  expr -- The bdec.expression.Expression instance to represent in C code.
+  """
   if isinstance(expr, int):
       return str(expr)
   elif isinstance(expr, Constant):
-      return str(expr.value)
+      if expr.value >= (1 << 32):
+          return "%iLL" % expr.value
+      elif expr.value > (1 << 31):
+          return "%iL" % expr.value
+      return int(expr.value)
   elif isinstance(expr, ValueResult):
       return local_name(entry, expr.name)
   elif isinstance(expr, LengthResult):
@@ -232,7 +255,20 @@ def value(entry, expr):
   elif isinstance(expr, Delayed):
       left = value(entry, expr.left)
       right = value(entry, expr.right)
-      return "(%s %s %s)" % (left, _OPERATORS[expr.op], right) 
+
+      cast = ""
+      left_type = _type_from_range(expression_range(expr.left, entry, raw_params))
+      right_type = _type_from_range(expression_range(expr.right, entry, raw_params))
+      result_type = _type_from_range(expression_range(expr, entry, raw_params))
+
+      types = unsigned_types.copy()
+      types.update(signed_types)
+      if types[result_type][0] > max(types[left_type][0], types[right_type][0]):
+          # If the result will be bigger than both left and right, we will
+          # explicitly cast to make sure the operation is valid. For example,
+          # '1 << 63' is invalid, but '(long long)1 << 63' is ok.
+          cast = "(%s)" % result_type
+      return "(%s%s %s %s)" % (cast, left, _OPERATORS[expr.op], right)
   else:
       raise Exception('Unknown length value', expression)
 
