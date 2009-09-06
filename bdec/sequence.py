@@ -33,8 +33,8 @@ class Sequence(bdec.entry.Entry):
     lookup tables, and alternate integer encoding methods.
     """
 
-    def __init__(self, name, children, value=None, length=None):
-        bdec.entry.Entry.__init__(self, name, length, children)
+    def __init__(self, name, children, value=None, length=None, constraints=[]):
+        bdec.entry.Entry.__init__(self, name, length, children, constraints)
         self.value = value
 
     def _decode(self, data, context, name):

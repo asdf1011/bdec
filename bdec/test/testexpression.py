@@ -16,11 +16,21 @@
 #   License along with this library; if not, see
 #   <http://www.gnu.org/licenses/>.
 
+from bdec import DecodeError
+from bdec.data import Data
 import bdec.expression as exp
 import unittest
 
 def eval(text):
     return exp.compile(text).evaluate({})
+
+def bool(text):
+    try:
+        from bdec.spec.xmlspec import save
+        list(exp.parse_conditional(text).decode(Data(), context={}))
+        return True
+    except DecodeError,ex:
+        return False
 
 class TestExpression(unittest.TestCase):
     def test_simple_int(self):
@@ -77,4 +87,10 @@ class TestExpression(unittest.TestCase):
         self.assertEqual(1, eval("200 + 56 >> 8"))
         self.assertEqual(8, eval("8 * 1 >> 0"))
         self.assertEqual(2, eval("8 / 1 >> 2"))
+
+class TestBoolean(unittest.TestCase):
+    def test_greater_equal(self):
+        self.assertEqual(True, bool("5 >= 3"))
+        self.assertEqual(True, bool("3 >= 3"))
+        self.assertEqual(False, bool("2 >= 3"))
 

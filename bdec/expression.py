@@ -156,15 +156,8 @@ def _collapse(s,l,t):
         result = next(result)
     return result
 
-def compile(text):
-    """
-    Compile a length expression into an integer convertible object.
-
-    :param name_lookup: A object to call to query a named integer 
-        convertible object.
-    return -- An Expression instance
-    """
-    from pyparsing import Word, alphanums, nums, Forward, StringEnd, ZeroOrMore, ParseException, Combine, CaselessLiteral, srange
+def _int_expression():
+    from pyparsing import Word, alphanums, nums, Forward, ZeroOrMore, Combine, CaselessLiteral, srange
     entry_name = Word(alphanums + ' _+:.-')
     integer = Word(nums).addParseAction(lambda s,l,t: [Constant(int(t[0]))])
     hex = Combine(CaselessLiteral("0x") + Word(srange("[0-9a-fA-F]"))).addParseAction(lambda s,l,t:[Constant(int(t[0][2:], 16))])
@@ -179,11 +172,45 @@ def compile(text):
         op_parse = reduce(operator.or_,
                 [(character + entry).addParseAction(_half(op)) for character, op in ops])
         entry = (entry + ZeroOrMore(op_parse)).addParseAction(_collapse)
-
     expression << entry
+    return expression
 
-    complete = expression + StringEnd()
+def compile(text):
+    """
+    Compile a length expression into an integer convertible object.
+
+    :param name_lookup: A object to call to query a named integer 
+        convertible object.
+    return -- An Expression instance
+    """
+    from pyparsing import StringEnd, ParseException
+    complete = _int_expression + StringEnd()
     try:
         return complete.parseString(text)[0]
     except ParseException, ex:
         raise ExpressionError(ex)
+
+def parse_conditional(text):
+    """
+    Parse a boolean expression.
+
+    text -- A text string to be parsed.
+    return -- A bdec.entry.Entry instance that will decode if the conditional
+        is true.
+    """
+    from pyparsing import StringEnd, ParseException
+    from pyparsing import Forward
+    from bdec.constraints import Minimum
+    import bdec.sequence as seq
+
+    # Parse all of the integer comparisons
+    integer = _int_expression()
+
+    bool_expr = (integer + '>=' + integer).addParseAction(lambda s,l,t: seq.Sequence('test:', [], value=t[0], constraints=[Minimum(t[2].evaluate({}))]))
+
+    complete = bool_expr + StringEnd()
+    try:
+        return complete.parseString(text)[0]
+    except ParseException, ex:
+        raise ExpressionError(ex)
+
