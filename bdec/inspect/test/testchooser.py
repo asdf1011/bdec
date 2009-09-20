@@ -22,6 +22,7 @@ import unittest
 import bdec.choice as chc
 from bdec.constraints import Equals, Minimum, Maximum
 import bdec.data as dt
+import bdec.expression as expr
 import bdec.field as fld
 import bdec.inspect.chooser as chsr
 import bdec.sequence as seq
@@ -215,4 +216,28 @@ class TestChooser(unittest.TestCase):
         self.assertEqual([a], chooser.choose(dt.Data('xxax')))
         self.assertEqual([b], chooser.choose(dt.Data('xxbx')))
         self.assertEqual([c], chooser.choose(dt.Data('xxcx')))
+
+    def test_sequence_with_equality_constraint(self):
+        # There was a bug where a sequence without children, but with
+        # constraints, would be reported in the 'successful' list instead of
+        # the 'possible' list.
+        #
+        #   <field name='a' length='8' />
+        #   <choice name='b'>
+        #      <sequence name='b1' value='${a}' expected='1' />
+        #      <field name='b2' length="8" />
+        #   </choice>
+        b1 = seq.Sequence('b1', [], value=expr.ValueResult('a'),
+                constraints=[Equals(1)])
+        b2 = fld.Field('b2', length=8)
+        chooser = chsr.Chooser([b1, b2])
+        self.assertEqual([b1, b2], chooser.choose(dt.Data('x')))
+
+    def test_sequence_with_minimum_constraint(self):
+        # Tests for correctly choosing when we have a 'minimum' constraint
+        b1 = seq.Sequence('b1', [], value=expr.ValueResult('a'),
+                constraints=[Minimum(1)])
+        b2 = fld.Field('b2', length=8)
+        chooser = chsr.Chooser([b1, b2])
+        self.assertEqual([b1, b2], chooser.choose(dt.Data('x')))
 

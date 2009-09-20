@@ -119,13 +119,13 @@ class _ProtocolStream:
 
     def _create_data(self):
         """Return a data instance, or None if one doesn't exist for this entry."""
-        value = _get_constraint(self.entry, Equals)
-        if value is not None:
-            def query(context, entry):
-                raise bdec.entry.MissingInstanceError()
-            data = reduce(operator.add, self.entry.encode(query, value))
-            return data
-        elif isinstance(self.entry, fld.Field):
+        if isinstance(self.entry, fld.Field):
+            value = _get_constraint(self.entry, Equals)
+            if value is not None:
+                def query(context, entry):
+                    raise bdec.entry.MissingInstanceError()
+                data = reduce(operator.add, self.entry.encode(query, value))
+                return data
             length = None
             try:
                 length = self.entry.length.evaluate({})
@@ -143,6 +143,9 @@ class _ProtocolStream:
                 return _UnknownData(length)
         elif isinstance(self.entry, sof.SequenceOf):
             return _UnknownData()
+        elif self.entry.constraints:
+            # This entry has unknown constraints... return an unkown data object.
+            return _UnknownData(0)
         else:
             # This entry contains no data (but its children might)...
             return dt.Data()
@@ -196,18 +199,17 @@ def _differentiate(entries):
         # Get the values of all of the options for this data section
         lookup = {}
         undistinguished = []
-        if length:
-            for entry, option in options:
-                data = option.data.pop(length)
-                if isinstance(data, _AnyData):
-                    undistinguished.append(entry)
-                elif isinstance(data, _UnknownData):
-                    # This entry _may_ have been successfuly decoded...
-                    undistinguished.append(entry)
-                    if entry not in possible:
-                        possible.append(entry)
-                else:
-                    lookup.setdefault(int(data), []).append(entry)
+        for entry, option in options:
+            data = option.data.pop(length)
+            if isinstance(data, _AnyData):
+                undistinguished.append(entry)
+            elif isinstance(data, _UnknownData):
+                # This entry _may_ have been successfuly decoded...
+                undistinguished.append(entry)
+                if entry not in possible:
+                    possible.append(entry)
+            elif data:
+                lookup.setdefault(int(data), []).append(entry)
 
         if have_new_success or _can_differentiate(lookup, undistinguished + successful + possible):
             # We also should notify if we have a new item in the successful (or possible) list...
