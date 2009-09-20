@@ -71,7 +71,8 @@
       %elif settings.ctype(entry) == 'BitBuffer':
     ${compare_binary_expected(entry, constraint.limit)}
       %elif settings.ctype(entry) in ['Buffer', 'Text']:
-      <% expected = entry.encode_value(constraint.limit) %>
+      <% assert isinstance(constraint.limit, Constant) %>
+      <% expected = entry.encode_value(constraint.limit.value) %>
     if (${value}.length != ${len(expected) / 8} ||
             memcmp(${value}.buffer, ${settings.c_string(expected.bytes())}, ${len(expected) / 8}) != 0)
       %else:

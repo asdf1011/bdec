@@ -199,6 +199,18 @@ class _Handler(xml.sax.handler.ContentHandler):
         if attrs.has_key('expected'):
             expected = self._parse_expression(attrs['expected'])
             constraints.append(Equals(expected))
+        if attrs.has_key('if'):
+            # This is a 'conditional' entry; only present if the expression in
+            # 'if' is true. To decode this, we create a choice with a 'not
+            # present' option; this option attempts to decode first, with the
+            # condition inverted.
+            try:
+                not_present = exp.parse_conditional_inverse(attrs['if'])
+            except exp.ExpressionError, ex:
+                raise XmlExpressionError(ex, self._filename, self.locator)
+            assert isinstance(not_present, ent.Entry)
+            entry = chc.Choice('optional %s' % entry_name, [not_present, entry])
+
         if constraints:
             if isinstance(entry, _ReferencedEntry):
                 # We found a reference with constraints; create an intermediate

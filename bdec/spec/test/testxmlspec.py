@@ -784,8 +784,35 @@ class TestXml(unittest.TestCase):
         self.assertEqual(0, len(data))
         self.assertEqual(1, items[-2][1])
 
+    def test_optional_entry(self):
+        # Test loading an optional entry
+        text = '''
+            <protocol>
+                <sequence name="a">
+                    <field name="has footer" length="8" />
+                    <field name="data" length="8" />
+                    <field name="footer" length="8" if="${has footer} > 0" />
+                </sequence>
+            </protocol>'''
+        a = xml.loads(text)[0]
+
+        print xml.save(a)
+        # Test decoding without a footer
+        list(a.decode(dt.Data('\x00\x00')))
+
+        # Test decoding with a footer
+        data = dt.Data('\x01\x00\x00')
+        list(a.decode(data))
+        self.assertEqual(0, len(data))
+        self.assertRaises(ConstraintError, list, a.decode(dt.Data('\x01\x00')))
+
 
 class TestSave(unittest.TestCase):
+    """Test decoding of the xml save functionality.
+
+    This is the functionality that can create an xml specification from an
+    in-memory representation."""
+
     def test_simple_field(self):
         a = fld.Field('a', length=8)
         assert_xml_equivalent('<protocol><field name="a" length="8" /></protocol>', xml.save(a))
