@@ -28,7 +28,8 @@ def bool(text):
     try:
         # If the object decodes, the conditional is false
         from bdec.spec.xmlspec import save
-        list(exp.parse_conditional_inverse(text).decode(Data(), context={}))
+        conditional = exp.parse_conditional_inverse(text)
+        list(conditional.decode(Data(), context={}))
         return False
     except DecodeError,ex:
         return True
@@ -109,4 +110,14 @@ class TestBoolean(unittest.TestCase):
         self.assertEqual(False, bool("5 <= 3"))
         self.assertEqual(True, bool("3 <= 3"))
         self.assertEqual(True, bool("2 <= 3"))
+
+    def test_equals(self):
+        self.assertEqual(True, bool('5 == 5'))
+        self.assertEqual(False, bool('5 == 4'))
+        self.assertEqual(True, bool('11 - 1 == 5 * 2'))
+
+    def test_not_equals(self):
+        self.assertEqual(False, bool('5 != 5'))
+        self.assertEqual(True, bool('5 != 4'))
+        self.assertEqual(True, bool('5 != 5 - 1'))
 

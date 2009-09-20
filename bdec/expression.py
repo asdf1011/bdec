@@ -210,7 +210,7 @@ def parse_conditional_inverse(text):
     """
     from pyparsing import StringEnd, ParseException
     from pyparsing import Forward
-    from bdec.constraints import Minimum, Maximum
+    from bdec.constraints import Equals, Minimum, Maximum, NotEquals
     import bdec.sequence as seq
 
     bool_int_operators = [
@@ -218,6 +218,8 @@ def parse_conditional_inverse(text):
             ('>=', lambda limit: Maximum(Delayed(operator.sub, limit, Constant(1)))),
             ('<', Minimum),
             ('<=', lambda limit: Minimum(Delayed(operator.add, limit, Constant(1)))),
+            ('==', NotEquals),
+            ('!=', Equals),
             ]
 
     # Parse all of the integer comparisons

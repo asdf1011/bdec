@@ -89,3 +89,24 @@ class Equals:
         limit = self.limit.evaluate({})
         return Range(limit, limit)
 
+
+class NotEquals:
+    def __init__(self, expected):
+        if not isinstance(expected, Expression):
+            expected = Constant(expected)
+        self.limit = expected
+        self.type = '!='
+
+    def check(self, entry, value, context):
+        expected = self.limit.evaluate(context)
+        if isinstance(expected, int):
+            if int(value) ==  expected:
+                raise ConstraintError(entry, int(value), '==', expected)
+        else:
+            if value !=  expected:
+                raise ConstraintError(entry, value, '==', expected)
+
+    def range(self):
+        limit = self.limit.evaluate({})
+        return Range(limit, limit)
+
