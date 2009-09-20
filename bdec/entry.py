@@ -275,7 +275,7 @@ class Entry(object):
                 length += len(entry_data)
             if not is_starting and entry is self:
                 for constraint in self.constraints:
-                    constraint.check(self, value)
+                    constraint.check(self, value, context)
             yield is_starting, name, entry, entry_data, value
 
         if self._is_end_sequenceof:
@@ -329,7 +329,7 @@ class Entry(object):
         value = self._fixup_value(value)
 
         for constraint in self.constraints:
-            constraint.check(self, value)
+            constraint.check(self, value, {})
 
         for data in self._encode(query, value):
             encode_length += len(data)

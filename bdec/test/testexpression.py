@@ -94,3 +94,18 @@ class TestBoolean(unittest.TestCase):
         self.assertEqual(True, bool("3 >= 3"))
         self.assertEqual(False, bool("2 >= 3"))
 
+    def test_greater(self):
+        self.assertEqual(True, bool("5 > 3"))
+        self.assertEqual(False, bool("3 > 3"))
+        self.assertEqual(False, bool("2 > 3"))
+
+    def test_lesser(self):
+        self.assertEqual(False, bool("5 < 3"))
+        self.assertEqual(False, bool("3 < 3"))
+        self.assertEqual(True, bool("2 < 3"))
+
+    def test_lesser_equal(self):
+        self.assertEqual(False, bool("5 <= 3"))
+        self.assertEqual(True, bool("3 <= 3"))
+        self.assertEqual(True, bool("2 <= 3"))
+

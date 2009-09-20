@@ -16,6 +16,7 @@
 #   License along with this library; if not, see
 #   <http://www.gnu.org/licenses/>.
 
+import bdec.data as dt
 import operator
 
 # A list of supported operators, in order of precedence
@@ -91,7 +92,15 @@ class Constant(Expression):
         return self.value
 
     def __str__(self):
-        if isinstance(self.value, int) and self.value % 8 == 0 and \
+        if isinstance(self.value, dt.Data):
+            value = self.value
+            if len(value) % 8:
+                # We can only convert bytes to hex, so added a '0' data
+                # object in front.
+                leading_bits = 8 - len(value) % 8
+                value = dt.Data('\x00', start=0, end=leading_bits) + value
+            return '0x%s' % value.get_hex()
+        elif isinstance(self.value, int) and self.value % 8 == 0 and \
                 self.value / 8 > 1:
             # It can be clearer to return numbers in bytes
             return "%i * 8" % (self.value / 8)
@@ -184,7 +193,7 @@ def compile(text):
     return -- An Expression instance
     """
     from pyparsing import StringEnd, ParseException
-    complete = _int_expression + StringEnd()
+    complete = _int_expression() + StringEnd()
     try:
         return complete.parseString(text)[0]
     except ParseException, ex:
@@ -200,13 +209,24 @@ def parse_conditional(text):
     """
     from pyparsing import StringEnd, ParseException
     from pyparsing import Forward
-    from bdec.constraints import Minimum
+    from bdec.constraints import Minimum, Maximum
     import bdec.sequence as seq
+
+    bool_int_operators = [
+            ('>', lambda limit: Minimum(Delayed(operator.add, limit, Constant(1)))),
+            ('>=', Minimum),
+            ('<', lambda limit: Maximum(Delayed(operator.sub, limit, Constant(1)))),
+            ('<=', Maximum),
+            ]
 
     # Parse all of the integer comparisons
     integer = _int_expression()
-
-    bool_expr = (integer + '>=' + integer).addParseAction(lambda s,l,t: seq.Sequence('test:', [], value=t[0], constraints=[Minimum(t[2].evaluate({}))]))
+    def create_action(handler):
+        return lambda s,l,t:seq.Sequence('test:', [], value=t[0], constraints=[handler(t[2])])
+    int_expressions = []
+    for name, handler in bool_int_operators:
+        int_expressions.append((integer + name + integer).addParseAction(create_action(handler)))
+    bool_expr = reduce(operator.or_, int_expressions)
 
     complete = bool_expr + StringEnd()
     try:

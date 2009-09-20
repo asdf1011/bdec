@@ -4,6 +4,7 @@
   from bdec.choice import Choice
   from bdec.constraints import Equals
   from bdec.data import Data
+  from bdec.expression import Constant
   from bdec.field import Field
   from bdec.sequence import Sequence
   from bdec.sequenceof import SequenceOf
@@ -39,11 +40,15 @@
 #include "variable_integer.h"
 
 <%def name="compare_binary_expected(entry, expected)">
-  %if len(expected) < 32:
-    if (get_integer(&value) != ${int(expected)})
+  %if expression_range(expected).max is not None and expression_range(expected).max < 2^64:
+    if (get_integer(&value) != ${settings.value(entry, expected)})
   %else:
-    <% data = expected + Data('\x00', 0, (8 - len(expected) % 8) if len(expected) % 8 <  8 else 0) %>
-    BitBuffer expected = {(unsigned char*)${settings.c_string(data.bytes())}, 0, ${len(expected)}};
+    ## NOTE: We are assuming that if a constraint is longer than a long int, it
+    ## is a constant constraint.
+    <% assert isinstance(expected, Constant) %>
+    <% padding_len = (8 - len(expected.value) % 8) if len(expected.value) % 8 <  8 else 0 %>
+    <% data = expected.value + Data('\x00', 0, padding_len) %>
+    BitBuffer expected = {(unsigned char*)${settings.c_string(data.bytes())}, 0, ${len(expected.value)}};
     int isMatch = 1;
     BitBuffer actual = value;
     while (expected.num_bits > 0)
@@ -62,7 +67,7 @@
   %for constraint in entry.constraints:
     %if isinstance(constraint, Equals):
       %if settings.is_numeric(settings.ctype(entry)) or isinstance(entry, Sequence):
-    if (${value} != ${int(constraint.limit)})
+    if (${value} != ${settings.value(entry, constraint.limit)})
       %elif settings.ctype(entry) == 'BitBuffer':
     ${compare_binary_expected(entry, constraint.limit)}
       %elif settings.ctype(entry) in ['Buffer', 'Text']:

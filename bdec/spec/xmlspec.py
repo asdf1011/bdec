@@ -191,13 +191,13 @@ class _Handler(xml.sax.handler.ContentHandler):
         # Check for value constraints
         constraints = []
         if attrs.has_key('min'):
-            minimum = self._parse_expression(attrs['min']).evaluate({})
+            minimum = self._parse_expression(attrs['min'])
             constraints.append(Minimum(minimum))
         if attrs.has_key('max'):
-            maximum = self._parse_expression(attrs['max']).evaluate({})
+            maximum = self._parse_expression(attrs['max'])
             constraints.append(Maximum(maximum))
         if attrs.has_key('expected'):
-            expected = self._parse_expression(attrs['expected']).evaluate({})
+            expected = self._parse_expression(attrs['expected'])
             constraints.append(Equals(expected))
         if constraints:
             if isinstance(entry, _ReferencedEntry):

@@ -22,7 +22,7 @@ use.
 """
 
 import bdec.data as dt
-from bdec.constraints import Equals, Maximum, Minimum
+from bdec.constraints import Equals
 import bdec.entry
 import bdec.expression
 
@@ -105,7 +105,7 @@ class Field(bdec.entry.Entry):
     def _get_expected(self):
         for constraint in self.constraints:
             if isinstance(constraint, Equals):
-                return constraint.limit
+                return constraint.limit.evaluate({})
         return None
     expected = property(_get_expected)
 

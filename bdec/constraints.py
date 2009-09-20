@@ -19,62 +19,73 @@
 import operator
 
 from bdec import DecodeError
+from bdec.expression import Expression, Constant
 from bdec.inspect.range import Range
 
 class ConstraintError(DecodeError):
     def __init__(self, entry, actual, comparison, limit):
         DecodeError.__init__(self, entry)
-        self._error = '%s %s %s' % (repr(actual), comparison, repr(limit))
+        self._error = '%s %s %s' % (str(actual), comparison, str(limit))
 
     def __str__(self):
-        return '%s constaint error; %s' % (self.entry, self._error)
+        return '%s constaint failed; %s' % (self.entry, self._error)
 
 
 class Minimum:
     def __init__(self, limit):
+        if not isinstance(limit, Expression):
+            limit = Constant(limit)
         self.limit = limit
         self.type = '<'
 
-    def check(self, entry, value):
+    def check(self, entry, value, context):
+        expected = self.limit.evaluate(context)
         if isinstance(value, basestring):
             # It is useful to check the bounds of a text character...
             value = ord(value)
-        if int(value) < self.limit:
-            raise ConstraintError(entry, int(value), '<', self.limit)
+        if int(value) < expected:
+            raise ConstraintError(entry, int(value), '<', expected)
 
     def range(self):
-        return Range(self.limit, None)
+        return Range(self.limit.evaluate({}), None)
 
 
 class Maximum:
     def __init__(self, limit):
+        if not isinstance(limit, Expression):
+            limit = Constant(limit)
         self.limit = limit
         self.type = '>'
 
-    def check(self, entry, value):
+    def check(self, entry, value, context):
+        expected = self.limit.evaluate(context)
         if isinstance(value, basestring):
             # It is useful to check the bounds of a text character...
             value = ord(value)
-        if int(value) > self.limit:
-            raise ConstraintError(entry, int(value), '>', self.limit)
+        if int(value) > expected:
+            raise ConstraintError(entry, int(value), '>', expected)
 
     def range(self):
-        return Range(None, self.limit)
+        return Range(None, self.limit.evaluate({}))
 
 
 class Equals:
     def __init__(self, expected):
+        if not isinstance(expected, Expression):
+            expected = Constant(expected)
         self.limit = expected
         self.type = '!='
 
-    def check(self, entry, value):
-        if isinstance(self.limit, int):
-            if int(value) !=  self.limit:
-                raise ConstraintError(entry, int(value), '!=', self.limit)
+    def check(self, entry, value, context):
+        expected = self.limit.evaluate(context)
+        if isinstance(expected, int):
+            if int(value) !=  expected:
+                raise ConstraintError(entry, int(value), '!=', expected)
         else:
-            if value !=  self.limit:
-                raise ConstraintError(entry, value, '!=', self.limit)
+            if value !=  expected:
+                raise ConstraintError(entry, value, '!=', expected)
 
     def range(self):
-        return Range(self.limit, self.limit)
+        limit = self.limit.evaluate({})
+        return Range(limit, limit)
 

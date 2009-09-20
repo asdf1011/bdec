@@ -57,7 +57,11 @@ class _AnyData(_UnknownData):
 def _get_constraint(entry, constraint_type):
     for constraint in entry.constraints:
         if isinstance(constraint, constraint_type):
-            return constraint.limit
+            try:
+                return constraint.limit.evaluate({})
+            except expr.UndecodedReferenceError:
+                # We don't know the value for this entry, and so cannot use it.
+                return
     return None
 
 class _ProtocolStream:
