@@ -26,11 +26,12 @@ def eval(text):
 
 def bool(text):
     try:
+        # If the object decodes, the conditional is false
         from bdec.spec.xmlspec import save
-        list(exp.parse_conditional(text).decode(Data(), context={}))
-        return True
-    except DecodeError,ex:
+        list(exp.parse_conditional_inverse(text).decode(Data(), context={}))
         return False
+    except DecodeError,ex:
+        return True
 
 class TestExpression(unittest.TestCase):
     def test_simple_int(self):

@@ -199,13 +199,14 @@ def compile(text):
     except ParseException, ex:
         raise ExpressionError(ex)
 
-def parse_conditional(text):
+def parse_conditional_inverse(text):
     """
     Parse a boolean expression.
 
     text -- A text string to be parsed.
     return -- A bdec.entry.Entry instance that will decode if the conditional
-        is true.
+        is _false_ (eg: the returned entry can be used as a 'not present' 
+        option in a choice).
     """
     from pyparsing import StringEnd, ParseException
     from pyparsing import Forward
@@ -213,16 +214,16 @@ def parse_conditional(text):
     import bdec.sequence as seq
 
     bool_int_operators = [
-            ('>', lambda limit: Minimum(Delayed(operator.add, limit, Constant(1)))),
-            ('>=', Minimum),
-            ('<', lambda limit: Maximum(Delayed(operator.sub, limit, Constant(1)))),
-            ('<=', Maximum),
+            ('>', Maximum),
+            ('>=', lambda limit: Maximum(Delayed(operator.sub, limit, Constant(1)))),
+            ('<', Minimum),
+            ('<=', lambda limit: Minimum(Delayed(operator.add, limit, Constant(1)))),
             ]
 
     # Parse all of the integer comparisons
     integer = _int_expression()
     def create_action(handler):
-        return lambda s,l,t:seq.Sequence('test:', [], value=t[0], constraints=[handler(t[2])])
+        return lambda s,l,t:seq.Sequence('condition:', [], value=t[0], constraints=[handler(t[2])])
     int_expressions = []
     for name, handler in bool_int_operators:
         int_expressions.append((integer + name + integer).addParseAction(create_action(handler)))
