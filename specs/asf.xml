@@ -53,22 +53,22 @@
                             <reference name="value size:" type="word" />
                             <field name="value" length="${value size:} * 8" type="text" encoding="UTF-16-LE" />
                         </sequence>
-                        <sequence name="BOOL">
+                        <sequence name="bool">
                             <field name="id:" length="16" value="0x0200" />
                             <field name="value size:" length="16" value="0x0400" />
                             <reference name="value" type="dword" />
                         </sequence>
-                        <sequence name="WORD">
+                        <sequence name="word">
                             <field name="id:" length="16" value="0x0500" />
                             <field name="value size:" length="16" value="0x0200" />
                             <reference name="value" type="word" />
                         </sequence>
-                        <sequence name="DWORD">
+                        <sequence name="dword">
                             <field name="id:" length="16" value="0x0300" />
                             <field name="value size:" length="16" value="0x0400" />
                             <reference name="value" type="dword" />
                         </sequence>
-                        <sequence name="QWORD">
+                        <sequence name="qword">
                             <field name="id:" length="16" value="0x0400" />
                             <field name="value size:" length="16" value="0x0800" />
                             <reference name="value" type="long long" />
