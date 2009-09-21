@@ -552,6 +552,9 @@ def _write_entry(gen, entry, common, end_entry):
                 attributes.append(('value', value))
             else:
                 attributes.append(('expected', value))
+        elif isinstance(constraint, bdec.constraints.NotEquals):
+            # HACK: Print 'not equal' entries...
+            attributes.append(('not_equal', str(constraint.limit)))
         else:
             raise NotImplementedError("Don't know how to save contraint '%s'!" % constraint)
 

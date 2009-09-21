@@ -231,12 +231,14 @@ def parse_conditional_inverse(text):
     int_expressions = []
     for name, handler in bool_int_operators:
         int_expressions.append((integer + name + integer).addParseAction(create_action(handler)))
-    int_bool_expr = reduce(operator.or_, int_expressions)
+
+    implicit_int_to_bool = integer.copy().addParseAction(
+            lambda s,l,t:seq.Sequence('condition', [], value=t[0], constraints=[Equals(0)]))
+    int_bool_expr = reduce(operator.or_, int_expressions) | implicit_int_to_bool
 
     # Create an expression for parsing the boolean operations; eg: 'a && b'
     bool_expr = Forward()
     factor = int_bool_expr | ('(' + bool_expr + ')').addParseAction(lambda s,l,t:t[1])
-
 
     or_ = Literal('||') | 'or'
     or_expression = OneOrMore(or_ + factor).addParseAction(lambda s,l,t:(seq.Sequence, t[1::2]))
@@ -253,6 +255,8 @@ def parse_conditional_inverse(text):
             result = cls('condition', children)
         return result
     bool_expr << (factor + ZeroOrMore(and_expression | or_expression)).addParseAction(_collapse_bool)
+
+    # Parse the string
     complete = bool_expr + StringEnd()
     try:
         return complete.parseString(text)[0]

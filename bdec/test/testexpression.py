@@ -19,16 +19,24 @@
 from bdec import DecodeError
 from bdec.data import Data
 import bdec.expression as exp
+import bdec.sequence as sequence
 import unittest
 
 def eval(text):
     return exp.compile(text).evaluate({})
 
-def bool(text):
+def bool(text,context={}):
     try:
         # If the object decodes, the conditional is false
         conditional = exp.parse_conditional_inverse(text)
-        list(conditional.decode(Data(), context={}))
+
+        # If the expression needs context to decode, it'll need to be able to
+        # reference other entries, so create them here...
+        children = []
+        for name, value in context.items():
+            children.append(sequence.Sequence(name, [], value=exp.Constant(value)))
+        children.append(conditional)
+        list(sequence.Sequence('', children).decode(Data()))
         return False
     except DecodeError,ex:
         return True
@@ -135,4 +143,9 @@ class TestBoolean(unittest.TestCase):
         self.assertEqual(False, bool('5 != (1+4) || 3 > 4'))
         self.assertEqual(True, bool('0==1 or 0==1 or 0==1 or 0==0'))
         self.assertEqual(False, bool('0==1 or 0==1 or 0==1 or 0>=1'))
+
+    def test_implicit_conversion(self):
+        self.assertEqual(True, bool('${bob}', {'bob':1}))
+        self.assertEqual(True, bool('0 or ${bob}', {'bob':1}))
+        self.assertEqual(False, bool('0 or ${bob}', {'bob':0}))
 
