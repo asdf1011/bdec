@@ -94,26 +94,32 @@ ${c_define(e)}
 %endfor
 
 
-// Decode a ${entry.name} instance.
-// Any values already present in result will be ignored and overwritten.
-//   buffer -- The data to decoded.
-//   result -- The decoded structured is stored in this argument. If the data is
-//      decoded successfully, to free any allocated structures you should call
-//      the entry free function. Do not call for decode failures.
-//   return -- 0 for decode failure, non-zero for success.
+/**
+ * Decode a ${entry.name} instance.
+ *
+ *   buffer -- The data to decoded.
+ *   result -- The decoded structured is stored in this argument. If the data
+ *      has decoded successfully, to free any allocated memory you should
+ *      call ${settings.free_name(entry)}.
+ *   return -- 0 for decode failure, non-zero for success.
+ */
 int ${settings.decode_name(entry)}( BitBuffer* buffer${settings.define_params(entry)});
 
 %if contains_data(entry):
-// Free a previously decoded object.
-// Do not attempt to free an object that has not been decoded, or was only
-// partially decoded.
-// Do not free an item multiple times.
-//   value -- The entry whose contents is to be released. The pointer 'value'
-//     will not be freed.
+/**
+ * Free a decoded object.
+ *
+ * Do not attempt to free an object that has not been decoded.
+ *
+ *   value -- The entry whose contents is to be released. The pointer 'value'
+ *     will not be freed.
+ */
 void ${settings.free_name(entry)}(${settings.ctype(entry)}* value);
 %endif
 
-// Print an xml representation of a ${entry.name} object.
+/**
+ * Print an xml representation of a ${entry.name} object.
+ */
 %if contains_data(entry):
 void ${settings.print_name(entry)}(${settings.ctype(entry)}* data, unsigned int offset, const char* name);
 %else:

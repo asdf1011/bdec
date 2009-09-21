@@ -135,7 +135,6 @@
   %elif entry.format == Field.BINARY:
     value.start_bit = buffer->start_bit;
     value.num_bits = ${settings.value(entry, entry.length)};
-    // 0 bits = 0 bytes, 1-8 bits = 1 byte, 9-16 bytes = 2 bytes...
     unsigned int numBytes = (buffer->start_bit + buffer->num_bits + 7) / 8;
     value.buffer = (unsigned char*)malloc(numBytes);
     memcpy(value.buffer, buffer->buffer, numBytes);
@@ -281,7 +280,7 @@
     %endfor
     else
     {
-        // Decode failed, no options succeeded...
+        /* Decode failed, no options succeeded... */
         return 0;
     }
 </%def>
@@ -362,7 +361,7 @@ ${static}int ${settings.decode_name(entry)}(BitBuffer* buffer${settings.define_p
     unsigned int ${'unused number of bits' |variable} = buffer->num_bits - ${length};
     if (${length} > buffer->num_bits)
     {
-        // Not enough data
+        /* Not enough data */
         return 0;
     }
     buffer->num_bits = ${length};
@@ -382,7 +381,7 @@ ${static}int ${settings.decode_name(entry)}(BitBuffer* buffer${settings.define_p
   %if entry.length is not None:
     if (buffer->num_bits != 0)
     {
-        // The entry didn't use all of the data
+        /* The entry didn't use all of the data */
       %if contains_data(entry):
         ${settings.free_name(entry)}(result);
       %endif
