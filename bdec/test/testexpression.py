@@ -27,7 +27,6 @@ def eval(text):
 def bool(text):
     try:
         # If the object decodes, the conditional is false
-        from bdec.spec.xmlspec import save
         conditional = exp.parse_conditional_inverse(text)
         list(conditional.decode(Data(), context={}))
         return False
@@ -120,4 +119,20 @@ class TestBoolean(unittest.TestCase):
         self.assertEqual(False, bool('5 != 5'))
         self.assertEqual(True, bool('5 != 4'))
         self.assertEqual(True, bool('5 != 5 - 1'))
+
+    def test_and(self):
+        self.assertEqual(True, bool('5 == (1+4) && 3 > 2'))
+        self.assertEqual(False, bool('5 != (1+4) && 3 > 2'))
+        self.assertEqual(False, bool('5 == (1+4) && 3 > 4'))
+        self.assertEqual(True, bool('1==1 && 1==1 && 1==1 && 1==1'))
+        self.assertEqual(False, bool('1==1 && 1==1 && 1==1 && 0==1'))
+        self.assertEqual(False, bool('5 == (1+4) and 3 > 4'))
+
+    def test_or(self):
+        self.assertEqual(True, bool('5 == (1+4) || 3 > 2'))
+        self.assertEqual(True, bool('5 != (1+4) || 3 > 2'))
+        self.assertEqual(True, bool('5 == (1+4) or 3 > 4'))
+        self.assertEqual(False, bool('5 != (1+4) || 3 > 4'))
+        self.assertEqual(True, bool('0==1 or 0==1 or 0==1 or 0==0'))
+        self.assertEqual(False, bool('0==1 or 0==1 or 0==1 or 0>=1'))
 

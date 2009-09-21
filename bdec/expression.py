@@ -209,8 +209,9 @@ def parse_conditional_inverse(text):
         option in a choice).
     """
     from pyparsing import StringEnd, ParseException
-    from pyparsing import Forward
+    from pyparsing import Forward, OneOrMore, Literal, ZeroOrMore
     from bdec.constraints import Equals, Minimum, Maximum, NotEquals
+    import bdec.choice as chc
     import bdec.sequence as seq
 
     bool_int_operators = [
@@ -222,15 +223,36 @@ def parse_conditional_inverse(text):
             ('!=', Equals),
             ]
 
-    # Parse all of the integer comparisons
+
+    # Create an expression for parsing the 'comparators'; eg 'a > b'
     integer = _int_expression()
     def create_action(handler):
         return lambda s,l,t:seq.Sequence('condition:', [], value=t[0], constraints=[handler(t[2])])
     int_expressions = []
     for name, handler in bool_int_operators:
         int_expressions.append((integer + name + integer).addParseAction(create_action(handler)))
-    bool_expr = reduce(operator.or_, int_expressions)
+    int_bool_expr = reduce(operator.or_, int_expressions)
 
+    # Create an expression for parsing the boolean operations; eg: 'a && b'
+    bool_expr = Forward()
+    factor = int_bool_expr | ('(' + bool_expr + ')').addParseAction(lambda s,l,t:t[1])
+
+
+    or_ = Literal('||') | 'or'
+    or_expression = OneOrMore(or_ + factor).addParseAction(lambda s,l,t:(seq.Sequence, t[1::2]))
+
+    and_ = Literal('&&') | 'and'
+    and_expression = OneOrMore(and_ + factor).addParseAction(lambda s,l,t:(chc.Choice, t[1::2]))
+
+    # Join all 'and' and 'or' conditions
+    def _collapse_bool(s,l,t):
+        result = t.pop(0)
+        while t:
+            cls, children = t.pop(0)
+            children.insert(0, result)
+            result = cls('condition', children)
+        return result
+    bool_expr << (factor + ZeroOrMore(and_expression | or_expression)).addParseAction(_collapse_bool)
     complete = bool_expr + StringEnd()
     try:
         return complete.parseString(text)[0]
