@@ -23,6 +23,7 @@ Bdec sequenceof entries can have 3 attributes;
   * A name (optional)
   * A count_ (optional)
   * A length_ (optional)
+  * An :ref:`if <boolean-expression>` (optional)
 
 A sequenceof should have either a count, a length, or have an embedded 
 `end-sequenceof`_ to indicate when to stop repeating the element. If none of

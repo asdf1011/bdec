@@ -17,6 +17,7 @@ Choice entries can have up to two attributes.
 
   * A name (optional)
   * A length_ (optional)
+  * An :ref:`if <boolean-expression>` (optional)
 
 The choice must have multiple child entries specifying the different possible
 options (ie: :ref:`fields <format-field>`, :ref:`sequences <format-sequence>`,

@@ -28,6 +28,7 @@ Bdec fields have the following attributes;
   * An encoding (optional)
   * A value_ (optional)
   * :ref:`Constraint <bdec-constraints>` attributes (optional)
+  * An :ref:`if <boolean-expression>` (optional)
 
 .. _type: `Field types`_
 .. _value: `Expected value`_

@@ -21,6 +21,7 @@ Bdec sequence entries can have 3 attributes;
   * A name (optional)
   * A length_ (optional)
   * A value_ (optional)
+  * An :ref:`if <boolean-expression>` (optional)
 
 Sequence attributes can contain any other type of entry (ie: 
 :ref:`fields <format-field>`, sequences, :ref:`sequenceofs <format-sequenceof>`,

@@ -102,18 +102,15 @@ options, this isn't clear or convenient, eg::
      </sequence>
   </choice>
 
-This is verbose and difficult to follow. It is possible instead to use a
-sequence with an expected value :ref:`constraint <bdec-constraints>`::
+This is verbose and difficult to follow. It is possible instead to make the
+entry conditional upon an :ref:`expression <boolean-expression>`::
 
   <sequence name="header">
      <field name="footer present:" length="8" />
      ...
-     <choice name="optional footer">
-        <sequence name="footer">
-           <sequence name="is_present:" value="${footer present:}" expected="1" />
-           ...
-        </sequence>
-        <sequence />
-     </choice>
+     <sequence name="footer" if="${footer present:}">
+        <sequence name="is_present:" value="${footer present:}" expected="1" />
+        ...
+     </sequence>
   </sequence>
 

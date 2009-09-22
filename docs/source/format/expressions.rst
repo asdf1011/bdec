@@ -11,7 +11,7 @@ numerical operations`_, `reference the value`_ of previously decoded fields,
 and `reference the length`_ of a previous decoded entry.
 
 .. _perform numerical operations: `Numerical operations`_
-.. _reference the values: `Value references`_
+.. _reference the value: `Value references`_
 .. _reference the length: `Length references`_
 
 
@@ -117,3 +117,69 @@ A variable length sequence of entries::
           ...
        </sequence>
     </sequenceof>
+
+
+.. _boolean-expression:
+
+Boolean expressions
+===================
+
+All entries can use an optional 'if' attribute; this attribute contains a
+boolean expression. If that expression evaluates to true, the entry will be
+decoded, if not, it will be skipped. Boolean expressions can contain all
+standard expressions (such as `value references`_, `numerical operations`_,
+etc), as well as boolean comparisons (>, ==, &&, ||, etc).
+
+Optional entries can be very useful when the presence of an entry depends on
+values that came signifantly before it in the specification, such as flags
+indicating the presence of a footer::
+
+    <sequence name="packet">
+       <sequence name="header">
+          ...
+          <field name="has footer:" length="8" />
+          ...
+       </sequence>
+       <sequence name="body">
+          ...
+       </sequence>
+       <sequence name="footer" if="${has footer:}">
+          ...
+       </sequence>
+    </sequence>
+
+When it is possible to use either a :ref:`choice <format-choice>` or several
+optional entries, always prefer the choice; it will result in a clearer spec,
+and will generate nicer code. For example::
+
+   <!-- This is the bad way to do it -->
+   <field name="type:" length="8" />
+   <sequence name="a" if="${type:} == 1">
+      ...
+   </sequence>
+   <sequence name="b" if="${type:} == 2">
+      ...
+   </sequence>
+   <sequence name="c" if="${type:} == 3">
+      ...
+   </sequence>
+
+can be much better specified with a :ref:`choice <format-choice>`::
+
+   <!-- This is the good way to do it -->
+   <choice name="packet">
+      <sequence name="a">
+          <field name="type:" length="8" value="1" />
+          ...
+      </sequence>
+      <sequence name="b">
+          <field name="type:" length="8" value="2" />
+          ...
+      </sequence>
+      <sequence name="c">
+          <field name="type:" length="8" value="3" />
+          ...
+      </sequence>
+   </choice>
+
+
