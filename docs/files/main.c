@@ -45,7 +45,7 @@ int main(int argc, char* argv[])
     printf("Image width = %i\n", result.beginChunk.header.width);
     printf("Image height = %i\n", result.beginChunk.header.height);
 
-    /* Look any text chunks, and print them. */
+    /* Find all text chunks, and print them. */
     unsigned int i, j;
     for (i = 0; i < result.chunks.count; ++i)
     {
