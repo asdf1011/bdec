@@ -43,10 +43,23 @@ it is assumed to be binary_.
 Integer
 -------
 
-Integer fields represent numeric values in the data file. There are two types
-of encodings supported, `little endian and big endian`_.
+Integer fields represent numeric values. There are two types of encodings
+supported, `little endian and big endian`_. The 'integer' type can be
+prefixed with 'signed' to specify that the integer can be negative. eg::
 
-The default encoding is big endian.
+  <!-- Unsigned big endian -->
+  <field name="a" type="integer" length="32" />
+   
+  <!-- Unsigned big endian (note that 'unsigned' is redundant) -->
+  <field name="a" type="unsigned integer" length="32" />
+   
+  <!-- Signed big endian (note that 'big endian' is rendundant) -->
+  <field name="a" type="signed integer" encoding="big endian" length="16" />
+   
+  <!-- Signed little endian -->
+  <field name="a" type="signed integer" encoding="little endian" length="64" />
+
+The default encoding is unsigned big endian.
 
 .. _little endian and big endian: http://en.wikipedia.org/wiki/Endianness 
 
