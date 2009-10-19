@@ -71,7 +71,7 @@ def decode(decoder, binary):
             if not entry.is_hidden():
                 if not isinstance(entry, fld.Field):
                     value = item.get_value()
-                stack[-1].add_entry(entry.name, value)
+                stack[-1].add_entry(name, value)
 
     assert len(stack) == 1
     return stack[0].get_value()

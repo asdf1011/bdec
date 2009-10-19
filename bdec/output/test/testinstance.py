@@ -22,6 +22,7 @@ import unittest
 import bdec.choice as chc
 from bdec.constraints import Equals
 import bdec.data as dt
+from bdec.entry import Child
 import bdec.field as fld
 import bdec.sequence as seq
 import bdec.sequenceof as sof
@@ -117,3 +118,8 @@ class TestInstance(unittest.TestCase):
         field = fld.Field("bob:", 8, constraints=[Equals(dt.Data("c"))])
         self.assertEqual("c", self._encode(field, None))
 
+    def test_reference_name(self):
+        a = fld.Field('a', 8)
+        b = seq.Sequence('b', [Child('c', a)])
+        data = inst.decode(b, dt.Data('\x33'))
+        self.assertEqual(0x33, int(data.c))
