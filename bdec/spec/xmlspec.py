@@ -325,6 +325,7 @@ class _Handler(xml.sax.handler.ContentHandler):
                 "integer" : fld.Field.INTEGER,
                 "signed integer" : fld.Field.INTEGER,
                 "text" : fld.Field.TEXT,
+                "float" : fld.Field.FLOAT,
                 }
 
             format = lookup[attributes['type']]

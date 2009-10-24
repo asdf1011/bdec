@@ -80,8 +80,9 @@ class Field(bdec.entry.Entry):
     INTEGER = "integer"
     HEX = "hex"
     BINARY = "binary"
+    FLOAT = "float"
 
-    _formats = [TEXT, INTEGER, HEX, BINARY]
+    _formats = [TEXT, INTEGER, HEX, BINARY, FLOAT]
 
     # Field 'encoding' types
     LITTLE_ENDIAN = "little endian"
@@ -150,6 +151,8 @@ class Field(bdec.entry.Entry):
                 result = dt.Data.from_int_big_endian(self._convert_type(data, int), length)
             else:
                 result = dt.Data.from_int_little_endian(self._convert_type(data, int), length)
+        elif self.format == self.FLOAT:
+            raise NotImplementedError("Don't currently support encoding from floats!")
         else:
             raise Exception("Unknown field format of '%s'!" % self.format)
 
@@ -223,6 +226,11 @@ class Field(bdec.entry.Entry):
             result = data.text(self.encoding)
         elif self.format == self.INTEGER:
             result = self._decode_int(data)
+        elif self.format == self.FLOAT:
+            if self.encoding == self.LITTLE_ENDIAN:
+                result = data.get_litten_endian_float()
+            else:
+                result = float(data)
         else:
             raise Exception("Unknown field format of '%s'!" % self.format)
         return result

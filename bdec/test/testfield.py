@@ -25,6 +25,17 @@ import bdec.data as dt
 import bdec.field as fld
 
 class TestField(unittest.TestCase):
+    def assertNearlyEqual(self, a, b):
+        # Compare two numbers, checking for significant digits.
+        if a == b:
+            return True
+        if b == 0:
+            difference = a
+        else:
+            difference = (a-b) / (a+b)
+        if abs(difference) > 1e-6:
+            raise Exception('%s != %s (within 6 significant digits)' % (a, b))
+
     def test_decode(self):
         field = fld.Field("bob", 8)
         data = dt.Data.from_hex("017a")
@@ -142,3 +153,24 @@ class TestField(unittest.TestCase):
         field = fld.Field("bob", 8)
         self.assertEqual(8, field.range().min)
         self.assertEqual(8, field.range().max)
+
+    def test_float(self):
+        actual = self._get_decode_value('00 00 a0 40', 32, fld.Field.FLOAT, fld.Field.LITTLE_ENDIAN)
+        self.assertNearlyEqual(5.0, actual)
+
+        actual = self._get_decode_value('66 66 82 c1', 32, fld.Field.FLOAT, fld.Field.LITTLE_ENDIAN)
+        self.assertNearlyEqual(-16.3, actual)
+
+    def test_big_endian_float(self):
+        actual = self._get_decode_value('40 a0 00 00', 32, fld.Field.FLOAT, fld.Field.BIG_ENDIAN)
+        self.assertNearlyEqual(5.0, actual)
+
+        actual = self._get_decode_value('c1 82 66 66', 32, fld.Field.FLOAT, fld.Field.BIG_ENDIAN)
+        self.assertNearlyEqual(-16.3, actual)
+
+    def test_double(self):
+        actual = self._get_decode_value('9a99 9999 9999 2040', 64, fld.Field.FLOAT, fld.Field.LITTLE_ENDIAN)
+        self.assertEqual(8.3, actual)
+
+        actual = self._get_decode_value('8e06 16f7 1022 e1c3', 64, fld.Field.FLOAT, fld.Field.LITTLE_ENDIAN)
+        self.assertEqual(-9876543210123456789.0, actual)

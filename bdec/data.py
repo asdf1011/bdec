@@ -18,6 +18,7 @@
 
 import bdec
 import string
+import struct
 
 import weakref
 
@@ -26,7 +27,10 @@ class DataError(Exception):
     def __unicode__(self):
         return str(self)
 
-class NotEnoughDataError(DataError):
+class DataLengthError(DataError):
+    pass
+
+class NotEnoughDataError(DataLengthError):
     """Not enough data was available to fulfill the request."""
     def __init__(self, requested_length, available_length):
         self.requested = requested_length
@@ -45,7 +49,7 @@ class PoppedNegativeBitsError(DataError):
     def __str__(self):
         return "Data source asked for %i bits!" % self.requested
 
-class IntegerTooLongError(DataError):
+class IntegerTooLongError(DataLengthError):
     """A data object was too long to be converted to an integer."""
     def __init__(self, value, length):
         self.value = value
@@ -54,13 +58,17 @@ class IntegerTooLongError(DataError):
     def __str__(self):
         return "Cannot encode value %i in %i bits" % (self.value, self.length)
 
-class HexNeedsFourBitsError(DataError):
+class HexNeedsFourBitsError(DataLengthError):
     """Raised when attempting to convert data to hex, and we don't
         have a multiple of 4 bits. """
     pass
 
-class ConversionNeedsBytesError(DataError):
+class ConversionNeedsBytesError(DataLengthError):
     """An operation that needed whole bytes had a data buffer with bits."""
+    pass
+
+class FloatLengthError(DataLengthError):
+    """Invalid size for decoding a float."""
     pass
 
 class InvalidBinaryTextError(DataError):
@@ -354,6 +362,28 @@ class Data:
                     value = 0
             if i is not None and i % 8 != 7:
                 raise ConversionNeedsBytesError()
+
+    def __float__(self):
+        """
+        Convert the data buffer to a float that has been encoded in big endian.
+        """
+        if len(self) == 4 * 8:
+            return struct.unpack('>f', self.bytes())[0]
+        elif len(self) == 8 * 8:
+            return struct.unpack('>d', self.bytes())[0]
+        else:
+            raise FloatLengthError('Cannot decode a float of %i bits; must be 4 or 8 bytes.' % len(self))
+
+    def get_litten_endian_float(self):
+        """
+        Convert the data buffer to a float that has been encoded in little endian.
+        """
+        if len(self) == 4 * 8:
+            return struct.unpack('<f', self.bytes())[0]
+        elif len(self) == 8 * 8:
+            return struct.unpack('<d', self.bytes())[0]
+        else:
+            raise FloatLengthError('Cannot decode a float of %i bits; must be 4 or 8 bytes.' % len(self))
 
     def get_little_endian_integer(self):
         """
