@@ -152,7 +152,11 @@ class Field(bdec.entry.Entry):
             else:
                 result = dt.Data.from_int_little_endian(self._convert_type(data, int), length)
         elif self.format == self.FLOAT:
-            raise NotImplementedError("Don't currently support encoding from floats!")
+            assert self.encoding in [self.BIG_ENDIAN, self.LITTLE_ENDIAN]
+            if self.encoding == self.BIG_ENDIAN:
+                result = dt.Data.from_float_big_endian(self._convert_type(data, float), length)
+            else:
+                result = dt.Data.from_float_little_endian(self._convert_type(data, float), length)
         else:
             raise Exception("Unknown field format of '%s'!" % self.format)
 

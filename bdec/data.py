@@ -385,6 +385,24 @@ class Data:
         else:
             raise FloatLengthError('Cannot decode a float of %i bits; must be 4 or 8 bytes.' % len(self))
 
+    @staticmethod
+    def from_float_little_endian(value, length):
+        if length == 4 * 8:
+            return Data(struct.pack('<f', value))
+        elif length == 8 * 8:
+            return Data(struct.pack('<d', value))
+        else:
+            raise FloatLengthError('Cannot encode a float of %i bits; must be 4 or 8 bytes.' % len(self))
+
+    @staticmethod
+    def from_float_big_endian(value, length):
+        if length == 4 * 8:
+            return Data(struct.pack('>f', value))
+        elif length == 8 * 8:
+            return Data(struct.pack('>d', value))
+        else:
+            raise FloatLengthError('Cannot encode a float of %i bits; must be 4 or 8 bytes.' % len(self))
+
     def get_little_endian_integer(self):
         """
         Get an integer that has been encoded in little endian format

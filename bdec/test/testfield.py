@@ -17,6 +17,7 @@
 #   <http://www.gnu.org/licenses/>.
 
 #!/usr/bin/env python
+import operator
 import unittest
 
 from bdec.constraints import Equals, ConstraintError
@@ -54,6 +55,11 @@ class TestField(unittest.TestCase):
         data = dt.Data.from_hex(hex)
         calls = list(field.decode(data))
         return calls[1][4]
+
+    def _get_encode_value(self, length, format, value, encoding=""):
+        field = fld.Field("bob", length, format, encoding)
+        result = field.encode(None, value)
+        return reduce(operator.__add__, result)
 
     def test_binary_type(self):
         actual = self._get_decode_value("017a", 12, fld.Field.BINARY)
@@ -174,3 +180,18 @@ class TestField(unittest.TestCase):
 
         actual = self._get_decode_value('8e06 16f7 1022 e1c3', 64, fld.Field.FLOAT, fld.Field.LITTLE_ENDIAN)
         self.assertEqual(-9876543210123456789.0, actual)
+
+    def test_float_encode(self):
+        actual = self._get_encode_value(32, fld.Field.FLOAT, 5.0, fld.Field.LITTLE_ENDIAN)
+        self.assertEqual('0000a040', actual.get_hex())
+
+        actual = self._get_encode_value(32, fld.Field.FLOAT, -16.3, fld.Field.BIG_ENDIAN)
+        self.assertNearlyEqual('c1826666', actual.get_hex())
+
+    def test_double_encode(self):
+        actual = self._get_encode_value(64, fld.Field.FLOAT, 8.3, fld.Field.LITTLE_ENDIAN)
+        self.assertEqual('9a99999999992040', actual.get_hex())
+
+        actual = self._get_encode_value(64, fld.Field.FLOAT, -9876543210123456789.0, fld.Field.LITTLE_ENDIAN)
+        self.assertEqual('8e0616f71022e1c3', actual.get_hex())
+
