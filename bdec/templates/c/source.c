@@ -91,7 +91,7 @@
       %endif
     %endif
     {
-      %if contains_data(entry):
+      %if contains_data(entry) or (isinstance(entry, Field) and entry.format != Field.INTEGER):
         ${settings.free_name(entry)}(${result});
       %endif
         return 0;
