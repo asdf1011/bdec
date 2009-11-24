@@ -505,9 +505,11 @@ ${static}void ${settings.print_name(entry)}(unsigned int offset, const char* nam
         %endif
       %endfor
       %if entry.value is not None and not entry.is_hidden():
+    offset += 2;
     ${print_whitespace()}
     <% format = settings.printf_format(settings.ctype(EntryValueType(entry))) %>
-    printf("%*${format[1]}\\n", offset + 2, data->value);
+    printf("%${format[1]}\n", data->value);
+    offset -= 2;
       %endif
     ${print_whitespace()}
     printf(${'"</%s>\\n"'}, name);
