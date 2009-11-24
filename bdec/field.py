@@ -130,8 +130,7 @@ class Field(bdec.entry.Entry):
         except: 
             raise BadFormatError(self, data, expected_type)
 
-    def _encode_data(self, data):
-        length = self.length.evaluate({})
+    def _encode_data(self, data, length):
         if isinstance(data, dt.Data):
             result = data.copy()
         elif self.format == self.BINARY:
@@ -162,14 +161,17 @@ class Field(bdec.entry.Entry):
 
         return result
 
-    def encode_value(self, value):
+    def encode_value(self, value, length=None):
         """
         Convert an object to a dt.Data object.
 
         Can raise dt.DataError errors.
         """
+        if length is None:
+            length = self.length.evaluate({})
+
         try:
-            return self._encode_data(value)
+            return self._encode_data(value, length)
         except dt.DataError, ex:
             raise FieldDataError(self, ex)
 

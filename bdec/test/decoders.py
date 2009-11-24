@@ -35,7 +35,11 @@ import StringIO
 import xml.etree.ElementTree
 
 import bdec
+from bdec.constraints import Equals
+from bdec.choice import Choice
 import bdec.data as dt
+from bdec.entry import is_hidden
+import bdec.field as fld
 import bdec.output.xmlout as xmlout
 import bdec.compiler as comp
 
@@ -123,6 +127,92 @@ def compile_and_run(data, details):
 
     return decode.wait(), xml
 
+def _get_expected(entry):
+    for constraint in entry.constraints:
+        if isinstance(constraint, Equals):
+            return constraint.limit.evaluate({})
+    return None
+
+def _decode_visible(spec, data):
+    """ Use the spec to decode the given data, returning all visible entries. """
+    hidden_count = 0
+    for (is_starting, name, entry, data, value) in spec.decode(data):
+
+        is_visible = True
+        if isinstance(entry, Choice):
+            # Choice entries aren't printed...
+            is_visible = False
+
+        if is_starting:
+            if hidden_count or is_hidden(name):
+                # This entry is hidden; all child entries should also be
+                # hidden, even if their names are visible.
+                hidden_count += 1
+                is_visible = False
+        else:
+            if hidden_count:
+                # We are finishing a hidden entry...
+                hidden_count -= 1
+                is_visible = False
+
+        if is_visible:
+            yield is_starting, name, entry, data, value
+
+def _validate_xml(spec, data, xmltext):
+    """Validate the decoded xml.
+
+    We don't just use the internal xml and compare it against the external xm;
+    there may be differences in whitespace, and some fields can be represented
+    in multiple ways (eg: 5.0 vs 5.00000 vs 5).
+    """
+    xml_entries = xml.etree.ElementTree.iterparse(StringIO.StringIO(xmltext), ['start', 'end'])
+    child_tail=None
+    for (is_starting, name, entry, data, expected), (a_event, a_elem) in itertools.izip(_decode_visible(spec, data), xml_entries):
+        if is_starting and a_event != 'start':
+            raise Exception ("Expected '%s' to be starting, but got '%s' ending" %
+                    (name, a_elem.tag))
+        if not is_starting and a_event != 'end':
+            raise Exception ("Expected '%s' to be ending, but got '%s' starting" %
+                    (name, a_elem.tag))
+        if xmlout.escape_name(name) != a_elem.tag:
+            raise Exception("expected '%s', got '%s'" %
+                    (xmlout.escape_name(name), a_elem.tag))
+        if not is_starting:
+            text = a_elem.text
+            if not text or not  text.strip():
+                # We don't have a text node for this child; try using its
+                # child's trailing text.
+                text = child_tail
+            if not text or not text.strip():
+                # This node doesn't have data; it's possible that it has an
+                # expected value, so wasn't printed. Get the expected value
+                # from the constraint.
+                text = _get_expected(entry)
+
+            if expected is not None:
+                if isinstance(entry, fld.Field):
+                    actual_data = entry.encode_value(text, len(data))
+                    actual = entry.decode_value(actual_data)
+                else:
+                    actual = int(text)
+                if expected != actual:
+                    # If the value is different, it may be that the data cannot
+                    # be represented in xml (eg: a string with a binary
+                    # character). Encode and decode the expected value to see if
+                    # matches now (being escaped itself...)
+                    expected_text = xmlout.xml_strip(unicode(expected))
+                    expected_data = entry.encode_value(expected_text, len(data))
+                    escaped_expected = entry.decode_value(expected_data)
+                    if escaped_expected != actual:
+                        raise Exception("'%s' expected value of '%s', got '%s'" %
+                                (entry, repr(expected), repr(actual)))
+            elif a_elem.text is not None and a_elem.text.strip():
+                raise Exception("Expected empty text in entry '%s', got '%s'!" %
+                        (a_elem.tag, a_elem.text))
+            child_tail=a_elem.tail
+        else:
+            child_tail=None
+
 class _CompiledDecoder:
     """Base class for testing decoders that are compiled."""
     TEST_DIR = os.path.join(os.path.dirname(__file__), 'temp')
@@ -135,11 +225,7 @@ class _CompiledDecoder:
         (exitstatus, xml) = compile_and_run(data, self)
 
         if exitstatus == 0:
-            # Validate the output against the python output
-            exit_code, expected = _PythonDecoder()._decode_file(spec, common, data)
-            if exit_code != 0:
-                raise Exception("Python decode failed for when creating expected xml (got %i)", exit_code)
-            assert_xml_equivalent(expected, xml)
+            _validate_xml(spec, dt.Data(data), xml)
         return exitstatus, xml
 
 

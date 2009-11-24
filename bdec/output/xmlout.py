@@ -48,7 +48,7 @@ def _escape_char(character):
         return character
     return '?'
 
-def _xml_strip(text):
+def xml_strip(text):
     """Replace chracters that cannot be represented in xml."""
     return ''.join(_escape_char(char) for char in text)
 
@@ -84,7 +84,7 @@ def to_file(decoder, binary, output, encoding="utf-8", verbose=False):
 
         if value is not None:
             if not isinstance(entry, fld.Field) or entry.expected is None:
-                text = _xml_strip(unicode(value))
+                text = xml_strip(unicode(value))
                 handler.characters(text)
 
             if verbose and isinstance(entry, fld.Field):
