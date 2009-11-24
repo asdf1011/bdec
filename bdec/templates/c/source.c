@@ -146,8 +146,23 @@
     %if is_value_referenced(entry):
     *${entry.name |variable} = ${get_integer(entry)}(&value);
     %endif
+  %elif entry.format == Field.FLOAT:
+    <% encoding = 'BDEC_LITTLE_ENDIAN' if entry.encoding == Field.LITTLE_ENDIAN \
+         else 'BDEC_BIG_ENDIAN' %>
+
+    switch (${settings.value(entry, entry.length)})
+    {
+    case 32:
+        value = decodeFloat(buffer, ${encoding});
+        break;
+    case 64:
+        value = decodeDouble(buffer, ${encoding});
+        break;
+    default:
+        return 0;
+    }
   %else:
-    #error Unknown field type ${entry}
+    <% raise Exception('Unknown field type %s' % entry) %>
   %endif
     ${checkConstraints(entry, 'value', '&value')}
     %if contains_data(entry):
@@ -475,6 +490,8 @@ ${static}void ${settings.print_name(entry)}(unsigned int offset, const char* nam
         printf("%u", decode_integer(&${copy_name}, 1));
     }
     printf(${'"</%s>\\n"'}, name);
+      %elif entry.format == Field.FLOAT:
+    printf(${'"<%s>%f</%s>\\n"'}, name, *data, name);
       %else:
     <% raise Exception("Don't know how to print %s" % entry) %>
       %endif

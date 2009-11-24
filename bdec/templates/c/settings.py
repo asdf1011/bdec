@@ -112,6 +112,12 @@ def _entry_type(entry):
                 # getting endian issues....
                 return 'unsigned char'
             return 'BitBuffer'
+        elif entry.format == fld.Field.FLOAT:
+            range = EntryLengthType(entry).range(raw_params)
+            if range.max is not None and range.max == 32:
+                return 'float'
+            else:
+                return 'double'
         else:
             raise Exception("Unhandled field format '%s'!" % entry)
     elif isinstance(entry, seq.Sequence) and entry.value is not None and \

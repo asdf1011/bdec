@@ -1,0 +1,6 @@
+<protocol>
+    <sequence name="a">
+        <field name="b" length="32" type="float" encoding="little endian" />
+        <field name="c" length="64" type="float" encoding="little endian" />
+    </sequence>
+</protocol>
