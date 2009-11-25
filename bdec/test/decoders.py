@@ -127,11 +127,14 @@ def compile_and_run(data, details):
 
     return decode.wait(), xml
 
+class _NoExpectedError(Exception):
+    pass
+
 def _get_expected(entry):
     for constraint in entry.constraints:
         if isinstance(constraint, Equals):
             return constraint.limit.evaluate({})
-    return None
+    raise _NoExpectedError()
 
 def _decode_visible(spec, data):
     """ Use the spec to decode the given data, returning all visible entries. """
@@ -179,7 +182,7 @@ def _validate_xml(spec, data, xmltext):
                     (xmlout.escape_name(name), a_elem.tag))
         if not is_starting:
             text = a_elem.text
-            if not text or not  text.strip():
+            if not text or not  text.strip() and child_tail is not None:
                 # We don't have a text node for this child; try using its
                 # child's trailing text.
                 text = child_tail
@@ -187,7 +190,13 @@ def _validate_xml(spec, data, xmltext):
                 # This node doesn't have data; it's possible that it has an
                 # expected value, so wasn't printed. Get the expected value
                 # from the constraint.
-                text = _get_expected(entry)
+                try:
+                    text = _get_expected(entry)
+                except _NoExpectedError:
+                    # We don't have an expected value; stick with the existing text.
+                    pass
+            if text is None:
+                text = ''
 
             if expected is not None:
                 if isinstance(entry, fld.Field):

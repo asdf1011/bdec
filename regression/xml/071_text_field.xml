@@ -1,0 +1,3 @@
+<protocol>
+   <field name="a" length="64" type="text" />
+</protocol>
