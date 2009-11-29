@@ -4,6 +4,8 @@
 
 import datetime
 import getpass
+import httplib
+import json
 import os.path
 import re
 import shutil
@@ -38,20 +40,12 @@ def usage():
     print "    f) Prompt if user wants freshmeat & pypi to be notified. If so,"
     print "       README changlog will be used."
 
-_RELEASE_FOCUS = {
-        2: 'Documentation',
-        3: 'Code cleanup',
-        4: 'Minor feature enhancements',
-        5: 'Major feature enhancements',
-        6: 'Minor bugfixes', 
-        7: 'Major bugfixes', 
-        }
-
 _README = os.path.join(root_path, 'README')
 _CHANGELOG = os.path.join(root_path, 'CHANGELOG')
 
 website_dir = os.path.join(root_path, '..', 'website', 'website.integ')
 project_dir = os.path.join(website_dir, 'html', 'projects', 'bdec')
+freshmeat_pass = os.path.join(website_dir, 'freshmeat.txt')
 
 def _check_copyright_statements(subdirs):
     is_missing_copyright = False
@@ -120,18 +114,6 @@ def shorten_changelog(changelog):
         if line:
             lines.append(line)
     return " ".join(lines)
-
-def get_focus():
-    print 'Focus options are:'
-    for id, text in _RELEASE_FOCUS.iteritems():
-        print id, text
-    default = 7
-    focus = raw_input('What is the release focus? [%s] ' % default)
-    if focus:
-        item = int(focus.strip())
-    else:
-        item = default
-    return _RELEASE_FOCUS[item]
 
 def _get_link(version):
     return 'files/bdec-%s.tar.gz' % version
@@ -309,7 +291,25 @@ def send_email(version, changelog):
     except smtplib.SMTPAuthenticationError, ex:
         print 'Authenticion error!', ex
 
-def notify(version, changelog, get_focus=get_focus,  system=os.system, confirm=raw_input, should_send_email=True):
+def _get_freshmeat_auth_code():
+    if os.path.exists(freshmeat_pass):
+        print 'Reading freshmeat credentials from', freshmeat_pass
+        data = file(freshmeat_pass, 'r')
+        result = data.read()
+        data.close()
+    else:
+        result = raw_input('Enter freshmeat auth token (from user page):')
+        data = file(freshmeat_pass, 'w')
+        data.write(result)
+        data.close()
+    result = result.strip()
+    if not result:
+        sys.exit('Failed to read freshmeat auth code!')
+    return result
+
+def notify(version, changelog, freshmeat_auth=_get_freshmeat_auth_code,
+        connection=httplib.HTTPSConnection, system=os.system, confirm=raw_input,
+        should_send_email=True):
     # This is a fresmeat limit
     MAX_CHARS = 600
     short_message = shorten_changelog(changelog)
@@ -324,11 +324,25 @@ def notify(version, changelog, get_focus=get_focus,  system=os.system, confirm=r
 
     # Notify freshmeat
     if confirm('Should freshmeat be notified? [y]') in ['', 'y', 'Y']:
-        focus = get_focus()
-        freshmeat = os.path.join(website_dir, 'build', 'freshmeat-submit-1.6', 'freshmeat-submit')
-        command = '%s -n --project bdec --version %s --changes "%s" --release-focus "%s" --gzipped-tar-url http://www.hl.id.au/projects/bdec/files/bdec-%s.tar.gz' % (freshmeat, version, short_message, focus, version)
-        if system(command) != 0:
-            sys.exit('Failed to submit to freshmeat! (%s)' % command)
+        release = {
+                'auth_code': freshmeat_auth(),
+                'release':{
+                    'tag_list':'',
+                    'version':str(version),
+                    'changelog':short_message
+                    },
+                }
+        headers = {"Content-type": "Content-Type: application/json"}
+        conn = connection("freshmeat.net")
+        conn.request("POST", "/projects/bdec/releases.json", json.dumps(release), headers)
+        response = conn.getresponse()
+        data = response.read()
+        conn.close()
+        if int(response.status.split(' ')[0]) >= 400:
+            print response.status, response.reason
+            sys.exit('Failed to submit to freshmeat! (%s)' % data)
+        print "Created release; %s %s\n%s" % (response.status, response.reason, data)
+
     else:
         print 'Not notifying freshmeat.'
 
