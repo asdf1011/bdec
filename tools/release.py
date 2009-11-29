@@ -307,9 +307,41 @@ def _get_freshmeat_auth_code():
         sys.exit('Failed to read freshmeat auth code!')
     return result
 
+def _get_tags(connection, freshmeat_auth):
+    "Get a comma separate list of freshmeat tags"
+    # First get the available tags
+    release = {
+            'auth_code': freshmeat_auth(),
+            }
+    headers = {"Content-type": "application/json"}
+    conn = connection("freshmeat.net")
+    conn.request("GET", "/projects/bdec/releases.json", json.dumps(release), headers)
+    response = conn.getresponse()
+    data = response.read()
+    conn.close()
+    if response.status >= 400:
+        print response.status, response.reason
+        sys.exit('Failed to query freshmeat tags! (%s)' % data)
+    tags = set()
+    for release in json.loads(data):
+        tags.update(release['release']['tag_list'])
+    tags = list(tags)
+    tags.sort()
+    tags = dict(enumerate(tags))
+
+    # Ask the user what tags they want
+    print 'Tags are:'
+    for id, text in tags.iteritems():
+        print '%i - %s' % (id, text)
+    ids = [1,3]
+    text = raw_input('What is the release focus? [1,3] ')
+    if text.strip():
+        ids = [int(id.strip()) for id in text.split(',')]
+    return ', '.join(tags[id] for id in ids)
+
 def notify(version, changelog, freshmeat_auth=_get_freshmeat_auth_code,
-        connection=httplib.HTTPSConnection, system=os.system, confirm=raw_input,
-        should_send_email=True):
+        connection=httplib.HTTPConnection, system=os.system, confirm=raw_input,
+        should_send_email=True, tag_list=_get_tags):
     # This is a fresmeat limit
     MAX_CHARS = 600
     short_message = shorten_changelog(changelog)
@@ -327,18 +359,18 @@ def notify(version, changelog, freshmeat_auth=_get_freshmeat_auth_code,
         release = {
                 'auth_code': freshmeat_auth(),
                 'release':{
-                    'tag_list':'',
+                    'tag_list':tag_list(connection, freshmeat_auth),
                     'version':str(version),
                     'changelog':short_message
                     },
                 }
-        headers = {"Content-type": "Content-Type: application/json"}
+        headers = {"Content-type": "application/json"}
         conn = connection("freshmeat.net")
         conn.request("POST", "/projects/bdec/releases.json", json.dumps(release), headers)
         response = conn.getresponse()
         data = response.read()
         conn.close()
-        if int(response.status.split(' ')[0]) >= 400:
+        if response.status >= 400:
             print response.status, response.reason
             sys.exit('Failed to submit to freshmeat! (%s)' % data)
         print "Created release; %s %s\n%s" % (response.status, response.reason, data)

@@ -53,14 +53,14 @@ This is the current version
                 self.json = json
             def getresponse(self):
                 response = StringIO.StringIO()
-                response.status = '200 OK'
+                response.status = 200
                 response.reason = ''
                 return response
             def close(self):
                 pass
 
         message = 'I am a change\n\nwith several lines'
-        notify('9.9.9', message, lambda:'xxx',MockConnection, mock_system, lambda msg:'y', should_send_email=False)
+        notify('9.9.9', message, lambda:'xxx',MockConnection, mock_system, lambda msg:'y', should_send_email=False, tag_list=lambda a,b:'')
         self.assertEqual(1,  len(connections))
         self.assertEqual('{"release": {"tag_list": "", "version": "9.9.9", ' +
             '"changelog": "I am a change with several lines"}, ' +
