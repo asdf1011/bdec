@@ -349,20 +349,14 @@ Note that we use the 'len{...}' entry to reference the length of another field
 that has been decoded.
 
 
-Compiling to C
---------------
+Using the specification
+-----------------------
 
-While the specification is interesting, and the decoding to xml can be useful
-in certain situations, to be able to use the decoder in other languages is a
-major feature of bdec. Generate a C language decoder by running::
-
-  bcompile png.xml
-
-The generate source includes a sample 'main.c' that can be used as for
-decoding png files to xml. See the alternate main.c_ that prints the image
-width and height, and displays all png 'text' sections.
-
-.. _main.c: files/main.c
+While the specification is interesting, and decoding to xml can be useful in
+certain situations, native libraries are the preferred way of accessing the
+decoded data. As such, bdec supports either :ref:`generating C language
+decoders <compiling-to-c>` or using the specification from :ref:`within python
+code <instance-decoder>`.
 
 
 Where to go from here
