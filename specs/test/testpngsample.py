@@ -32,7 +32,7 @@ class TestPngSample(unittest.TestCase):
         main_filename = os.path.join(test_dir, '..', '..', 'docs', 'files', 'main.c')
         png_filename = os.path.join(test_dir, 'png', 'white.png')
 
-        (spec, lookup, common) = load(spec_filename)
+        (spec, common, lookup) = load(spec_filename)
         generate(spec, common.itervalues(), _CDecoder)
         shutil.copy(main_filename, _CDecoder.TEST_DIR)
         exit_code, output = compile_and_run(open(png_filename, 'rb'), _CDecoder)

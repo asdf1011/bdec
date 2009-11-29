@@ -23,7 +23,7 @@ def load_specs(spec_dir):
     specs = []
     for spec in glob.glob(os.path.join(spec_dir, '*.xml')):
         try:
-            decoder, lookup, common = bdec.spec.xmlspec.load(spec)
+            decoder, common, lookup = bdec.spec.xmlspec.load(spec)
         except bdec.spec.LoadError, ex:
             logging.error('failed to load: %s (%s)', spec, ex)
         specs.append(decoder)

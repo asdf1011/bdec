@@ -430,7 +430,7 @@ def _load_from_file(file, filename):
             def getColumnNumber(self):
                 return handler.lookup[ex.entry][2]
         raise XmlExpressionError(ex, filename, Locator())
-    return (handler.decoder, handler.lookup, handler.common_entries)
+    return (handler.decoder, handler.common_entries, handler.lookup)
 
 def loads(xml):
     """

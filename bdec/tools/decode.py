@@ -57,7 +57,7 @@ def _parse_args():
 def main():
     spec, binary, verbose = _parse_args()
     try:
-        decoder, lookup, common = xmlspec.load(spec)
+        decoder, common, lookup = xmlspec.load(spec)
         bdec.spec.validate_no_input_params(decoder, lookup)
     except bdec.spec.LoadError, ex:
         sys.exit(str(ex))

@@ -28,7 +28,7 @@ class _Xml:
     def _test_spec(self, spec_filename, successes, failures):
         assert successes or failures
 
-        spec, lookup, common = load(spec_filename)
+        spec, common, lookup = load(spec_filename)
         common = common.values()
         for data_filename in successes:
             expected_xml = None

@@ -16,7 +16,7 @@ from bdec.test.decoders import create_decoder_classes
 class _BaseTest(object):
     def _load_spec(self):
         if not hasattr(self, '_spec'):
-            spec, lookup, common = xmlspec.load(self.filename)
+            spec, common, lookup = xmlspec.load(self.filename)
             type(self)._spec = spec
             type(self)._common = common.values()
 
