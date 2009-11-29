@@ -90,7 +90,7 @@ class TestXml(unittest.TestCase):
         hidden = fld.Field('', 8, fld.Field.INTEGER, constraints=[Equals(0)])
         spec = seq.Sequence('blah', [hidden])
         text = xml.to_string(spec, dt.Data('\x00'))
-        self.assertEqual('<blah>\n</blah>\n', text)
+        self.assertEqual('<blah></blah>\n', text)
 
     def test_verbose_nameless_entry(self):
         hidden = fld.Field('', 8, fld.Field.INTEGER, constraints=[Equals(0)])
@@ -110,4 +110,9 @@ class TestXml(unittest.TestCase):
         header = seq.Sequence('header', [ent.Child('length', number), fld.Field('data', length=expr.compile('${length} * 8'), format=fld.Field.TEXT)])
         text = xml.to_string(header, dt.Data('5abcde'))
         self.assertEqual('<header>\n    <length>5</length>\n    <data>abcde</data>\n</header>\n', text)
+
+    def test_sequence_with_children_and_value(self):
+        a = seq.Sequence('a', [fld.Field('b', length=8, format=fld.Field.INTEGER)], value=expr.compile('11'))
+        text = xml.to_string(a, dt.Data('\xff'))
+        self.assertEqual('<a>\n    <b>255</b>\n    11\n</a>\n', text)
 

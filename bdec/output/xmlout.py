@@ -52,11 +52,16 @@ def xml_strip(text):
     """Replace chracters that cannot be represented in xml."""
     return ''.join(_escape_char(char) for char in text)
 
+def _print_whitespace(handler, offset):
+    handler.ignorableWhitespace('\n')
+    handler.ignorableWhitespace(' ' * offset)
+
 def to_file(decoder, binary, output, encoding="utf-8", verbose=False):
     handler = _XMLGenerator(output, encoding)
     offset = 0
     is_first = True
     hidden_count = 0
+    has_children = False
     for is_starting, name, entry, data, value in decoder.decode(binary):
         # If we have an entry that is hidden, all entries under that should
         # also be hidden.
@@ -68,30 +73,39 @@ def to_file(decoder, binary, output, encoding="utf-8", verbose=False):
             hidden_count -= 1
 
         if not verbose and (is_hidden or isinstance(entry, chc.Choice)):
+            # By default, we don't output hidden or choice entries.
             continue
 
-        if not is_starting:
-            offset = offset - 4
-        if value is None:
-            if not is_first:
-                handler.ignorableWhitespace('\n')
-            handler.ignorableWhitespace(' ' * offset)
-        is_first = False
-
         if is_starting:
+            if not is_first:
+                _print_whitespace(handler, offset)
+            is_first = False
+
             handler.startElement(escape_name(name), xml.sax.xmlreader.AttributesImpl({}))
             offset = offset + 4
+            has_children = False
+        else:
+            # An element is ending; we only include the surrounding whitespace
+            # if the entry has visible children (otherwise we try an keep the
+            # value compact with the entries). This means strings with leading
+            # and trailing whitespace can be represented (and produces nicer
+            # xml).
+            if value is not None:
+                if has_children:
+                    _print_whitespace(handler, offset)
 
-        if value is not None:
-            if not isinstance(entry, fld.Field) or entry.expected is None:
-                text = xml_strip(unicode(value))
-                handler.characters(text)
+                if not isinstance(entry, fld.Field) or entry.expected is None:
+                    text = xml_strip(unicode(value))
+                    handler.characters(text)
 
-            if verbose and isinstance(entry, fld.Field):
-                handler.comment(str(data))
-
-        if not is_starting:
+                if verbose and isinstance(entry, fld.Field):
+                    handler.comment(str(data))
+            offset = offset - 4
+            if has_children:
+                _print_whitespace(handler, offset)
             handler.endElement(escape_name(name))
+
+            has_children = True
     handler.ignorableWhitespace('\n')
 
 def to_string(decoder, binary, verbose=False):
