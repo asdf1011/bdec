@@ -1,3 +1,19 @@
+0.6.0 (2009-09-30)
+------------------
+
+Features:
+
+* Decode floating point, signed integer, and 64 bit values.
+* Range analysis on integer types to determine suitable C-types.
+* Conditional entries.
+* Constraints on sequence values.
+
+Bugfixes:
+
+* Whitespace in xml output
+* Fix referenencing length & value of the same entry
+
+
 0.5.3 (2009-04-01)
 ------------------
 

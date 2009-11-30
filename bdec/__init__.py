@@ -36,7 +36,7 @@ It can:
  * Be defined in a textual format (bdec.spec)
 """
 
-__version__ = "0.5.3"
+__version__ = "0.6.0"
 
 class DecodeError(Exception):
     """ An error raise when decoding fails """
