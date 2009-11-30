@@ -398,7 +398,7 @@ def upload():
         if os.system(command) == 0:
             break
         text = raw_input('Failed to upload to the server! Try again? [y]')
-        if text and text != 'y':
+        if text.strip() and text != 'y':
             sys.exit('Not uploaded.')
 
 if __name__ == '__main__':
