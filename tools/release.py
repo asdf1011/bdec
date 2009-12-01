@@ -216,7 +216,7 @@ def tag_changes(version):
     else:
         text = raw_input("Tag '%s' exists! Overwrite? [y]" % tag)
 
-    if text and text != 'y':
+    if text.strip() and text != 'y':
         print 'Not tagged.'
     elif os.system('git tag -f "%s"' % tag) != 0:
         sys.exit('Failed to tag!')
