@@ -29,7 +29,7 @@ union FloatConversion
     double doubleValue;
 };
 
-Encoding getMachineEncoding()
+enum Encoding getMachineEncoding()
 {
     union {
         long int l;
@@ -41,7 +41,7 @@ Encoding getMachineEncoding()
     return u.c[0] == 1 ? BDEC_LITTLE_ENDIAN : BDEC_BIG_ENDIAN;
 }
 
-static void convertEndian(Encoding encoding, unsigned char output[], BitBuffer* data)
+static void convertEndian(enum Encoding encoding, unsigned char output[], BitBuffer* data)
 {
     int numBytes = data->num_bits / 8;
     if (encoding == getMachineEncoding())
@@ -60,7 +60,7 @@ static void convertEndian(Encoding encoding, unsigned char output[], BitBuffer* 
     }
 }
 
-double decodeFloat(BitBuffer* data, Encoding encoding)
+double decodeFloat(BitBuffer* data, enum Encoding encoding)
 {
     assert(data->num_bits == 32);
     union FloatConversion conv;
@@ -68,7 +68,7 @@ double decodeFloat(BitBuffer* data, Encoding encoding)
     return conv.floatValue;
 }
 
-double decodeDouble(BitBuffer* data, Encoding encoding)
+double decodeDouble(BitBuffer* data, enum Encoding encoding)
 {
     assert(data->num_bits == 64);
     union FloatConversion conv;

@@ -58,7 +58,7 @@ enum Encoding
  * data -- The buffer to decode. The data _MUST_ be 4 bytes long,
  *   or the code will assert.
  */
-double decodeFloat(BitBuffer* data, Encoding encoding);
+double decodeFloat(BitBuffer* data, enum Encoding encoding);
 
 /**
  * Decode a data buffer to a float.
@@ -66,7 +66,7 @@ double decodeFloat(BitBuffer* data, Encoding encoding);
  * data -- The buffer to decode. The data _MUST_ be 8 bytes long,
  *   or the code will assert.
  */
-double decodeDouble(BitBuffer* data, Encoding encoding);
+double decodeDouble(BitBuffer* data, enum Encoding encoding);
 
 #ifdef __cplusplus
 }
