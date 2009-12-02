@@ -60,6 +60,7 @@ enum ${settings.enum_type_name(entry)}
     %endfor
 };
 
+    %if settings.children_contain_data(entry):
 ${settings.ctype(entry)}
 {
     enum ${settings.enum_type_name(entry)} option;
@@ -76,6 +77,7 @@ ${settings.ctype(entry)}
     %endfor
     }value;
 };
+    %endif
   %elif isinstance(entry, SequenceOf):
 ${settings.ctype(entry)}
 {

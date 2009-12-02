@@ -95,6 +95,12 @@ def get_integer(entry):
     else:
         return 'get_long_integer'
 
+def children_contain_data(entry):
+    for child in entry.children:
+        if child_contains_data(child):
+            return True
+    return False
+
 def _entry_type(entry):
     assert isinstance(entry, Entry), "Expected an Entry instance, got '%s'!" % entry
     if isinstance(entry, fld.Field):
@@ -121,10 +127,12 @@ def _entry_type(entry):
         else:
             raise Exception("Unhandled field format '%s'!" % entry)
     elif isinstance(entry, seq.Sequence) and entry.value is not None and \
-            not reduce(lambda a,b: a and b, (child_contains_data(child) for child in entry.children), True):
+            not children_contain_data(entry):
         # This sequence has hidden children and a value; we can treat this as
         # an integer.
         return _integer_type(EntryValueType(entry))
+    elif isinstance(entry, chc.Choice) and not children_contain_data(entry):
+        return 'enum %s' % enum_type_name(entry)
     else:
         return "struct " + typename(escaped_type(entry))
 

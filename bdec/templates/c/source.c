@@ -283,7 +283,11 @@
         %endif
       %endfor
       %if contains_data(entry):
+          %if settings.children_contain_data(entry):
         result->option = ${settings.enum_value(entry, i)};
+          %else:
+        *result = ${settings.enum_value(entry, i)};
+          %endif
       %endif
         *buffer = temp;
       %if child_contains_data(child) and is_recursive(entry, child.entry):
@@ -338,7 +342,11 @@ ${static}void ${settings.free_name(entry)}(${settings.ctype(entry)}* value)
     free(value->items);
     %endif
   %elif isinstance(entry, Choice):
+      %if settings.children_contain_data(entry):
     switch(value->option)
+      %else:
+    switch(*value)
+      %endif
     {
     %for i, child in enumerate(entry.children):
     case ${enum_value(entry, i)}:
@@ -499,7 +507,11 @@ ${static}void ${settings.print_name(entry)}(unsigned int offset, const char* nam
     ${print_whitespace()}
     printf(${'"<%s>' + settings.printf_format(settings.ctype(entry)) + '</%s>\\n"'}, name, *data, name);
     %elif isinstance(entry, Choice):
+      %if settings.children_contain_data(entry):
     switch(data->option)
+      %else:
+    switch(*data)
+      %endif
     {
       %for i, child in enumerate(entry.children):
     case ${enum_value(entry, i)}:
