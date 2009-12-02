@@ -88,15 +88,14 @@ class _EntryInfo(prm.CompoundParameters):
 
     def _get_name_map(self, entry):
         """Map an unescaped name to an escaped 'local' name."""
-        # It is possible that locals would escape to the same name as a
-        # parameter (for example, references with constraints, see the 060
-        # sequence with constraint xml regression test). To avoid this, we
-        # escape parameter names and locals together.
-        names = [param.name for param in prm.CompoundParameters.get_params(self, entry)]
-        names.extend(local.name for local in prm.CompoundParameters.get_locals(self, entry))
+        # We escape the parameter names first to give them the first change of
+        # getting the name they want.
+        param_names = [param.name for param in prm.CompoundParameters.get_params(self, entry)]
+        local_names = [local.name for local in prm.CompoundParameters.get_locals(self, entry)]
+        param_escaped = self._utils.esc_names(param_names, self._utils.variable_name)
+        local_escaped = self._utils.esc_names(local_names, self._utils.variable_name, param_escaped)
 
-        escaped = self._utils.esc_names(names, self._utils.variable_name)
-        return dict(zip(names, escaped))
+        return dict(zip(param_names + local_names, param_escaped + local_escaped))
 
     def get_local_name(self, entry, name):
         """Map an unescaped name to the 'local' variable name.
@@ -224,26 +223,37 @@ class _Utils:
                 for entry in self.iter_optional_common(child.entry):
                     yield entry
 
-    def esc_names(self, names, escape):
+    def esc_names(self, names, escape, forbidden=[]):
         """Return a list of unique escaped names.
 
         names -- The names to escape.
         escape -- A function to call to escape the name.
+        forbidden -- A list of names that shouldn't be used.
         return -- A list of unique names (of the same size as the input names).
         """
-        names = list(names)
+        names = list(self.esc_name(name) for name in names)
+
+        # Get a simple count of the escaped names, to test if we are expecting
+        # collisions for a given name. If we are expecting collisions, we will
+        # postfix the name with a number.
+        name_count = {}
+        for name in names:
+            name = escape(name)
+            name_count[name] = name_count.get(name, 0) + 1
+
         result = []
         for name in names:
-            name = self.esc_name(name)
-            count = None
+            count = None if name_count[escape(name)] == 1 else 0
             while 1:
                 if count is None:
+                    # We aren't expecting collisions, but may get them anyway,
+                    # so set the 'count' to zero.
                     escaped = escape(name)
                     count = 0
                 else:
                     escaped = escape('%s %i' % (name, count))
                     count += 1
-                if escaped not in result:
+                if escaped not in result and escaped not in forbidden:
                     # We found a unique escaped name
                     result.append(escaped)
                     break

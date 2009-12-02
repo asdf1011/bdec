@@ -48,12 +48,17 @@ _escaped_types = {}
 def escaped_type(entry):
     if not _escaped_types:
         # Create a cache of names to types (this function is called many times).
-        # We put the common entries at the start of the list, which will cause
-        # them to have first chance at a unique name.
-        entries = common + list(e for e in iter_entries() if e not in common)
-        names = [e.name for e in entries]
-        escaped = esc_names(names, esc_name)
-        _escaped_types.update(zip(entries, escaped))
+        embedded = [e for e in iter_entries() if e not in common]
+        entries = common + embedded
+
+        common_names = [e.name for e in common]
+        embedded_names = [e.name for e in embedded]
+
+        # We escape the 'common' entries first, so they can get as close a name
+        # as possible to their unescaped name.
+        names = esc_names(common_names, esc_name)
+        names += esc_names(embedded_names, esc_name, names)
+        _escaped_types.update(zip(entries, names))
     return _escaped_types[entry]
 
 def _int_types():
