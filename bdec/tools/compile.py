@@ -29,7 +29,7 @@ def _load_spec(filename):
         decoder, common, lookup = bdec.spec.xmlspec.load(filename)
     except bdec.spec.LoadError, ex:
         sys.exit(str(ex))
-    return decoder, lookup, common
+    return decoder, common, lookup
 
 def main():
     if len(sys.argv) not in [2, 3]:
