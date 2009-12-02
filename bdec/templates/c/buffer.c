@@ -46,14 +46,16 @@ static void convertEndian(enum Encoding encoding, unsigned char output[], BitBuf
     int numBytes = data->num_bits / 8;
     if (encoding == getMachineEncoding())
     {
-        for (int i = 0; i < numBytes; ++i)
+        int i;
+        for (i = 0; i < numBytes; ++i)
         {
             output[i] = decode_integer(data, 8);
         }
     }
     else
     {
-        for (int i = 0; i < numBytes; ++i)
+        int i;
+        for (i = 0; i < numBytes; ++i)
         {
             output[numBytes - 1 - i] = decode_integer(data, 8);
         }
