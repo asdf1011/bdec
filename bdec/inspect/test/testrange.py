@@ -121,3 +121,8 @@ class TestRange(unittest.TestCase):
         a = Range(256, 256)
         c = Range(0, 5)
         self.assertEqual(Range(8, 256), a >> c)
+
+    def test_large_multiply(self):
+        a = Range(0, 999999999)
+        b = Range(100, 100)
+        self.assertEqual(Range(0, 99999999900), a * b)

@@ -139,8 +139,8 @@ class Range:
         values.append(maxx * maxy)
 
         values.sort()
-        min = values[0] if isinstance(values[0], int) else None
-        max = values[3] if isinstance(values[3], int) else None
+        min = values[0] if isinstance(values[0], (int, long)) else None
+        max = values[3] if isinstance(values[3], (int, long)) else None
         return Range(min, max)
 
     def __div__(self, other):
