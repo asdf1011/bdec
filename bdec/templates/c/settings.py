@@ -33,10 +33,13 @@ keywords=['char', 'int', 'short', 'long', 'float', 'if', 'then', 'else', 'struct
 # clash with our types.
 keywords += ['Buffer', 'Text', 'BitBuffer']
 
-unsigned_types = {'unsigned char':(8, '%i'), 'unsigned int':(32, '%u'), 'unsigned long long':(64, '%llu')}
+unsigned_types = {'unsigned int':(32, '%u'), 'unsigned long long':(64, '%llu')}
 signed_types = {'int':(32, '%i'), 'long long':(64, '%lli')}
 
 def is_numeric(type):
+    if type == 'unsigned char':
+        # We have an explicit unsigned char for short bitfields
+        return True
     return type in signed_types or type in unsigned_types
 
 def printf_format(type):
@@ -78,8 +81,12 @@ def _integer_type(type):
 
 def _type_from_range(range):
     if range.min is None:
+        # This number doesn't have a minimum value; choose the type that can
+        # represent the most negative number.
         return _biggest(signed_types)
     if range.max is None:
+        # This number doesn't have a maximum valuea; choose the type that can
+        # represent the largest number.
         return _biggest(unsigned_types)
 
     for name, minimum, maximum in _int_types():
