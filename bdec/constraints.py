@@ -19,7 +19,7 @@
 import operator
 
 from bdec import DecodeError
-from bdec.expression import Expression, Constant
+from bdec.expression import Expression, Constant, UndecodedReferenceError
 from bdec.inspect.range import Range
 
 class ConstraintError(DecodeError):
@@ -30,6 +30,12 @@ class ConstraintError(DecodeError):
     def __str__(self):
         return '%s constaint failed; %s' % (self.entry, self._error)
 
+def _limit(expression):
+    try:
+        return expression.evaluate({})
+    except UndecodedReferenceError:
+        # We aren't able to determine this limit
+        return None
 
 class Minimum:
     def __init__(self, limit):
@@ -47,7 +53,7 @@ class Minimum:
             raise ConstraintError(entry, int(value), '<', expected)
 
     def range(self):
-        return Range(self.limit.evaluate({}), None)
+        return Range(_limit(self.limit), None)
 
 
 class Maximum:
@@ -66,7 +72,7 @@ class Maximum:
             raise ConstraintError(entry, int(value), '>', expected)
 
     def range(self):
-        return Range(None, self.limit.evaluate({}))
+        return Range(None, _limit(self.limit))
 
 
 class Equals:
@@ -86,7 +92,7 @@ class Equals:
                 raise ConstraintError(entry, value, '!=', expected)
 
     def range(self):
-        limit = self.limit.evaluate({})
+        limit = _limit(self.limit)
         return Range(limit, limit)
 
 
@@ -107,6 +113,6 @@ class NotEquals:
                 raise ConstraintError(entry, value, '==', expected)
 
     def range(self):
-        limit = self.limit.evaluate({})
+        limit = _limit(self.limit)
         return Range(limit, limit)
 
