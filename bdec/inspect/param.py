@@ -284,6 +284,8 @@ class ExpressionParameters(_Parameters):
 
         if isinstance(entry, seq.Sequence) and entry.value is not None:
             child_unknowns.update(self._collect_references(entry.value))
+        for constraint in entry.constraints:
+            child_unknowns.update(self._collect_references(constraint.limit))
 
         # Our unknown list is all the unknowns in our children that aren't
         # present in our known references.
