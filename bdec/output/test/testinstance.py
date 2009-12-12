@@ -23,6 +23,7 @@ import bdec.choice as chc
 from bdec.constraints import Equals
 import bdec.data as dt
 from bdec.entry import Child
+from bdec.expression import parse
 import bdec.field as fld
 import bdec.sequence as seq
 import bdec.sequenceof as sof
@@ -123,3 +124,35 @@ class TestInstance(unittest.TestCase):
         b = seq.Sequence('b', [Child('c', a)])
         data = inst.decode(b, dt.Data('\x33'))
         self.assertEqual(0x33, int(data.c))
+
+    def test_sequence_value(self):
+        a = seq.Sequence('a', [seq.Sequence('hidden:', [])], value=parse('5'))
+        data = inst.decode(a, dt.Data())
+        self.assertEqual(5, data)
+
+    def test_sequence_with_children_and_value(self):
+        a = seq.Sequence('a', [fld.Field('b', length=8, format=fld.Field.INTEGER)], value=parse('7'))
+        data = inst.decode(a, dt.Data('\x33'))
+        self.assertEqual(0x33, data.b)
+        self.assertEqual(7, int(data))
+
+    def test_exception_when_seequence_is_not_an_int(self):
+        a = seq.Sequence('a', [])
+        data = inst.decode(a, dt.Data())
+        self.assertRaises(TypeError, int, data)
+
+    def test_sequence_to_string(self):
+        a = seq.Sequence('a', [fld.Field('b', 8, format=fld.Field.INTEGER)])
+        data = inst.decode(a, dt.Data('\x09'))
+        self.assertEqual("{'b': 9}", str(data))
+
+    def test_sequenceof_to_string(self):
+        a = sof.SequenceOf('a', fld.Field('b', 8, format=fld.Field.INTEGER), count=parse('3'))
+        data = inst.decode(a, dt.Data('\x09\x01\x0a'))
+        self.assertEqual("[9, 1, 10]", str(data))
+
+    def test_sequence_with_hidden_field_to_string(self):
+        a = seq.Sequence('a', [fld.Field('length:', 8), fld.Field('b', format=fld.Field.TEXT, length=parse('${length:} * 8'))])
+        data = inst.decode(a, dt.Data('\x03cat'))
+        self.assertEqual(u"{'b': u'cat'}", unicode(data))
+

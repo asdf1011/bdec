@@ -51,6 +51,7 @@ class ExpressionError(Exception):
     def __str__(self):
         return str(self.error)
 
+
 class Expression(object):
     """
     An object that returns a value given the current decode context.
@@ -184,7 +185,7 @@ def _int_expression():
     expression << entry
     return expression
 
-def compile(text):
+def parse(text):
     """
     Compile a length expression into an integer convertible object.
 
@@ -198,6 +199,8 @@ def compile(text):
         return complete.parseString(text)[0]
     except ParseException, ex:
         raise ExpressionError(ex)
+# Legacy name for parse function
+compile = parse
 
 def parse_conditional_inverse(text):
     """
