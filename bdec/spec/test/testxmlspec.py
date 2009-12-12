@@ -806,6 +806,37 @@ class TestXml(unittest.TestCase):
         self.assertEqual(0, len(data))
         self.assertRaises(ConstraintError, list, a.decode(dt.Data('\x01\x00')))
 
+    def test_references_in_optional_entry(self):
+        # Test that references are correctly resolved when they are in an
+        # optional entry (issue196).
+        text = '''
+            <protocol>
+                <sequence name="a">
+                   <field name="exists:" length="8" />
+                   <sequence name="b" if="${exists:}" >
+                       <reference name="value" type="int32" />
+                   </sequence>
+                </sequence>
+
+                <common>
+                   <field name="int32" length="32" type="signed integer" />
+                </common>
+            </protocol>'''
+        a = xml.loads(text)[0]
+
+        # Test decoding when it isn't present
+        data = dt.Data('\x00')
+        list(a.decode(data))
+        self.assertEqual(0, len(data))
+
+        # Test decoding when it is present
+        data = dt.Data('\x01\x00\x00\x00\x01')
+        list(a.decode(data))
+        self.assertEqual(0, len(data))
+
+
+
+
 
 class TestSave(unittest.TestCase):
     """Test decoding of the xml save functionality.

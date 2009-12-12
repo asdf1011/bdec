@@ -199,17 +199,6 @@ class _Handler(xml.sax.handler.ContentHandler):
         if attrs.has_key('expected'):
             expected = self._parse_expression(attrs['expected'])
             constraints.append(Equals(expected))
-        if attrs.has_key('if'):
-            # This is a 'conditional' entry; only present if the expression in
-            # 'if' is true. To decode this, we create a choice with a 'not
-            # present' option; this option attempts to decode first, with the
-            # condition inverted.
-            try:
-                not_present = exp.parse_conditional_inverse(attrs['if'])
-            except exp.ExpressionError, ex:
-                raise XmlExpressionError(ex, self._filename, self.locator)
-            assert isinstance(not_present, ent.Entry)
-            entry = chc.Choice('optional %s' % entry_name, [not_present, entry])
 
         if constraints:
             if isinstance(entry, _ReferencedEntry):
@@ -228,6 +217,18 @@ class _Handler(xml.sax.handler.ContentHandler):
             if isinstance(child, _ReferencedEntry):
                 child.set_parent(entry)
         self._children.pop()
+
+        if attrs.has_key('if'):
+            # This is a 'conditional' entry; only present if the expression in
+            # 'if' is true. To decode this, we create a choice with a 'not
+            # present' option; this option attempts to decode first, with the
+            # condition inverted.
+            try:
+                not_present = exp.parse_conditional_inverse(attrs['if'])
+            except exp.ExpressionError, ex:
+                raise XmlExpressionError(ex, self._filename, self.locator)
+            assert isinstance(not_present, ent.Entry)
+            entry = chc.Choice('optional %s' % entry_name, [not_present, entry])
 
         if entry is not None:
             if self._end_sequenceof:
@@ -288,10 +289,12 @@ class _Handler(xml.sax.handler.ContentHandler):
         # Note the we don't iterate over the unresolved references, as the
         # list can change as we iterate over it (in _get_common_entry).
         while self._unresolved_references:
-            entry = self._unresolved_references.pop()
+            reference = self._unresolved_references.pop()
             # Problem: We are copying the entry while we still have the referenced item in the tree...
             #  we'll have to insert it in the tree before copying it!
-            entry.resolve(self._get_common_entry(entry.getReferenceName()))
+            entry = self._get_common_entry(reference.getReferenceName())
+            assert isinstance(entry, ent.Entry)
+            reference.resolve(entry)
 
         self.decoder = children[0]
 
