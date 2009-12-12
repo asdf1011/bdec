@@ -81,7 +81,7 @@
     %else:
       ## For all constraints other than equality we treat the value as an integer...
       %if settings.is_numeric(settings.ctype(entry)):
-    if (${value} ${constraint.type} ${str(constraint.limit)})
+    if (${value} ${constraint.type} ${settings.value(entry, constraint.limit)})
       %elif settings.ctype(entry) == 'BitBuffer':
     if (${get_integer(entry)}(&${value}) ${constraint.type} ${str(constraint.limit)})
       %elif settings.ctype(entry) in ['Buffer', 'Text']:
