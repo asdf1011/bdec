@@ -225,6 +225,7 @@ class _Handler(xml.sax.handler.ContentHandler):
             # condition inverted.
             try:
                 not_present = exp.parse_conditional_inverse(attrs['if'])
+                not_present.name = 'not present:'
             except exp.ExpressionError, ex:
                 raise XmlExpressionError(ex, self._filename, self.locator)
             assert isinstance(not_present, ent.Entry)
