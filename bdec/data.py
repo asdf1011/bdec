@@ -24,6 +24,8 @@ import weakref
 
 class DataError(Exception):
     """Base class for all data errors."""
+    def __str__(self):
+        return 'Data error!'
     def __unicode__(self):
         return str(self)
 
@@ -61,23 +63,43 @@ class IntegerTooLongError(DataLengthError):
 class HexNeedsFourBitsError(DataLengthError):
     """Raised when attempting to convert data to hex, and we don't
         have a multiple of 4 bits. """
-    pass
+    def __init__(self, data):
+        self.data = data
+
+    def __str__(self):
+        return 'Conversion to hex needs a multiple of 4 bits; data has %i bits' % len(self.data)
 
 class ConversionNeedsBytesError(DataLengthError):
     """An operation that needed whole bytes had a data buffer with bits."""
-    pass
+    def __init__(self, data):
+        self.data = data
+
+    def __str__(self):
+        return 'Conversion needs data to be whole bytes; data has %i bits' % len(self.data)
 
 class FloatLengthError(DataLengthError):
     """Invalid size for decoding a float."""
-    pass
+    def __init__(self, data):
+        self.data = data
+
+    def __str__(self):
+        return 'Cannot decode a float of %i bits; must be 4 or 8 bytes.' % len(self.data)
 
 class InvalidBinaryTextError(DataError):
     """A binary text to data conversion failed."""
-    pass
+    def __init__(self, text):
+        self.text = test
+
+    def __str__(self):
+        return "Invalid binary text! '%s'" % text
 
 class InvalidHexTextError(DataError):
     """A hex text to data conversion failed."""
-    pass
+    def __init__(self, hex):
+        self.hex = hex
+
+    def __str__(self):
+        return "Invalid hext text: '%s'" % self.hex
 
 class BadTextEncodingError(DataError):
     """A data object was unable to be encoded in the specified text encoding."""
@@ -361,7 +383,7 @@ class Data:
                     yield value
                     value = 0
             if i is not None and i % 8 != 7:
-                raise ConversionNeedsBytesError()
+                raise ConversionNeedsBytesError(self)
 
     def __float__(self):
         """
@@ -372,7 +394,7 @@ class Data:
         elif len(self) == 8 * 8:
             return struct.unpack('>d', self.bytes())[0]
         else:
-            raise FloatLengthError('Cannot decode a float of %i bits; must be 4 or 8 bytes.' % len(self))
+            raise FloatLengthError(self)
 
     def get_litten_endian_float(self):
         """
@@ -383,7 +405,7 @@ class Data:
         elif len(self) == 8 * 8:
             return struct.unpack('<d', self.bytes())[0]
         else:
-            raise FloatLengthError('Cannot decode a float of %i bits; must be 4 or 8 bytes.' % len(self))
+            raise FloatLengthError(self)
 
     @staticmethod
     def from_float_little_endian(value, length):
@@ -392,7 +414,7 @@ class Data:
         elif length == 8 * 8:
             return Data(struct.pack('<d', value))
         else:
-            raise FloatLengthError('Cannot encode a float of %i bits; must be 4 or 8 bytes.' % len(self))
+            raise FloatLengthError(self)
 
     @staticmethod
     def from_float_big_endian(value, length):
@@ -401,7 +423,7 @@ class Data:
         elif length == 8 * 8:
             return Data(struct.pack('>d', value))
         else:
-            raise FloatLengthError('Cannot encode a float of %i bits; must be 4 or 8 bytes.' % len(self))
+            raise FloatLengthError(self)
 
     def get_little_endian_integer(self):
         """
@@ -453,7 +475,7 @@ class Data:
         length -- The length in bits of the data buffer to create."""
         data = int(value)
         if length % 8 != 0:
-            raise ConversionNeedsBytesError()
+            raise ConversionNeedsBytesError(self)
         chars = []
         for i in range(length / 8):
             chars.append(chr(data & 0xff))
