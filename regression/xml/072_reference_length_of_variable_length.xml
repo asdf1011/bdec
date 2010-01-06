@@ -1,0 +1,11 @@
+<protocol>
+    <!-- Test referencing the length in an integer expression (issue197). -->
+    <sequence name="a">
+        <field name="length:" length="8" />
+        <sequence name="c">
+           <field name="field length:" length="8" />
+           <field name="e" length="${field length:} * 8" type="text" />
+        </sequence>
+        <field name="footer" length="16" type="text" if="len{c} &lt; ${length:} * 8" />
+    </sequence>
+</protocol>
