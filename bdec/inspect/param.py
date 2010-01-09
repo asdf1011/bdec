@@ -51,6 +51,17 @@ class BadReferenceTypeError(bdec.DecodeError):
     def __str__(self):
         return "Cannot reference non integer field '%s'" % self.entry
 
+class UnknownReferenceError(BadReferenceError):
+    def __init__(self, entry, name):
+        bdec.DecodeError.__init__(self, entry)
+        self.name = name
+
+    def __str__(self):
+        return "Expression references unknown entry '%s'!" % self.entry
+
+class _FailedToResolveError(Exception):
+    def __init__(self, name):
+        self.name = name
 
 class Param(object):
     """Class to represent parameters passed into and out of decodes. """
@@ -206,7 +217,7 @@ class _VariableParam:
         elif len(self.types) == 1:
             type = iter(self.types).next()
         else:
-            raise Exception("Don't know the type of parameter '%s'!" % self)
+            raise _FailedToResolveError(self.reference.name)
         return type
 
     def get_param(self):
@@ -444,7 +455,10 @@ class ExpressionParameters(_Parameters):
         assert isinstance(entry, bdec.entry.Entry)
         params = list(self._params[entry])
         params.sort(key=lambda a:a.reference.name)
-        return [param.get_param() for param in params]
+        try:
+            return [param.get_param() for param in params]
+        except _FailedToResolveError, ex:
+            raise UnknownReferenceError(entry, ex.name)
 
     def get_passed_variables(self, entry, child):
         """

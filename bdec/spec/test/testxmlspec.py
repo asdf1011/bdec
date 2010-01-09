@@ -834,8 +834,18 @@ class TestXml(unittest.TestCase):
         list(a.decode(data))
         self.assertEqual(0, len(data))
 
-
-
+    def test_expression_references_unknown_entry(self):
+        text = '''
+            <protocol>
+                <sequence name="a">
+                    <field name="b" length="${c}" />
+                </sequence>
+            </protocol>'''
+        try:
+            xml.loads(text)
+        except xml.XmlExpressionError, ex:
+            self.assertEqual("<string>[5]: Expression error - Expression " \
+                    "references unknown entry '<class 'bdec.sequence.Sequence'> 'a''!", str(ex))
 
 
 class TestSave(unittest.TestCase):
