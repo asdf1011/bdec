@@ -46,7 +46,7 @@ class BadReferenceError(bdec.DecodeError):
 
 class BadReferenceTypeError(bdec.DecodeError):
     def __init__(self, entry):
-        bdec.DecodeError.__init__(self, referenced)
+        bdec.DecodeError.__init__(self, entry)
 
     def __str__(self):
         return "Cannot reference non integer field '%s'" % self.entry

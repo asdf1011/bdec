@@ -410,6 +410,10 @@ class TestExpressionParameters(unittest.TestCase):
         self.assertEqual([prm.Param('b', prm.Param.IN, _Integer())], lookup.get_params(c))
         self.assertEqual([], lookup.get_params(d))
 
+    def test_exception_when_referencing_text_field(self):
+        a = seq.Sequence('a', [fld.Field('b', length=8, format=fld.Field.TEXT),
+            fld.Field('c', length=expr.compile('${b}'))])
+        self.assertRaises(prm.BadReferenceTypeError, prm.ExpressionParameters, [a])
 
 class TestEndEntryParameters(unittest.TestCase):
     def test_end_entry_lookup(self):
