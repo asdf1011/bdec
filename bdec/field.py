@@ -68,6 +68,19 @@ class FieldDataError(FieldError):
     def __str__(self):
         return "%s - %s" % (self.field, self.error)
 
+
+class _HexData(dt.Data):
+    """ A data instance that will turn into a hex string. """
+    def __str__(self):
+        return self.get_hex()
+
+
+class _BinaryData(dt.Data):
+    """ A data instance that will turn into a binary string. """
+    def __str__(self):
+        return self.get_binary_text()
+
+
 class Field(bdec.entry.Entry):
     """A field represents data found in the binary file.
 
@@ -219,15 +232,9 @@ class Field(bdec.entry.Entry):
         Get a python instance from a data object.
         """
         if self.format == self.BINARY:
-            result = data.copy()
-            text = result.get_binary_text()
-            result.__str__ = lambda:text
-            return result
+            return data.copy(klass=_BinaryData)
         elif self.format == self.HEX:
-            result = data.copy()
-            text = result.get_hex()
-            result.__str__ = lambda:text
-            return result
+            return data.copy(klass=_HexData)
         elif self.format == self.TEXT:
             result = data.text(self.encoding)
         elif self.format == self.INTEGER:

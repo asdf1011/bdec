@@ -221,9 +221,15 @@ class Data(object):
         self._start += length
         return result
 
-    def copy(self):
-        """Create a copy of this data instance."""
-        return Data(self._buffer, self._start, self._end)
+    def copy(self, klass=None):
+        """Create a copy of this data instance.
+
+        klass - The data class to use when creating the copy. If None, will
+            use Data.
+        """
+        if not klass:
+            klass = Data
+        return klass(self._buffer, self._start, self._end)
 
     def bytes(self):
         """Return a str instance representing the bytes held by this data.
