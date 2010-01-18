@@ -207,7 +207,7 @@ class _Handler(xml.sax.handler.ContentHandler):
                 reference = entry
                 if not ent.is_hidden(reference.name):
                     reference.name = '%s:' % reference.name
-                value = exp.compile("${%s}" % reference.name)
+                value = self._parse_expression("${%s}" % reference.name)
                 entry = seq.Sequence(entry_name, [reference], value=value)
                 reference.set_parent(entry)
             entry.constraints += constraints
