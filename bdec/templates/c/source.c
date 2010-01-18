@@ -204,7 +204,12 @@
 
 <%def name="decodeSequenceOf(entry)">
     <% child_type = settings.ctype(entry.children[0].entry) %>
+    %if entry.end_entries:
+    ${'should end'|variable} = 0;
+    %endif
+
     %if entry.count is not None:
+    ## There is a 'count' avaiable; use that to allocate the buffer up front.
     unsigned int i;
     unsigned int num_items;
     num_items = ${settings.value(entry, entry.count)};
@@ -217,6 +222,7 @@
     for (i = 0; i < num_items; ++i)
     {
     %else:
+      ## There isn't a count, so keep decoding until we run out of data.
       %if contains_data(entry):
     unsigned int i;
         %if child_contains_data(entry.children[0]):
@@ -225,7 +231,6 @@
     result->count = 0;
       %endif
       %if entry.end_entries:
-    ${'should end'|variable} = 0;
     while (!${'should end' |variable})
       %else:
     while (buffer->num_bits > 0)
@@ -239,7 +244,15 @@
         %endif
       %endif
     %endif
-        if (!${settings.decode_name(entry.children[0].entry)}(buffer${settings.call_params(entry, 0, '&result->items[i]')}))
+
+      ## Check for the 'should end' happening early
+      %if entry.end_entries:
+        <% validate_end = '%s || ' % variable('should end') %>
+    %else:
+        <% validate_end = '' %>
+      %endif
+
+        if (${validate_end}!${settings.decode_name(entry.children[0].entry)}(buffer${settings.call_params(entry, 0, '&result->items[i]')}))
         {
       %if child_contains_data(entry.children[0]):
             unsigned int j;
@@ -252,6 +265,17 @@
             return 0;
         }
     }
+
+      %if entry.end_entries:
+    if (!${'should end'|variable})
+    {
+        // The data finished without receiving an 'end sequence'!
+        %if contains_data(entry):
+        ${settings.free_name(entry)}(result);
+        %endif
+        return 0;
+    }
+      %endif
 
 </%def>
 

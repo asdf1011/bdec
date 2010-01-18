@@ -21,6 +21,7 @@ import unittest
 
 import bdec.choice as chc
 from bdec.constraints import Equals
+import bdec.expression as expr
 import bdec.data as dt
 import bdec.field as fld
 import bdec.sequence as seq
@@ -103,3 +104,15 @@ class TestSequenceOf(unittest.TestCase):
 
         self.assertEqual("hello", result)
         self.assertEqual("bob", data.bytes())
+
+    def test_sequenceof_ended_early(self):
+        null = fld.Field("null", 8, constraints=[Equals(dt.Data('\x00'))])
+        char = fld.Field("char", 8)
+        a = sof.SequenceOf('a', chc.Choice('b', [null, char]), expr.parse('5'), end_entries=[null])
+
+        # Make sure we decode correctly given sane values
+        list(a.decode(dt.Data('abcd\x00')))
+        # Check the exception when the null is found before the count runs out
+        self.assertRaises(sof.SequenceEndedEarlyError, list, a.decode(dt.Data('abc\x00')))
+        # Check the exception when the count is reached before the end
+        self.assertRaises(sof.SequenceofStoppedBeforeEndEntry, list, a.decode(dt.Data('abcde')))
