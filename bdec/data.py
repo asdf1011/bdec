@@ -306,6 +306,9 @@ class Data(object):
 
         return len(self._buffer) * 8 - self._start
 
+    def __nonzero__(self):
+        return not self.empty()
+
     def empty(self):
         """Check to see if we have data left.
 
