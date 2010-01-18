@@ -17,6 +17,7 @@
 #   <http://www.gnu.org/licenses/>.
 
 import bdec
+import os
 import string
 import struct
 
