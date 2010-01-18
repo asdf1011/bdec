@@ -117,7 +117,7 @@ class _OutOfDataError(Exception):
 # Note that we don't include 'x' in the hex characters...
 _HEX_CHARACTERS = ['a', 'b', 'c', 'd', 'e', 'f', 'A', 'B', 'C', 'D', 'E', 'F', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
 
-class _ByteBuffer:
+class _ByteBuffer(object):
     def read_byte(self, offset):
         raise NotImplementedError()
 
@@ -163,7 +163,7 @@ class _MemoryBuffer(_ByteBuffer):
         return len(self._buffer)
 
 
-class Data:
+class Data(object):
     """
     A class to hold information about data to be decoded.
     
