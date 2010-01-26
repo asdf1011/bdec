@@ -844,8 +844,8 @@ class TestXml(unittest.TestCase):
         try:
             xml.loads(text)
         except xml.XmlExpressionError, ex:
-            self.assertEqual("<string>[5]: Expression error - Expression " \
-                    "references unknown entry '<class 'bdec.sequence.Sequence'> 'a''!", str(ex))
+            self.assertEqual("<string>[4]: Expression error - binary 'b' " \
+                    "(big endian) references unknown entry 'c'!" , str(ex))
 
 
 class TestSave(unittest.TestCase):

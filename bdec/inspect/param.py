@@ -57,7 +57,7 @@ class UnknownReferenceError(BadReferenceError):
         self.name = name
 
     def __str__(self):
-        return "Expression references unknown entry '%s'!" % self.entry
+        return "%s references unknown entry '%s'!" % (self.entry, self.name)
 
 class _FailedToResolveError(Exception):
     def __init__(self, name):
@@ -245,6 +245,11 @@ class ExpressionParameters(_Parameters):
         unreferenced_entries = {}
         for entry in entries:
             self._populate_references(entry, unreferenced_entries)
+
+        for entry, references in unreferenced_entries.iteritems():
+            for param in self._params[entry]:
+                if not param.types:
+                    raise UnknownReferenceError(entry, iter(references).next().name)
 
     def _collect_references(self, expression):
         """
