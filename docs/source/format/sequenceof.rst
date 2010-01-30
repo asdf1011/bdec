@@ -65,12 +65,15 @@ terminated with an 'end' tag in the buffer. It is usually used with a
 For example, a `null terminated string`_ can be defined by a sequence of 
 characters ended by a null character.
 
+It is possible to use an 'end-sequenceof' with a count_ and length_ loop, but
+the decode will fail if the last entry is not an end-sequenceof.
+
 .. _null terminated string: `null-terminated-string`_
 
 Greedy sequenceof
 =================
 
-A 'greedy' sequenceof doesn't have a 'count', 'length', or any 'end-sequenceof'
+A 'greedy' sequenceof doesn't have 'count', 'length', or 'end-sequenceof'
 entries; it will continue to decode until all of the available data has been
 decoded. If its child entry fails to decode while data is still available, the
 sequenceof decoding fails.
