@@ -68,14 +68,18 @@ class FieldDataError(FieldError):
     def __str__(self):
         return "%s - %s" % (self.field, self.error)
 
+class _ValidatedData(dt.Data):
+    """Data that has been validated to exist in the backing stored."""
+    def __init__(self, *args):
+        dt.Data.__init__(self, *args)
+        self.validate()
 
-class _HexData(dt.Data):
+class _HexData(_ValidatedData):
     """ A data instance that will turn into a hex string. """
     def __str__(self):
         return self.get_hex()
 
-
-class _BinaryData(dt.Data):
+class _BinaryData(_ValidatedData):
     """ A data instance that will turn into a binary string. """
     def __str__(self):
         return self.get_binary_text()

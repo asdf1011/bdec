@@ -199,3 +199,6 @@ class TestField(unittest.TestCase):
         actual = self._get_encode_value(64, fld.Field.FLOAT, -9876543210123456789.0, fld.Field.LITTLE_ENDIAN)
         self.assertEqual('8e0616f71022e1c3', actual.get_hex())
 
+    def test_data_is_available(self):
+        a = fld.Field('a', length=8)
+        self.assertRaises(fld.FieldDataError, list, a.decode(dt.Data()))

@@ -261,6 +261,9 @@ class Data(object):
     def _get_bits(self):
         """
         Get an iterator to the bits contained in this buffer.
+
+        Can throw NotEnoughDataError if the backing store doesn't have the
+        required amount of data for this instance.
         """
         i = 0
         while self._end is None or i < self._end - self._start:
@@ -346,6 +349,31 @@ class Data(object):
         byte = i / 8
         i = i % 8
         return (self._buffer.read_byte(byte) >> (7 - i)) & 1
+
+    def validate(self):
+        """Validate that the data is available in the backing store.
+
+        Will cause the all the data represented by this instance to be loaded
+        into memory. If this data instance doesn't have a lenght, will return
+        without failing.
+
+        Will throw NotEnoughDataError if the data isn't available.
+        """
+        if not self._end:
+            return
+        length = len(self)
+        try:
+            # We don't want to ask for the length of the backing store
+            # initially, as that may cause it to be loaded into memory (ie:
+            # if it's a stream that doesn't support streaming). So we instead
+            # just attempt to read the last bit we want...
+            self._get_bit(length-1)
+        except _OutOfDataError:
+            # We don't have enough data for reading this byte... determine how
+            # much data we really do have.
+            num_bytes = len(self._buffer)
+            available_bits = num_bytes - self._start
+            raise NotEnoughDataError(length, available_bits)
         
     def __int__(self):
         """
