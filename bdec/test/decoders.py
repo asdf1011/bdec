@@ -234,7 +234,10 @@ class _CompiledDecoder:
         (exitstatus, xml) = compile_and_run(data, self)
 
         if exitstatus == 0:
-            _validate_xml(spec, dt.Data(data), xml)
+            try:
+                _validate_xml(spec, dt.Data(data), xml)
+            except bdec.DecodeError, ex:
+                raise Exception("Compiled decoder succeeded, but should have failed with: %s" % str(ex))
         return exitstatus, xml
 
 
