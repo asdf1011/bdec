@@ -847,6 +847,28 @@ class TestXml(unittest.TestCase):
             self.assertEqual("<string>[4]: Expression error - binary 'b' " \
                     "(big endian) references unknown entry 'c'!" , str(ex))
 
+    def test_conditional_reference(self):
+        text = '''
+            <protocol>
+                <sequence name="a">
+                    <field name="footer present:" length="8" />
+                    <reference name="footer" if="${footer present:}" />
+                </sequence>
+
+                <common>
+                    <sequence name="footer">
+                        <field name="b" length="8" type="integer" />
+                    </sequence>
+                </common>
+            </protocol>'''
+        spec = xml.loads(text)[0]
+        data = dt.Data('\x00')
+        list(spec.decode(data))
+        self.assertEquals(0, len(data))
+        self.assertRaises(bdec.DecodeError, list, spec.decode(dt.Data('\x01')))
+        data = dt.Data('\x01a')
+        list(spec.decode(data))
+
 
 class TestSave(unittest.TestCase):
     """Test decoding of the xml save functionality.

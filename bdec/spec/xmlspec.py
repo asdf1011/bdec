@@ -229,7 +229,10 @@ class _Handler(xml.sax.handler.ContentHandler):
             except exp.ExpressionError, ex:
                 raise XmlExpressionError(ex, self._filename, self.locator)
             assert isinstance(not_present, ent.Entry)
-            entry = chc.Choice('optional %s' % entry_name, [not_present, entry])
+            optional = chc.Choice('optional %s' % entry_name, [not_present, entry])
+            if isinstance(entry, _ReferencedEntry):
+                entry.set_parent(optional)
+            entry = optional
 
         if entry is not None:
             if self._end_sequenceof:
