@@ -69,7 +69,7 @@ class _ProtocolStream:
     def __init__(self, entry, parent=None, parent_offset=None):
         min = _get_constraint(entry, Minimum)
         max = _get_constraint(entry, Maximum)
-        if min is not None and max is not None and max - min < self._MAX_FIELD_RANGE:
+        if min is not None and max is not None and max - min < self._MAX_FIELD_RANGE and entry.length is not None:
             # When we have a ranged field, it can be conveniant to 'key' on the
             # possible values. This allows early outs...
             options = []
