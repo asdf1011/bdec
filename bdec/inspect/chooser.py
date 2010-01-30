@@ -270,7 +270,13 @@ class Chooser:
             # Remove data from before the current offset, as we cannot use it
             # to differentiate.
             assert offset >= current_offset
-            copy.pop(offset - current_offset)
+            try:
+                copy.pop(offset - current_offset)
+            except dt.NotEnoughDataError:
+                # We don't have enough data left for this option; reduce
+                # the possibles to those that have finished decoding.
+                options = [option for option in options if option in set(successful + possible)]
+                break
             current_offset = offset
 
             # Check to see if we have a successful item, and remove any items

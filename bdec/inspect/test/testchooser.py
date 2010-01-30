@@ -241,3 +241,13 @@ class TestChooser(unittest.TestCase):
         chooser = chsr.Chooser([b1, b2])
         self.assertEqual([b1, b2], chooser.choose(dt.Data('x')))
 
+    def test_not_enough_data_for_any_option(self):
+        a = seq.Sequence('a', [
+            fld.Field('a1', length=8),
+            fld.Field('a2', length=8, constraints=[Equals(dt.Data('\x00'))])])
+        b = seq.Sequence('b', [
+            fld.Field('b1', length=8),
+            fld.Field('b2', length=8, constraints=[Equals(dt.Data('\x01'))])])
+        c = seq.Sequence('c', [])
+        chooser = chsr.Chooser([a, b, c])
+        self.assertEqual([c], chooser.choose(dt.Data('', 0, 0)))
