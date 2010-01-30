@@ -170,12 +170,12 @@ class _Handler(xml.sax.handler.ContentHandler):
         if name not in self._handlers:
             raise self._error("Unrecognised element '%s'!" % name)
 
-        self._stack.append((name, attrs, []))
+        self._stack.append((name, attrs, [], self.locator.getLineNumber(), self.locator.getColumnNumber()))
         self._children.append([])
 
     def endElement(self, name):
         assert self._stack[-1][0] == name
-        (name, attrs, breaks) = self._stack.pop()
+        (name, attrs, breaks, lineno, colno) = self._stack.pop()
 
         # We don't pop the children item until after we have called the
         # handler, as it may be used when creating a value reference.
@@ -238,7 +238,7 @@ class _Handler(xml.sax.handler.ContentHandler):
             if self._end_sequenceof:
                 # There is a parent sequence of object that must stop when
                 # this entry decodes.
-                for name, attrs, breaks in reversed(self._stack):
+                for name, attrs, breaks, lineno, colnumber in reversed(self._stack):
                     if name == "sequenceof":
                         breaks.append(entry)
                         if isinstance(entry, _ReferencedEntry):
@@ -249,7 +249,7 @@ class _Handler(xml.sax.handler.ContentHandler):
                 self._end_sequenceof = False
             self._children[-1].append(entry)
 
-            self.lookup[entry] = (self._filename, self.locator.getLineNumber(), self.locator.getColumnNumber())
+            self.lookup[entry] = (self._filename, lineno, colno)
 
         if len(self._stack) == 2 and self._stack[1][0] == 'common':
             # We have to handle common entries _before_ the end of the

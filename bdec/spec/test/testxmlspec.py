@@ -869,6 +869,24 @@ class TestXml(unittest.TestCase):
         data = dt.Data('\x01a')
         list(spec.decode(data))
 
+    def test_correct_error_location(self):
+        text = '''
+            <protocol>
+                <sequence name="a">
+                    <field name="footer present:" length="8" />
+                    <reference name="footer" if="${footer present:}" />
+                </sequence>
+
+                <common>
+                    <sequence name="footer">
+                        <field name="b" length="8" type="integer" />
+                    </sequence>
+                </common>
+            </protocol>'''
+        spec, common, lookup = xml.loads(text)
+        self.assertEqual(3, lookup[spec][1])
+        self.assertEqual(9, lookup[common['footer']][1])
+
 
 class TestSave(unittest.TestCase):
     """Test decoding of the xml save functionality.
