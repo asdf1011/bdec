@@ -23,6 +23,12 @@ import unittest
 import bdec
 import bdec.data as dt
 
+class NonSeekable(StringIO.StringIO):
+    def seek(self, *args):
+        raise IOError()
+    def tell(self):
+        raise IOError()
+
 class TestData(unittest.TestCase):
     def test_pop_empty_data(self):
         self.assertRaises(dt.NotEnoughDataError, int, dt.Data("").pop(1))
@@ -153,4 +159,13 @@ class TestData(unittest.TestCase):
             pass
         self.assertEqual(40, ex.requested)
         self.assertEqual(24, ex.available)
+
+    def test_non_seeking_file(self):
+        file = NonSeekable('abcdef')
+        data = dt.Data(file)
+        self.assertEqual('abc', data.pop(24).text('ascii'))
+        self.assertEqual(ord('d'), int(data.pop(8)))
+        self.assertEqual('ef', data.pop(16).text('ascii'))
+
+        self.assertRaises(dt.NotEnoughDataError, int, data.pop(1))
 

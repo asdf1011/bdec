@@ -16,12 +16,13 @@
 #   License along with this library; if not, see
 #   <http://www.gnu.org/licenses/>.
 
-import bdec
+import itertools
 import os
 import string
 import struct
-
 import weakref
+
+import bdec
 
 class DataError(Exception):
     """Base class for all data errors."""
@@ -147,6 +148,28 @@ class _FileBuffer(_ByteBuffer):
         self._file.seek(pos)
         return result
 
+class _NonSeekingFileBuffer(_ByteBuffer):
+    """Byte buffer that reads from a non-seekable file.
+
+    NOTE: Will keep the file in memory as it is read in to support streaming."""
+    def __init__(self, file):
+        self._file = file
+        self._buffer = ''
+
+    def read_byte(self, offset):
+        extra_bytes_needed = offset + 1 - len(self._buffer)
+        if extra_bytes_needed > 0:
+            self._buffer += self._file.read(extra_bytes_needed)
+            if len(self._buffer) < offset + 1:
+                raise _OutOfDataError()
+        return ord(self._buffer[offset])
+
+    def __len__(self):
+        try:
+            for offset in itertools.count():
+                self.read_byte(offset)
+        except _OutOfDataError:
+            return offset
 
 class _MemoryBuffer(_ByteBuffer):
     """Byte buffer that reads directly from in memory data."""
@@ -192,7 +215,12 @@ class Data(object):
             self._buffer = buffer
         elif hasattr(buffer, 'seek'):
             # Treat the buffer as a file object.
-            self._buffer = _FileBuffer(buffer)
+            try:
+                buffer.tell()
+                self._buffer = _FileBuffer(buffer)
+            except IOError:
+                # This file doesn't appear to support seeking
+                self._buffer = _NonSeekingFileBuffer(buffer)
         else:
             raise Exception("Unknown data source '%s'" % type(buffer)) 
 
