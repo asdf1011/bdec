@@ -1,3 +1,20 @@
+0.6.2 (2010-02-02)
+------------------
+
+Bugfixes:
+
+* Correctly decode sequence values in the instance decoder.
+* Correctly resolve references found in conditional & constraint expressions.
+* Fix exception when we reference an unknown entry in an expression.
+* Report missing reference errors from the entry that defined the reference.
+* Improve the error messages from data errors.
+* Don't throw an exception when choosing and not enough data available.
+* Decode sequence entries with both a min and a max.
+* Correctly handle conditional references.
+* Report errors from the entry opening line & column number, not the closing location.
+* Data objects now supports non-seekable files such as stdin.
+
+
 0.6.1 (2009-12-05)
 ------------------
 
