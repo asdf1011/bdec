@@ -44,7 +44,7 @@ _README = os.path.join(root_path, 'README')
 _CHANGELOG = os.path.join(root_path, 'CHANGELOG')
 
 website_dir = os.path.join(root_path, '..', 'website', 'website.integ')
-project_dir = os.path.join(website_dir, 'html', 'projects', 'bdec')
+project_dir = os.path.join(root_path, '..', 'protocollogic', 'protocollogic.com', 'html')
 freshmeat_pass = os.path.join(website_dir, 'freshmeat.txt')
 
 def _check_copyright_statements(subdirs):
@@ -184,7 +184,8 @@ def update_website():
     if os.path.exists(html_doc_dir):
         shutil.rmtree(html_doc_dir)
     os.rename('tempdir', html_doc_dir)
-    if os.system('bzr add "%s"' % html_doc_dir) != 0:
+
+    if os.system('git add .;git add -u .') != 0:
         sys.exit('Failed to add the updated html_doc_dir')
 
 def update_release_tarball(version):
@@ -237,8 +238,8 @@ def _edit_message(message):
     return message
 
 def commit_website(version):
-    os.chdir(website_dir)
-    if os.system('bzr diff | less') != 0:
+    os.chdir(project_dir)
+    if os.system('git diff') != 0:
         sys.exit('Stopped after reviewing changes.')
     text = raw_input('Commit website changes? [y]')
     if text and text != 'y':
@@ -246,12 +247,11 @@ def commit_website(version):
         return False
 
     # Commit the website changes
-    os.chdir(website_dir)
     message = _edit_message('Updated bdec project to version %s' % version)
     data = file('.commitmsg', 'w')
     data.write(message)
     data.close()
-    if os.system('bzr commit -F .commitmsg') != 0:
+    if os.system('git commit --template .commitmsg') != 0:
         sys.exit('Failed to commit!')
     os.remove('.commitmsg')
     return True
@@ -392,8 +392,8 @@ def notify(version, changelog, freshmeat_auth=_get_freshmeat_auth_code,
 def upload():
     print "Uploading to the server..."
     while 1:
-        os.chdir(website_dir)
-        command = "./upload ftp://ftp.hl.id.au"
+        os.chdir(project_dir)
+        command = "../../google_appengine/appcfg.py update ../"
         if os.system(command) == 0:
             break
         text = raw_input('Failed to upload to the server! Try again? [y]')
