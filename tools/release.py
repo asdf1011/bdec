@@ -263,13 +263,12 @@ def send_email(version, changelog):
 
     data = open('.emailmsg', 'w')
     data.write('To: %s\r\n' % to_addr)
-    data.write('From: Henry Ludemann <bdec@hl.id.au>\r\n')
-    data.write('Reply-To: Henry Ludemann <bdec@hl.id.au>\r\n')
+    data.write('From: Henry Ludemann <henry@protocollogic.com>\r\n')
     data.write('Subject: Bdec %s released\r\n' % version)
     data.write('\r\n')
     data.write('Version %s of the bdec decoder has been released. The changes in this version are;\r\n\r\n' % version)
     data.write(changelog)
-    data.write('\r\n\r\nDownload: http://www.hl.id.au/projects/bdec/#download')
+    data.write('\r\n\r\nDownload: http://www.protocollogic.com/#download')
     data.close()
     if os.system('vi .emailmsg') != 0:
         sys.exit('Stopping due to edit email message failure')
@@ -286,7 +285,7 @@ def send_email(version, changelog):
         smtp.starttls()
         smtp.ehlo()
         smtp.login(user, password)
-        smtp.sendmail('lists@hl.id.au', to_addr, message)
+        smtp.sendmail('henry@protocollogic.com', to_addr, message)
         smtp.quit()
     except smtplib.SMTPAuthenticationError, ex:
         print 'Authenticion error!', ex
