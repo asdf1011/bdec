@@ -126,7 +126,7 @@ def _generate_html(contents):
     data = open(generated_readme, 'w')
     data.write(contents)
     data.close()
-    command = "%s %s" % (rst2doc, generated_readme)
+    command = "%s -t -m media %s" % (rst2doc, generated_readme)
     if os.system(command) != 0:
         sys.exit('Failed to update project html index!')
     os.remove(generated_readme)

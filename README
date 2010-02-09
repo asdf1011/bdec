@@ -1,8 +1,11 @@
+
 ----
 bdec
 ----
 
 'bdec', a set of tools for decoding binary files.
+
+.. contents::
 
 
 Overview
@@ -49,7 +52,7 @@ If you're just getting started, the tutorial_ takes you step by step through
 the different concepts used in bdec. Once you've got started, refere to the
 rest of the documentation_ as required.
 
-.. _documentation: docs
+.. _documentation: docs/
 .. _tutorial: docs/tutorial.html
 
 
