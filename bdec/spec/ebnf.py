@@ -7,7 +7,17 @@
 
 
 from pyparsing import *
+from bdec.spec import LoadError
 
+class EbnfError(LoadError):
+    pass
+
+class MissingDefinitionError(EbnfError):
+    def __init__(self, name):
+        self.name = name
+
+    def __str__(self):
+        return "Missing definition '%s'\n" % self.name
 
 all_names = '''
 integer
@@ -47,7 +57,7 @@ ebnfComment = ( "(*" +
                          ZeroOrMore( CharsNotIn("*") | ( "*" + ~Literal(")") ) ) +
                         "*)" ).streamline().setName("ebnfComment")
 
-syntax = OneOrMore(syntax_rule)
+syntax = OneOrMore(syntax_rule) + StringEnd()
 syntax.ignore(ebnfComment)
 
 
@@ -141,7 +151,9 @@ def parse(ebnf, given_table={}):
     symbol_table.update(given_table)
     forward_count.value = 0
     table = syntax.parseString(ebnf)[0]
-    assert forward_count.value == 0, "Missing definition"
+    for name in symbol_table:
+        if isinstance(symbol_table[name], Forward) and symbol_table[name].expr is None:
+            raise MissingDefinitionError(name)
     for name in table:
         expr = table[name]
         expr.setName(name)
