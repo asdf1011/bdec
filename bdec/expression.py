@@ -120,7 +120,7 @@ class ValueResult(Expression):
         try:
             return context[self.name]
         except KeyError:
-            raise UndecodedReferenceError(self.name)
+            raise UndecodedReferenceError(self.name, context)
 
     def __str__(self):
         return '${%s}' % self.name
@@ -139,7 +139,7 @@ class LengthResult(Expression):
         try:
             return context[name]
         except KeyError:
-            raise UndecodedReferenceError(name)
+            raise UndecodedReferenceError(name, context)
 
     def __str__(self):
         return "len{%s}" % self.name

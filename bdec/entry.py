@@ -191,9 +191,14 @@ class Entry(object):
         """
         Set the parameters needed to decode this entry.
         """
-        if self._params is not None:
+        params = list(lookup.get_params(self))
+        if self._params is not None and self._params == params:
+            # We have already validated this entry; no need to continue. We need
+            # to make sure the parameters haven't changed, because a common
+            # entry may have been validated without outputs, but then used later
+            # in a different situation which changed its parameters.
             return
-        self._params = list(lookup.get_params(self))
+        self._params = params
         for child in self.children:
             child_params = (param.name for param in lookup.get_params(child.entry))
             our_params = (param.name for param in lookup.get_passed_variables(self, child))

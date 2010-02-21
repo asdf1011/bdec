@@ -73,3 +73,17 @@ class TestSequence(unittest.TestCase):
         self.assertRaises(ConstraintError, list, a.decode(dt.Data('\x05\x01')))
         self.assertRaises(ConstraintError, list, a.decode(dt.Data('\x07\x01')))
 
+    def test_multiple_validates(self):
+        # The 'validate' call is responsible for setting the parameters. We
+        # can't guarantee the order of the validate calls for top level entries,
+        # so make sure new parameters are correctly detected.
+        a = fld.Field('a', 8)
+        a.validate()
+
+        # Now embed 'a' in a sequence, but add a new reference to it; make
+        # sure we can still decode.
+        b = seq.Sequence('b', [a], value=expr.ValueResult('a'))
+        result = list(b.decode(dt.Data('\x01')))
+        self.assertEqual('b', result[-1][1])
+        self.assertEqual(1, int(result[-1][-1]))
+
