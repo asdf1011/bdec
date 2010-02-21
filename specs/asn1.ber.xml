@@ -63,20 +63,18 @@
             <field name="value:" length="${length:} * 8" type="integer" />
         </sequence>
 
-        <sequence name="boolean">
-            <field name="tag:" length="8" value="0x1" />
-            <reference name="length:" type="definite length:" />
-            <choice name="value">
-                <field name="false" length="${length:} * 8" value="0x0" />
-                <!--
-                  We use a sequence with an embedded hidden field because we
-                  don't care what the field value is.
-                  -->
-                <sequence name="true">
-                    <field length="${length:} * 8" />
-                </sequence>
-            </choice>
-        </sequence>
+        <choice name="boolean">
+            <sequence name="true">
+                <field name="tag:" length="8" value="0x1" />
+                <reference name="length:" type="definite length:" />
+                <field length="${length:} * 8" value="0x0" />
+            </sequence>
+            <sequence name="false">
+                <field name="tag:" length="8" value="0x1" />
+                <reference name="length:" type="definite length:" />
+                <field length="${length:} * 8"/>
+            </sequence>
+        </choice>
 
         <sequence name="bit string">
             <field name="tag:" length="8" value="0x3" />
