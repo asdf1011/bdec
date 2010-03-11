@@ -116,3 +116,8 @@ class TestXml(unittest.TestCase):
         text = xml.to_string(a, dt.Data('\xff'))
         self.assertEqual('<a>\n    <b>255</b>\n    11\n</a>\n', text)
 
+    def test_sequence_with_expected_value(self):
+        a = seq.Sequence('a', [], value=expr.compile('1'), constraints=[Equals(1)])
+        text = xml.to_string(a, dt.Data())
+        self.assertEqual('<a></a>\n', text)
+
