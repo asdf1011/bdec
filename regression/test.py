@@ -23,7 +23,7 @@ class _Regression:
         if exit_code != 0:
             raise Exception("'%s' failed to decode '%s'!" % (spec_filename, data_filename))
         if expected_xml:
-            assert_xml_equivalent(xml, expected_xml)
+            assert_xml_equivalent(expected_xml, xml)
 
     def _test_spec(self, spec_filename, successes, failures):
         assert successes or failures
