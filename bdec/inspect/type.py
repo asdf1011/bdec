@@ -110,6 +110,9 @@ class ShouldEndType(IntegerType):
     def range(self, parameters):
         return Range(0, 1)
 
+    def __repr__(self):
+        return 'should_end'
+
 
 class EntryLengthType(IntegerType):
     """Parameter value whose source is the length of another entry."""
@@ -164,6 +167,9 @@ class EntryValueType(IntegerType):
             result = result.intersect(constraint.range())
         return result
 
+    def __repr__(self):
+        return '${%s}' % self.entry
+
 
 class MultiSourceType(IntegerType):
     """Parameter whose value comes from multiple locations."""
@@ -186,3 +192,5 @@ class MultiSourceType(IntegerType):
         ranges = (source.range(parameters) for source in self.sources)
         return reduce(Range.union, ranges)
 
+    def __repr__(self):
+        return 'coalsce(%s)' % ','.join(str(source) for source in self.sources)
