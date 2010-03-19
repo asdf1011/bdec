@@ -338,6 +338,9 @@ class ExpressionParameters(_Parameters):
         try:
             name = self._local_child_param_name[entry][child][param.reference.name]
         except KeyError:
+            # TODO: This _may_ be an output from a child that we don't use.
+            # It may also be coming from one of our input parameters?? If it's
+            # an unused, we should name it 'unused XXX'.
             name = param.reference.name
 
         # Create a new instance of the expression reference, using the new name
