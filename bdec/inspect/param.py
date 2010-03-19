@@ -539,7 +539,7 @@ class DataChecker:
             # We are visible; check to see if either we (or any of our
             # children) contain data.
             for child in entry.children:
-                if self._has_data[child.entry]:
+                if not ent.is_hidden(child.name) and self._has_data[child.entry]:
                     break
             else:
                 # None of the children contain data; this entry will only contain

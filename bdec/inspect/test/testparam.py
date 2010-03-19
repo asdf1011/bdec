@@ -510,3 +510,12 @@ class TestDataChecker(unittest.TestCase):
         self.assertFalse(checker.contains_data(b))
         self.assertFalse(checker.child_has_data(b.children[0]))
 
+    def test_visible_child_renamed_to_be_hidden(self):
+        # Test that when a child is visible, but its name isn't, the parent
+        # can be hidden.
+        a = fld.Field('a', 8)
+        b = seq.Sequence('b', [ent.Child('a:', a)])
+        checker = prm.DataChecker([a, b])
+        self.assertTrue(checker.contains_data(a))
+        self.assertFalse(checker.contains_data(b))
+
