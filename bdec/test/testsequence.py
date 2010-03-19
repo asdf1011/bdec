@@ -87,3 +87,40 @@ class TestSequence(unittest.TestCase):
         self.assertEqual('b', result[-1][1])
         self.assertEqual(1, int(result[-1][-1]))
 
+    def test_validate_doesnt_remove_parameters(self):
+        # Test that a second validate call doesn't remove parameters added
+        # by the first validate call.
+        a = fld.Field('a', 8)
+        b = seq.Sequence('b', [a])
+        c = seq.Sequence('c', [b], value=expr.ValueResult('b.a'))
+        d = seq.Sequence('d', [b])
+
+        c.validate()
+        list(c.decode(dt.Data('\x00')))
+
+        # The bug in the second validate removed the parameter from the 'a'
+        # field, causing the second decode to fail.
+        print '---------- validating D ---------'
+        d.validate()
+        list(c.decode(dt.Data('\x00')))
+        list(d.decode(dt.Data('\x00')))
+
+    def test_validate_with_unused_output(self):
+        a = fld.Field('a', 8)
+        b = seq.Sequence('b', [ent.Child('a1', a)])
+
+        # Create one object where 'b.a' is required.
+        c = seq.Sequence('c', [b], value=expr.ValueResult('b.a1'))
+
+        # Create another object where 'a' is required, but not 'b.a'.
+        d = seq.Sequence('d', [a, b], value=expr.ValueResult('a'))
+
+        # When we validate 'c', 'a' will have an output to 'b'. When we validate
+        # 'd', it will not (but as 'a' will still have an output, 'a' will still
+        # output to 'b'). Make sure we handle the case where 'a' passed to 'b'
+        # uses the correct name for 'a'.
+        c.validate()
+        d.validate()
+
+        list(c.decode(dt.Data('\x00')))
+        list(d.decode(dt.Data('\x00\x00')))

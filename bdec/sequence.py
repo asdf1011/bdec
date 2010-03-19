@@ -37,16 +37,6 @@ class Sequence(bdec.entry.Entry):
         bdec.entry.Entry.__init__(self, name, length, children, constraints)
         self.value = value
 
-    def _decode(self, data, context, name):
-        yield (True, name, self, data, None)
-        for child in self.children:
-            for embedded in self._decode_child(child, data, context):
-                yield embedded
-        value = None
-        if self.value is not None:
-            value = self.value.evaluate(context)
-        yield (False, name, self, dt.Data(), value)
-
     def _encode(self, query, value):
         for child in self.children:
             child_value = child.entry.get_context(query, value)

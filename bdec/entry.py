@@ -148,12 +148,8 @@ class Entry(object):
         self.length = length
         self._children = ()
         self.children = children
+        self._decoder = None
 
-        self._params = None
-        self._parent_param_lookup = {}
-        self._is_end_sequenceof = False
-        self._is_value_referenced = False
-        self._is_length_referenced = False
         self.constraints = list(constraints)
         for constraint in self.constraints:
             assert getattr(constraint, 'check') is not None
@@ -173,132 +169,14 @@ class Entry(object):
     children = property(_get_children, _set_children)
 
     def validate(self):
-        """
-        Validate all expressions contained within the entries.
-
-        Throws MissingReferenceError if any expressions reference unknown instances.
-        """
-        if self._params is not None:
-            return
-
-        import bdec.inspect.param
-        end_entry_params = bdec.inspect.param.EndEntryParameters([self])
-        expression_params = bdec.inspect.param.ExpressionParameters([self])
-        params = bdec.inspect.param.CompoundParameters([end_entry_params, expression_params])
-        self._set_params(params)
-
-    def _set_params(self, lookup):
-        """
-        Set the parameters needed to decode this entry.
-        """
-        params = list(lookup.get_params(self))
-        if self._params is not None and self._params == params:
-            # We have already validated this entry; no need to continue. We need
-            # to make sure the parameters haven't changed, because a common
-            # entry may have been validated without outputs, but then used later
-            # in a different situation which changed its parameters.
-            return
-        self._params = params
-        for child in self.children:
-            child_params = (param.name for param in lookup.get_params(child.entry))
-            our_params = (param.name for param in lookup.get_passed_variables(self, child))
-            self._parent_param_lookup[child] = dict(zip(child_params, our_params))
-
-        self._is_end_sequenceof = lookup.is_end_sequenceof(self)
-        self._is_value_referenced = lookup.is_value_referenced(self)
-        self._is_length_referenced = lookup.is_length_referenced(self)
-
-        for child in self.children:
-            child.entry._set_params(lookup)
-
-    def _decode_child(self, child, data, context):
-        """
-        Decode a child entry.
-
-        Creates a new context for the child, and after the decode completes,
-        will update this entry's context.
-        """
-        assert isinstance(child, Child)
-
-        # Create the childs context from our data
-        child_context = {}
-        for param in child.entry._params:
-            if param.direction is param.IN:
-                # The child's name may be different from what we are calling
-                # it; adjust the name to be sure.
-                child_context[param.name] = context[self._parent_param_lookup[child][param.name]]
-
-        # Do the decode
-        for result in child.entry.decode(data, child_context, child.name):
-            yield result
-
-        # Update our context with the output values from the childs context
-        for param in child.entry._params:
-            if param.direction is param.OUT:
-                if param.name == "should end":
-                    try:
-                        context[param.name] = child_context[param.name]
-                    except KeyError:
-                        # 'should end' is a hacked special case, as it may not always be set.
-                        pass
-                else:
-                    context[self._parent_param_lookup[child][param.name]] = child_context[param.name]
-
-    def _decode(self, data, child_context, name):
-        """
-        Decode the given protocol entry.
-
-        Should return an iterable object for the entry (including all 'child'
-        entries) in the same form as Entry.decode.
-        """
-        raise NotImplementedError()
+        if self._decoder is None:
+            from bdec.decode import Decoder
+            self._decoder = Decoder(self)
 
     def decode(self, data, context={}, name=None):
-        """Return an iterator of (is_starting, name, Entry, data, value) tuples.
-
-        The data returned is_starting==True the data available to be decoded,
-        and the data returned when is_starting==False is the decode decoded by
-        this entry (not including child entries).
-
-        data -- An instance of bdec.data.Data to decode.
-        context -- The context to decode in. Is a lookup of names to integer
-           values.
-        name -- The name to use for this entry. If None, uses self.name.
-        """
+        """ Shortcut to bdec.decode.Decoder(self) """
         self.validate()
-        if name is None:
-            name = self.name
-
-        # Validate our context
-        for param in self._params:
-            if param.direction is param.IN:
-                assert param.name in context, "Context to '%s' must include %s!" % (self, param.name)
-
-        if self.length is not None:
-            try:
-                data = data.pop(self.length.evaluate(context))
-            except dt.DataError, ex:
-                raise EntryDataError(self, ex)
-
-        # Do the actual decode of this entry (and all child entries).
-        length = 0
-        for is_starting, name, entry, entry_data, value in self._decode(data, context, name):
-            if not is_starting:
-                length += len(entry_data)
-            if not is_starting and entry is self:
-                for constraint in self.constraints:
-                    constraint.check(self, value, context)
-            yield is_starting, name, entry, entry_data, value
-
-        if self._is_end_sequenceof:
-            context['should end'] = True
-        if self._is_value_referenced:
-            # The last entry to decode will be 'self', so 'value' will be ours.
-            context[self.name] = int(value)
-        if self._is_length_referenced:
-            context[self.name + ' length'] = length
-        if self.length is not None and len(data) != 0:
-            raise DecodeLengthError(self, data)
+        return self._decoder.decode(data, context, name)
 
     def _get_context(self, query, parent):
         # This interface isn't too good; it requires us to load the _entire_ document

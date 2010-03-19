@@ -127,20 +127,6 @@ class Field(bdec.entry.Entry):
         return None
     expected = property(_get_expected)
 
-    def _decode(self, data, context, name):
-        """ see bdec.entry.Entry._decode """
-        yield (True, name, self, data, None)
-
-        field_data = data.pop(self.length.evaluate(context))
-        # As this popped data is not guaranteed to be available, we have to
-        # wrap all access to it in an exception handler.
-        try:
-            value = self.decode_value(field_data)
-        except dt.DataError, ex:
-            raise FieldDataError(self, ex)
-
-        yield (False, name, self, field_data, value)
-
     def _convert_type(self, data, expected_type):
         try:
             return expected_type(data)

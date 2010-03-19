@@ -432,9 +432,10 @@ def _load_from_file(file, filename):
         # The sax parse exception object can operate as a locator
         raise XmlError(ex.args[0], filename, ex)
     try:
-        handler.decoder.validate()
-        for entry in handler.common_entries.itervalues():
-            entry.validate()
+        # Validate all of the parameters in use
+        entries = [handler.decoder] + handler.common_entries.values()
+        prm.CompoundParameters([prm.EndEntryParameters(entries),
+            prm.ExpressionParameters(entries)])
     except (ent.MissingExpressionReferenceError, prm.BadReferenceError), ex:
         class Locator:
             def getLineNumber(self):
