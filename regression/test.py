@@ -64,6 +64,7 @@ def _populate_regression_test_methods(cls, regression_dir, extension):
             successes = []
             binary_files = glob.glob('%s.*.bin' % os.path.splitext(filename)[0])
             binary_files += glob.glob('%s.*.ber' % os.path.splitext(filename)[0])
+            binary_files += glob.glob('%s.*.der' % os.path.splitext(filename)[0])
             for data_filename in binary_files:
                 if '.failure.' in data_filename:
                     failures.append(data_filename)

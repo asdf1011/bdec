@@ -260,7 +260,7 @@ RootEnumeration = Enumeration;
 
 AdditionalEnumeration = Enumeration;
 
-Enumeration = EnumerationItem | EnumerationItem, ",", Enumeration;
+Enumeration = EnumerationItem, {",", EnumerationItem};
 
 EnumerationItem = identifier | NamedNumber;
 

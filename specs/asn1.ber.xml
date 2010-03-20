@@ -63,6 +63,12 @@
             <field name="value:" length="${length:} * 8" type="integer" />
         </sequence>
 
+        <sequence name="enumerated" value="${value:}">
+            <field name="tag:" length="8" value="0xa" />
+            <reference name="length:" type="definite length:" />
+            <field name="value:" length="${length:} * 8" type="integer" />
+        </sequence>
+
         <choice name="boolean">
             <sequence name="true">
                 <field name="tag:" length="8" value="0x1" />

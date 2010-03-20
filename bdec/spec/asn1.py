@@ -28,7 +28,7 @@ from bdec.spec.ebnf import parse
 import os.path
 from pyparsing import Word, nums, alphanums, StringEnd, \
     ParseException, Optional, Combine, oneOf, alphas,\
-    QuotedString, empty, lineno
+    QuotedString, empty, lineno, SkipTo
 
 class Asn1Error(LoadError):
     def __init__(self, filename, lineno):
@@ -76,34 +76,14 @@ def _create_tag(klass, is_constructed, number):
     value = (klass << 6) | (is_constructed << 5) | number
     return _field('tag:', 8, value)
 
+def _parse_number(s, l, t):
+    return int(t[0])
+
 class _Loader:
     """A class for loading asn1 specifications."""
 
     def __init__(self, filename):
-        # Load the xml spec that we will use for doing the decoding.
-        asn1_filename = os.path.join(os.path.dirname(__file__), '..', '..', 'specs', 'asn1.ber.xml')
-        generic_spec, self._spec, lookup = xmlspec.load(asn1_filename)
-
-        table = {
-                'bstring' : Combine("'" + Word('01') + "'B"),
-                'xmlbstring' : Word('01'),
-                'hstring' : Combine("'" + Word('abcdef' + nums) + "'H"),
-                'xmlhstring' : Word('abcdef' + nums),
-                'number' : Word(nums),
-                'typereference' : Word(alphanums + '-'),
-                'modulereference' : Word(alphanums + '-'),
-                'realnumber' : Combine(Word(nums) + Optional('.' + Word(nums)) + Optional(oneOf('eE') + Word(nums))),
-                'empty' : empty,
-                #'identifier' : Combine(oneOf(alphas) + Optional(Word(alphanums + '-'))),
-                'identifier' : Word(alphanums + '-'),
-                'cstring' : QuotedString('"', escChar='"'),
-                'xmlcstring' : empty, # FIXME
-                }
-        table['number'].setParseAction(lambda s,l,t: int(t[0]))
-
-        # Load the ebnf for the ASN.1 format, so we know how to parse the specification.
-        parsers = parse(open('bdec/spec/asn1.ebnf', 'r').read(), table)
-        self._parser = parsers['ModuleDefinition'] + StringEnd()
+        self._parser, parsers = self._load_ebnf()
 
         # Default for all handlers will be to fail on 'not implemented'. We
         # then have to manually go through and enable all handlers explicitly.
@@ -113,8 +93,7 @@ class _Loader:
                 raise NotImplementedError(name, tokens, filename, lineno(location, text))
             return _handler
         for name, entry in parsers.items():
-            if name not in table:
-                entry.setParseAction(not_implemented_handler(name))
+            entry.setParseAction(not_implemented_handler(name))
         self._common_entries = {}
 
         # Default handler to pass the childrens tokens from a parser element.
@@ -132,7 +111,7 @@ class _Loader:
             parsers[name].setParseAction(allow_entries_with_name)
 
         parsers['ModuleDefinition'].setParseAction(self._create_module)
-        parsers['DefinitiveIdentifier'].setParseAction(pass_children)
+        parsers['DefinitiveIdentifier'].setParseAction(lambda s,l,t:t[1:-1])
         parsers['ModuleIdentifier'].setParseAction(pass_children)
         parsers['TagDefault'].setParseAction(self._accept_empty)
         parsers['ExtensionDefault'].setParseAction(self._accept_empty)
@@ -152,15 +131,89 @@ class _Loader:
         entries('Assignment')
         entries('ModuleBody')
         parsers['SignedNumber'].setParseAction(self._parse_integer)
-        parsers['NamedNumber'].setParseAction(self._create_named_number)
-        parsers['NamedNumberList'].setParseAction(lambda s,l,t:t[0::2])
         parsers['BooleanType'].setParseAction(self._create_boolean)
+        parsers['NamedNumberList'].setParseAction(self._create_named_numeric_list)
+
+        # Ignore the object identifiers. What should we do with these?
+        parsers['NameForm'].setParseAction(lambda s,l,t:[])
+        parsers['DefinitiveObjIdComponent'].setParseAction(lambda s,l,t:[])
+        parsers['DefinitiveObjIdComponentList'].setParseAction(lambda s,l,t:[])
+        parsers['DefinitiveNumberForm'].setParseAction(lambda s,l,t:[])
+        parsers['DefinitiveNameAndNumberForm'].setParseAction(lambda s,l,t:[])
+
+        # Enumeration entries.
+        parsers['NamedNumber'].setParseAction(lambda s, l, t: {'name': t[0], 'value': t[2]})
+        parsers['EnumerationItem'].setParseAction(pass_children)
+        parsers['Enumeration'].setParseAction(lambda s, l, t: {'items':t[::2]})
+        parsers['RootEnumeration'].setParseAction(pass_children)
+        parsers['Enumerations'].setParseAction(self._create_enumeration)
+        parsers['EnumeratedType'].setParseAction(lambda s, l, t: t[2])
+        parsers['ExceptionSpec'].setParseAction(self._accept_empty)
 
         # Choice entries
         parsers['AlternativeTypeList'].setParseAction(lambda s,l,t:t[0::2])
         entries('RootAlternativeTypeList')
         entries('AlternativeTypeLists')
         parsers['ChoiceType'].setParseAction(self._create_choice)
+
+    def _load_ebnf(self):
+        # Load the xml spec that we will use for doing the decoding.
+        asn1_filename = os.path.join(os.path.dirname(__file__), '..', '..', 'specs', 'asn1.ber.xml')
+        generic_spec, self._spec, lookup = xmlspec.load(asn1_filename)
+
+        table = {
+                'bstring' : Combine("'" + Word('01') + "'B"),
+                'xmlbstring' : Word('01'),
+                'hstring' : Combine("'" + Word('abcdef' + nums) + "'H"),
+                'xmlhstring' : Word('abcdef' + nums),
+                'number' : Word(nums),
+                'typereference' : Word(alphanums + '-'),
+                'modulereference' : Word(alphanums + '-'),
+                'realnumber' : Combine(Word(nums) + Optional('.' + Word(nums)) + Optional(oneOf('eE') + Word(nums))),
+                'empty' : empty,
+                #'identifier' : Combine(oneOf(alphas) + Optional(Word(alphanums + '-'))),
+                'identifier' : Word(alphanums + '-'),
+                'cstring' : QuotedString('"', escChar='"'),
+                'xmlcstring' : empty, # FIXME
+                }
+        table['number'].setParseAction(_parse_number)
+
+        # Load the ebnf for the ASN.1 format, so we know how to parse the specification.
+        parsers = parse(open('bdec/spec/asn1.ebnf', 'r').read(), table)
+        parser = parsers['ModuleDefinition'] + StringEnd()
+        parser.ignore('--' + SkipTo('\n'))
+
+        return parser, dict((name, entry) for name, entry in parsers.items() if name not in table)
+
+    def _create_named_numeric_list(self, s, l, t):
+        value = 0
+        options = []
+        for token in t:
+            name = token['name']
+            value = int(token['value'])
+            options.append(seq.Sequence(name,
+                [ent.Child('value:', self._common('integer'))],
+                value=expr.ValueResult('value:'), constraints=[Equals(value)]))
+            value += 1
+        return chc.Choice('named numeric list', options)
+
+    def _create_enumeration(self, s, l, t):
+        value = 0
+        options = []
+        for token in t[0]['items']:
+            if not isinstance(token, basestring):
+                name = token['name']
+                value = int(token['value'])
+            else:
+                name = token
+            options.append(seq.Sequence(name,
+                [ent.Child('value:', self._common('enumerated'))],
+                value=expr.ValueResult('value:'), constraints=[Equals(value)]))
+            value += 1
+        if len(t) > 1:
+            # We have an exception spec in this item!
+            options.append(ent.Child('unknown:', self._common('enumerated')))
+        return chc.Choice('enumeration', options)
 
     def _parse_integer(self, s, l, t):
         if len(t) == 1:
@@ -235,12 +288,6 @@ class _Loader:
     def _set_type_name(self, s, loc, toks):
         toks[2].name = toks[0]
         return toks[2]
-
-    def _create_named_number(self, s, l, t):
-        name = t[0]
-        value = t[2]
-        return seq.Sequence(name, [ent.Child('value:', self._common('integer'))],
-            value=expr.ValueResult('value:'), constraints=[Equals(value)])
 
     def _create_integer(self, s, loc, toks):
         if len(toks) == 1:
