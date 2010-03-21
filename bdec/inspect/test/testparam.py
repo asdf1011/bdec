@@ -483,7 +483,7 @@ class TestResultParameters(unittest.TestCase):
         b = seq.Sequence('b', [ent.Child('a:', a)])
         lookup = prm.ResultParameters([a, b])
         self.assertEqual([prm.Param('result', prm.Param.OUT, EntryType(a))], lookup.get_params(a))
-        self.assertEqual([prm.Param('result', prm.Param.OUT, EntryType(b))], lookup.get_params(b))
+        self.assertEqual([], lookup.get_params(b))
         self.assertEqual([prm.Local('unused a:', EntryType(a))], lookup.get_locals(b))
         self.assertEqual([prm.Param('unused a:', prm.Param.OUT, EntryType(a))], lookup.get_passed_variables(b, b.children[0]))
 
