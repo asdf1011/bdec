@@ -135,7 +135,7 @@ class Entry(object):
     def __init__(self, name, length, children, constraints=[]):
         """Construct an Entry instance.
 
-        children -- A list of Entry instances.
+        children -- A list of Entry or Child instances.
         length -- Optionally specify the size in bits of the entry. Must be an
             instance of bdec.expression.Expression or an integer.
         constraints -- A list of constraints for the value of this entry.
