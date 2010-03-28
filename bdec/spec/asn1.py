@@ -188,7 +188,7 @@ class _Loader:
     def _create_named_numeric_list(self, s, l, t):
         value = 0
         options = []
-        for token in t:
+        for token in t[0::2]:
             name = token['name']
             value = int(token['value'])
             options.append(seq.Sequence(name,
