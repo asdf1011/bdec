@@ -1,4 +1,6 @@
 
+from string import ascii_letters as alphas, digits as nums
+
 from bdec import DecodeError
 from bdec.choice import Choice
 from bdec.constraints import Equals
@@ -8,6 +10,8 @@ from bdec.expression import LengthResult
 from bdec.field import Field
 from bdec.sequence import Sequence
 from bdec.sequenceof import SequenceOf
+
+alphanums = alphas + nums
 
 class ParseException(DecodeError):
     def __init__(self, ex):

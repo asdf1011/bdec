@@ -22,3 +22,7 @@ class TestParsing(unittest.TestCase):
         a = Word('abcd') + StringEnd()
         self.assertEqual(['aaaaa'], list(a.parseString(' aaaaa ')))
         self.assertRaises(ParseException, a.parseString, ' aaaaa b')
+
+    def test_alphas(self):
+        a = Word(alphas + '-')
+        self.assertEqual(['abcd-efgh'], list(a.parseString('abcd-efgh')))
