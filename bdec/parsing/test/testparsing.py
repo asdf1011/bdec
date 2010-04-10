@@ -26,3 +26,8 @@ class TestParsing(unittest.TestCase):
     def test_alphas(self):
         a = Word(alphas + '-')
         self.assertEqual(['abcd-efgh'], list(a.parseString('abcd-efgh')))
+
+    def test_chars_not_in(self):
+        a = CharsNotIn(alphas + ' ') + Word(alphas) + StringEnd()
+        self.assertEqual(['123456', 'abcd'], list(a.parseString('123456 abcd')))
+        self.assertRaises(ParseException, a.parseString, 'abc')

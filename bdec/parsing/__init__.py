@@ -3,10 +3,10 @@ from string import ascii_letters as alphas, digits as nums
 
 from bdec import DecodeError
 from bdec.choice import Choice
-from bdec.constraints import Equals
+from bdec.constraints import Equals, NotEquals
 from bdec.data import Data
 from bdec.entry import is_hidden
-from bdec.expression import LengthResult
+from bdec.expression import LengthResult, ValueResult
 from bdec.field import Field
 from bdec.sequence import Sequence
 from bdec.sequenceof import SequenceOf
@@ -174,8 +174,43 @@ class Or(ParserElement):
     def __str__(self):
         return '[%s]' % (', '.join(str(e) for e in self.exprs))
 
+
 class StringEnd(ParserElement):
     def _createEntry(self, separator):
         data = Choice('data:', [Field(None, length=8), Sequence(None, [])])
         length_check = Sequence(None, [], value=LengthResult('data:'), constraints=[Equals(0)])
         return Sequence(None, [data, length_check])
+
+
+class NoMatch(ParserElement):
+    def _createEntry(self, separator):
+        return Sequence(None, [], value=Constant(0), constraints=[Equals(1)])
+
+
+class CharsNotIn(ParserElement):
+    def __init__(self, notChars):
+        ParserElement.__init__(self)
+        self.notChars = notChars
+
+    def _createEntry(self, separator):
+        checks = []
+        for c in self.notChars:
+            checks.append(Sequence(None, [], value=ValueResult('char not in'),
+                    constraints=[NotEquals(ord(c))]))
+        good_char = Sequence('good char', [Field('char not in', length=8, format=Field.INTEGER)] + checks)
+        end = Sequence(None, [])
+        char = Choice('test char', [good_char, end])
+        entry = SequenceOf('chars not in', char, end_entries=[end])
+
+        def joinCharacters(toks):
+            if toks:
+                return [''.join(chr(t) for t in toks)]
+            return []
+        self._internal_actions.append(joinCharacters)
+
+        children = [good_char, entry]
+        if separator:
+            children.append(separator.createDecoder(None))
+        result = Sequence('chars not in', children)
+        return result
+
