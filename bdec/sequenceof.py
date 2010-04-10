@@ -65,7 +65,7 @@ class SequenceOf(bdec.entry.Entry):
     ITERATING = "iterating"
     STOPPING = "stopping"
 
-    def __init__(self, name, child, count, length=None, end_entries=[]):
+    def __init__(self, name, child, count=None, length=None, end_entries=[]):
         """
         count -- The number of times the child will repeat. If this value is
           None, the count will not be used.
