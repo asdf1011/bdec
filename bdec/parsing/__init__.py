@@ -214,3 +214,15 @@ class CharsNotIn(ParserElement):
         result = Sequence('chars not in', children)
         return result
 
+
+class Suppress(ParserElement):
+    def __init__(self, expr):
+        ParserElement.__init__(self)
+        if not isinstance(expr, ParserElement):
+            expr = Literal(expr)
+        self.expr = expr
+        self._internal_actions.append(lambda toks:[])
+
+    def _createEntry(self, separator):
+        return self.expr.createDecoder(separator)
+

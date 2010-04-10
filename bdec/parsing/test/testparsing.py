@@ -31,3 +31,7 @@ class TestParsing(unittest.TestCase):
         a = CharsNotIn(alphas + ' ') + Word(alphas) + StringEnd()
         self.assertEqual(['123456', 'abcd'], list(a.parseString('123456 abcd')))
         self.assertRaises(ParseException, a.parseString, 'abc')
+
+    def test_suppress(self):
+        a = Suppress(Word(alphas)) + Word(nums) + StringEnd()
+        self.assertEqual(['1234'], list(a.parseString('abcd 1234')))
