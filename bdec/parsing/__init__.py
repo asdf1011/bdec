@@ -3,6 +3,7 @@ from bdec.choice import Choice
 from bdec.constraints import Equals
 from bdec.data import Data
 from bdec.entry import is_hidden
+from bdec.expression import LengthResult
 from bdec.field import Field
 from bdec.sequence import Sequence
 from bdec.sequenceof import SequenceOf
@@ -153,3 +154,8 @@ class Or(ParserElement):
     def __str__(self):
         return '[%s]' % (', '.join(str(e) for e in self.exprs))
 
+class StringEnd(ParserElement):
+    def _createEntry(self, separator):
+        data = Choice('data:', [Field(None, length=8), Sequence(None, [])])
+        length_check = Sequence(None, [], value=LengthResult('data:'), constraints=[Equals(0)])
+        return Sequence(None, [data, length_check])
