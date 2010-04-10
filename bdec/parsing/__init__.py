@@ -1,4 +1,5 @@
 
+from bdec import DecodeError
 from bdec.choice import Choice
 from bdec.constraints import Equals
 from bdec.data import Data
@@ -7,6 +8,15 @@ from bdec.expression import LengthResult
 from bdec.field import Field
 from bdec.sequence import Sequence
 from bdec.sequenceof import SequenceOf
+
+class ParseException(DecodeError):
+    def __init__(self, ex):
+        DecodeError.__init__(self, ex.entry)
+        self.error = ex
+
+    def __str__(self):
+        return str(self.error)
+
 
 class ParserElement:
     def __init__(self):
@@ -25,6 +35,12 @@ class ParserElement:
         self._actions = [fn]
 
     def parseString(self, text):
+        try:
+            return self._decode(text)
+        except DecodeError, ex:
+            raise ParseException(ex)
+
+    def _decode(self, text):
         whitespace = ZeroOrMore(Literal(' '))
         whitespace.setParseAction(lambda t:[])
 
