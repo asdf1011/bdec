@@ -82,8 +82,14 @@ class ParserElement:
     def __add__(self, other):
         return And([self, other])
 
-    def __ladd__(self, other):
-        return And([other, self])
+    def __radd__(self, other):
+        return And([Literal(other), self])
+
+    def __or__(self, other):
+        return MatchFirst([self, other])
+
+    def __ror__(self, other):
+        return MatchFirst([Literal(other), self])
 
 
 class ZeroOrMore(ParserElement):
@@ -135,7 +141,7 @@ class Word(ParserElement):
         self.chars = chars
 
     def _element(self):
-        return OneOrMore(Or([Literal(c) for c in self.chars]))
+        return OneOrMore(MatchFirst([Literal(c) for c in self.chars]))
 
     def _createEntry(self, separator):
         entry = self._element().createDecoder(None)
@@ -163,7 +169,7 @@ class And(ParserElement):
         return ', '.join(str(e) for e in self.exprs)
 
 
-class Or(ParserElement):
+class MatchFirst(ParserElement):
     def __init__(self, exprs):
         ParserElement.__init__(self)
         self.exprs = exprs
@@ -174,6 +180,9 @@ class Or(ParserElement):
     def __str__(self):
         return '[%s]' % (', '.join(str(e) for e in self.exprs))
 
+# In pyparsing this means 'match the longest entry'; we don't do that, so
+# just pretend it's the same as MatchFirst.
+Or = MatchFirst
 
 class StringEnd(ParserElement):
     def _createEntry(self, separator):

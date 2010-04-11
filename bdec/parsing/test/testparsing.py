@@ -32,6 +32,11 @@ class TestParsing(unittest.TestCase):
         self.assertEqual(['123456', 'abcd'], list(a.parseString('123456 abcd')))
         self.assertRaises(ParseException, a.parseString, 'abc')
 
+    def test_or(self):
+        a = Word(alphas) | Word(nums)
+        self.assertEqual(['1234'], list(a.parseString('1234')))
+        self.assertEqual(['abcd'], list(a.parseString('abcd')))
+
     def test_suppress(self):
         a = Suppress(Word(alphas)) + Word(nums) + StringEnd()
         self.assertEqual(['1234'], list(a.parseString('abcd 1234')))
