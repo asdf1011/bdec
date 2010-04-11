@@ -48,3 +48,8 @@ class TestParsing(unittest.TestCase):
         self.assertEqual(['(', '5', ')'], list(expr.parseString('(5)')))
         self.assertEqual(['(', '(', '5', ')', ')'], list(expr.parseString('((5))')))
         self.assertRaises(ParseException, expr.parseString, '((5)')
+
+    def test_combine(self):
+        a = Combine(Suppress('0x') + Word(hexnums))
+        self.assertEqual(['1234'], list(a.parseString('0x1234')))
+        self.assertRaises(ParseException, a.parseString, '0x 1234')

@@ -1,5 +1,5 @@
 
-from string import ascii_letters as alphas, digits as nums
+from string import ascii_letters as alphas, digits as nums, hexdigits as hexnums
 
 from bdec import DecodeError
 from bdec.choice import Choice
@@ -271,4 +271,12 @@ class Forward(ParserElement):
         for reference in self._references:
             reference.resolve(self._entry)
         return self._entry
+
+class Combine(ParserElement):
+    def __init__(self, expr):
+        ParserElement.__init__(self)
+        self.expr = expr
+
+    def _createEntry(self, separator):
+        return self.expr.createDecoder(None)
 
