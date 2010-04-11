@@ -53,3 +53,18 @@ class TestParsing(unittest.TestCase):
         a = Combine(Suppress('0x') + Word(hexnums))
         self.assertEqual(['1234'], list(a.parseString('0x1234')))
         self.assertRaises(ParseException, a.parseString, '0x 1234')
+
+        a = Combine(Literal('a') + Literal('b'))
+        self.assertEqual(['ab'], list(a.parseString('ab')))
+
+    def test_srange(self):
+        self.assertEqual('abcd', srange('[a-d]'))
+        self.assertEqual('15678', srange('[15-8]'))
+
+    def test_caseless_literal(self):
+        a = CaselessLiteral('rabbit')
+        self.assertEqual(['rabbit'], list(a.parseString('Rabbit')))
+        self.assertEqual(['rabbit'], list(a.parseString('RABBIT')))
+        self.assertEqual(['rabbit'], list(a.parseString('rAbbIt')))
+        self.assertRaises(ParseException, a.parseString, 'rabbi')
+        self.assertRaises(ParseException, a.parseString, 'rab bit')

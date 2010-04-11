@@ -33,7 +33,11 @@ class ParserElement:
 
     def createDecoder(self, separator):
         result = self._createEntry(separator)
-        result.actions = self._internal_actions + self._actions
+        try:
+            result.actions
+        except AttributeError:
+            result.actions = []
+        result.actions += self._internal_actions + self._actions
         return result
 
     def setParseAction(self, fn):
@@ -277,6 +281,42 @@ class Combine(ParserElement):
         ParserElement.__init__(self)
         self.expr = expr
 
+        def joinTokens(toks):
+            if toks:
+                return [''.join(t for t in toks)]
+            return []
+        self._internal_actions.append(joinTokens)
+
     def _createEntry(self, separator):
         return self.expr.createDecoder(None)
+
+def srange(text):
+    assert text[0] == '[' and text[-1] == ']'
+    text = text[1:-1]
+    chars = ''
+    while text:
+        if len(text) > 2 and text[1] == '-':
+            chars += ''.join(chr(i) for i in range(ord(text[0]), ord(text[2])+1))
+            text = text[3:]
+        else:
+            chars += text[0]
+            text = text[1:]
+    return chars
+
+class CaselessLiteral(ParserElement):
+    def __init__(self, text):
+        ParserElement.__init__(self)
+        self.text = text
+        self._internal_actions.append(self._toCase)
+
+    def _toCase(self, toks):
+        if self.text[0].isupper():
+            return [toks[0].upper()]
+        else:
+            return [toks[0].lower()]
+
+    def _createEntry(self, separator):
+        chars = ((Literal(c.lower()) | Literal(c.upper())) for c in self.text)
+        element = Combine(reduce(lambda a,b:a+b, chars))
+        return element.createDecoder(None)
 
