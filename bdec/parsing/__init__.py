@@ -10,6 +10,7 @@ from bdec.expression import LengthResult, ValueResult
 from bdec.field import Field
 from bdec.sequence import Sequence
 from bdec.sequenceof import SequenceOf
+from bdec.spec.references import ReferencedEntry
 
 alphanums = alphas + nums
 
@@ -163,6 +164,8 @@ class And(ParserElement):
         return Sequence('and', [e.createDecoder(separator) for e in self.exprs])
 
     def __add__(self, other):
+        if not isinstance(other, ParserElement):
+            other = Literal(other)
         return And(self.exprs + [other])
 
     def __str__(self):
@@ -234,4 +237,38 @@ class Suppress(ParserElement):
 
     def _createEntry(self, separator):
         return self.expr.createDecoder(separator)
+
+
+class Forward(ParserElement):
+    def __init__(self):
+        ParserElement.__init__(self)
+        self.element = None
+        self._am_resolving = False
+        self._entry = None
+
+    def __lshift__(self, expr):
+        if not isinstance(expr, ParserElement):
+            expr = Literal(expr)
+        self.element = expr
+
+    def _createEntry(self, separator):
+        assert self.element is not None
+
+        if self._entry is not None:
+            return self._entry
+
+        if self._am_resolving:
+            self._references.append(ReferencedEntry('forward', 'forward'))
+            return self._references[-1]
+
+        # It is possible (even likely for Forward elements) that we will be
+        # referenced while creating the referencing decoder; we handle this
+        # by returning ReferencedEntry instances until the decoder has been
+        # constructed, then resolve them all.
+        self._am_resolving = True
+        self._references = []
+        self._entry = self.element.createDecoder(separator)
+        for reference in self._references:
+            reference.resolve(self._entry)
+        return self._entry
 

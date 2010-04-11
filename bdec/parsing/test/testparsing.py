@@ -40,3 +40,11 @@ class TestParsing(unittest.TestCase):
     def test_suppress(self):
         a = Suppress(Word(alphas)) + Word(nums) + StringEnd()
         self.assertEqual(['1234'], list(a.parseString('abcd 1234')))
+
+    def test_forward(self):
+        expr = Forward()
+        group = '(' + expr + ')'
+        expr << (Word(nums) | group)
+        self.assertEqual(['(', '5', ')'], list(expr.parseString('(5)')))
+        self.assertEqual(['(', '(', '5', ')', ')'], list(expr.parseString('((5))')))
+        self.assertRaises(ParseException, expr.parseString, '((5)')
