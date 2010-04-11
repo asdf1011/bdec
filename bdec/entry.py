@@ -164,6 +164,10 @@ class Entry(object):
             else:
                 # For convenience in the tests, we allow the children to be
                 # assigned an array of Entry instances.
+                from bdec.spec.references import ReferencedEntry
+                if isinstance(child, ReferencedEntry):
+                    child.set_parent(self)
+
                 items.append(Child(child.name, child))
         self._children = tuple(items)
     children = property(_get_children, _set_children)

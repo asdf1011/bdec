@@ -175,13 +175,8 @@ class _Handler(xml.sax.handler.ContentHandler):
                     reference.name = '%s:' % reference.name
                 value = self._parse_expression("${%s}" % reference.name)
                 entry = seq.Sequence(entry_name, [reference], value=value)
-                reference.set_parent(entry)
             entry.constraints += constraints
 
-        # Check for child references
-        for child in children:
-            if isinstance(child, ReferencedEntry):
-                child.set_parent(entry)
         self._children.pop()
 
         if attrs.has_key('if'):
@@ -196,8 +191,6 @@ class _Handler(xml.sax.handler.ContentHandler):
                 raise XmlExpressionError(ex, self._filename, self.locator)
             assert isinstance(not_present, ent.Entry)
             optional = chc.Choice('optional %s' % entry_name, [not_present, entry])
-            if isinstance(entry, ReferencedEntry):
-                entry.set_parent(optional)
             entry = optional
 
         if entry is not None:
