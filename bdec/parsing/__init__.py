@@ -43,6 +43,10 @@ class ParserElement:
     def setParseAction(self, fn):
         self._actions = [fn]
 
+    def addParseAction(self, fn):
+        self._actions.append(lambda t:fn('', 0, t))
+        return self
+
     def parseString(self, text):
         try:
             return self._decode(text)

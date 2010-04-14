@@ -68,3 +68,8 @@ class TestParsing(unittest.TestCase):
         self.assertEqual(['rabbit'], list(a.parseString('rAbbIt')))
         self.assertRaises(ParseException, a.parseString, 'rabbi')
         self.assertRaises(ParseException, a.parseString, 'rab bit')
+
+    def test_add_parse_action(self):
+        a = Word('abcd').addParseAction(lambda s,l,t:[t[0].upper()])
+        self.assertEqual(['BAD'], list(a.parseString('bad')))
+
