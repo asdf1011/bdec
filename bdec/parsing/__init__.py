@@ -200,6 +200,9 @@ class And(ParserElement):
             other = Literal(other)
         return And(self.exprs + [other])
 
+    def __radd__(self, other):
+        return And([Literal(other)] + self.exprs)
+
     def __str__(self):
         return ', '.join(str(e) for e in self.exprs)
 
@@ -214,6 +217,12 @@ class MatchFirst(ParserElement):
 
     def __str__(self):
         return '[%s]' % (', '.join(str(e) for e in self.exprs))
+
+    def __or__(self, other):
+        return MatchFirst(self.exprs + [other])
+
+    def __ror__(self, other):
+        return MatchFirst([Literal(other)] + self.exprs)
 
 # In pyparsing this means 'match the longest entry'; we don't do that, so
 # just pretend it's the same as MatchFirst.
