@@ -27,18 +27,40 @@ class ParserElement:
     def __init__(self):
         self._actions = []
         self._internal_actions = []
+        self._am_resolving = False
+
+        # The parser includes leading whitespace, the decoder doesn't.
+        self._parser = None
+        self._decoder = None
 
     def _createEntry(self, separator):
         raise NotImplementedError()
 
     def createDecoder(self, separator):
-        result = self._createEntry(separator)
+
+        if self._decoder is not None:
+            return self._decoder
+
+        if self._am_resolving:
+            self._references.append(ReferencedEntry('forward', 'forward'))
+            return self._references[-1]
+
+        # It is possible (even likely for Forward elements) that we will be
+        # referenced while creating the referencing decoder; we handle this
+        # by returning ReferencedEntry instances until the decoder has been
+        # constructed, then resolve them all.
+        self._am_resolving = True
+        self._references = []
+        self._decoder = self._createEntry(separator)
+        for reference in self._references:
+            reference.resolve(self._decoder)
+
         try:
-            result.actions
+            self._decoder.actions
         except AttributeError:
-            result.actions = []
-        result.actions += self._internal_actions + self._actions
-        return result
+            self._decoder.actions = []
+        self._decoder.actions += self._internal_actions + self._actions
+        return self._decoder
 
     def setParseAction(self, fn):
         self._actions = [fn]
@@ -54,19 +76,21 @@ class ParserElement:
             raise ParseException(ex)
 
     def _decode(self, text):
-        whitespace = ZeroOrMore(Literal(' '))
-        whitespace.setParseAction(lambda t:[])
+        if self._parser is None:
+            whitespace = ZeroOrMore(Literal(' '))
+            whitespace.setParseAction(lambda t:[])
 
-        # Whitespace is decoded at the end of the Literal (and Word) entries,
-        # so we have to decode any leading whitespace. The alternative,
-        # decoding the whitespace before Literal (and Word) entries, would
-        # prevent the Chooser from being able to guess the type.
-        decoder = Sequence(None, [whitespace.createDecoder(None), self.createDecoder(whitespace)])
+            # Whitespace is decoded at the end of the Literal (and Word) entries,
+            # so we have to decode any leading whitespace. The alternative,
+            # decoding the whitespace before Literal (and Word) entries, would
+            # prevent the Chooser from being able to guess the type.
+            self._parser = Sequence(None, [whitespace.createDecoder(None),
+                self.createDecoder(whitespace)])
 
         stack = []
         tokens = []
         data = Data(text)
-        for is_starting, name, entry, data, value in decoder.decode(data):
+        for is_starting, name, entry, data, value in self._parser.decode(data):
             if is_starting:
                 stack.append(tokens)
                 tokens = []
@@ -251,8 +275,6 @@ class Forward(ParserElement):
     def __init__(self):
         ParserElement.__init__(self)
         self.element = None
-        self._am_resolving = False
-        self._entry = None
 
     def __lshift__(self, expr):
         if not isinstance(expr, ParserElement):
@@ -261,24 +283,7 @@ class Forward(ParserElement):
 
     def _createEntry(self, separator):
         assert self.element is not None
-
-        if self._entry is not None:
-            return self._entry
-
-        if self._am_resolving:
-            self._references.append(ReferencedEntry('forward', 'forward'))
-            return self._references[-1]
-
-        # It is possible (even likely for Forward elements) that we will be
-        # referenced while creating the referencing decoder; we handle this
-        # by returning ReferencedEntry instances until the decoder has been
-        # constructed, then resolve them all.
-        self._am_resolving = True
-        self._references = []
-        self._entry = self.element.createDecoder(separator)
-        for reference in self._references:
-            reference.resolve(self._entry)
-        return self._entry
+        return self.element.createDecoder(separator)
 
 class Combine(ParserElement):
     def __init__(self, expr):
