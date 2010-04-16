@@ -125,16 +125,22 @@ class ParserElement:
         return tokens
 
     def __add__(self, other):
+        if not isinstance(other, ParserElement):
+            other = Literal(other)
         return And([self, other])
 
     def __radd__(self, other):
-        return And([Literal(other), self])
+        if not isinstance(other, ParserElement):
+            other = Literal(other)
+        return And([other, self])
 
     def __or__(self, other):
         return MatchFirst([self, other])
 
     def __ror__(self, other):
-        return MatchFirst([Literal(other), self])
+        if not isinstance(other, ParserElement):
+            other = Literal(other)
+        return MatchFirst([other, self])
 
 
 class ZeroOrMore(ParserElement):
@@ -168,6 +174,7 @@ class OneOrMore(ParserElement):
 class Literal(ParserElement):
     def __init__(self, text):
         ParserElement.__init__(self)
+        assert isinstance(text, basestring), 'Literal must be a string! Is %s' % (repr(text))
         self.text = text
 
     def _createEntry(self, separator):
@@ -198,11 +205,19 @@ class Word(ParserElement):
     def __str__(self):
         return str(self._element())
 
+def _check_literals(exprs):
+    result = []
+    for expr in exprs:
+        if not isinstance(expr, ParserElement):
+            result.append(Literal(expr))
+        else:
+            result.append(expr)
+    return result
 
 class And(ParserElement):
     def __init__(self, exprs):
         ParserElement.__init__(self)
-        self.exprs = exprs
+        self.exprs = _check_literals(exprs)
 
     def _createEntry(self, separator):
         return Sequence('and', [e.createDecoder(separator) for e in self.exprs])
@@ -222,7 +237,7 @@ class And(ParserElement):
 class MatchFirst(ParserElement):
     def __init__(self, exprs):
         ParserElement.__init__(self)
-        self.exprs = exprs
+        self.exprs = _check_literals(exprs)
 
     def _createEntry(self, separator):
         return Choice('or', [e.createDecoder(separator) for e in self.exprs])
@@ -231,6 +246,9 @@ class MatchFirst(ParserElement):
         return '[%s]' % (', '.join(str(e) for e in self.exprs))
 
     def __or__(self, other):
+        if not isinstance(other, ParserElement):
+            other = Literal(other)
+
         return MatchFirst(self.exprs + [other])
 
     def __ror__(self, other):
