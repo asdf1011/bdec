@@ -193,17 +193,8 @@ class ZeroOrMore(ParserElement):
         return '{%s}' % self.element
 
 
-class OneOrMore(ParserElement):
-    def __init__(self, element):
-        ParserElement.__init__(self)
-        self.element = element
-
-    def _createEntry(self, separator):
-        element = (self.element + ZeroOrMore(self.element))
-        return element.createDecoder(separator)
-
-    def __str__(self):
-        return '%s, {%s}' % (self.element, self.element)
+def OneOrMore(element):
+    return element + ZeroOrMore(element)
 
 
 class Literal(ParserElement):
