@@ -219,7 +219,7 @@ class Literal(ParserElement):
         return result
 
     def __str__(self):
-        return '"%s"' % self.text
+        return '"%s"' % repr(self.text)[1:-1]
 
 
 class Word(ParserElement):
@@ -271,7 +271,7 @@ class And(ParserElement):
         return And([Literal(other)] + self.exprs)
 
     def __str__(self):
-        return ', '.join(str(e) for e in self.exprs)
+        return '(%s)' % ', '.join(str(e) for e in self.exprs)
 
 
 class MatchFirst(ParserElement):
@@ -340,6 +340,9 @@ class CharsNotIn(ParserElement):
             children.append(separator.createDecoder(None))
         result = Sequence('chars not in', children)
         return result
+
+    def __str__(self):
+        return '[not in %s]' % repr(self.notChars)
 
 
 class Suppress(ParserElement):
