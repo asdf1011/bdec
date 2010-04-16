@@ -52,6 +52,9 @@ class ParserElement:
         self._decoder = None
         self._ignore = None
 
+    def _is_important(self):
+        return self._actions or self._internal_actions or self._ignore
+
     def ignore(self, expr):
         self._ignore = expr
 
@@ -257,9 +260,14 @@ class And(ParserElement):
     def __add__(self, other):
         if not isinstance(other, ParserElement):
             other = Literal(other)
+
+        if self._is_important():
+            return ParserElement.__add__(self, other)
         return And(self.exprs + [other])
 
     def __radd__(self, other):
+        if self._is_important():
+            return ParserElement.__radd__(self, other)
         return And([Literal(other)] + self.exprs)
 
     def __str__(self):
@@ -281,9 +289,13 @@ class MatchFirst(ParserElement):
         if not isinstance(other, ParserElement):
             other = Literal(other)
 
+        if self._is_important():
+            return ParserElement.__or__(self, other)
         return MatchFirst(self.exprs + [other])
 
     def __ror__(self, other):
+        if self._is_important():
+            return ParserElement.__ror__(self, other)
         return MatchFirst([Literal(other)] + self.exprs)
 
 # In pyparsing this means 'match the longest entry'; we don't do that, so
