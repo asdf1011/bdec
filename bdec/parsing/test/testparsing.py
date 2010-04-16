@@ -32,6 +32,21 @@ class TestParsing(unittest.TestCase):
         self.assertEqual(['123456', 'abcd'], list(a.parseString('123456 abcd')))
         self.assertRaises(ParseException, a.parseString, 'abc')
 
+    def test_ignore(self):
+        comment = '//' + CharsNotIn('\n') + '\n'
+        words = ZeroOrMore(Word(alphas)) + StringEnd()
+        words.ignore(comment)
+        self.assertEquals(['run', 'dog', 'run'], list(words.parseString('''run // Ignore me
+            // Ignore me too
+            dog run''')))
+
+        # Test that an entry 'in the middle' can have an ignore entry
+        a = Suppress('start:') + words
+        self.assertEquals(['run', 'dog', 'run'], list(a.parseString('''start: run // Ignore me
+            dog //ignore me
+            // ignore me too
+            run''')))
+
     def test_or(self):
         a = Word(alphas) | Word(nums)
         self.assertEqual(['1234'], list(a.parseString('1234')))

@@ -16,12 +16,29 @@ from bdec.spec.references import ReferencedEntry
 alphanums = alphas + nums
 
 class ParseException(DecodeError):
-    def __init__(self, ex):
+    def __init__(self, filename, text, offset, ex):
         DecodeError.__init__(self, ex.entry)
+        self._filename = filename
+        self._text = text
+        self._offset = offset
         self.error = ex
 
+    @property
+    def _lines(self):
+        return self._text[:self._offset / 8].splitlines() or ['']
+
+    @property
+    def lineno(self):
+        return len(self._lines)
+
+    @property
+    def col(self):
+        return len(self._lines[-1])
+
     def __str__(self):
-        return str(self.error)
+        return '%s[%i]: %s\n%s\n%s' % (self._filename, self.lineno,
+                str(self.error), self._text.splitlines()[self.lineno-1],
+                ' ' * self.col + '^')
 
 
 class ParserElement:
@@ -33,6 +50,10 @@ class ParserElement:
         # The parser includes leading whitespace, the decoder doesn't.
         self._parser = None
         self._decoder = None
+        self._ignore = None
+
+    def ignore(self, expr):
+        self._ignore = expr
 
     def _createEntry(self, separator):
         raise NotImplementedError()
@@ -45,6 +66,9 @@ class ParserElement:
         if self._am_resolving:
             self._references.append(ReferencedEntry('forward', 'forward'))
             return self._references[-1]
+
+        if self._ignore is not None:
+            separator = separator | self._ignore
 
         # It is possible (even likely for Forward elements) that we will be
         # referenced while creating the referencing decoder; we handle this
@@ -80,27 +104,12 @@ class ParserElement:
         return self
 
     def parseString(self, text):
-        try:
-            return self._decode(text)
-        except DecodeError, ex:
-            raise ParseException(ex)
-
-    def _decode(self, text):
-        if self._parser is None:
-            whitespace = ZeroOrMore(Literal(' '))
-            whitespace.setParseAction(lambda t:[])
-
-            # Whitespace is decoded at the end of the Literal (and Word) entries,
-            # so we have to decode any leading whitespace. The alternative,
-            # decoding the whitespace before Literal (and Word) entries, would
-            # prevent the Chooser from being able to guess the type.
-            self._parser = Sequence(None, [whitespace.createDecoder(None),
-                self.createDecoder(whitespace)])
+        if isinstance(text, unicode):
+            text = text.encode('ascii')
 
         stack = []
         tokens = []
-        data = Data(text)
-        for is_starting, name, entry, data, value in self._parser.decode(data):
+        for is_starting, name, entry, data, value in self._decode(text, '<string>'):
             if is_starting:
                 stack.append(tokens)
                 tokens = []
@@ -123,6 +132,29 @@ class ParserElement:
                 tokens = stack.pop()
         assert len(stack) == 0
         return tokens
+
+    def _decode(self, text, filename):
+        if self._parser is None:
+            whitespace = Word(' \n')
+            if self._ignore is not None:
+                whitespace = whitespace | self._ignore
+            whitespace = Suppress(ZeroOrMore(whitespace))
+
+            # Whitespace is decoded at the end of the Literal (and Word) entries,
+            # so we have to decode any leading whitespace. The alternative,
+            # decoding the whitespace before Literal (and Word) entries, would
+            # prevent the Chooser from being able to guess the type.
+            self._parser = Sequence(None, [whitespace.createDecoder(None),
+                self.createDecoder(whitespace)])
+
+        offset = 0
+        try:
+            for is_starting, name, entry, data, value in self._parser.decode(Data(text)):
+                if not is_starting:
+                    offset += len(data)
+                yield is_starting, name, entry, data, value
+        except DecodeError, ex:
+            raise ParseException(filename, text, offset, ex)
 
     def __add__(self, other):
         if not isinstance(other, ParserElement):
