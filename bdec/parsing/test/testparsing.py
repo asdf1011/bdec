@@ -69,7 +69,18 @@ class TestParsing(unittest.TestCase):
         self.assertRaises(ParseException, a.parseString, 'rabbi')
         self.assertRaises(ParseException, a.parseString, 'rab bit')
 
-    def test_add_parse_action(self):
+    def test_add_parse_action_three_args(self):
         a = Word('abcd').addParseAction(lambda s,l,t:[t[0].upper()])
         self.assertEqual(['BAD'], list(a.parseString('bad')))
 
+    def test_add_parse_action_two_args(self):
+        a = Word('abcd').addParseAction(lambda l,t:[t[0].upper()])
+        self.assertEqual(['BAD'], list(a.parseString('bad')))
+
+    def test_add_parse_action_one_arg(self):
+        a = Word('abcd').addParseAction(lambda t:[t[0].upper()])
+        self.assertEqual(['BAD'], list(a.parseString('bad')))
+
+    def test_action_returns_object(self):
+        a = Word('abcd').addParseAction(lambda t:t[0].upper())
+        self.assertEqual(['BAD'], list(a.parseString('bad')))

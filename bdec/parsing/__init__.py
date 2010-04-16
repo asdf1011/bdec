@@ -1,5 +1,6 @@
 
-from string import ascii_letters as alphas, digits as nums, hexdigits as hexnums
+import inspect
+from string import ascii_letters as alphas, digits as nums, hexdigits as hexnums, printable as printables
 
 from bdec import DecodeError
 from bdec.choice import Choice
@@ -63,10 +64,19 @@ class ParserElement:
         return self._decoder
 
     def setParseAction(self, fn):
-        self._actions = [fn]
+        self._actions = []
+        return self.addParseAction(fn)
 
     def addParseAction(self, fn):
-        self._actions.append(lambda t:fn('', 0, t))
+        num_args = len(inspect.getargspec(fn)[0])
+        if num_args == 3:
+            action = lambda t:fn('', 0, t)
+        elif num_args == 2:
+            action = lambda t:fn(0, t)
+        else:
+            action = fn
+
+        self._actions.append(action)
         return self
 
     def parseString(self, text):
@@ -105,6 +115,8 @@ class ParserElement:
 
                 for action in actions:
                     tokens = action(tokens)
+                    if not isinstance(tokens, list):
+                        tokens = [tokens]
 
                 # Extend the current tokens list with the child tokens
                 stack[-1].extend(tokens)
