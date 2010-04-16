@@ -21,7 +21,7 @@ import xml.sax
 from xml.sax import saxutils
 
 import bdec.choice as chc
-from bdec.constraints import Minimum, Maximum, Equals
+from bdec.constraints import Minimum, Maximum, Equals, NotEquals
 import bdec.data as dt
 import bdec.entry as ent
 import bdec.expression as exp
@@ -418,8 +418,8 @@ _handlers = {fld.Field: _save_field,
         }
 
 class _XmlOut:
-    def __init__(self):
-        self._buffer  = StringIO.StringIO()
+    def __init__(self, buffer):
+        self._buffer  = buffer
         self._offset = 0
         self._is_open = False
 
@@ -490,7 +490,7 @@ def _write_entry(gen, entry, common, end_entry):
                 attributes.append(('value', value))
             else:
                 attributes.append(('expected', value))
-        elif isinstance(constraint, bdec.constraints.NotEquals):
+        elif isinstance(constraint, NotEquals):
             # HACK: Print 'not equal' entries...
             attributes.append(('not_equal', str(constraint.limit)))
         else:
@@ -508,12 +508,11 @@ def _write_entry(gen, entry, common, end_entry):
         gen.end('end-sequenceof')
     gen.end(name)
 
-def dumps(spec, common=[]):
-    """Save a specification in the xml format."""
+def dump(spec, common, output):
     if spec not in common:
         common = common + [spec]
     end_entry = prm.EndEntryParameters(common)
-    gen = _XmlOut()
+    gen = _XmlOut(output)
 
     gen.start('protocol')
     _write_entry(gen, spec, common, end_entry)
@@ -526,5 +525,11 @@ def dumps(spec, common=[]):
                 _write_entry(gen, entry, common, end_entry)
         gen.end('common')
     gen.end('protocol')
-    return str(gen)
+
+def dumps(spec, common=[]):
+    """Save a specification in the xml format."""
+    output = StringIO.StringIO()
+    dump(spec, common, output)
+    return output.getvalue()
+
 save = dumps
