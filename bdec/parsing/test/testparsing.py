@@ -9,6 +9,10 @@ class TestParsing(unittest.TestCase):
         a = Word('abcde')
         self.assertEqual(['ebad'], list(a.parseString('ebad')))
 
+    def test_multiple_words(self):
+        a = Word('abcde') + Word('abcd')
+        self.assertEqual(['ebad', 'bbbb'], list(a.parseString('ebad bbbb')))
+
     def test_zero_or_more(self):
         a = ZeroOrMore(Word('abcd'))
         self.assertEqual(['ab', 'cd', 'dc'], list(a.parseString('  ab cd dc')))

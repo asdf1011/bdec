@@ -1,6 +1,6 @@
 
 import inspect
-from string import ascii_letters as alphas, digits as nums, hexdigits as hexnums, printable as printables
+from string import ascii_letters as alphas, digits as nums, hexdigits as hexnums, printable as printables, lower, upper
 
 from bdec import DecodeError
 from bdec.choice import Choice
@@ -213,23 +213,9 @@ class Literal(ParserElement):
         return '"%s"' % repr(self.text)[1:-1]
 
 
-class Word(ParserElement):
-    def __init__(self, chars):
-        ParserElement.__init__(self)
-        self.chars = chars
+def Word(chars):
+    return Combine(OneOrMore(MatchFirst([Literal(c) for c in chars])))
 
-    def _element(self):
-        return OneOrMore(MatchFirst([Literal(c) for c in self.chars]))
-
-    def _createEntry(self, separator):
-        entry = self._element().createDecoder(None)
-        self._internal_actions.append(lambda t: [''.join(t)])
-        if separator:
-            entry = Sequence('word', [entry, separator.createDecoder(None)])
-        return entry
-
-    def __str__(self):
-        return str(self._element())
 
 def _check_literals(exprs):
     result = []
@@ -336,16 +322,10 @@ class CharsNotIn(ParserElement):
         return '[not in %s]' % repr(self.notChars)
 
 
-class Suppress(ParserElement):
-    def __init__(self, expr):
-        ParserElement.__init__(self)
-        if not isinstance(expr, ParserElement):
-            expr = Literal(expr)
-        self.expr = expr
-        self._internal_actions.append(lambda toks:[])
-
-    def _createEntry(self, separator):
-        return self.expr.createDecoder(separator)
+def Suppress(expr):
+    if not isinstance(expr, ParserElement):
+        expr = Literal(expr)
+    return expr.setParseAction(lambda t:[])
 
 
 class Forward(ParserElement):
@@ -362,6 +342,7 @@ class Forward(ParserElement):
         assert self.element is not None
         return self.element.createDecoder(separator)
 
+
 class Combine(ParserElement):
     def __init__(self, expr):
         ParserElement.__init__(self)
@@ -374,7 +355,10 @@ class Combine(ParserElement):
         self._internal_actions.append(joinTokens)
 
     def _createEntry(self, separator):
-        return self.expr.createDecoder(None)
+        result = self.expr.createDecoder(None)
+        if separator is not None:
+            result = Sequence('combine', [result, separator.createDecoder(None)])
+        return result
 
 def srange(text):
     assert text[0] == '[' and text[-1] == ']'
@@ -389,22 +373,17 @@ def srange(text):
             text = text[1:]
     return chars
 
-class CaselessLiteral(ParserElement):
-    def __init__(self, text):
-        ParserElement.__init__(self)
-        self.text = text
-        self._internal_actions.append(self._toCase)
+def _get_caseless_action(text):
+    if text[0].isupper():
+        action = upper
+    else:
+        action = lower
+    return lambda t:action(t[0])
 
-    def _toCase(self, toks):
-        if self.text[0].isupper():
-            return [toks[0].upper()]
-        else:
-            return [toks[0].lower()]
-
-    def _createEntry(self, separator):
-        chars = ((Literal(c.lower()) | Literal(c.upper())) for c in self.text)
-        element = Combine(reduce(lambda a,b:a+b, chars))
-        return element.createDecoder(None)
+def CaselessLiteral(text):
+    chars = ((Literal(c.lower()) | Literal(c.upper())) for c in text)
+    element = Combine(reduce(lambda a,b:a+b, chars))
+    return element.setParseAction(_get_caseless_action(text))
 
 restOfLine = CharsNotIn('\n') + '\n'
 
