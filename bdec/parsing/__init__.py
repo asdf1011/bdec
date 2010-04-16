@@ -415,3 +415,26 @@ class CaselessLiteral(ParserElement):
         element = Combine(reduce(lambda a,b:a+b, chars))
         return element.createDecoder(None)
 
+restOfLine = CharsNotIn('\n') + '\n'
+
+def Optional(expr, null=''):
+    return expr | Literal(null)
+
+def QuotedString(quoteChar, multiline=True, escChar=''):
+    return nestedExpr(quoteChar, quoteChar)
+
+def nestedExpr(opener='(', closer=')'):
+    result = Forward()
+    result << opener + ZeroOrMore(result | CharsNotIn(opener + closer)) + closer
+    return result
+
+def keepOriginalText(s, l, t):
+    # TODO: This isn't quite right...
+    return ''.join(t)
+
+def Group(expr):
+    return And([expr]).addParseAction(lambda t:[t])
+
+def CaselessKeyword(text):
+    return Combine(And(list(Or([c.lower(), c.upper()]) for c in text)))
+
