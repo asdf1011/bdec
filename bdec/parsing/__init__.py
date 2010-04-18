@@ -138,10 +138,10 @@ class ParserElement:
 
     def _decode(self, text, filename):
         if self._parser is None:
-            whitespace = Word(' \n')
+            whitespace = ZeroOrMore(Literal(' ') | '\n')('whitespace')
             if self._ignore is not None:
                 whitespace = whitespace | self._ignore
-            whitespace = Suppress(ZeroOrMore(whitespace))
+            whitespace = Suppress(whitespace)
 
             # Whitespace is decoded at the end of the Literal (and Word) entries,
             # so we have to decode any leading whitespace. The alternative,
