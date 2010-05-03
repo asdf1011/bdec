@@ -185,7 +185,7 @@ def update_website():
         shutil.rmtree(html_doc_dir)
     os.rename('tempdir', html_doc_dir)
 
-    if os.system('git add .;git add -u .') != 0:
+    if os.system('cd %s;git add .;git add -u .' % html_doc_dir) != 0:
         sys.exit('Failed to add the updated html_doc_dir')
 
 def update_release_tarball(version):
@@ -239,7 +239,7 @@ def _edit_message(message):
 
 def commit_website(version):
     os.chdir(project_dir)
-    if os.system('git diff') != 0:
+    if os.system('git diff HEAD') != 0:
         sys.exit('Stopped after reviewing changes.')
     text = raw_input('Commit website changes? [y]')
     if text and text != 'y':
