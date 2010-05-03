@@ -120,6 +120,14 @@ See the CHANGELOG_ for past releases.
 .. _mako: http://www.makotemplates.org/
 
 
+Source
+======
+
+The source control tree is available on github at http://github.com/asdf1011/bdec.
+
+  git clone http://github.com/asdf1011/bdec.git
+
+
 Similar projects
 ================
 
