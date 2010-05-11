@@ -49,11 +49,14 @@ Documentation
 =============
 
 If you're just getting started, the tutorial_ takes you step by step through
-the different concepts used in bdec. Once you've got started, refere to the
+the different concepts used in bdec. Once you've got started, refer to the
 rest of the documentation_ as required.
+
+For convenience, `downloadable pdf documentation`_ is also available.
 
 .. _documentation: docs/
 .. _tutorial: docs/tutorial.html
+.. _downloadable pdf documentation: files/bdec-VERSION.pdf
 
 
 Support
