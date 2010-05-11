@@ -483,7 +483,7 @@ class TestResultParameters(unittest.TestCase):
         b = seq.Sequence('b', [ent.Child('a:', a)])
         lookup = prm.ResultParameters([a, b])
         self.assertEqual([prm.Param('result', prm.Param.OUT, EntryType(a))], lookup.get_params(a))
-        self.assertEqual([prm.Param('result', prm.Param.OUT, EntryType(b))], lookup.get_params(b))
+        self.assertEqual([], lookup.get_params(b))
         self.assertEqual([prm.Local('unused a:', EntryType(a))], lookup.get_locals(b))
         self.assertEqual([prm.Param('unused a:', prm.Param.OUT, EntryType(a))], lookup.get_passed_variables(b, b.children[0]))
 
@@ -509,4 +509,13 @@ class TestDataChecker(unittest.TestCase):
         self.assertFalse(checker.contains_data(a))
         self.assertFalse(checker.contains_data(b))
         self.assertFalse(checker.child_has_data(b.children[0]))
+
+    def test_visible_child_renamed_to_be_hidden(self):
+        # Test that when a child is visible, but its name isn't, the parent
+        # can be hidden.
+        a = fld.Field('a', 8)
+        b = seq.Sequence('b', [ent.Child('a:', a)])
+        checker = prm.DataChecker([a, b])
+        self.assertTrue(checker.contains_data(a))
+        self.assertFalse(checker.contains_data(b))
 

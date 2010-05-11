@@ -27,12 +27,13 @@ import bdec.entry as ent
 import bdec.expression as exp
 import bdec.field as fld
 import bdec.inspect.param as prm
-import bdec.spec
+from bdec.spec import LoadError
+from bdec.spec.references import ReferencedEntry, References, MissingReferenceError
 from bdec.spec.integer import Integers, IntegerError
 import bdec.sequence as seq
 import bdec.sequenceof as sof
 
-class XmlSpecError(bdec.spec.LoadError):
+class XmlSpecError(LoadError):
     def __init__(self, filename, locator):
         self.filename = filename
         self.line = locator.getLineNumber()
@@ -87,44 +88,6 @@ class XmlExpressionError(XmlSpecError):
         return self._src() + "Expression error - " + str(self.ex)
 
 
-class _ReferencedEntry:
-    """
-    A entry to insert into child lists when referencing a common entry.
-
-    Used to 'delay' referencing of decoder entries, for the case where a
-    decoder entry has been referenced (but has not yet been defined).
-    """
-    def __init__(self, name, type):
-        """
-        Construct a referenced entry.
-
-        name -- The name the resolved entry will have.
-        type -- If this is non-null and not empty, this will be the name of
-            the type we should resolve to.
-        """
-        self.name = name
-        self.type = type
-        self._parent = None
-
-    def getReferenceName(self):
-        if self.type:
-            return self.type
-        return self.name
-
-    def resolve(self, entry):
-        assert self._parent is not None
-        assert isinstance(entry, ent.Entry)
-
-        # Replace the child entry in the children list
-        for child in self._parent.children:
-            if child.entry == self:
-                child.entry = entry
-     
-    def set_parent(self, parent):
-        assert self._parent is None
-        self._parent = parent
-
-
 class _Handler(xml.sax.handler.ContentHandler):
     """
     A sax style xml handler for building a decoder from an xml specification
@@ -152,6 +115,8 @@ class _Handler(xml.sax.handler.ContentHandler):
         self._end_sequenceof = False
         self._unresolved_references = []
         self._integers = Integers()
+        self._references = References()
+        self._common = []
 
     def setDocumentLocator(self, locator):
         self.locator = locator
@@ -180,6 +145,7 @@ class _Handler(xml.sax.handler.ContentHandler):
         # We don't pop the children item until after we have called the
         # handler, as it may be used when creating a value reference.
         children = self._children[-1]
+
         length = None
         if attrs.has_key('length'):
             length = self._parse_expression(attrs['length'])
@@ -201,7 +167,7 @@ class _Handler(xml.sax.handler.ContentHandler):
             constraints.append(Equals(expected))
 
         if constraints:
-            if isinstance(entry, _ReferencedEntry):
+            if isinstance(entry, ReferencedEntry):
                 # We found a reference with constraints; create an intermediate
                 # sequence that will have the constraints.
                 reference = entry
@@ -214,7 +180,7 @@ class _Handler(xml.sax.handler.ContentHandler):
 
         # Check for child references
         for child in children:
-            if isinstance(child, _ReferencedEntry):
+            if isinstance(child, ReferencedEntry):
                 child.set_parent(entry)
         self._children.pop()
 
@@ -230,7 +196,7 @@ class _Handler(xml.sax.handler.ContentHandler):
                 raise XmlExpressionError(ex, self._filename, self.locator)
             assert isinstance(not_present, ent.Entry)
             optional = chc.Choice('optional %s' % entry_name, [not_present, entry])
-            if isinstance(entry, _ReferencedEntry):
+            if isinstance(entry, ReferencedEntry):
                 entry.set_parent(optional)
             entry = optional
 
@@ -241,7 +207,7 @@ class _Handler(xml.sax.handler.ContentHandler):
                 for name, attrs, breaks, lineno, colnumber in reversed(self._stack):
                     if name == "sequenceof":
                         breaks.append(entry)
-                        if isinstance(entry, _ReferencedEntry):
+                        if isinstance(entry, ReferencedEntry):
                             raise self._error("end-sequenceof cannot be used within a referenced item. Wrap the reference in a sequence (which has the end-sequenceof).")
                         break
                 else:
@@ -251,56 +217,23 @@ class _Handler(xml.sax.handler.ContentHandler):
 
             self.lookup[entry] = (self._filename, lineno, colno)
 
-        if len(self._stack) == 2 and self._stack[1][0] == 'common':
-            # We have to handle common entries _before_ the end of the
-            # 'common' element, as common entries can reference other
-            # common entries.
-            assert entry is not None
-            self.common_entries[entry.name] = entry
-
     def _common(self, attributes, children, name, length, breaks):
-        pass
-
-    def _get_common_entry(self, name):
-        try:
-            return self.common_entries[name]
-        except KeyError:
-            raise self._error("Referenced element '%s' is not found!" % name)
-
-    def _resolve_common_references(self):
-        """ Resolve any references that are common list."""
-        while 1:
-            references = [e for e in self.common_entries.items()
-                    if isinstance(e[1], _ReferencedEntry)]
-            if not references:
-                break
-            for name, ref in references:
-                self.common_entries[name] = self.common_entries[ref.type]
-                self._unresolved_references.remove(ref)
+        self._common = children
 
     def _protocol(self, attributes, children, name, length, breaks):
         if len(children) != 1:
             raise self._error("Protocol should have a single entry to be decoded!")
 
-        self.common_entries.update(self._integers.common)
-        self._resolve_common_references()
-        if isinstance(children[0], _ReferencedEntry):
-            # If the 'top level' item is a reference, it won't have had a
-            # parent set to allow it to resolve. We'll do this by hand.
-            del self._unresolved_references[self._unresolved_references.index(children[0])]
-            children[0] = self._get_common_entry(children[0].getReferenceName())
+        # Resolve all references
+        assert len(children) == 1
+        common = self._integers.common.values() + self._common + [children[0]]
+        try:
+            common = self._references.resolve(common)
+        except MissingReferenceError, ex:
+            raise self._error("Referenced element '%s' is not found!" % ex.name)
 
-        # Note the we don't iterate over the unresolved references, as the
-        # list can change as we iterate over it (in _get_common_entry).
-        while self._unresolved_references:
-            reference = self._unresolved_references.pop()
-            # Problem: We are copying the entry while we still have the referenced item in the tree...
-            #  we'll have to insert it in the tree before copying it!
-            entry = self._get_common_entry(reference.getReferenceName())
-            assert isinstance(entry, ent.Entry)
-            reference.resolve(entry)
-
-        self.decoder = children[0]
+        self.decoder = common[-1]
+        self.common_entries = dict((c.name, c) for c in common[:-1])
 
     def _parse_expression(self, text):
         try:
@@ -316,9 +249,7 @@ class _Handler(xml.sax.handler.ContentHandler):
             pass
         if not name and not type:
             raise self._error("Reference entries must non-empty 'name' or 'type' attribute!")
-        result = _ReferencedEntry(name, type)
-        self._unresolved_references.append(result)
-        return result
+        return self._references.get_common(name, type)
 
     def _field(self, attributes, children, name, length, breaks):
         format = fld.Field.BINARY
@@ -356,9 +287,7 @@ class _Handler(xml.sax.handler.ContentHandler):
                     integer = self._integers.signed_litte_endian(length)
             except IntegerError, error:
                 raise self._error(str(error))
-            result = _ReferencedEntry(name, integer.name)
-            self._unresolved_references.append(result)
-            return result
+            return self._references.get_common(name, integer.name)
 
         # We'll create the field, then use it to create the expected value.
         result = fld.Field(name, length, format, encoding)
@@ -368,7 +297,12 @@ class _Handler(xml.sax.handler.ContentHandler):
             expected_text = attributes['value']
             if expected_text.upper()[:2] == "0X":
                 # The expected value is in hex, so convert it to a data object.
-                expected_length = result.length.evaluate({})
+                try:
+                    expected_length = result.length.evaluate({})
+                except exp.UndecodedReferenceError:
+                    # We don't know the length of the object; assume it'll be
+                    # the length of the hex.
+                    expected_length = 8 * (len(expected_text) - 2)
                 data = dt.Data('\x00' * (expected_length / 8 + 8))
                 data += dt.Data.from_hex(expected_text[2:])
                 unused = data.pop(len(data) - expected_length)
@@ -427,9 +361,10 @@ def _load_from_file(file, filename):
         # The sax parse exception object can operate as a locator
         raise XmlError(ex.args[0], filename, ex)
     try:
-        handler.decoder.validate()
-        for entry in handler.common_entries.itervalues():
-            entry.validate()
+        # Validate all of the parameters in use
+        entries = [handler.decoder] + handler.common_entries.values()
+        prm.CompoundParameters([prm.EndEntryParameters(entries),
+            prm.ExpressionParameters(entries)])
     except (ent.MissingExpressionReferenceError, prm.BadReferenceError), ex:
         class Locator:
             def getLineNumber(self):
@@ -537,16 +472,18 @@ def _write_reference(gen, child):
     gen.end('reference')
 
 def _write_entry(gen, entry, common, end_entry):
-    attributes = [('name', entry.name)]
+    attributes = []
+    if entry.name:
+        attributes.append(('name', entry.name))
     name = _handlers[type(entry)](entry, attributes)
     if entry.length is not None:
 	attributes.append(('length', str(entry.length)))
     for constraint in entry.constraints:
-        if isinstance(constraint, bdec.constraints.Minimum):
+        if isinstance(constraint, Minimum):
             attributes.append(('min', str(constraint.limit)))
-        elif isinstance(constraint, bdec.constraints.Maximum):
+        elif isinstance(constraint, Maximum):
             attributes.append(('max', str(constraint.limit)))
-        elif isinstance(constraint, bdec.constraints.Equals):
+        elif isinstance(constraint, Equals):
             value = constraint.limit
             if isinstance(constraint.limit, dt.Data):
                 if len(value) % 8:

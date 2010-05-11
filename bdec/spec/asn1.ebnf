@@ -1,0 +1,725 @@
+ModuleDefinition = ModuleIdentifier,
+        "DEFINITIONS",
+        TagDefault,
+        ExtensionDefault,
+        "::=",
+        "BEGIN",
+        ModuleBody,
+        "END";
+
+ModuleIdentifier = modulereference, DefinitiveIdentifier;
+
+DefinitiveIdentifier = "{", DefinitiveObjIdComponentList, "}"
+    |   empty;
+
+DefinitiveObjIdComponentList =
+        DefinitiveObjIdComponent
+    |   DefinitiveObjIdComponent, DefinitiveObjIdComponentList;
+
+DefinitiveObjIdComponent =
+        NameForm
+    |   DefinitiveNumberForm
+    |   DefinitiveNameAndNumberForm;
+
+DefinitiveNumberForm         = number;
+
+DefinitiveNameAndNumberForm = identifier, "(", DefinitiveNumberForm, ")";
+
+TagDefault =
+        "EXPLICIT", "TAGS"
+    |   "IMPLICIT", "TAGS"
+    |   "AUTOMATIC", "TAGS"
+    |   empty;
+
+ExtensionDefault = "EXTENSIBILITY", "IMPLIED" | empty;
+
+ModuleBody = Exports, Imports, AssignmentList | empty;
+
+Exports = "EXPORTS", SymbolsExported, ";"
+    |   "EXPORTS ALL", ";"
+    |   empty;
+
+SymbolsExported = SymbolList
+    |   empty;
+
+Imports = "IMPORTS", SymbolsImported, ";"
+    |   empty;
+
+SymbolsImported = SymbolsFromModuleList
+    |   empty;
+
+SymbolsFromModuleList =
+        {SymbolsFromModule};
+ 
+SymbolsFromModule = SymbolList, "FROM", GlobalModuleReference;
+
+GlobalModuleReference = modulereference, AssignedIdentifier;
+
+AssignedIdentifier = ObjectIdentifierValue
+    |   DefinedValue
+    |   empty;
+
+SymbolList = Symbol, {",", Symbol};
+
+Symbol = Reference (* | ParameterizedReference -- Not sure where this comes from *);
+
+Reference =
+         typereference
+    |    valuereference
+    (* |    objectclassreference -- TU-T Rec. X.681 | ISO/IEC 8824-2, 7.1 *)
+    (* |    objectreference -- See ITU-T Rec. X.681 | ISO/IEC 8824-2, 7.2 *)
+    (* |    objectsetreference -- See ITU-T Rec. X.681 | ISO/IEC 8824-2, 7.3 *);
+
+AssignmentList = Assignment, {Assignment};
+
+Assignment =
+         TypeAssignment
+    |    ValueAssignment
+    |    XMLValueAssignment
+    |    ValueSetTypeAssignment
+    (* |    ObjectClassAssignment -- See ITU-T Rec. X.681 | ISO/IEC 8824-2, 9.1 *)
+    (* |    ObjectAssignment -- ITU-T Rec. X.681 | ISO/IEC 8824-2, 11.1 *)
+    (* |    ObjectSetAssignment -- ITU-T Rec. X.681 | ISO/IEC 8824-2, 12.1 *)
+    (* |    ParameterizedAssignment -- ITU-T Rec. X.683 | ISO/IEC 8824-4, 8.1 *);
+
+DefinedType =
+         ExternalTypeReference
+    |    typereference
+    (*  |    ParameterizedType -- Not sure where this comes from *)
+    (*  |    ParameterizedValueSetType -- See ITU-T Rec. X.683 | ISO/IEC 8824-4 *);
+
+ExternalTypeReference = modulereference, ".", typereference;
+
+NonParameterizedTypeName =
+         ExternalTypeReference
+    |    typereference
+    (* |    xmlasn1typename -- See 11.25 *);
+
+DefinedValue =
+         ExternalValueReference
+    |    valuereference
+    (*  |    ParameterizedValue -- See ITU-T Rec. X.683 | ISO/IEC 8824-4 *);
+
+ExternalValueReference = modulereference, ".", valuereference;
+
+AbsoluteReference = "@", ModuleIdentifier, ".", ItemSpec;
+
+ItemSpec =
+         typereference
+    |    ItemId, ".", ComponentId;
+
+ItemId = ItemSpec;
+
+valuereference = identifier;
+
+ComponentId = identifier | number | "*";
+
+TypeAssignment = typereference, "::=", Type;
+
+ValueAssignment = valuereference, Type, "::=", Value;
+
+XMLValueAssignment = valuereference, "::=", XMLTypedValue;
+
+XMLTypedValue =
+         "<", NonParameterizedTypeName, ">",
+         XMLValue,
+         "</", NonParameterizedTypeName, ">"
+     |   "<", NonParameterizedTypeName, "/>";
+
+ValueSetTypeAssignment = typereference, Type, "::=", ValueSet;
+
+ValueSet = "{", ElementSetSpecs, "}";
+
+Type = 
+         BuiltinType
+     |   ReferencedType
+     (* | ConstrainedType -- Disabled as this creates a recursive specification *) ;
+
+BuiltinType =
+         BitStringType
+     |   BooleanType
+     |   CharacterStringType
+     |   ChoiceType
+     |   EmbeddedPDVType
+     |   EnumeratedType
+     |   ExternalType
+     |   IntegerType
+     |   NullType
+     (* |   InstanceOfType
+        |    ObjectClassFieldType -- These both come from ITU-T Rec. X.681 | ISO/IEC 8824-2, 14.1 and Annex C. *)
+     |   ObjectIdentifierType
+     |   OctetStringType
+     |   RealType
+     |   RelativeOIDType
+     |   SequenceType
+     |   SequenceOfType
+     |   SetType
+     |   SetOfType
+     |   TaggedType;
+
+NamedType = identifier, Type;
+
+ReferencedType =
+         DefinedType
+     |   UsefulType
+     |   SelectionType
+     (* |   TypeFromObject -- See ITU-T Rec. X.681 | ISO/IEC 8824-2, clause 15 *)
+     (* |   ValueSetFromObjects -- See ITU-T Rec. X.681 | ISO/IEC 8824-2, clause 15 *);
+
+Value = BuiltinValue
+     | ReferencedValue
+     (* | ObjectClassFieldValue -- See ITU-T Rec. X.681 | ISO/IEC 8824-2, 14.6 *) ;
+
+XMLValue = XMLBuiltinValue
+     (*  | XMLObjectClassFieldValue See ITU-T Rec. X.681 | ISO/IEC 8824-2, 14.6 *) ;
+
+BuiltinValue =
+         BitStringValue
+     |   BooleanValue
+     |   CharacterStringValue
+     |   ChoiceValue
+     |   EmbeddedPDVValue
+     |   EnumeratedValue
+     |   ExternalValue
+     (*  |   InstanceOfValue -- Not sure where this comes from. *)
+     |   IntegerValue
+     |   NullValue
+     |   ObjectIdentifierValue
+     |   OctetStringValue
+     |   RealValue
+     |   RelativeOIDValue
+     |   SequenceValue
+     |   SequenceOfValue
+     |   SetValue
+     |   SetOfValue
+     (*|   TaggedValue -- This is a value type *);
+
+XMLBuiltinValue =
+         XMLBitStringValue
+     |   XMLBooleanValue
+     |   XMLCharacterStringValue
+     |   XMLChoiceValue
+     |   XMLEmbeddedPDVValue
+     |   XMLEnumeratedValue
+     |   XMLExternalValue
+     (*  |   XMLInstanceOfValue -- Not sure what this should be *)
+     |   XMLIntegerValue
+     |   XMLNullValue
+     |   XMLObjectIdentifierValue
+     |   XMLOctetStringValue
+     |   XMLRealValue
+     |   XMLRelativeOIDValue
+     |   XMLSequenceValue
+     |   XMLSequenceOfValue
+     |   XMLSetValue
+     |   XMLSetOfValue
+     (* |   XMLTaggedValue -- An XMLTaggedValue is just an XMLValue. *) ;
+
+ReferencedValue =
+         DefinedValue
+     (*  |   ValueFromObject -- See ITU-T Rec. X.681 | ISO/IEC 8824-2, clause 15 *);
+
+NamedValue = identifier, Value;
+
+XMLNamedValue = "<", identifier, ">", XMLValue, "</", identifier, ">";
+
+BooleanType = "BOOLEAN";
+
+BooleanValue= "TRUE" | "FALSE";
+
+XMLBooleanValue =
+         "<", "true", "/>"
+     |   "<", "false", "/>";
+
+IntegerType =
+         "INTEGER"
+     |   "INTEGER", "{", NamedNumberList, "}";
+
+NamedNumberList = NamedNumber, {",", NamedNumber};
+
+NamedNumber =
+         identifier, "(", SignedNumber, ")"
+     |   identifier, "(", DefinedValue, ")";
+
+SignedNumber = number | "-", number;
+
+IntegerValue = SignedNumber | identifier;
+
+XMLIntegerValue =
+          SignedNumber
+    |     "<", identifier, "/>";
+
+EnumeratedType =
+          "ENUMERATED", "{", Enumerations, "}";
+
+Enumerations = RootEnumeration
+    |     RootEnumeration, ",", "...", ExceptionSpec
+    |     RootEnumeration, ",", "...", ExceptionSpec, ",", AdditionalEnumeration;
+
+RootEnumeration = Enumeration;
+
+AdditionalEnumeration = Enumeration;
+
+Enumeration = EnumerationItem, {",", EnumerationItem};
+
+EnumerationItem = identifier | NamedNumber;
+
+EnumeratedValue = identifier;
+
+XMLEnumeratedValue = "<", identifier, "/>";
+
+RealType = "REAL";
+
+RealValue = NumericRealValue | SpecialRealValue;
+
+NumericRealValue =
+          realnumber
+    |     "-", realnumber
+    |     SequenceValue;                 (* Value of the associated sequence type *)
+
+SpecialRealValue =
+          "PLUS-INFINITY" | "MINUS-INFINITY";
+
+XMLRealValue = XMLNumericRealValue | XMLSpecialRealValue;
+
+XMLNumericRealValue =
+          realnumber
+    |     "-", realnumber;
+
+XMLSpecialRealValue =
+          "<", "PLUS-INFINITY", "/>" | "<", "MINUS-INFINITY", "/>";
+
+BitStringType    = "BIT", "STRING" | "BIT", "STRING", "{", NamedBitList, "}";
+
+NamedBitList=         NamedBit, {",", NamedBit};
+
+NamedBit = identifier, "(", number, ")"
+    |   identifier, "(", DefinedValue, ")";
+
+BitStringValue = bstring | hstring | "{", IdentifierList, "}" | "{", "}" | "CONTAINING", Value;
+
+IdentifierList = identifier, {",", identifier};
+
+XMLBitStringValue =
+          XMLTypedValue
+    |     xmlbstring
+    |     XMLIdentifierList
+    |     empty;
+
+XMLIdentifierList = "<", identifier, "/>", {"<", identifier, "/>"};
+
+OctetStringType = "OCTET", "STRING";
+
+OctetStringValue = bstring | hstring | "CONTAINING", Value;
+
+XMLOctetStringValue =
+         XMLTypedValue
+    |    xmlhstring;
+
+NullType     =  "NULL";
+
+NullValue   =   "NULL";
+
+XMLNullValue = empty;
+
+SequenceType =
+         "SEQUENCE", "{", "}"
+    |    "SEQUENCE", "{", ExtensionAndException, OptionalExtensionMarker, "}"
+    |    "SEQUENCE", "{", ComponentTypeLists, "}";
+
+ExtensionAndException = "..." | "...", ExceptionSpec;
+
+OptionalExtensionMarker = ",", "..." | empty;
+
+ComponentTypeLists =
+         RootComponentTypeList
+    |    RootComponentTypeList, ",", ExtensionAndException, ExtensionAdditions,
+              OptionalExtensionMarker
+    |    RootComponentTypeList, ",", ExtensionAndException, ExtensionAdditions,
+              ExtensionEndMarker, ",", RootComponentTypeList
+    |    ExtensionAndException, ExtensionAdditions, ExtensionEndMarker, ",",
+              RootComponentTypeList
+    |    ExtensionAndException, ExtensionAdditions, OptionalExtensionMarker;
+
+RootComponentTypeList = ComponentTypeList;
+
+ExtensionEndMarker = ",", "...";
+
+ExtensionAdditions = ",", ExtensionAdditionList | empty;
+
+ExtensionAdditionList = ExtensionAddition, {",", ExtensionAddition};
+
+ExtensionAddition = ComponentType | ExtensionAdditionGroup;
+
+ExtensionAdditionGroup = "[[", VersionNumber, ComponentTypeList, "]]";
+
+VersionNumber = empty | number, ":";
+
+ComponentTypeList =      ComponentType, {",", ComponentType};
+
+ComponentType =
+         NamedType
+    |    NamedType, "OPTIONAL"
+    |    NamedType, "DEFAULT", Value
+    |    "COMPONENTS", "OF", Type;
+
+SequenceValue    = "{", ComponentValueList, "}" | "{", "}";
+
+ComponentValueList = NamedValue, {",", NamedValue};
+
+XMLSequenceValue =
+         XMLComponentValueList
+    |    empty;
+
+XMLComponentValueList = XMLNamedValue, {XMLNamedValue};
+
+SequenceOfType = "SEQUENCE", "OF", Type | "SEQUENCE", "OF", NamedType;
+
+SequenceOfValue = "{", ValueList, "}" | "{", NamedValueList, "}" | "{", "}";
+
+ValueList   =     Value, {",", Value};
+
+NamedValueList = NamedValue, {",", NamedValue};
+
+
+XMLSequenceOfValue =
+         XMLValueList
+    |    XMLDelimitedItemList
+    |    XMLSpaceSeparatedList
+    |    empty;
+
+XMLValueList =
+         XMLValueOrEmpty
+    |    XMLValueOrEmpty, XMLValueList;
+
+XMLValueOrEmpty =
+         (* XMLValue -- Commented out to avoid a recursive XMLValue entry
+    |  *)  "<", NonParameterizedTypeName, "/>";
+
+XMLSpaceSeparatedList =
+         XMLValueOrEmpty
+    |    XMLValueOrEmpty, " ", XMLSpaceSeparatedList;
+
+XMLDelimitedItemList =
+         XMLDelimitedItem
+    |    XMLDelimitedItem, XMLDelimitedItemList;
+
+XMLDelimitedItem =
+         "<", NonParameterizedTypeName, ">", XMLValue,
+               "</", NonParameterizedTypeName, ">"
+    |    "<", identifier, ">", XMLValue, "</", identifier, ">";
+
+SetType = "SET", "{", "}"
+    |          "SET", "{", ExtensionAndException, OptionalExtensionMarker, "}"
+    |          "SET", "{", ComponentTypeLists, "}";
+
+SetValue     = "{", ComponentValueList, "}" | "{", "}";
+
+XMLSetValue = XMLComponentValueList |  empty;
+
+SetOfType     = "SET", "OF", Type | "SET", "OF", NamedType;
+
+SetOfValue = "{", ValueList, "}" | "{", NamedValueList, "}" | "{", "}";
+
+XMLSetOfValue =
+         XMLValueList
+    |    XMLDelimitedItemList
+    |    XMLSpaceSeparatedList
+    |    empty;
+
+ChoiceType = "CHOICE", "{", AlternativeTypeLists, "}";
+
+AlternativeTypeLists =
+         RootAlternativeTypeList
+    |    RootAlternativeTypeList, ",",
+               ExtensionAndException, ExtensionAdditionAlternatives, OptionalExtensionMarker;
+
+RootAlternativeTypeList = AlternativeTypeList;
+
+ExtensionAdditionAlternatives = ",", ExtensionAdditionAlternativesList | empty;
+
+ExtensionAdditionAlternativesList = ExtensionAdditionAlternative, {",", ExtensionAdditionAlternative};
+
+ExtensionAdditionAlternative = ExtensionAdditionAlternativesGroup | NamedType;
+
+ExtensionAdditionAlternativesGroup = "[[", VersionNumber, AlternativeTypeList, "]]";
+
+AlternativeTypeList = NamedType, {",", NamedType};
+
+ChoiceValue = identifier, ":", Value;
+
+XMLChoiceValue = "<", identifier, ">", XMLValue, "</", identifier, ">";
+
+SelectionType     =        identifier, "<", Type;
+
+TaggedType      = Tag, Type
+    |   Tag, "IMPLICIT", Type
+    |   Tag, "EXPLICIT", Type;
+
+Tag = "[", Class, ClassNumber, "]";
+
+ClassNumber = number | DefinedValue;
+
+Class   =   "UNIVERSAL"
+     |        "APPLICATION"
+     |        "PRIVATE"
+     |        empty;
+
+TaggedValue = Value;
+
+XMLTaggedValue = XMLValue;
+
+EmbeddedPDVType = "EMBEDDED", "PDV";
+
+EmbeddedPDVValue = SequenceValue;
+
+XMLEmbeddedPDVValue = XMLSequenceValue;
+
+ExternalType = "EXTERNAL";
+
+ExternalValue = SequenceValue;
+
+XMLExternalValue = XMLSequenceValue;
+
+ObjectIdentifierType = "OBJECT", "IDENTIFIER";
+
+ObjectIdentifierValue = "{", ObjIdComponentsList, "}"
+    |   "{", DefinedValue, ObjIdComponentsList, "}";
+
+ObjIdComponentsList = ObjIdComponents
+    |   ObjIdComponents, ObjIdComponentsList;
+
+ObjIdComponents = NameForm
+     |                   NumberForm
+     |                   NameAndNumberForm
+     |                   DefinedValue;
+
+NameForm        =      identifier;
+
+NumberForm         =       number | DefinedValue;
+
+NameAndNumberForm = identifier, "(", NumberForm, ")";
+
+XMLObjectIdentifierValue = XMLObjIdComponentList;
+
+XMLObjIdComponentList =
+          XMLObjIdComponent
+     |    XMLObjIdComponent, ".", XMLObjIdComponentList;
+
+XMLObjIdComponent =
+          NameForm
+     |    XMLNumberForm
+     |    XMLNameAndNumberForm;
+
+XMLNumberForm = number;
+
+XMLNameAndNumberForm = identifier, "(", XMLNumberForm, ")";
+
+RelativeOIDType = "RELATIVE-OID";
+
+RelativeOIDValue = "{", RelativeOIDComponentsList, "}";
+
+RelativeOIDComponentsList =
+         RelativeOIDComponents
+     |   RelativeOIDComponents, RelativeOIDComponentsList;
+
+RelativeOIDComponents =      NumberForm
+     |                         NameAndNumberForm
+     |                         DefinedValue;
+
+XMLRelativeOIDValue =
+         XMLRelativeOIDComponentList;
+
+XMLRelativeOIDComponentList =
+         XMLRelativeOIDComponent
+     |   XMLRelativeOIDComponent, ".", XMLRelativeOIDComponentList;
+
+XMLRelativeOIDComponent =
+         XMLNumberForm
+     |   XMLNameAndNumberForm;
+
+CharacterStringType = RestrictedCharacterStringType | UnrestrictedCharacterStringType;
+
+RestrictedCharacterStringType =
+         BMPString
+     |   GeneralString
+     |   GraphicString
+     |   IA5String
+     |   ISO646String
+     |   NumericString
+     |   PrintableString
+     |   TeletexString
+     |   T61String
+     |   UniversalString
+     (* |   UTF8String -- I'll fix this later... *)
+     |   VideotexString
+     |   VisibleString;
+
+RestrictedCharacterStringValue = cstring | CharacterStringList | Quadruple | Tuple;
+
+CharacterStringList = "{", CharSyms, "}";
+
+CharSyms = CharsDefn, {",", CharsDefn};
+
+CharsDefn = cstring | Quadruple | Tuple | DefinedValue;
+
+Quadruple = "{", Group, ",", Plane, ",", Row, ",", Cell, "}";
+
+Group        = number;
+
+Plane        = number;
+
+Row          = number;
+
+Cell         = number;
+
+Tuple = "{", TableColumn, ",", TableRow, "}";
+
+TableColumn = number;
+
+TableRow = number;
+
+XMLRestrictedCharacterStringValue = xmlcstring;
+
+UnrestrictedCharacterStringType = "CHARACTER STRING";
+
+CharacterStringValue = RestrictedCharacterStringValue | UnrestrictedCharacterStringValue;
+
+XMLCharacterStringValue =
+     XMLRestrictedCharacterStringValue
+     |XMLUnrestrictedCharacterStringValue;
+
+UnrestrictedCharacterStringValue = SequenceValue;
+
+XMLUnrestrictedCharacterStringValue = XMLSequenceValue;
+
+UsefulType     = typereference;
+
+NumericString = "OCTECT STRING";
+VisibleString = "OCTECT STRING";
+PrintableString = "OCTECT STRING";
+ISO646String = "OCTECT STRING";
+TeletexString  = "OCTECT STRING";
+IA5String = "OCTECT STRING";
+T61String  = "OCTECT STRING";
+GraphicString = "OCTECT STRING";
+VideotexString = "OCTECT STRING";
+GeneralString = "OCTECT STRING";
+UniversalString = "OCTECT STRING";
+BMPString = "OCTECT STRING";
+
+ConstrainedType =
+        Type, Constraint
+   |    TypeWithConstraint;
+
+TypeWithConstraint =
+        "SET", Constraint, "OF", Type
+   |    "SET", SizeConstraint, "OF", Type
+   |    "SEQUENCE", Constraint, "OF", Type
+   |    "SEQUENCE", SizeConstraint, "OF", Type
+   |    "SET", Constraint, "OF", NamedType
+   |    "SET", SizeConstraint, "OF", NamedType
+   |    "SEQUENCE", Constraint, "OF", NamedType
+   |    "SEQUENCE", SizeConstraint, "OF", NamedType;
+
+Constraint = "(", ConstraintSpec, ExceptionSpec, ")";
+
+ConstraintSpec =        SubtypeConstraint
+   (*  |                    GeneralConstraint -- See ITU-T Rec. X.682 | ISO/IEC 8824-3, 8.1 *);
+
+ExceptionSpec = "!", ExceptionIdentification | empty;
+
+ExceptionIdentification = SignedNumber
+   |                         DefinedValue
+   |                         Type, ":", Value;
+
+SubtypeConstraint = ElementSetSpecs;
+
+ElementSetSpecs =
+        RootElementSetSpec
+   |    RootElementSetSpec, ",", "..."
+   |    RootElementSetSpec, ",", "...", ",", AdditionalElementSetSpec;
+
+RootElementSetSpec = ElementSetSpec;
+
+AdditionalElementSetSpec = ElementSetSpec;
+
+ElementSetSpec = Unions | "ALL", Exclusions;
+
+Unions =     Intersections, {UnionMark, Intersections};
+
+UElems = Unions;
+
+Intersections = IntersectionElements, {IntersectionMark, IntersectionElements};
+
+IntersectionElements = Elements | Elems, Exclusions;
+
+Elems = Elements;
+
+Exclusions = "EXCEPT", Elements;
+
+UnionMark = "|"       |   "UNION";
+
+IntersectionMark = "^" |      "INTERSECTION";
+
+Elements = SubtypeElements
+     (* |        ObjectSetElements  -- See ITU-T Rec. X.683 | ISO/IEC 8824-4, 8.1 *)
+     |        "(", ElementSetSpec, ")";
+
+SubtypeElements =
+          SingleValue
+     |    ContainedSubtype
+     |    ValueRange
+     |    PermittedAlphabet
+     |    SizeConstraint
+     |    TypeConstraint
+     |    InnerTypeConstraints
+     |    PatternConstraint;
+
+SingleValue    = Value;
+
+ContainedSubtype = Includes, Type;
+
+Includes = "INCLUDES" | empty;
+
+ValueRange = LowerEndpoint, "..", UpperEndpoint;
+
+LowerEndpoint = LowerEndValue | LowerEndValue, "<";
+
+UpperEndpoint = UpperEndValue | "<", UpperEndValue;
+
+LowerEndValue = Value | "MIN";
+
+UpperEndValue = Value | "MAX";
+
+SizeConstraint = "SIZE", Constraint;
+
+PermittedAlphabet = "FROM", Constraint;
+
+TypeConstraint = Type;
+
+InnerTypeConstraints =
+          "WITH", "COMPONENT", SingleTypeConstraint
+     |    "WITH", "COMPONENTS", MultipleTypeConstraints;
+
+SingleTypeConstraint= Constraint;
+
+MultipleTypeConstraints = FullSpecification | PartialSpecification;
+
+FullSpecification = "{", TypeConstraints, "}";
+
+PartialSpecification = "{", "...", ",", TypeConstraints, "}";
+
+TypeConstraints =     NamedConstraint
+     |                  NamedConstraint, ",", TypeConstraints;
+
+NamedConstraint = identifier, ComponentConstraint;
+
+ComponentConstraint = ValueConstraint, PresenceConstraint;
+
+ValueConstraint = Constraint | empty;
+
+PresenceConstraint = "PRESENT" | "ABSENT" | "OPTIONAL" | empty;
+
+PatternConstraint = "PATTERN", Value;
+

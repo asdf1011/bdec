@@ -338,6 +338,9 @@ class ExpressionParameters(_Parameters):
         try:
             name = self._local_child_param_name[entry][child][param.reference.name]
         except KeyError:
+            # TODO: This _may_ be an output from a child that we don't use.
+            # It may also be coming from one of our input parameters?? If it's
+            # an unused, we should name it 'unused XXX'.
             name = param.reference.name
 
         # Create a new instance of the expression reference, using the new name
@@ -536,7 +539,7 @@ class DataChecker:
             # We are visible; check to see if either we (or any of our
             # children) contain data.
             for child in entry.children:
-                if self._has_data[child.entry]:
+                if not ent.is_hidden(child.name) and self._has_data[child.entry]:
                     break
             else:
                 # None of the children contain data; this entry will only contain

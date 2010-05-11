@@ -21,6 +21,7 @@ import operator
 import bdec.choice as chc
 from bdec.constraints import Equals, Maximum, Minimum
 import bdec.data as dt
+import bdec.entry as ent
 import bdec.expression as expr
 import bdec.field as fld
 import bdec.sequence as seq
@@ -121,11 +122,16 @@ class _ProtocolStream:
         """Return a data instance, or None if one doesn't exist for this entry."""
         if isinstance(self.entry, fld.Field):
             value = _get_constraint(self.entry, Equals)
-            if value is not None:
-                def query(context, entry):
-                    raise bdec.entry.MissingInstanceError()
-                data = reduce(operator.add, self.entry.encode(query, value))
-                return data
+            try:
+                if value is not None:
+                    def query(context, entry):
+                        raise bdec.entry.MissingInstanceError()
+                    data = reduce(operator.add, self.entry.encode(query, value))
+                    return data
+            except ent.NotEnoughContextError:
+                # We can't encode this entry; see if we know how long it is.
+                pass
+
             length = None
             try:
                 length = self.entry.length.evaluate({})

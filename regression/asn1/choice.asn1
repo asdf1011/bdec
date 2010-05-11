@@ -1,0 +1,10 @@
+ResponseModule DEFINITIONS ::=
+BEGIN
+ 
+ResponseCode ::= CHOICE {
+    intCode  INTEGER,
+    boolCode BOOLEAN
+}
+ 
+END
+

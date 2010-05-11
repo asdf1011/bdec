@@ -22,8 +22,8 @@ import sys
 import bdec
 import bdec.data as dt
 import bdec.inspect.param
-import bdec.spec.xmlspec as xmlspec
 import bdec.output.xmlout as xmlout
+from bdec.spec import load
 
 def _parse_args():
     spec = None
@@ -57,7 +57,7 @@ def _parse_args():
 def main():
     spec, binary, verbose = _parse_args()
     try:
-        decoder, common, lookup = xmlspec.load(spec)
+        decoder, common, lookup = load(spec)
         bdec.spec.validate_no_input_params(decoder, lookup)
     except bdec.spec.LoadError, ex:
         sys.exit(str(ex))
@@ -66,7 +66,10 @@ def main():
     try:
         xmlout.to_file(decoder, data, sys.stdout, verbose=verbose)
     except bdec.DecodeError, ex:
-        (filename, line_number, column_number) = lookup[ex.entry]
+        try:
+            (filename, line_number, column_number) = lookup[ex.entry]
+        except KeyError:
+            (filename, line_number, column_number) = ('unknown', 0, 0)
 
         # We include an extra new line, as the xml is unlikely to have finished
         # on a new line (issue164).

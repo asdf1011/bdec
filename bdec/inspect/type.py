@@ -110,6 +110,9 @@ class ShouldEndType(IntegerType):
     def range(self, parameters):
         return Range(0, 1)
 
+    def __repr__(self):
+        return 'should_end'
+
 
 class EntryLengthType(IntegerType):
     """Parameter value whose source is the length of another entry."""
@@ -147,7 +150,11 @@ class EntryValueType(IntegerType):
     def range(self, parameters):
         if isinstance(self.entry, fld.Field):
             length_range = expression_range(self.entry.length, self.entry, parameters)
-            result = Range(0, pow(2, length_range.max) - 1)
+            # If our length is of a variable range, it can be very large.
+            # Attempting to take a power of a large number takes a very long
+            # time, is is quite meaningless; limit it to 64 bits.
+            max_length = min(length_range.max, 64)
+            result = Range(0, pow(2, max_length) - 1)
         elif isinstance(self.entry, seq.Sequence):
             result = expression_range(self.entry.value, self.entry, parameters)
         elif isinstance(self.entry, chc.Choice):
@@ -159,6 +166,9 @@ class EntryValueType(IntegerType):
         for constraint in self.entry.constraints:
             result = result.intersect(constraint.range())
         return result
+
+    def __repr__(self):
+        return '${%s}' % self.entry
 
 
 class MultiSourceType(IntegerType):
@@ -182,3 +192,5 @@ class MultiSourceType(IntegerType):
         ranges = (source.range(parameters) for source in self.sources)
         return reduce(Range.union, ranges)
 
+    def __repr__(self):
+        return 'coalsce(%s)' % ','.join(str(source) for source in self.sources)

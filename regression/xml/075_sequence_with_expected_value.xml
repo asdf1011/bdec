@@ -1,0 +1,3 @@
+<protocol>
+    <sequence name="a" value="1" expected="1" />
+</protocol>

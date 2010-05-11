@@ -529,7 +529,11 @@ ${static}void ${settings.print_name(entry)}(unsigned int offset, const char* nam
       %endif
     %elif settings.is_numeric(settings.ctype(entry)):
     ${print_whitespace()}
+      %if contains_data(entry):
     printf(${'"<%s>' + settings.printf_format(settings.ctype(entry)) + '</%s>\\n"'}, name, *data, name);
+      %else:
+    printf(${'"<%s />\\n"'}, name);
+      %endif
     %elif isinstance(entry, Choice):
       %if settings.children_contain_data(entry):
     switch(data->option)

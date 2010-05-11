@@ -23,6 +23,7 @@ import xml.dom.minidom
 import xml.sax.saxutils
 import xml.sax.xmlreader
 
+from bdec.constraints import Equals
 import bdec.entry as ent
 import bdec.choice as chc
 import bdec.field as fld
@@ -55,6 +56,12 @@ def xml_strip(text):
 def _print_whitespace(handler, offset):
     handler.ignorableWhitespace('\n')
     handler.ignorableWhitespace(' ' * offset)
+
+def _has_expected_value(entry):
+    for constraint in entry.constraints:
+        if isinstance(constraint, Equals):
+            return True
+    return False
 
 def to_file(decoder, binary, output, encoding="utf-8", verbose=False):
     handler = _XMLGenerator(output, encoding)
@@ -90,16 +97,15 @@ def to_file(decoder, binary, output, encoding="utf-8", verbose=False):
             # value compact with the entries). This means strings with leading
             # and trailing whitespace can be represented (and produces nicer
             # xml).
-            if value is not None:
+            if value is not None and not _has_expected_value(entry):
                 if has_children:
                     _print_whitespace(handler, offset)
 
-                if not isinstance(entry, fld.Field) or entry.expected is None:
-                    text = xml_strip(unicode(value))
-                    handler.characters(text)
+                text = xml_strip(unicode(value))
+                handler.characters(text)
 
-                if verbose and isinstance(entry, fld.Field):
-                    handler.comment(str(data))
+            if verbose and data:
+                handler.comment(str(data))
             offset = offset - 4
             if has_children:
                 _print_whitespace(handler, offset)

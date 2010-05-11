@@ -1,0 +1,228 @@
+<protocol>
+    <reference name="entry" />
+
+    <common>
+        <choice name="entry">
+            <reference name="integer" />
+            <reference name="boolean" />
+            <reference name="bit string" />
+            <reference name="octet string" />
+            <reference name="null" />
+            <reference name="object identifier" />
+            <reference name="numeric string" />
+            <reference name="printable string" />
+            <reference name="utc time" />
+            <reference name="unknown primitive" />
+
+            <reference name="sequence" />
+            <reference name="set" />
+            <reference name="unknown constructed" />
+        </choice>
+
+        <sequence name="unknown primitive">
+            <sequence name="type">
+                <reference name="class" />
+                <field name="primitive:" length="1" value="0x0" />
+                <reference name="tag number" />
+            </sequence>
+            <reference name="length:" type="definite length:" />
+            <field name="data" type="hex" length="${length:} * 8" />
+        </sequence>
+
+        <sequence name="unknown constructed">
+            <sequence name="type">
+                <reference name="class" />
+                <field name="constructed:" length="1" value="0x1" />
+                <reference name="tag number" />
+            </sequence>
+            <reference name="constructed entries" />
+        </sequence>
+
+        <choice name="constructed entries">
+            <sequence name="indefinite entries">
+                <field name="length:" length="8" value="0x80" />
+                <sequenceof name="entries">
+                    <choice name="entry">
+                        <field length="16" value="0x0"><end-sequenceof /></field>
+                        <reference name="entry" />
+                    </choice>
+                </sequenceof>
+            </sequence>
+            <sequence name="definite entries">
+                <reference name="length:" type="definite length:" />
+                <sequenceof name="entries" length="${length:} * 8">
+                    <reference name="entry" />
+                </sequenceof>
+            </sequence>
+        </choice>
+
+        <!-- Define some built-in primitive asn.1 types. -->
+        <sequence name="integer" value="${value:}">
+            <field name="tag:" length="8" value="0x2" />
+            <reference name="length:" type="definite length:" />
+            <field name="value:" length="${length:} * 8" type="integer" />
+        </sequence>
+
+        <sequence name="enumerated" value="${value:}">
+            <field name="tag:" length="8" value="0xa" />
+            <reference name="length:" type="definite length:" />
+            <field name="value:" length="${length:} * 8" type="integer" />
+        </sequence>
+
+        <choice name="boolean">
+            <sequence name="true">
+                <field name="tag:" length="8" value="0x1" />
+                <reference name="length:" type="definite length:" />
+                <field length="${length:} * 8" value="0x0" />
+            </sequence>
+            <sequence name="false">
+                <field name="tag:" length="8" value="0x1" />
+                <reference name="length:" type="definite length:" />
+                <field length="${length:} * 8"/>
+            </sequence>
+        </choice>
+
+        <sequence name="bit string">
+            <field name="tag:" length="8" value="0x3" />
+            <reference name="length:" type="definite length:" />
+            <field name="num unused bits:" length="8" type="integer" />
+            <field name="bits" length="${length:} * 8 - 8 - ${num unused bits:}" />
+        </sequence>
+
+        <sequence name="octet string">
+            <field name="tag:" length="8" value="0x4" />
+            <reference name="length:" type="definite length:" />
+            <field name="bits" length="${length:} * 8" type="hex" />
+        </sequence>
+
+        <sequence name="null">
+            <field name="tag:" length="8" value="0x5" />
+            <field name="length:" length="8" value="0x0" />
+        </sequence>
+
+        <sequence name="object identifier">
+            <field name="tag:" length="8" value="0x6" />
+            <reference name="length:" type="definite length:" />
+            <reference name="combined first id:" type="multi byte value" />
+            <sequence name="id" value="${combined first id:} / 40" />
+            <sequence name="id" value="${combined first id:} % 40" />
+            <sequenceof name="ids" length="${length:} * 8 - len{combined first id:}">
+                <reference name="id" type="multi byte value" />
+            </sequenceof>
+        </sequence>
+
+        <sequence name="printable string">
+            <field name="tag:" length="8" value="0x13" />
+            <reference name="length:" type="definite length:" />
+            <field name="text" length="${length:} * 8" type="text" />
+        </sequence>
+
+        <sequence name="numeric string">
+            <field name="tag:" length="8" value="0x12" />
+            <reference name="length:" type="definite length:" />
+            <!-- We'll just treat a numeric string as a normal printable string for now... -->
+            <field name="text" length="${length:} * 8" type="text" />
+        </sequence>
+
+        <sequence name="utc time">
+            <field name="tag:" length="8" value="0x17" />
+            <field name="length:" length="8" type="integer" value="13"/>
+            <reference name="year" type="two digits" />
+            <reference name="month" type="two digits" />
+            <reference name="day" type="two digits" />
+            <reference name="hour" type="two digits" />
+            <reference name="minute" type="two digits" />
+            <reference name="second" type="two digits" />
+            <field type="text" length="8" value="Z" />
+        </sequence>
+
+        <!-- Define some built-in constructed types -->
+        <sequence name="sequence">
+            <field name="tag:" length="8" value="0x30" />
+            <reference name="constructed entries" />
+        </sequence>
+
+        <sequence name="set">
+            <field name="tag:" length="8" value="0x31" />
+            <reference name="constructed entries" />
+        </sequence>
+
+        <!--
+          Define entries capable of decoding the tag number to an integer,
+          including multi-byte tags.
+          -->
+        <sequence name="non-last tag byte:" value="${value:}">
+            <field length="1" value="1" />
+            <field name="value:" length="7" type="integer" />
+        </sequence>
+        <sequence name="single byte tag:" value="${value:}">
+            <field length="1" value="0x0" />
+            <field name="value:" length="7" type="integer" />
+        </sequence>
+        <sequence name="two byte tag:" value="${non-last tag byte:} * 128 + ${single byte tag:}">
+            <reference name="non-last tag byte:" />
+            <reference name="single byte tag:" />
+        </sequence>
+        <sequence name="three byte tag:" value="${non-last tag byte:} * 128 * 128 + ${two byte tag:}">
+            <reference name="non-last tag byte:" />
+            <reference name="two byte tag:" />
+        </sequence>
+        <sequence name="four byte tag:" value="${non-last tag byte:} * 128 * 128 * 128 + ${three byte tag:}">
+            <reference name="non-last tag byte:" />
+            <reference name="three byte tag:" />
+        </sequence>
+        <!--
+          Even though tag numbers could any number of bytes, it
+          would be a little insane to actually find that in
+          practice. Thus we currently limit tag numbers to 4 bytes,
+          which will allow values of up to two hundren million
+          (note that finding tag numbers this large 'in the wild'
+          would be extremely unlikely).
+          -->
+        <sequence name="multi byte value" value="${value:}">
+            <choice name="value:">
+                <reference name="single byte tag:" />
+                <reference name="two byte tag:" />
+                <reference name="three byte tag:" />
+                <reference name="four byte tag:" />
+            </choice>
+        </sequence>
+
+        <sequence name="tag number" value="${value:}">
+            <choice name="value:">
+                <sequence name="large tag:" value="${large number:}">
+                    <field length="5" value="0x1f" />
+                    <reference name="large number:" type="multi byte value" />
+                </sequence>
+                <field name="small tag:" length="5" type="integer" />
+            </choice>
+        </sequence>
+
+        <choice name="class">
+            <field name="universal" length="2" value="0x0" />
+            <field name="application" length="2" value="0x1" />
+            <field name="context-specific" length="2" value="0x2" />
+            <field name="private" length="2" value="0x3" />
+        </choice>
+
+        <choice name="definite length:">
+            <sequence name="single byte:" value="${length:}">
+                <field length="1" value="0x0" />
+                <field name="length:" type="integer" length="7" />
+            </sequence>
+            <sequence name="multi byte:" value="${length:}">
+                <field length="1" value="0x1" />
+                <field name="length length:" length="7" type="integer" />
+                <field name="length:" type="integer" length="${length length:} * 8" />
+            </sequence>
+        </choice>
+
+        <sequence name="digit" value="${char:} - 48">
+            <field name="char:" length="8" type="integer" min="48" max="58" />
+        </sequence>
+        <sequence name="two digits" value="${digit 1:} * 10 + ${digit 2:}">
+            <reference name="digit 1:" type="digit" />
+            <reference name="digit 2:" type="digit" />
+        </sequence>
+    </common>
+</protocol>
