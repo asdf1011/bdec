@@ -50,7 +50,7 @@ def _get_entry_that_uses_param(inspect, entry, param):
             # it must be the end-user.
             return entry
 
-def _validate_no_input_params(entry, lookup):
+def validate_no_input_params(entry, lookup):
     """ Make sure the decoder doesn't have any unknown references."""
 
     end_entry_params = bdec.inspect.param.EndEntryParameters([entry])
@@ -84,5 +84,5 @@ def load(filename, allow_inputs=False):
 
     decoder, lookup, common = loader.load(filename)
     if not allow_inputs:
-        _validate_no_input_params(decoder, lookup)
+        validate_no_input_params(decoder, lookup)
     return decoder, lookup, common
