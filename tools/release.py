@@ -447,12 +447,12 @@ if __name__ == '__main__':
     update_release_tarball(version)
 
     os.chdir(root_path)
+    if commit_website(version):
+        upload()
+
     if os.system('git status') == 0:
         # Git returns non-zero if 'git commit' would do nothing.
         sys.exit('Source tree has changes! Stopping.')
-
-    if commit_website(version):
-        upload()
 
     tag_changes(version)
     notify(version, changelog)
