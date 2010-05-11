@@ -198,8 +198,6 @@ def update_website(version):
     _create_changelog_html()
     _create_index_file(version)
 
-    # Update the CHANGELOG
-
     print 'Updating project documentation...'
     os.chdir(os.path.join(root_path, 'docs'))
     html_doc_dir = os.path.join(project_dir, 'docs')
@@ -213,7 +211,7 @@ def update_website(version):
         shutil.rmtree(html_doc_dir)
     os.rename('tempdir', html_doc_dir)
 
-    if os.system('cd %s;git add .;git add -u .' % html_doc_dir) != 0:
+    if os.system('cd %s;git add .;git add -u .' % project_dir) != 0:
         sys.exit('Failed to add the updated html_doc_dir')
 
 
