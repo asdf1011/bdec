@@ -274,11 +274,10 @@ def commit_website(version):
         return False
 
     # Commit the website changes
-    message = _edit_message('Updated bdec project to version %s' % version)
     data = file('.commitmsg', 'w')
-    data.write(message)
+    data.write('Updated bdec project to version %s' % version)
     data.close()
-    if os.system('git commit --template .commitmsg') != 0:
+    if os.system('git commit --file .commitmsg --edit') != 0:
         sys.exit('Failed to commit!')
     os.remove('.commitmsg')
     return True
