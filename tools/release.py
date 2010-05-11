@@ -219,8 +219,8 @@ def update_release_tarball(version):
     os.chdir(root_path)
     destination = os.path.join(project_dir, 'files', 'bdec-%s.tar.gz' % version)
     if os.path.exists(destination):
-        text = raw_input("Archive '%s' exists! Overwrite? [y]" % destination)
-        if text and text != 'y':
+        text = raw_input("Archive '%s' exists! Overwrite? [n]" % destination)
+        if text != 'y':
             print 'Not updated archiving...'
             return
 
