@@ -1,3 +1,4 @@
+# Copyright (C) 2006 Seo Sanghyeon
 # This module tries to implement ISO 14977 standard with pyparsing.
 # pyparsing version 1.1 or greater is required.
 
