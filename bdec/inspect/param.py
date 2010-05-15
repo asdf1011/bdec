@@ -59,6 +59,16 @@ class UnknownReferenceError(BadReferenceError):
     def __str__(self):
         return "%s references unknown entry '%s'!" % (self.entry, self.name)
 
+class MissingExpressionReferenceError(bdec.DecodeError):
+    """An expression references an unknown entry."""
+    def __init__(self, entry, missing):
+        bdec.DecodeError.__init__(self, entry)
+        self.missing_context = missing
+
+    def __str__(self):
+        return "%s needs '%s' to decode" % (self.entry, self.missing_context)
+
+
 class _FailedToResolveError(Exception):
     def __init__(self, name):
         self.name = name
@@ -424,7 +434,8 @@ class ExpressionParameters(_Parameters):
                     self._params[child.entry].add(_VariableParam(child_reference, Param.OUT, result))
                     break
             else:
-                raise ent.MissingExpressionReferenceError(entry, reference.name)
+                # None of the children implement this name.
+                raise MissingExpressionReferenceError(entry, reference.name)
         else:
             # We don't know how to resolve a reference to this type of entry!
             raise BadReferenceError(entry)

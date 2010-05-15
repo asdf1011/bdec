@@ -365,7 +365,7 @@ def _load_from_file(file, filename):
         entries = [handler.decoder] + handler.common_entries.values()
         prm.CompoundParameters([prm.EndEntryParameters(entries),
             prm.ExpressionParameters(entries)])
-    except (ent.MissingExpressionReferenceError, prm.BadReferenceError), ex:
+    except (prm.MissingExpressionReferenceError, prm.BadReferenceError), ex:
         class Locator:
             def getLineNumber(self):
                 return handler.lookup[ex.entry][1]

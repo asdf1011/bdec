@@ -69,15 +69,6 @@ class DataLengthError(bdec.DecodeError):
     def __str__(self):
         return "%s expected length %i, got length %i" % (self.entry, self.expected, self.actual)
 
-class MissingExpressionReferenceError(bdec.DecodeError):
-    """An expression references an unknown entry."""
-    def __init__(self, entry, missing):
-        bdec.DecodeError.__init__(self, entry)
-        self.missing_context = missing
-
-    def __str__(self):
-        return "%s needs '%s' to decode" % (self.entry, self.missing_context)
-
 class EncodeError(bdec.DecodeError):
     pass
 
