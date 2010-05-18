@@ -844,8 +844,9 @@ class TestXml(unittest.TestCase):
         try:
             xml.loads(text)
         except xml.XmlExpressionError, ex:
-            self.assertEqual("<string>[4]: Expression error - binary 'b' " \
-                    "(big endian) references unknown entry 'c'!" , str(ex))
+            self.assertEqual("<string>[4]: binary 'b' (big endian) references "
+                    "unknown entry 'c'!\n"
+                    "  <string>[3]: sequence 'a'" , str(ex))
 
     def test_conditional_reference(self):
         text = '''
@@ -887,6 +888,33 @@ class TestXml(unittest.TestCase):
         self.assertEqual(3, lookup[spec][1])
         self.assertEqual(9, lookup[common['footer']][1])
 
+    def test_reporting_of_unknown_parameters(self):
+        # It can happen that a common entry is defined that isn't fully
+        # specified (ie: not all of the entries define all references).
+        # Test the reporting of the error (this was a part of a problem
+        # for Friedrich and his customisable integers, see issue227).
+        text = '''
+            <protocol>
+              <reference name="c" />
+              <common>
+                <field name="a" length="${unknown:}" />
+                <sequence name="b">
+                  <reference name="a" />
+                </sequence>
+                <sequence name="c">
+                  <reference name="b" />
+                </sequence>
+              </common>
+            </protocol>'''
+        try:
+            xml.loads(text)
+            assert 0, "Whoops, specification didn't fail!"
+        except xml.XmlExpressionError, ex:
+            self.assertEquals("<string>[5]: binary 'a' (big endian) "
+                "references unknown entry 'unknown:'!\n"
+                "  <string>[6]: sequence 'b'\n"
+                "  <string>[9]: sequence 'c'",
+                    str(ex))
 
 class TestSave(unittest.TestCase):
     """Test decoding of the xml save functionality.

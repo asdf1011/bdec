@@ -232,7 +232,7 @@ class Entry(object):
         return is_hidden(self.name)
 
     def __str__(self):
-        return "%s '%s'" % (self.__class__, self.name)
+        return "%s '%s'" % (self.__class__.__name__.lower(), self.name)
 
     def __repr__(self):
         return "%s '%s'" % (self.__class__, self.name)

@@ -39,8 +39,10 @@ class XmlSpecError(LoadError):
         self.line = locator.getLineNumber()
         self.column = locator.getColumnNumber()
 
-    def _src(self):
-        return "%s[%s]: " % (self.filename, self.line)
+    def _src(self, filename=None, line=None):
+        filename = filename or self.filename
+        line = line or self.line
+        return "%s[%s]: " % (filename, line)
 
 class XmlError(XmlSpecError):
     """
@@ -80,12 +82,16 @@ class OptionMissingNameError(exp.ExpressionError):
         return "Choice option missing referenced name '%s'\n\t%s[%i]: %s" % (self.name, self.filename, self.line, self.entry.name)
 
 class XmlExpressionError(XmlSpecError):
-    def __init__(self, ex, filename, locator):
+    def __init__(self, ex, filename, locator, context=[]):
         XmlSpecError.__init__(self, filename, locator)
         self.ex = ex
+        self.context = context
 
     def __str__(self):
-        return self._src() + "Expression error - " + str(self.ex)
+        result = self._src() + str(self.ex)
+        if self.context:
+            result += '\n' + '\n'.join('  %s%s' % (self._src(c[0], c[1]), c[3]) for c in self.context)
+        return result
 
 
 class _Handler(xml.sax.handler.ContentHandler):
@@ -365,13 +371,14 @@ def _load_from_file(file, filename):
         entries = [handler.decoder] + handler.common_entries.values()
         prm.CompoundParameters([prm.EndEntryParameters(entries),
             prm.ExpressionParameters(entries)])
-    except (prm.MissingExpressionReferenceError, prm.BadReferenceError), ex:
+    except prm.BadReferenceError, ex:
         class Locator:
             def getLineNumber(self):
                 return handler.lookup[ex.entry][1]
             def getColumnNumber(self):
                 return handler.lookup[ex.entry][2]
-        raise XmlExpressionError(ex, filename, Locator())
+        context = [(handler.lookup[e] + (str(e),)) for e in ex.context]
+        raise XmlExpressionError(ex, filename, Locator(), context)
     return (handler.decoder, handler.common_entries, handler.lookup)
 
 def loads(xml):

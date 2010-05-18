@@ -147,6 +147,9 @@ class EntryValueType(IntegerType):
     def __eq__(self, other):
         return isinstance(other, EntryValueType) and self.entry is other.entry
 
+    def __repr__(self):
+        return '${%s}' % self.entry
+
     def range(self, parameters):
         if isinstance(self.entry, fld.Field):
             length_range = expression_range(self.entry.length, self.entry, parameters)
