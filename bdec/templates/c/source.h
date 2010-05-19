@@ -40,6 +40,7 @@ extern "C" {
   %if not contains_data(entry):
 
   %elif isinstance(entry, Sequence) and not settings.is_numeric(settings.ctype(entry)):
+__attribute__((packed))
 ${settings.ctype(entry)}
 {
   %for i, child in enumerate(entry.children):
