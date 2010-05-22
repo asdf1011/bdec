@@ -16,6 +16,7 @@
 #   License along with this library; if not, see
 #   <http://www.gnu.org/licenses/>.
 
+import getopt
 import mako.exceptions
 import os
 import sys
@@ -31,12 +32,43 @@ def _load_spec(filename):
         sys.exit(str(ex))
     return decoder, common, lookup
 
+def usage(program):
+    print 'Compile bdec specifications into language specific decoders.'
+    print 'Usage:'
+    print '   %s [options] <spec_filename> [output_dir]' % program
+    print
+    print 'Arguments:'
+    print '   spec_filename -- The filename of the specification to be compiled.'
+    print '   output_dir -- The directory to save the generated source code. If'
+    print '       not specified the current working directory will be used.'
+    print
+    print 'Options:'
+    print '  -h    Print this help.'
+    print '  -V    Print the version of the bdec compiler.'
+
 def main():
-    if len(sys.argv) not in [2, 3]:
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], 'hV')
+    except getopt.GetoptError, ex:
+        sys.exit("%s.\nRun '%s -h' for correct usage." % (ex, sys.argv[0]))
+
+    for opt, arg in opts:
+        if opt == '-h':
+            usage(sys.argv[0])
+            sys.exit(0)
+        elif opt == '-V':
+            print bdec.__version__
+            sys.exit(0)
+        else:
+            assert False, 'Unhandled option %s!' % opt
+
+    print opts, args
+    if len(args) not in [1, 2]:
         sys.exit('Usage: %s <specification> [output dir]' % sys.argv[0])
-    spec, common, lookup = _load_spec(sys.argv[1])
-    if len(sys.argv) == 3:
-        outputdir = sys.argv[2]
+
+    spec, common, lookup = _load_spec(args[0])
+    if len(args) == 2:
+        outputdir = args[1]
     else:
         outputdir = os.getcwd()
 
