@@ -73,7 +73,9 @@ def main():
 
     language = 'c'
     try:
-        bdec.compiler.generate_code(spec, language, outputdir, common.itervalues())
+        template_dir = bdec.compiler.BuiltinTemplate(language)
+        templates = bdec.compiler.load_templates(template_dir)
+        bdec.compiler.generate_code(spec, templates, outputdir, common.itervalues())
     except:
         sys.exit(mako.exceptions.text_error_template().render())
 

@@ -79,6 +79,16 @@ def _get_valgrind():
         print 'Failed to find valgrind! Code will not be tested with valgrind.'
     return path
 
+_template_cache = {}
+def _load_templates_from_cache(language):
+    # We cache the results, as it sped up the tests by about 3x.
+    try:
+        return _template_cache[language]
+    except KeyError:
+        template_dir = comp.BuiltinTemplate(language)
+        _template_cache[language] = comp.load_templates(template_dir)
+        return _template_cache[language]
+
 def generate(spec, common, details):
     """Create a compiled decoder for a specification in the test directory.
 
@@ -92,7 +102,8 @@ def generate(spec, common, details):
         shutil.rmtree(details.TEST_DIR)
     os.mkdir(details.TEST_DIR)
 
-    comp.generate_code(spec, details.LANGUAGE, details.TEST_DIR, common)
+    comp.generate_code(spec, _load_templates_from_cache(details.LANGUAGE),
+            details.TEST_DIR, common)
 
 def compile_and_run(data, details):
     """Compile a previously generated decoder, and use it to decode a data file.

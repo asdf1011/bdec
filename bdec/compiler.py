@@ -33,7 +33,7 @@ import bdec.entry as ent
 import bdec.inspect.param as prm
 import bdec.output.xmlout
 
-class _TemplateDir:
+class TemplateDir:
     """Class representing a template directory."""
     def listdir(self, dir):
         raise NotImplementedError()
@@ -42,7 +42,7 @@ class _TemplateDir:
         raise NotImplementedError()
 
 
-class _BuiltinTemplate(_TemplateDir):
+class BuiltinTemplate(TemplateDir):
     """Class to read a builtin template using pkg_resources."""
     def __init__(self, name):
         self.directory = os.path.join('templates', name)
@@ -59,6 +59,12 @@ class SettingsError(Exception):
     "An error raised when the settings file is incorrect."
     pass
 
+class Templates:
+    def __init__(self, common, entries, settings):
+        self.common = common
+        self.entries = entries
+        self.settings = settings
+
 _SETTINGS = "settings.py"
 
 def is_template(filename):
@@ -66,16 +72,7 @@ def is_template(filename):
     return not filename.startswith('.') and not filename.endswith('.pyc') \
         and filename != _SETTINGS
 
-_template_cache = {}
-def _load_templates_from_cache(language, template):
-    # We cache the results, as it sped up the tests by about 3x.
-    try:
-        return _template_cache[language]
-    except KeyError:
-        _template_cache[language] = _load_templates(template)
-        return _template_cache[language]
-
-def _load_templates(template_dir):
+def load_templates(template_dir):
     """
     Load all file templates for a given specification.
 
@@ -92,7 +89,9 @@ def _load_templates(template_dir):
                 entry_templates.append((filename, template))
             else:
                 common_templates.append((filename, template))
-    return (common_templates, entry_templates)
+
+    config_file = template_dir.read(_SETTINGS)
+    return Templates(common_templates, entry_templates, config_file)
 
 def _generate_template(output_dir, filename, lookup, template):
     output = file(os.path.join(output_dir, filename), 'w')
@@ -155,10 +154,8 @@ class _Settings:
     _REQUIRED_SETTINGS = ['keywords']
 
     @staticmethod
-    def load(template_dir, globals):
-        filename = 'settings.py'
-        config_file = template_dir.read(filename)
-        code = compile(config_file, filename, 'exec')
+    def load(config_file, globals):
+        code = compile(config_file, _SETTINGS, 'exec')
         eval(code, globals)
         settings = _Settings()
         for key in globals:
@@ -341,12 +338,10 @@ def _whitespace(offset):
         return result
     return filter
 
-def generate_code(spec, language, output_dir, common_entries=[]):
+def generate_code(spec, templates, output_dir, common_entries=[]):
     """
     Generate code to decode the given specification.
     """
-    template_dir = _BuiltinTemplate(language)
-    common_templates, entry_templates = _load_templates_from_cache(language, template_dir)
     entries = set(common_entries)
     entries.add(spec)
     
@@ -358,7 +353,7 @@ def generate_code(spec, language, output_dir, common_entries=[]):
 
     lookup = {}
     data_checker = prm.DataChecker(entries)
-    lookup['settings'] = _Settings.load(template_dir, lookup)
+    lookup['settings'] = _Settings.load(templates.settings, lookup)
     utils = _Utils(entries, lookup['settings'])
 
     params = prm.CompoundParameters([
@@ -396,9 +391,9 @@ def generate_code(spec, language, output_dir, common_entries=[]):
     lookup['ws'] = _whitespace
     lookup['xmlname'] = bdec.output.xmlout.escape_name
 
-    for filename, template in common_templates:
+    for filename, template in templates.common:
         _generate_template(output_dir, filename, lookup, template)
-    for filename, template in entry_templates:
+    for filename, template in templates.entries:
         for entry in entries:
             lookup['entry'] = entry
             extension = os.path.splitext(filename)[1]
