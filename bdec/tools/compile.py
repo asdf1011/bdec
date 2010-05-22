@@ -43,15 +43,21 @@ def usage(program):
     print '       not specified the current working directory will be used.'
     print
     print 'Options:'
-    print '  -h    Print this help.'
-    print '  -V    Print the version of the bdec compiler.'
+    print '  -h                Print this help.'
+    print '  --template=<name> Set the template to compile. If there is a directory'
+    print '                    with the specified name, it will be used as the'
+    print '                    template directory. Otherwise it will use the internal'
+    print '                    template with the specified name. If not specified a'
+    print '                    C language decoder will be compiled.'
+    print '  -V                Print the version of the bdec compiler.'
 
 def main():
     try:
-        opts, args = getopt.getopt(sys.argv[1:], 'hV')
+        opts, args = getopt.getopt(sys.argv[1:], 'hV', 'template=')
     except getopt.GetoptError, ex:
         sys.exit("%s.\nRun '%s -h' for correct usage." % (ex, sys.argv[0]))
 
+    template_dir = None
     for opt, arg in opts:
         if opt == '-h':
             usage(sys.argv[0])
@@ -59,6 +65,11 @@ def main():
         elif opt == '-V':
             print bdec.__version__
             sys.exit(0)
+        elif opt == '--template':
+            if os.path.exists(arg):
+                template_dir = bdec.compiler.FilesystemTemplate(arg)
+            else:
+                template_dir = bdec.compiler.BuiltinTemplate(arg)
         else:
             assert False, 'Unhandled option %s!' % opt
 
@@ -71,9 +82,10 @@ def main():
     else:
         outputdir = os.getcwd()
 
-    language = 'c'
+    if template_dir is None:
+        template_dir = bdec.compiler.BuiltinTemplate('c')
+
     try:
-        template_dir = bdec.compiler.BuiltinTemplate(language)
         templates = bdec.compiler.load_templates(template_dir)
         bdec.compiler.generate_code(spec, templates, outputdir, common.itervalues())
     except:

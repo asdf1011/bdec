@@ -54,6 +54,19 @@ class BuiltinTemplate(TemplateDir):
         return pkg_resources.resource_string('bdec',
                 os.path.join(self.directory, filename))
 
+class FilesystemTemplate(TemplateDir):
+    def __init__(self, directory):
+        self.directory = directory
+
+    def listdir(self):
+        return os.listdir(self.directory)
+
+    def read(self, filename):
+        input = open(os.path.join(self.directory, filename), 'r')
+        contents = input.read()
+        input.close()
+        return contents
+
 
 class SettingsError(Exception):
     "An error raised when the settings file is incorrect."
