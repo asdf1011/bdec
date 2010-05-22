@@ -62,9 +62,8 @@ def main():
         else:
             assert False, 'Unhandled option %s!' % opt
 
-    print opts, args
     if len(args) not in [1, 2]:
-        sys.exit('Usage: %s <specification> [output dir]' % sys.argv[0])
+        sys.exit('Usage: %s [options] <spec_filename> [output_dir]' % sys.argv[0])
 
     spec, common, lookup = _load_spec(args[0])
     if len(args) == 2:

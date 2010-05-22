@@ -19,37 +19,60 @@
 import logging
 import sys
 
+import getopt
+
 import bdec
 import bdec.data as dt
 import bdec.inspect.param
 import bdec.output.xmlout as xmlout
 from bdec.spec import load
 
+def usage(program):
+    print 'Decode a file given a bdec specification to xml.'
+    print 'Usage:'
+    print '   %s [options] <spec_filename> [data_filename]' % program
+    print
+    print 'Arguments:'
+    print '   spec_filename -- The filename of the specification to be compiled.'
+    print '   data_filename -- The file we want to decode. If not specified, it '
+    print '       will decode the data from stdin.'
+    print
+    print 'Options:'
+    print '  -h         Print this help.'
+    print '  -l         Log status messages.'
+    print '  --verbose  Include hidden entries and raw data in the decoded output.'
+    print '  -V         Print the version of the bdec compiler.'
+
 def _parse_args():
-    spec = None
-    binary = None
     verbose = False
-    log = False
-    for arg in sys.argv[1:]:
-        if arg == '--verbose':
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], 'hlV', 'verbose')
+    except getopt.GetoptError, ex:
+        sys.exit("%s\nSee '%s -h' for correct usage." % (ex, sys.argv[0]))
+    for opt, arg in opts:
+        if opt == '-h':
+            usage(sys.argv[0])
+            sys.exit(0)
+        elif opt == '--verbose':
             verbose = True
-        elif arg == "-l":
-            log = True
-        elif spec is None:
-            spec = arg
-        elif binary is None:
-            binary = file(arg, 'rb')
+        elif opt == "-l":
+            logging.basicConfig(level=logging.INFO)
+        elif opt == '-V':
+            print bdec.__version__
+            sys.exit(0)
         else:
-            sys.exit('Too many arguments!')
+            assert 0, 'Unhandled option %s!' % opt
 
-    if log:
-        logging.basicConfig(level=logging.INFO)
-
-    if spec is None:
-        sys.exit('Specification not set!')
-
-    if binary is None:
+    binary = None
+    if len(args) == 0:
+        sys.exit("Usage: %s [options] <spec_filename> [data_filename]" % sys.argv[0])
+    elif len(args) == 1:
         binary = sys.stdin
+    elif len(args) == 2:
+        binary = file(args[1], 'rb')
+    else:
+        sys.exit('Too many arguments!')
+    spec = args[0]
 
     return (spec, binary, verbose)
 
