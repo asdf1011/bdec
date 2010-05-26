@@ -22,7 +22,7 @@ import unittest
 
 import bdec
 import bdec.choice as chc
-from bdec.constraints import ConstraintError, Equals
+from bdec.constraints import ConstraintError, Equals, NotEquals
 import bdec.data as dt
 import bdec.entry as ent
 import bdec.expression as expr
@@ -937,6 +937,10 @@ class TestSave(unittest.TestCase):
     def test_text_field_with_expected_value(self):
         a = fld.Field('a', format=fld.Field.TEXT, length=32, constraints=[Equals('abcd')])
         assert_xml_equivalent('<protocol><field name="a" type="text" length="4 * 8" value="abcd" /></protocol>', xml.save(a))
+
+    def test_not_equals(self):
+        a = fld.Field('a', format=fld.Field.INTEGER, length=8, constraints=[NotEquals(0)])
+        assert_xml_equivalent('<protocol><field name="a" type="integer" length="8" not_equal="0" /></protocol>', xml.save(a))
 
     def test_sequence(self):
         a = seq.Sequence('a', [fld.Field('b', length=8)])
