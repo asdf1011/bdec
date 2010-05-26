@@ -916,6 +916,23 @@ class TestXml(unittest.TestCase):
                 "  <string>[9]: sequence 'c'",
                     str(ex))
 
+    def test_error_location_of_internal_entry(self):
+        # The specification loader sometimes creates 'internal' entries. Make
+        # sure we get a reasonable error location for these entries.
+        text = '''
+            <protocol>
+                <field name="a" length="8" if="${unknown} == 0" />
+            </protocol> '''
+        try:
+            xml.loads(text)
+            assert 0, "Whoops, specification didn't fail!"
+        except xml.XmlExpressionError, ex:
+            self.assertEquals("<string>[3]: sequence 'not present:' references "
+                "unknown entry 'unknown'!\n"
+                "  <string>[3]: choice 'optional a'",
+                    str(ex))
+
+
 class TestSave(unittest.TestCase):
     """Test decoding of the xml save functionality.
 
