@@ -28,29 +28,31 @@ import bdec.output.xmlout as xmlout
 from bdec.spec import load
 
 def usage(program):
-    print 'Decode a file given a bdec specification to xml.'
+    print 'Decode standard input to xml given a bdec specification.'
     print 'Usage:'
-    print '   %s [options] <spec_filename> [data_filename]' % program
+    print '   %s [options] <spec_filename>' % program
     print
     print 'Arguments:'
     print '   spec_filename -- The filename of the specification to be compiled.'
-    print '   data_filename -- The file we want to decode. If not specified, it '
-    print '       will decode the data from stdin.'
     print
     print 'Options:'
-    print '  -h         Print this help.'
-    print '  -l         Log status messages.'
-    print '  --verbose  Include hidden entries and raw data in the decoded output.'
-    print '  -V         Print the version of the bdec compiler.'
+    print '  -f <filename>  Decode from filename instead of stdin.'
+    print '  -h             Print this help.'
+    print '  -l             Log status messages.'
+    print '  --verbose      Include hidden entries and raw data in the decoded output.'
+    print '  -V             Print the version of the bdec compiler.'
 
 def _parse_args():
     verbose = False
+    binary = sys.stdin
     try:
-        opts, args = getopt.getopt(sys.argv[1:], 'hlV', 'verbose')
+        opts, args = getopt.getopt(sys.argv[1:], 'f:hlV', 'verbose')
     except getopt.GetoptError, ex:
         sys.exit("%s\nSee '%s -h' for correct usage." % (ex, sys.argv[0]))
     for opt, arg in opts:
-        if opt == '-h':
+        if opt == '-f':
+            binary = open(arg, 'rb')
+        elif opt == '-h':
             usage(sys.argv[0])
             sys.exit(0)
         elif opt == '--verbose':
@@ -63,15 +65,11 @@ def _parse_args():
         else:
             assert 0, 'Unhandled option %s!' % opt
 
-    binary = None
     if len(args) == 0:
-        sys.exit("Usage: %s [options] <spec_filename> [data_filename]" % sys.argv[0])
-    elif len(args) == 1:
-        binary = sys.stdin
-    elif len(args) == 2:
-        binary = file(args[1], 'rb')
-    else:
+        sys.exit("Missing arguments! See '%s -h' for more info." % sys.argv[0])
+    elif len(args) > 1:
         sys.exit('Too many arguments!')
+
     spec = args[0]
 
     return (spec, binary, verbose)
