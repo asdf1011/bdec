@@ -90,7 +90,7 @@ class FloatLengthError(DataLengthError):
 class InvalidBinaryTextError(DataError):
     """A binary text to data conversion failed."""
     def __init__(self, text):
-        self.text = test
+        self.text = text
 
     def __str__(self):
         return "Invalid binary text! '%s'" % text
@@ -615,7 +615,7 @@ class Data(object):
         for char in text:
             if char not in string.whitespace:
                 if char not in ['0', '1']:
-                    raise InvalidBinaryTextError("Invalid binary text!", text)
+                    raise InvalidBinaryTextError(text)
                 value <<= 1
                 value |= int(char)
                 length += 1

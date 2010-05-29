@@ -169,3 +169,6 @@ class TestData(unittest.TestCase):
 
         self.assertRaises(dt.NotEnoughDataError, int, data.pop(1))
 
+    def test_invalid_binary_text(self):
+        self.assertRaises(dt.InvalidBinaryTextError, dt.Data.from_binary_text, 'abcd')
+
