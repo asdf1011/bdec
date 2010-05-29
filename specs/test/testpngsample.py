@@ -20,7 +20,7 @@ import os.path
 import shutil
 import unittest
 
-from bdec.spec.xmlspec import load
+from bdec.spec import load
 from bdec.test.decoders import generate, compile_and_run, _CDecoder
 
 class TestPngSample(unittest.TestCase):
@@ -33,7 +33,7 @@ class TestPngSample(unittest.TestCase):
         png_filename = os.path.join(test_dir, 'png', 'white.png')
 
         (spec, common, lookup) = load(spec_filename)
-        generate(spec, common.itervalues(), _CDecoder)
+        generate(spec, common, _CDecoder)
         shutil.copy(main_filename, _CDecoder.TEST_DIR)
         exit_code, output = compile_and_run(open(png_filename, 'rb'), _CDecoder)
         self.assertEqual(0, exit_code)

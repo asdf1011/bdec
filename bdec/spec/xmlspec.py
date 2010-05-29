@@ -28,21 +28,13 @@ import bdec.expression as exp
 import bdec.field as fld
 import bdec.inspect.param as prm
 from bdec.spec import LoadError
-from bdec.spec.references import ReferencedEntry, References, MissingReferenceError
+from bdec.spec.references import ReferencedEntry
 from bdec.spec.integer import Integers, IntegerError
 import bdec.sequence as seq
 import bdec.sequenceof as sof
 
 class XmlSpecError(LoadError):
-    def __init__(self, filename, locator):
-        self.filename = filename
-        self.line = locator.getLineNumber()
-        self.column = locator.getColumnNumber()
-
-    def _src(self, filename=None, line=None):
-        filename = filename or self.filename
-        line = line or self.line
-        return "%s[%s]: " % (filename, line)
+    pass
 
 class XmlError(XmlSpecError):
     """
@@ -82,23 +74,19 @@ class OptionMissingNameError(exp.ExpressionError):
         return "Choice option missing referenced name '%s'\n\t%s[%i]: %s" % (self.name, self.filename, self.line, self.entry.name)
 
 class XmlExpressionError(XmlSpecError):
-    def __init__(self, ex, filename, locator, context=[]):
+    def __init__(self, ex, filename, locator):
         XmlSpecError.__init__(self, filename, locator)
         self.ex = ex
-        self.context = context
 
     def __str__(self):
-        result = self._src() + str(self.ex)
-        if self.context:
-            result += '\n' + '\n'.join('  %s%s' % (self._src(c[0], c[1]), c[3]) for c in self.context)
-        return result
+        return self._src() + str(self.ex)
 
 
 class _Handler(xml.sax.handler.ContentHandler):
     """
     A sax style xml handler for building a decoder from an xml specification
     """
-    def __init__(self, filename):
+    def __init__(self, filename, references):
         self._filename = filename
         self._stack = []
         self._children = []
@@ -114,15 +102,13 @@ class _Handler(xml.sax.handler.ContentHandler):
             "sequenceof" : self._sequenceof,
             }
         self.decoder = None
-        self.common_entries = {}
 
         self.lookup = {}
         self.locator = None
         self._end_sequenceof = False
         self._unresolved_references = []
         self._integers = Integers()
-        self._references = References()
-        self._common = []
+        self._references = references
 
     def setDocumentLocator(self, locator):
         self.locator = locator
@@ -181,13 +167,8 @@ class _Handler(xml.sax.handler.ContentHandler):
                     reference.name = '%s:' % reference.name
                 value = self._parse_expression("${%s}" % reference.name)
                 entry = seq.Sequence(entry_name, [reference], value=value)
-                reference.set_parent(entry)
             entry.constraints += constraints
 
-        # Check for child references
-        for child in children:
-            if isinstance(child, ReferencedEntry):
-                child.set_parent(entry)
         self._children.pop()
 
         if attrs.has_key('if'):
@@ -202,8 +183,6 @@ class _Handler(xml.sax.handler.ContentHandler):
                 raise XmlExpressionError(ex, self._filename, self.locator)
             assert isinstance(not_present, ent.Entry)
             optional = chc.Choice('optional %s' % entry_name, [not_present, entry])
-            if isinstance(entry, ReferencedEntry):
-                entry.set_parent(optional)
             entry = optional
 
             self.lookup[not_present] = (self._filename, lineno, colno)
@@ -227,22 +206,17 @@ class _Handler(xml.sax.handler.ContentHandler):
             self.lookup[entry] = (self._filename, lineno, colno)
 
     def _common(self, attributes, children, name, length, breaks):
-        self._common = children
+        for entry in children:
+            self._references.add_common(entry)
 
     def _protocol(self, attributes, children, name, length, breaks):
         if len(children) != 1:
             raise self._error("Protocol should have a single entry to be decoded!")
 
-        # Resolve all references
-        assert len(children) == 1
-        common = self._integers.common.values() + self._common + [children[0]]
-        try:
-            common = self._references.resolve(common)
-        except MissingReferenceError, ex:
-            raise self._error("Referenced element '%s' is not found!" % ex.name)
-
-        self.decoder = common[-1]
-        self.common_entries = dict((c.name, c) for c in common[:-1])
+        # Add the used integer entries to the specification
+        self.decoder = children[0]
+        for entry in self._integers.common.values():
+            self._references.add_common(entry)
 
     def _parse_expression(self, text):
         try:
@@ -352,60 +326,26 @@ class _Handler(xml.sax.handler.ContentHandler):
         result = sof.SequenceOf(name, children[0], count, length, breaks)
         return result
 
-def _load_from_file(file, filename):
-    """
-    Read a string from open file and interpret it as an
-    xml data stream identifying a protocol entity.
 
-    @return Returns a tuple containing the decoder entry, a dictionary
-        of decoder entries to (filename, line number, column number), and
-        a list of common entries.
+def load(filename, specfile, references):
+    """
+    Load an xml specification from a filename or file object.
+
+    xml -- A file object.
+    references -- A bdec.spec.references.References instance.
+
+    @return Returns a tuple containing the decoder entry and a dictionary
+        of decoder entries to (filename, line number, column number).
     """
     parser = xml.sax.make_parser()
-    handler = _Handler(filename)
+    handler = _Handler(filename, references)
     parser.setContentHandler(handler)
     try:
-        parser.parse(file)
+        parser.parse(specfile)
     except xml.sax.SAXParseException, ex:
         # The sax parse exception object can operate as a locator
         raise XmlError(ex.args[0], filename, ex)
-    try:
-        # Validate all of the parameters in use
-        entries = [handler.decoder] + handler.common_entries.values()
-        prm.CompoundParameters([prm.EndEntryParameters(entries),
-            prm.ExpressionParameters(entries)])
-    except prm.BadReferenceError, ex:
-        class Locator:
-            def _src(self):
-                try:
-                    return handler.lookup[ex.entry]
-                except KeyError:
-                    return ('unknown', 0, 0)
-            def getLineNumber(self):
-                return self._src()[1]
-            def getColumnNumber(self):
-                return self._src()[2]
-        context = [(handler.lookup[e] + (str(e),)) for e in ex.context if ex.entry in handler.lookup]
-        raise XmlExpressionError(ex, filename, Locator(), context)
-    return (handler.decoder, handler.common_entries, handler.lookup)
-
-def loads(xml):
-    """
-    Parse an xml string, interpreting it as a protocol specification.
-    """
-    return _load_from_file(StringIO.StringIO(xml), "<string>")
-
-def load(xml):
-    """
-    Load an xml specification from a filename or file object.
-    """
-    if isinstance(xml, basestring):
-        xmlfile = open(xml, "r")
-        result = _load_from_file(xmlfile, xml)
-        xmlfile.close()
-    else:
-        result = _load_from_file(xml, "<stream>")
-    return result
+    return (handler.decoder, handler.lookup)
 
 def _save_field(entry, attributes):
     if entry.format is not fld.Field.BINARY:

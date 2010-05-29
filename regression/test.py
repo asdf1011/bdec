@@ -29,7 +29,6 @@ class _Regression:
         assert successes or failures
 
         spec, common, lookup = load(spec_filename)
-        common = common.values()
         for data_filename in successes:
             expected_xml = None
             expected_filename = '%s.expected.xml' % os.path.splitext(data_filename)[0]

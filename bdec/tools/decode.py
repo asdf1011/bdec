@@ -79,7 +79,6 @@ def main():
     spec, binary, verbose = _parse_args()
     try:
         decoder, common, lookup = load(spec)
-        bdec.spec.validate_no_input_params(decoder, lookup)
     except bdec.spec.LoadError, ex:
         sys.exit(str(ex))
 

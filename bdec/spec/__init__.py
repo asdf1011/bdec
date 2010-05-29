@@ -16,73 +16,104 @@
 #   License along with this library; if not, see
 #   <http://www.gnu.org/licenses/>.
 
-import bdec.inspect.param
 import os.path
+from StringIO import StringIO
 
 class LoadError(Exception):
-    pass
+    """Base class for all loading errors."""
+    def __init__(self, filename, locator):
+        self.filename = filename
+        self.line = locator.getLineNumber()
+        self.column = locator.getColumnNumber()
 
-class UnknownInputParameter(LoadError):
-    def __init__(self, entry, param_name, lookup):
-        self._entry = entry
-        self._param_name = param_name
-        self._lookup = lookup
+    def _src(self, filename=None, line=None):
+        filename = filename or self.filename
+        line = line or self.line
+        return "%s[%s]: " % (filename, line)
+
+
+class _Locator:
+    def __init__(self, lineno, colno):
+        self._lineno = lineno
+        self._colno = colno
+
+    def getLineNumber(self):
+        return self._lineno
+
+    def getColumnNumber(self):
+        return self._colno
+
+
+class ReferenceError(LoadError):
+    """Exception thrown when a problem is found with one of the expression
+    references."""
+    def __init__(self, ex, entry, lookup, context=[]):
+        filename, lineno, colno = lookup.get(entry, ('unknown', 0, 0))
+        LoadError.__init__(self, filename, _Locator(lineno, colno))
+        self.ex = ex
+        self.context = context
 
     def __str__(self):
-        (filename, line_number, column_number) = self._lookup[self._entry]
-        return "%s[%i]: '%s' references unknown parameter '%s'" % (filename,
-                line_number, self._entry, self._param_name)
+        result = self._src() + str(self.ex)
+        if self.context:
+            result += '\n' + '\n'.join('  %s%s' % (self._src(c[0], c[1]), c[3]) for c in self.context)
+        return result
 
-def _get_entry_that_uses_param(inspect, entry, param):
-    """Drill down into an entry until we find the entry that uses 'param."""
-    while 1:
-        for child in entry.children:
-            found_param = False
-            for var in inspect.get_passed_variables(entry, child):
-                if var.name == param:
-                    found_param = True
-                    entry = child.entry
-                    break
-            if found_param:
-                break
-        else:
-            # This entry doesn't have a child that uses the given parameter, so
-            # it must be the end-user.
-            return entry
+def _validate_parameters(entries, lookup):
+    import bdec.inspect.param as prm
+    try:
+        # Validate all of the parameters in use
+        prm.CompoundParameters([prm.EndEntryParameters(entries),
+            prm.ExpressionParameters(entries)])
+    except prm.BadReferenceError, ex:
+        context = [(lookup[e] + (str(e),)) for e in ex.context if ex.entry in lookup]
+        raise ReferenceError(ex, ex.entry, lookup, context)
 
-def validate_no_input_params(entry, lookup):
-    """ Make sure the decoder doesn't have any unknown references."""
+def _resolve(decoder, references, lookup):
+    from bdec.spec.references import MissingReferenceError
 
-    end_entry_params = bdec.inspect.param.EndEntryParameters([entry])
-    expression_params = bdec.inspect.param.ExpressionParameters([entry])
-    params = bdec.inspect.param.CompoundParameters([end_entry_params, expression_params])
+    # Resolve all references
+    references.add_common(decoder)
+    try:
+        common = references.resolve()
+    except MissingReferenceError, ex:
+        raise ReferenceError(ex, ex.reference, lookup)
+    decoder = common.pop()
 
-    # We need to raise an error as to missing parameters
-    for param in params.get_params(entry):
-        if param.direction is param.IN:
-            # TODO: We should instead raise the error from the context of the
-            # child that needs the data.
-            user = _get_entry_that_uses_param(params, entry, param.name)
-            raise UnknownInputParameter(user, param.name, lookup)
+    _validate_parameters([decoder] + common, lookup)
+    return decoder, common
 
-def load(filename, allow_inputs=False):
+def load(filename, spec=None, format=None):
     """Load a specification from disk.
 
     Raises LoadError on error.
 
-    filename -- Filename of the specification to load.
-    allow_inputs -- Allow the main specification entry to have inputs (ie: with
-        inputs it won't be able to decode).
+    filename -- The filename of the specification.
+    spec -- String or file object of the specification to load. If None,
+        it will load the spec from disk.
+    format -- The type of the specification; eg: xml, asn1. If None, the name
+        will be taken from the extension of the filename.
+    return -- (decoder, common, lookup)
     """
     import bdec.spec.asn1 as asn1
+    from bdec.spec.references import References
     import bdec.spec.xmlspec as xmlspec
-    loaders = {'.xml':xmlspec, '.asn1':asn1}
+
+    if spec is None:
+        specfile = open(filename, 'r')
+    elif isinstance(spec, basestring):
+        specfile = StringIO(spec)
+
+    if format is None:
+        format = os.path.splitext(filename)[1][1:]
+
+    loaders = {'xml':xmlspec, 'asn1':asn1}
     try:
-        loader = loaders[os.path.splitext(filename)[1]]
+        loader = loaders[format]
     except KeyError:
         raise LoadError("Unknown specification format '%s'!" % filename)
 
-    decoder, lookup, common = loader.load(filename)
-    if not allow_inputs:
-        validate_no_input_params(decoder, lookup)
-    return decoder, lookup, common
+    references = References()
+    decoder, lookup = loader.load(filename, specfile, references)
+    decoder, common = _resolve(decoder, references, lookup)
+    return decoder, common, lookup

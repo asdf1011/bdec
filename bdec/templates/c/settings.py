@@ -252,6 +252,7 @@ def call_params(parent, i, result_name):
 
 _OPERATORS = {
         operator.__div__ : '/', 
+        operator.__mod__ : '%',
         operator.__mul__ : '*',
         operator.__sub__ : '-',
         operator.__add__ : '+',
