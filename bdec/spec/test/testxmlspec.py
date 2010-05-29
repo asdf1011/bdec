@@ -844,7 +844,7 @@ class TestXml(unittest.TestCase):
         try:
             xml.loads(text)
         except xml.XmlExpressionError, ex:
-            self.assertEqual("<string>[4]: binary 'b' (big endian) references "
+            self.assertEqual("<string>[4]: binary 'b' references "
                     "unknown entry 'c'!\n"
                     "  <string>[3]: sequence 'a'" , str(ex))
 
@@ -910,8 +910,8 @@ class TestXml(unittest.TestCase):
             xml.loads(text)
             assert 0, "Whoops, specification didn't fail!"
         except xml.XmlExpressionError, ex:
-            self.assertEquals("<string>[5]: binary 'a' (big endian) "
-                "references unknown entry 'unknown:'!\n"
+            self.assertEquals("<string>[5]: binary 'a' references unknown "
+                "entry 'unknown:'!\n"
                 "  <string>[6]: sequence 'b'\n"
                 "  <string>[9]: sequence 'c'",
                     str(ex))

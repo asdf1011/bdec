@@ -208,7 +208,10 @@ class Field(bdec.entry.Entry):
         yield self.encode_value(value)
 
     def __str__(self):
-        return "%s '%s' (%s)" % (self.format, self.name, self.encoding)
+        result = "%s '%s'" % (self.format, self.name)
+        if self.format not in [self.HEX, self.BINARY]:
+            result += ' (%s)' % self.encoding
+        return result
 
     def _decode_int(self, data):
         if self.encoding == self.LITTLE_ENDIAN:
