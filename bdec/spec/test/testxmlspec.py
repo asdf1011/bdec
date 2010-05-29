@@ -932,6 +932,14 @@ class TestXml(unittest.TestCase):
                 "  <string>[3]: choice 'optional a'",
                     str(ex))
 
+    def test_bad_field_value_error(self):
+        text = '''<protocol><field name="a" length="24" value="bad" /></protocol>'''
+        try:
+            xml.loads(text)
+            self.fail('Whoops, should have failed to load spec!')
+        except xml.XmlError, ex:
+            self.assertEquals("<string>[1]: binary 'a' - Invalid binary text 'bad'", str(ex))
+
 
 class TestSave(unittest.TestCase):
     """Test decoding of the xml save functionality.

@@ -321,7 +321,10 @@ class _Handler(xml.sax.handler.ContentHandler):
                 # The expected data is the string representation of the field's
                 # native format. To get the value, we will convert the string
                 # to data, then back again.
-                data = result.encode_value(expected_text)
+                try:
+                    data = result.encode_value(expected_text)
+                except fld.FieldDataError, ex:
+                    raise self._error(ex)
 
             value = result.decode_value(data)
             result.constraints.append(Equals(value))
