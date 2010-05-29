@@ -93,7 +93,7 @@ class InvalidBinaryTextError(DataError):
         self.text = text
 
     def __str__(self):
-        return "Invalid binary text! '%s'" % text
+        return "Invalid binary text '%s'" % self.text
 
 class InvalidHexTextError(DataError):
     """A hex text to data conversion failed."""
