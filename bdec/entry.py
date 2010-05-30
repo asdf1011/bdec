@@ -162,14 +162,14 @@ class Entry(object):
         self._children = tuple(items)
     children = property(_get_children, _set_children)
 
-    def validate(self):
+    def _validate(self):
         if self._decoder is None:
             from bdec.decode import Decoder
             self._decoder = Decoder(self)
 
     def decode(self, data, context={}, name=None):
         """ Shortcut to bdec.decode.Decoder(self) """
-        self.validate()
+        self._validate()
         return self._decoder.decode(data, context, name)
 
     def _get_context(self, query, parent):

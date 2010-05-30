@@ -74,11 +74,7 @@ class TestSequence(unittest.TestCase):
         self.assertRaises(ConstraintError, list, a.decode(dt.Data('\x07\x01')))
 
     def test_multiple_validates(self):
-        # The 'validate' call is responsible for setting the parameters. We
-        # can't guarantee the order of the validate calls for top level entries,
-        # so make sure new parameters are correctly detected.
         a = fld.Field('a', 8)
-        a.validate()
 
         # Now embed 'a' in a sequence, but add a new reference to it; make
         # sure we can still decode.
@@ -95,13 +91,10 @@ class TestSequence(unittest.TestCase):
         c = seq.Sequence('c', [b], value=expr.ValueResult('b.a'))
         d = seq.Sequence('d', [b])
 
-        c.validate()
         list(c.decode(dt.Data('\x00')))
 
         # The bug in the second validate removed the parameter from the 'a'
         # field, causing the second decode to fail.
-        print '---------- validating D ---------'
-        d.validate()
         list(c.decode(dt.Data('\x00')))
         list(d.decode(dt.Data('\x00')))
 
@@ -114,13 +107,6 @@ class TestSequence(unittest.TestCase):
 
         # Create another object where 'a' is required, but not 'b.a'.
         d = seq.Sequence('d', [a, b], value=expr.ValueResult('a'))
-
-        # When we validate 'c', 'a' will have an output to 'b'. When we validate
-        # 'd', it will not (but as 'a' will still have an output, 'a' will still
-        # output to 'b'). Make sure we handle the case where 'a' passed to 'b'
-        # uses the correct name for 'a'.
-        c.validate()
-        d.validate()
 
         list(c.decode(dt.Data('\x00')))
         list(d.decode(dt.Data('\x00\x00')))

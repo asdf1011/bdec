@@ -84,8 +84,8 @@ class SequenceOf(bdec.entry.Entry):
         self.count = count
         self.end_entries = end_entries
 
-    def validate(self):
-        bdec.entry.Entry.validate(self)
+    def _validate(self):
+        bdec.entry.Entry._validate(self)
         for entry in self.end_entries:
             assert isinstance(entry, bdec.entry.Entry), "%s isn't an entry instance!" % str(entry)
 
