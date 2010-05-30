@@ -83,13 +83,13 @@ def _resolve(decoder, references, lookup):
     _validate_parameters([decoder] + common, lookup)
     return decoder, common
 
-def load(filename, spec=None, format=None):
+def load(filename, contents=None, format=None):
     """Load a specification from disk.
 
     Raises LoadError on error.
 
     filename -- The filename of the specification.
-    spec -- String or file object of the specification to load. If None,
+    contents -- String or file object of the specification to load. If None,
         it will load the spec from disk.
     format -- The type of the specification; eg: xml, asn1. If None, the name
         will be taken from the extension of the filename.
@@ -99,10 +99,10 @@ def load(filename, spec=None, format=None):
     from bdec.spec.references import References
     import bdec.spec.xmlspec as xmlspec
 
-    if spec is None:
-        specfile = open(filename, 'r')
-    elif isinstance(spec, basestring):
-        specfile = StringIO(spec)
+    if contents is None:
+        contents = open(filename, 'r')
+    elif isinstance(contents, basestring):
+        contents = StringIO(contents)
 
     if format is None:
         format = os.path.splitext(filename)[1][1:]
@@ -114,6 +114,7 @@ def load(filename, spec=None, format=None):
         raise LoadError("Unknown specification format '%s'!" % filename)
 
     references = References()
-    decoder, lookup = loader.load(filename, specfile, references)
+    decoder, lookup = loader.load(filename, contents, references)
     decoder, common = _resolve(decoder, references, lookup)
     return decoder, common, lookup
+
