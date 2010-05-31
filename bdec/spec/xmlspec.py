@@ -27,13 +27,13 @@ import bdec.entry as ent
 import bdec.expression as exp
 import bdec.field as fld
 import bdec.inspect.param as prm
-from bdec.spec import LoadError
+from bdec.spec import LoadErrorWithLocation
 from bdec.spec.references import ReferencedEntry
 from bdec.spec.integer import Integers, IntegerError
 import bdec.sequence as seq
 import bdec.sequenceof as sof
 
-class XmlSpecError(LoadError):
+class XmlSpecError(LoadErrorWithLocation):
     pass
 
 class XmlError(XmlSpecError):
@@ -210,11 +210,11 @@ class _Handler(xml.sax.handler.ContentHandler):
             self._references.add_common(entry)
 
     def _protocol(self, attributes, children, name, length, breaks):
-        if len(children) != 1:
-            raise self._error("Protocol should have a single entry to be decoded!")
-
         # Add the used integer entries to the specification
-        self.decoder = children[0]
+        if children:
+            self.decoder = children[0]
+        else:
+            self.decoder = None
         for entry in self._integers.common.values():
             self._references.add_common(entry)
 

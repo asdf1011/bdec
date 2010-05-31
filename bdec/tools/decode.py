@@ -25,7 +25,7 @@ import bdec
 import bdec.data as dt
 import bdec.inspect.param
 import bdec.output.xmlout as xmlout
-from bdec.spec import load
+from bdec.spec import load_specs
 
 def usage(program):
     print 'Decode standard input to xml given a bdec specification.'
@@ -39,14 +39,16 @@ def usage(program):
     print '  -f <filename>  Decode from filename instead of stdin.'
     print '  -h             Print this help.'
     print '  -l             Log status messages.'
+    print '  --main=<name>  Specify the entry to be used as the decoder.'
     print '  --verbose      Include hidden entries and raw data in the decoded output.'
     print '  -V             Print the version of the bdec compiler.'
 
 def _parse_args():
     verbose = False
     binary = sys.stdin
+    main_spec = None
     try:
-        opts, args = getopt.getopt(sys.argv[1:], 'f:hlV', 'verbose')
+        opts, args = getopt.getopt(sys.argv[1:], 'f:hlV', ['main=', 'verbose'])
     except getopt.GetoptError, ex:
         sys.exit("%s\nSee '%s -h' for correct usage." % (ex, sys.argv[0]))
     for opt, arg in opts:
@@ -55,6 +57,8 @@ def _parse_args():
         elif opt == '-h':
             usage(sys.argv[0])
             sys.exit(0)
+        elif opt == '--main':
+            main_spec = arg
         elif opt == '--verbose':
             verbose = True
         elif opt == "-l":
@@ -67,18 +71,14 @@ def _parse_args():
 
     if len(args) == 0:
         sys.exit("Missing arguments! See '%s -h' for more info." % sys.argv[0])
-    elif len(args) > 1:
-        sys.exit('Too many arguments!')
 
-    spec = args[0]
-
-    return (spec, binary, verbose)
+    return (main_spec, args, binary, verbose)
 
 
 def main():
-    spec, binary, verbose = _parse_args()
+    main_spec, specs, binary, verbose = _parse_args()
     try:
-        decoder, common, lookup = load(spec)
+        decoder, common, lookup = load_specs([(s, None, None) for s in specs], main_spec)
     except bdec.spec.LoadError, ex:
         sys.exit(str(ex))
 

@@ -59,7 +59,7 @@ class ReferencedEntry:
         self._parents.add(parent)
 
     def __repr__(self):
-        result = "ref name='%s'" % (id(self), self.name)
+        result = "ref name='%s'" % self.name
         if self.name != self.type:
             result += " type='%s'" % self.type
         return result
@@ -84,6 +84,9 @@ class References:
         result = ReferencedEntry(name, type)
         self._unresolved_references.append(result)
         return result
+
+    def get_names(self):
+        return [e.name for e in self._common]
 
     def add_common(self, entry):
         """Add a common entry that will be resolvable."""

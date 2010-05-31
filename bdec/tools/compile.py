@@ -21,29 +21,23 @@ import mako.exceptions
 import os
 import sys
 
-import bdec.spec.xmlspec
+from bdec.spec import load_specs
 import bdec.compiler
 
-def _load_spec(filename):
-    """Load the protocol specification. """
-    try:
-        decoder, common, lookup = bdec.spec.xmlspec.load(filename)
-    except bdec.spec.LoadError, ex:
-        sys.exit(str(ex))
-    return decoder, common, lookup
 
 def usage(program):
     print 'Compile bdec specifications into language specific decoders.'
     print 'Usage:'
-    print '   %s [options] <spec_filename> [output_dir]' % program
+    print '   %s [options] <spec_filename> [spec_filename] ...' % program
     print
     print 'Arguments:'
     print '   spec_filename -- The filename of the specification to be compiled.'
-    print '   output_dir -- The directory to save the generated source code. If'
-    print '       not specified the current working directory will be used.'
     print
     print 'Options:'
     print '  -h                Print this help.'
+    print '  -d <directory>    Directory to save the generated source code. Defaults'
+    print '                    to %s.' % os.getcwd()
+    print '  --main=<name>     Specify the entry to be use as the default decoder.'
     print '  --template=<name> Set the template to compile. If there is a directory'
     print '                    with the specified name, it will be used as the'
     print '                    template directory. Otherwise it will use the internal'
@@ -53,15 +47,21 @@ def usage(program):
 
 def main():
     try:
-        opts, args = getopt.getopt(sys.argv[1:], 'hV', 'template=')
+        opts, args = getopt.getopt(sys.argv[1:], 'd:hV', ['main=', 'template='])
     except getopt.GetoptError, ex:
         sys.exit("%s.\nRun '%s -h' for correct usage." % (ex, sys.argv[0]))
 
+    main_spec = None
     template_dir = None
+    outputdir = os.getcwd()
     for opt, arg in opts:
-        if opt == '-h':
+        if opt == '-d':
+            outputdir = arg
+        elif opt == '-h':
             usage(sys.argv[0])
             sys.exit(0)
+        elif opt == '--main':
+            main_spec = arg
         elif opt == '-V':
             print bdec.__version__
             sys.exit(0)
@@ -70,24 +70,22 @@ def main():
                 template_dir = bdec.compiler.FilesystemTemplate(arg)
             else:
                 template_dir = bdec.compiler.BuiltinTemplate(arg)
+        elif opt == '--main':
+            main_spec = arg
         else:
             assert False, 'Unhandled option %s!' % opt
 
-    if len(args) not in [1, 2]:
-        sys.exit('Usage: %s [options] <spec_filename> [output_dir]' % sys.argv[0])
-
-    spec, common, lookup = _load_spec(args[0])
-    if len(args) == 2:
-        outputdir = args[1]
-    else:
-        outputdir = os.getcwd()
+    try:
+        spec, common, lookup = load_specs([(s, None, None) for s in args], main_spec)
+    except bdec.spec.LoadError, ex:
+        sys.exit(str(ex))
 
     if template_dir is None:
         template_dir = bdec.compiler.BuiltinTemplate('c')
 
     try:
         templates = bdec.compiler.load_templates(template_dir)
-        bdec.compiler.generate_code(spec, templates, outputdir, common.itervalues())
+        bdec.compiler.generate_code(spec, templates, outputdir, common)
     except:
         sys.exit(mako.exceptions.text_error_template().render())
 

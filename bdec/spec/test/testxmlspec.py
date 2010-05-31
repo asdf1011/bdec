@@ -30,12 +30,12 @@ import bdec.field as fld
 import bdec.output.instance as inst
 import bdec.sequence as seq
 import bdec.sequenceof as sof
-from bdec.spec import load, ReferenceError
+from bdec.spec import load_specs, ReferenceError, UnspecifiedMainEntry
 import bdec.spec.xmlspec as xml
 from bdec.test.decoders import assert_xml_equivalent
 
 def loads(text):
-    return load('<string>', text, 'xml')
+    return load_specs([('<string>', text, 'xml')])
 
 class TestXml(unittest.TestCase):
     def test_simple_field(self):
@@ -948,6 +948,77 @@ class TestXml(unittest.TestCase):
                 "unknown entry 'unknown'!\n"
                 "  <string>[3]: choice 'optional a'",
                     str(ex))
+
+    def test_cross_specification_references(self):
+        # Test that we can reference entries between specifications
+        a = '''
+            <protocol>
+                <sequence name="a">
+                    <reference name="b" />
+                </sequence>
+            </protocol>'''
+        b = '''
+            <protocol>
+                <common>
+                    <field name="b" length="8" type="integer" />
+                </common>
+            </protocol>'''
+        spec, common, lookup = load_specs([('<string a>', a, 'xml'), ('<string b>', b, 'xml')])
+        data = dt.Data('\x0a')
+        items = list(spec.decode(data))
+        self.assertEquals(4, len(items))
+        self.assertEquals(10, items[-2][-1])
+
+    def test_error_with_multiple_decoders(self):
+        # We should get an error when multiple specifications have the top
+        # level decoder, but we don't specify it.
+        a = '''
+            <protocol>
+                <sequence name="a" />
+            </protocol>'''
+        b = '''
+            <protocol>
+                <sequence name="b" />
+            </protocol>'''
+        try:
+            load_specs([('<string a>', a, 'xml'), ('<string b>', b, 'xml')])
+            self.fail("Should have failed to load the spec, but didn't!")
+        except UnspecifiedMainEntry, ex:
+            self.assertEqual('No main entry specified! Entry must be one of:\n  a\n  b', str(ex))
+
+    def test_no_main_decoder(self):
+        a = '<protocol ><common><sequence name="a" /></common></protocol>'
+        try:
+            load_specs([('<string a>', a, 'xml')])
+            self.fail("Should have failed to load the spec, but didn't!")
+        except UnspecifiedMainEntry, ex:
+            self.assertEqual('No main entry specified! Entry must be one of:\n  a', str(ex))
+
+    def test_choosing_main_decoder(self):
+        # Test that we can choose the main decoder when multiple options
+        # exist.
+        a = '''
+            <protocol>
+                <sequence name="a" />
+            </protocol>'''
+        b = '''
+            <protocol>
+                <sequence name="b" />
+            </protocol>'''
+        spec, common, lookup = load_specs([('<string a>', a, 'xml'), ('<string b>', b, 'xml')], 'b')
+        self.assertEqual('b', spec.name)
+
+    def test_unknown_main_decoder(self):
+        a = '''
+            <protocol>
+                <sequence name="a" />
+            </protocol>'''
+        try:
+            # The user specifies a decoder that doesn't exist....
+            load_specs([('<string a>', a, 'xml')], 'missing')
+            self.fail('Oh dang. Should have failed.')
+        except ReferenceError, ex:
+            self.assertEqual("unknown[0]: Reference to unknown entry 'missing'!", str(ex))
 
 
 class TestSave(unittest.TestCase):
