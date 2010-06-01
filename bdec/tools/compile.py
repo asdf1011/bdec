@@ -38,6 +38,8 @@ def usage(program):
     print '  -d <directory>    Directory to save the generated source code. Defaults'
     print '                    to %s.' % os.getcwd()
     print '  --main=<name>     Specify the entry to be use as the default decoder.'
+    print '  --remove-unused   Remove any entries that are not referenced from the'
+    print '                    main entry.'
     print '  --template=<name> Set the template to compile. If there is a directory'
     print '                    with the specified name, it will be used as the'
     print '                    template directory. Otherwise it will use the internal'
@@ -47,13 +49,14 @@ def usage(program):
 
 def main():
     try:
-        opts, args = getopt.getopt(sys.argv[1:], 'd:hV', ['main=', 'template='])
+        opts, args = getopt.getopt(sys.argv[1:], 'd:hV', ['main=', 'remove-unused', 'template='])
     except getopt.GetoptError, ex:
         sys.exit("%s.\nRun '%s -h' for correct usage." % (ex, sys.argv[0]))
 
     main_spec = None
     template_dir = None
     outputdir = os.getcwd()
+    should_remove_unused = False
     for opt, arg in opts:
         if opt == '-d':
             outputdir = arg
@@ -65,6 +68,8 @@ def main():
         elif opt == '-V':
             print bdec.__version__
             sys.exit(0)
+        elif opt == '--remove-unused':
+            should_remove_unused = True
         elif opt == '--template':
             if os.path.exists(arg):
                 template_dir = bdec.compiler.FilesystemTemplate(arg)
@@ -76,7 +81,7 @@ def main():
             assert False, 'Unhandled option %s!' % opt
 
     try:
-        spec, common, lookup = load_specs([(s, None, None) for s in args], main_spec)
+        spec, common, lookup = load_specs([(s, None, None) for s in args], main_spec, should_remove_unused)
     except bdec.spec.LoadError, ex:
         sys.exit(str(ex))
 

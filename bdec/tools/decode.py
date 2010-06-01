@@ -36,19 +36,22 @@ def usage(program):
     print '   spec_filename -- The filename of the specification to be compiled.'
     print
     print 'Options:'
-    print '  -f <filename>  Decode from filename instead of stdin.'
-    print '  -h             Print this help.'
-    print '  -l             Log status messages.'
-    print '  --main=<name>  Specify the entry to be used as the decoder.'
-    print '  --verbose      Include hidden entries and raw data in the decoded output.'
-    print '  -V             Print the version of the bdec compiler.'
+    print '  -f <filename>     Decode from filename instead of stdin.'
+    print '  -h                Print this help.'
+    print '  -l                Log status messages.'
+    print '  --main=<name>     Specify the entry to be used as the decoder.'
+    print '  --remove-unused   Remove any entries that are not referenced from the main'
+    print '                    entry.'
+    print '  --verbose         Include hidden entries and raw data in the decoded output.'
+    print '  -V                Print the version of the bdec compiler.'
 
 def _parse_args():
     verbose = False
     binary = sys.stdin
     main_spec = None
+    should_remove_unused = False
     try:
-        opts, args = getopt.getopt(sys.argv[1:], 'f:hlV', ['main=', 'verbose'])
+        opts, args = getopt.getopt(sys.argv[1:], 'f:hlV', ['main=', 'remove-unused', 'verbose'])
     except getopt.GetoptError, ex:
         sys.exit("%s\nSee '%s -h' for correct usage." % (ex, sys.argv[0]))
     for opt, arg in opts:
@@ -61,6 +64,8 @@ def _parse_args():
             main_spec = arg
         elif opt == '--verbose':
             verbose = True
+        elif opt == '--remove-unused':
+            should_remove_unused = True
         elif opt == "-l":
             logging.basicConfig(level=logging.INFO)
         elif opt == '-V':
@@ -72,13 +77,13 @@ def _parse_args():
     if len(args) == 0:
         sys.exit("Missing arguments! See '%s -h' for more info." % sys.argv[0])
 
-    return (main_spec, args, binary, verbose)
+    return (main_spec, args, binary, verbose, should_remove_unused)
 
 
 def main():
-    main_spec, specs, binary, verbose = _parse_args()
+    main_spec, specs, binary, verbose, should_remove_unused = _parse_args()
     try:
-        decoder, common, lookup = load_specs([(s, None, None) for s in specs], main_spec)
+        decoder, common, lookup = load_specs([(s, None, None) for s in specs], main_spec, should_remove_unused)
     except bdec.spec.LoadError, ex:
         sys.exit(str(ex))
 

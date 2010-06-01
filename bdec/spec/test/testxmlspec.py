@@ -1020,6 +1020,18 @@ class TestXml(unittest.TestCase):
         except ReferenceError, ex:
             self.assertEqual("unknown[0]: Reference to unknown entry 'missing'!", str(ex))
 
+    def test_remove_unused(self):
+        text = '''
+            <protocol>
+                <sequence name="a" />
+                <common>
+                  <field name="b" length="${unknown length}" />
+                </common>
+            </protocol> '''
+        self.assertRaises(ReferenceError, load_specs, [('<string>', text, 'xml')], should_remove_unused=False)
+        specs, common, lookup = load_specs([('<string>', text, 'xml')], should_remove_unused=True)
+        self.assertEqual(0, len(common))
+
 
 class TestSave(unittest.TestCase):
     """Test decoding of the xml save functionality.

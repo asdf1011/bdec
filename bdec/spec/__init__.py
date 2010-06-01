@@ -81,7 +81,14 @@ def _validate_parameters(entries, lookup):
         context = [(lookup[e] + (str(e),)) for e in ex.context if ex.entry in lookup]
         raise ReferenceError(ex, ex.entry, lookup, context)
 
-def _resolve(decoder, references, lookup):
+def _walk(entry, entries):
+    if entry in entries:
+        return
+    entries.add(entry)
+    for child in entry.children:
+        _walk(child.entry, entries)
+
+def _resolve(decoder, references, lookup, should_remove_unused):
     from bdec.spec.references import MissingReferenceError
 
     # Resolve all references
@@ -91,6 +98,12 @@ def _resolve(decoder, references, lookup):
     except MissingReferenceError, ex:
         raise ReferenceError(ex, ex.reference, lookup)
     decoder = common.pop()
+
+    if should_remove_unused:
+        # Remove any entries that are unused
+        referenced = set()
+        _walk(decoder, referenced)
+        common = [c for c in common if c in referenced]
 
     _validate_parameters([decoder] + common, lookup)
     return decoder, common
@@ -107,7 +120,7 @@ def _load_spec(filename, contents, format, references):
     decoder, lookup = loader.load(filename, contents, references)
     return decoder, lookup
 
-def load_specs(specs, main_name=None):
+def load_specs(specs, main_name=None, should_remove_unused=False):
     """Load a specification from disk.
 
     When more than one specification is passed in, the entries from each
@@ -126,6 +139,8 @@ def load_specs(specs, main_name=None):
     main_name -- The name of the entry to use as the main decoder. If None,
       there must a single main decoder from the specs loaded (otherwise
       a UnspecifiedMainDecoderError will be thrown).
+    should_remove_unused -- Should the loader remove any entries that are
+      unused by the main decoder.
     return -- (decoder, common, lookup)
     """
     from bdec.spec.references import References
@@ -165,6 +180,6 @@ def load_specs(specs, main_name=None):
             raise UnspecifiedMainEntry([d.name for d in decoders] + references.get_names())
         decoder = decoders[0]
 
-    decoder, common = _resolve(decoder, references, lookup)
+    decoder, common = _resolve(decoder, references, lookup, should_remove_unused)
     return decoder, common, lookup
 
