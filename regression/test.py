@@ -2,7 +2,7 @@ import glob
 import os.path
 import unittest
 
-from bdec.spec import load
+from bdec.spec import load_specs
 from bdec.test.decoders import create_decoder_classes, assert_xml_equivalent
 
 
@@ -28,8 +28,7 @@ class _Regression:
     def _test_spec(self, spec_filename, successes, failures):
         assert successes or failures
 
-        spec, common, lookup = load(spec_filename)
-        common = common.values()
+        spec, common, lookup = load_specs([(spec_filename, None, None)])
         for data_filename in successes:
             expected_xml = None
             expected_filename = '%s.expected.xml' % os.path.splitext(data_filename)[0]

@@ -10,15 +10,15 @@ import unittest
 
 import bdec.data as dt
 import bdec.output.xmlout as xmlout
-import bdec.spec.xmlspec as xmlspec
+from bdec.spec import load_specs
 from bdec.test.decoders import create_decoder_classes 
 
 class _BaseTest(object):
     def _load_spec(self):
         if not hasattr(self, '_spec'):
-            spec, common, lookup = xmlspec.load(self.filename)
+            spec, common, lookup = load_specs([(self.filename, None, None)])
             type(self)._spec = spec
-            type(self)._common = common.values()
+            type(self)._common = common
 
     def _decode(self, filename):
         self._load_spec()

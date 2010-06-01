@@ -1,0 +1,13 @@
+<protocol>
+    <sequence name="sequence referencing choice" value="${choice with invisible value}">
+        <choice name="choice with invisible value">
+            <reference name="unused:" type="int8" expected="0"/>
+            <reference name="one" type="int8" expected="1"/>
+            <reference name="other" type="int8"/>
+        </choice>
+    </sequence>
+    <common>
+        <field name="int8" length="8"/>
+    </common>
+</protocol>
+

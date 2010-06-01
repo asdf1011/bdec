@@ -82,7 +82,8 @@ def _parse_number(s, l, t):
 class _Loader:
     """A class for loading asn1 specifications."""
 
-    def __init__(self, filename):
+    def __init__(self, filename, references):
+        self._references = references
         self._parser, parsers = self._load_ebnf()
 
         # Default for all handlers will be to fail on 'not implemented'. We
@@ -159,7 +160,7 @@ class _Loader:
     def _load_ebnf(self):
         # Load the xml spec that we will use for doing the decoding.
         asn1_filename = os.path.join(os.path.dirname(__file__), '..', '..', 'specs', 'asn1.ber.xml')
-        generic_spec, self._spec, lookup = xmlspec.load(asn1_filename)
+        generic_spec, lookup = xmlspec.load(asn1_filename, file(asn1_filename, 'r'), self._references)
 
         table = {
                 'bstring' : Combine("'" + Word('01') + "'B"),
@@ -226,24 +227,9 @@ class _Loader:
         if tokens:
             raise NotImplementedError('empty', tokens, self.filename, lineno(l, t))
 
-    def _add_common(self, entry):
-        """Add all specification common entries to 'our' common list."""
-        if entry.name not in self._common_entries:
-            if entry.name in self._spec:
-                self._common_entries[entry.name] = entry
-            for child in entry.children:
-                self._add_common(child.entry)
-
     def _common(self, name):
-        """Get a common entry from the specification.
-
-        Stores it in this decoder's 'common' dictionary."""
-        try:
-            return self._common_entries[name]
-        except KeyError:
-            entry = self._spec[name]
-            self._add_common(entry)
-            return entry
+        """Get a common entry from the specification."""
+        return self._references.get_common(name)
 
     def load(self, text):
         """Load a bdec specification from an asn.1 document."""
@@ -254,8 +240,8 @@ class _Loader:
         common = dict((entry.name, entry) for entry in modules)
         common.update(self._common_entries)
         for module in common.values():
-            module.validate()
-        return modules[0], common, {}
+            self._references.add_common(module)
+        return modules[0], {}
 
     def _create_constructed(self, name, tag, children):
         """Create a constructed entry.
@@ -310,12 +296,10 @@ class _Loader:
         return toks[0], toks[4:-1]
 
 
-def loads(text, filename=None):
-    return _Loader(filename).load(text)
+def loads(text, filename, references):
+    return _Loader(filename, references).load(text)
 
-def load(filename):
-    data = open(filename, 'r')
-    text = data.read()
-    data.close()
-    return loads(text, filename)
+def load(filename, specfile, references):
+    text = specfile.read()
+    return loads(text, filename, references)
 

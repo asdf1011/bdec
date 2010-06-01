@@ -1,3 +1,14 @@
+Devel
+-----
+
+Backwards incompatible changes:
+
+* The 'bdecode' command now takes the file to decode though the '-f'
+  option, not as the second argument.
+* The 'bcompile' command now takes the output directory through the '-d'
+  option, not as the second argument.
+
+
 0.6.2 (2010-02-02)
 ------------------
 

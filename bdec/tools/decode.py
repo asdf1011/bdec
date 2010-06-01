@@ -25,36 +25,47 @@ import bdec
 import bdec.data as dt
 import bdec.inspect.param
 import bdec.output.xmlout as xmlout
-from bdec.spec import load
+from bdec.spec import load_specs
 
 def usage(program):
-    print 'Decode a file given a bdec specification to xml.'
+    print 'Decode standard input to xml given a bdec specification.'
     print 'Usage:'
-    print '   %s [options] <spec_filename> [data_filename]' % program
+    print '   %s [options] <spec_filename>' % program
     print
     print 'Arguments:'
     print '   spec_filename -- The filename of the specification to be compiled.'
-    print '   data_filename -- The file we want to decode. If not specified, it '
-    print '       will decode the data from stdin.'
     print
     print 'Options:'
-    print '  -h         Print this help.'
-    print '  -l         Log status messages.'
-    print '  --verbose  Include hidden entries and raw data in the decoded output.'
-    print '  -V         Print the version of the bdec compiler.'
+    print '  -f <filename>     Decode from filename instead of stdin.'
+    print '  -h                Print this help.'
+    print '  -l                Log status messages.'
+    print '  --main=<name>     Specify the entry to be used as the decoder.'
+    print '  --remove-unused   Remove any entries that are not referenced from the main'
+    print '                    entry.'
+    print '  --verbose         Include hidden entries and raw data in the decoded output.'
+    print '  -V                Print the version of the bdec compiler.'
 
 def _parse_args():
     verbose = False
+    binary = sys.stdin
+    main_spec = None
+    should_remove_unused = False
     try:
-        opts, args = getopt.getopt(sys.argv[1:], 'hlV', 'verbose')
+        opts, args = getopt.getopt(sys.argv[1:], 'f:hlV', ['main=', 'remove-unused', 'verbose'])
     except getopt.GetoptError, ex:
         sys.exit("%s\nSee '%s -h' for correct usage." % (ex, sys.argv[0]))
     for opt, arg in opts:
-        if opt == '-h':
+        if opt == '-f':
+            binary = open(arg, 'rb')
+        elif opt == '-h':
             usage(sys.argv[0])
             sys.exit(0)
+        elif opt == '--main':
+            main_spec = arg
         elif opt == '--verbose':
             verbose = True
+        elif opt == '--remove-unused':
+            should_remove_unused = True
         elif opt == "-l":
             logging.basicConfig(level=logging.INFO)
         elif opt == '-V':
@@ -63,25 +74,16 @@ def _parse_args():
         else:
             assert 0, 'Unhandled option %s!' % opt
 
-    binary = None
     if len(args) == 0:
-        sys.exit("Usage: %s [options] <spec_filename> [data_filename]" % sys.argv[0])
-    elif len(args) == 1:
-        binary = sys.stdin
-    elif len(args) == 2:
-        binary = file(args[1], 'rb')
-    else:
-        sys.exit('Too many arguments!')
-    spec = args[0]
+        sys.exit("Missing arguments! See '%s -h' for more info." % sys.argv[0])
 
-    return (spec, binary, verbose)
+    return (main_spec, args, binary, verbose, should_remove_unused)
 
 
 def main():
-    spec, binary, verbose = _parse_args()
+    main_spec, specs, binary, verbose, should_remove_unused = _parse_args()
     try:
-        decoder, common, lookup = load(spec)
-        bdec.spec.validate_no_input_params(decoder, lookup)
+        decoder, common, lookup = load_specs([(s, None, None) for s in specs], main_spec, should_remove_unused)
     except bdec.spec.LoadError, ex:
         sys.exit(str(ex))
 

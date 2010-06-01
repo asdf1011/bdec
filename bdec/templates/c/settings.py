@@ -221,6 +221,15 @@ def _passed_variables(entry, child_index):
         except KeyError:
             yield param
 
+def is_pointer(name, entry):
+    """Check to see if a variable is a pointer (ie: an output parameter)"""
+    return name in (p.name for p in get_params(entry) if p.direction == p.OUT)
+
+def _value_ref(name, entry):
+    if is_pointer(name, entry):
+        return '*%s' % name
+    return name
+
 def call_params(parent, i, result_name):
     # How we should reference the variable passed to the child is from the
     # following table;
@@ -232,26 +241,22 @@ def call_params(parent, i, result_name):
     #         Output param |   *name    |    name     |
     #                       --------------------------
     result = ""
-    locals = list(local.name for local in local_variables(parent))
-    params = dict((param.name, param.direction) for param in get_params(parent))
     for param in _passed_variables(parent, i):
         if param.direction is param.OUT and param.name == 'unknown':
             result += ', %s' % result_name
-        elif param.name in locals or params[param.name] == param.IN:
-            if param.direction == param.IN:
+        elif param.direction == param.IN:
+            result += ', %s' % _value_ref(param.name, entry)
+        else:
+            if is_pointer(param.name, parent):
                 result += ", %s" % param.name
             else:
                 result += ", &%s" % param.name
-        else:
-            if param.direction == param.IN:
-                result += ", *%s" % param.name
-            else:
-                result += ", %s" % param.name
     return result
 
 
 _OPERATORS = {
         operator.__div__ : '/', 
+        operator.__mod__ : '%',
         operator.__mul__ : '*',
         operator.__sub__ : '-',
         operator.__add__ : '+',
@@ -275,9 +280,9 @@ def value(entry, expr):
           return "%iL" % expr.value
       return int(expr.value)
   elif isinstance(expr, ValueResult):
-      return local_name(entry, expr.name)
+      return _value_ref(local_name(entry, expr.name), entry)
   elif isinstance(expr, LengthResult):
-      return local_name(entry, expr.name + ' length')
+      return _value_ref(local_name(entry, expr.name + ' length'), entry)
   elif isinstance(expr, Delayed):
       left = value(entry, expr.left)
       right = value(entry, expr.right)

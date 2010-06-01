@@ -47,7 +47,7 @@ We start by creating a new xml document, named png.xml::
 Now we can try running 'decode', giving the specification and the file to 
 decode. ::
 
-  bdecode png.xml white.png  
+  bdecode -f white.png png.xml
 
 Which gives the results::
 

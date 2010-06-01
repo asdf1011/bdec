@@ -148,6 +148,7 @@ class Entry(object):
     def _get_children(self):
         return self._children
     def _set_children(self, children):
+        from bdec.spec.references import ReferencedEntry
         items = []
         for child in children:
             if isinstance(child, Child):
@@ -156,17 +157,19 @@ class Entry(object):
                 # For convenience in the tests, we allow the children to be
                 # assigned an array of Entry instances.
                 items.append(Child(child.name, child))
+            if isinstance(items[-1].entry, ReferencedEntry):
+                items[-1].entry.add_parent(items[-1])
         self._children = tuple(items)
     children = property(_get_children, _set_children)
 
-    def validate(self):
+    def _validate(self):
         if self._decoder is None:
             from bdec.decode import Decoder
             self._decoder = Decoder(self)
 
     def decode(self, data, context={}, name=None):
         """ Shortcut to bdec.decode.Decoder(self) """
-        self.validate()
+        self._validate()
         return self._decoder.decode(data, context, name)
 
     def _get_context(self, query, parent):

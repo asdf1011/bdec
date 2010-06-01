@@ -506,7 +506,7 @@ ${static}void ${settings.print_name(entry)}(unsigned int offset, const char* nam
         <% copy_name = variable('copy of ' + entry.name) %>
         <% iter_name = variable(entry.name + ' whitespace counter') %>
         %if settings.is_numeric(settings.ctype(entry)):
-          <% length = int(settings.value(entry, entry.length)) %>
+          <% length = EntryLengthType(entry).range(raw_params).min %>
     BitBuffer ${copy_name} = {data, 8 - ${length}, ${length}};
         %else:
     BitBuffer ${copy_name} = *data;

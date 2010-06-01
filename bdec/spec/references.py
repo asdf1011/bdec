@@ -19,8 +19,12 @@
 from bdec.entry import Entry, Child
 
 class MissingReferenceError(Exception):
-    def __init__(self, name):
-        self.name = name
+    def __init__(self, reference):
+        self.reference = reference
+        self.name = reference.type
+
+    def __str__(self):
+        return "Reference to unknown entry '%s'!" % self.name
 
 
 class ReferencedEntry:
@@ -38,31 +42,27 @@ class ReferencedEntry:
         """
         self.name = name
         self.type = type
-        self._parent = None
+        self._parents = set()
 
     def resolve(self, entry):
-        assert self._parent is not None, 'Missing parent when resolving %s' % self
         assert isinstance(entry, Entry)
+        for parent in self._parents:
+            parent.entry = entry
 
-        # Replace the child entry in the children list
-        for i, child in enumerate(self._parent.children):
-            if child.entry is self:
-                child.entry = entry
-                return
-        assert False, 'Failed to find entry %s in %s!' % (entry, self._parent)
-
-    def set_parent(self, parent):
+    def add_parent(self, parent):
         """Set the parent of this referenced entry.
 
-        parent -- A list of bdec.entry.Child instances. When resolving, this
+        parent -- A bdec.entry.Entry instances. When resolving, this entry's child
         list is assumed include self, which will be replaced with the 'correct'
         entry."""
-        assert self._parent is None, 'Parent has already been set to %s, '\
-                'asked to set to %s' % (self._parent, parent)
-        self._parent = parent
+        assert isinstance(parent, Child)
+        self._parents.add(parent)
 
     def __repr__(self):
-        return "ref name='%s' type='%s'" % (self.name, self.type)
+        result = "ref name='%s'" % self.name
+        if self.name != self.type:
+            result += " type='%s'" % self.type
+        return result
 
 
 class References:
@@ -72,8 +72,9 @@ class References:
     that haven't been defined yet. """
     def __init__(self):
         self._unresolved_references = []
+        self._common = []
 
-    def get_common(self, name, type):
+    def get_common(self, name, type=None):
         """Get a named common entry.
 
         Will return a ReferencedEntry instance, which will be replaced with
@@ -84,28 +85,32 @@ class References:
         self._unresolved_references.append(result)
         return result
 
-    def resolve(self, common):
+    def get_names(self):
+        return [e.name for e in self._common]
+
+    def add_common(self, entry):
+        """Add a common entry that will be resolvable."""
+        self._common.append(entry)
+
+    def resolve(self):
         """ Resolve all references that are in the common list.
 
         Will throw a MissingReferenceError if a referenced entry cannot be
-        found.
-
-        common - A list of entry instances, where each entry may be a
-            referenced entry. All previously referenced items will be looked
-            for in this list."""
+        found. """
         # First we find any references in the common list itself.
-        lookup = dict((e.name, e) for e in common if not isinstance(e, ReferencedEntry))
-        common_references = [e for e in common if isinstance(e, ReferencedEntry)]
+        lookup = dict((e.name, e) for e in self._common if not isinstance(e, ReferencedEntry))
+        common_references = [e for e in self._common if isinstance(e, ReferencedEntry)]
         for ref in common_references:
             try:
                 entry = lookup[ref.type]
             except KeyError:
-                raise MissingReferenceError(ref.type)
+                raise MissingReferenceError(ref)
             if isinstance(entry, ReferencedEntry):
                 raise NotImplementedError("References to references not fully " \
                         "supported for '%s'; try putting the referenced item " \
                         "'%s' first." % (ref.name, ref.type))
             lookup[ref.name] = entry
+            ref.resolve(entry)
             self._unresolved_references.remove(ref)
 
         # Note the we don't iterate over the unresolved references, as the
@@ -115,10 +120,10 @@ class References:
             try:
                 entry = lookup[reference.type]
             except KeyError:
-                raise MissingReferenceError(reference.type)
+                raise MissingReferenceError(reference)
 
             assert isinstance(entry, Entry)
             reference.resolve(entry)
         for entry in lookup.values():
             assert isinstance(entry, Entry)
-        return [lookup[c.name] for c in common]
+        return [lookup[c.name] for c in self._common]

@@ -39,7 +39,7 @@ def _constant_range(constant, entry, parameters):
 def _get_param(entry, name, parameters):
     """Get the parameter 'input' to entry with a given name."""
     for param in parameters.get_params(entry):
-        if param.name == name:
+        if param.name == name and param.direction == param.IN:
             return param
     # The param wasn't passed _into_ this entry; check to see if it comes out
     # of one of its children...
