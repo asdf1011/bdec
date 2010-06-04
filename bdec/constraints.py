@@ -101,7 +101,7 @@ class NotEquals:
         if not isinstance(expected, Expression):
             expected = Constant(expected)
         self.limit = expected
-        self.type = '!='
+        self.type = '=='
 
     def check(self, entry, value, context):
         expected = self.limit.evaluate(context)
