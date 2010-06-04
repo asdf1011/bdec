@@ -245,7 +245,7 @@ def call_params(parent, i, result_name):
         if param.direction is param.OUT and param.name == 'unknown':
             result += ', %s' % result_name
         elif param.direction == param.IN:
-            result += ', %s' % _value_ref(param.name, entry)
+            result += ', %s' % _value_ref(param.name, parent)
         else:
             if is_pointer(param.name, parent):
                 result += ", %s" % param.name
