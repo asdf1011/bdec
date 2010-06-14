@@ -156,7 +156,7 @@ class _EntryInfo(prm.CompoundParameters):
     def get_passed_variables(self, entry, child):
         names = self._get_name_map(entry)
         for param in prm.CompoundParameters.get_passed_variables(self, entry, child):
-            if param.name == 'unknown':
+            if param.name == prm.MAGIC_UNKNOWN_NAME:
                 name = param.name
             else:
                 name = names[param.name]

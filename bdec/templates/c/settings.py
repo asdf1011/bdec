@@ -24,7 +24,7 @@ from bdec.entry import Entry
 import bdec.field as fld
 import bdec.sequence as seq
 from bdec.expression import Delayed, ValueResult, LengthResult, Constant
-from bdec.inspect.param import Local, Param
+from bdec.inspect.param import Local, Param, MAGIC_UNKNOWN_NAME
 from bdec.inspect.type import EntryLengthType, EntryValueType, IntegerType, EntryType, expression_range
 
 keywords=['char', 'int', 'short', 'long', 'float', 'if', 'then', 'else', 'struct', 'for', 'null', 'value', 'signed', 'true', 'false']
@@ -242,7 +242,7 @@ def call_params(parent, i, result_name):
     #                       --------------------------
     result = ""
     for param in _passed_variables(parent, i):
-        if param.direction is param.OUT and param.name == 'unknown':
+        if param.direction is param.OUT and param.name == MAGIC_UNKNOWN_NAME:
             result += ', %s' % result_name
         elif param.direction == param.IN:
             result += ', %s' % _value_ref(param.name, parent)

@@ -36,6 +36,7 @@ import bdec.expression as expr
 from bdec.inspect.type import VariableType, IntegerType, MultiSourceType, \
         EntryType, EntryValueType, EntryLengthType, ShouldEndType
 
+MAGIC_UNKNOWN_NAME = 'magic unknown param'
 
 class BadReferenceError(bdec.DecodeError):
     def __init__(self, entry, context=[]):
@@ -653,7 +654,7 @@ class ResultParameters(_Parameters):
         if not self._checker.child_has_data(child):
             # A visible common entry has been hidden locally.
             return [Param('unused %s' % child.name, Param.OUT, EntryType(child.entry))]
-        return [Param('unknown', Param.OUT, EntryType(child.entry))]
+        return [Param(MAGIC_UNKNOWN_NAME, Param.OUT, EntryType(child.entry))]
 
 
 class CompoundParameters(_Parameters):
