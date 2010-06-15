@@ -34,7 +34,7 @@ def usage(program):
     print '   spec_filename -- The filename of the specification to be compiled.'
     print
     print 'Options:'
-    print '  -h                Print this help.'
+    print '  -h, --help        Print this help.'
     print '  -d <directory>    Directory to save the generated source code. Defaults'
     print '                    to %s.' % os.getcwd()
     print '  --main=<name>     Specify the entry to be use as the default decoder.'
@@ -49,7 +49,7 @@ def usage(program):
 
 def main():
     try:
-        opts, args = getopt.getopt(sys.argv[1:], 'd:hV', ['main=', 'remove-unused', 'template='])
+        opts, args = getopt.getopt(sys.argv[1:], 'd:hV', ['help', 'main=', 'remove-unused', 'template='])
     except getopt.GetoptError, ex:
         sys.exit("%s.\nRun '%s -h' for correct usage." % (ex, sys.argv[0]))
 
@@ -60,7 +60,7 @@ def main():
     for opt, arg in opts:
         if opt == '-d':
             outputdir = arg
-        elif opt == '-h':
+        elif opt in ['-h', '--help']:
             usage(sys.argv[0])
             sys.exit(0)
         elif opt == '--main':

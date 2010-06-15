@@ -37,7 +37,7 @@ def usage(program):
     print
     print 'Options:'
     print '  -f <filename>     Decode from filename instead of stdin.'
-    print '  -h                Print this help.'
+    print '  -h, --help        Print this help.'
     print '  -l                Log status messages.'
     print '  --main=<name>     Specify the entry to be used as the decoder.'
     print '  --remove-unused   Remove any entries that are not referenced from the main'
@@ -51,13 +51,13 @@ def _parse_args():
     main_spec = None
     should_remove_unused = False
     try:
-        opts, args = getopt.getopt(sys.argv[1:], 'f:hlV', ['main=', 'remove-unused', 'verbose'])
+        opts, args = getopt.getopt(sys.argv[1:], 'f:hlV', ['help', 'main=', 'remove-unused', 'verbose'])
     except getopt.GetoptError, ex:
         sys.exit("%s\nSee '%s -h' for correct usage." % (ex, sys.argv[0]))
     for opt, arg in opts:
         if opt == '-f':
             binary = open(arg, 'rb')
-        elif opt == '-h':
+        elif opt in ['-h', '--help']:
             usage(sys.argv[0])
             sys.exit(0)
         elif opt == '--main':
