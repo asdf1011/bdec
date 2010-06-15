@@ -1,0 +1,6 @@
+<protocol>
+    <choice>
+        <field name="a" length="8" type="integer" />
+    </choice>
+</protocol>
+

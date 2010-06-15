@@ -469,7 +469,7 @@ ${settings.print_name(child.entry)}(offset + ${offset}, ${'"%s"' % xmlname(child
 
 <%def name="recursivePrint(entry, is_static)" buffered="True">
 %for child in entry.children:
-  %if not is_hidden(child.name) and  child.entry not in common:
+  %if not is_hidden(entry.name) and not is_hidden(child.name) and  child.entry not in common:
 ${recursivePrint(child.entry, True)}
   %endif
 %endfor
