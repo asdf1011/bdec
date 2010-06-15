@@ -573,12 +573,14 @@ ${static}void ${settings.print_name(entry)}(unsigned int offset, const char* nam
     %elif isinstance(entry, SequenceOf):
     ${print_whitespace()}
     printf(${'"<%s>\\n"'}, name);
+      %if child_contains_data(entry.children[0]):
         <% iter_name = variable(entry.name + ' counter') %>
     unsigned int ${iter_name};
     for (${iter_name} = 0; ${iter_name} < data->count; ++${iter_name})
     {
         ${print_child(entry.children[0], '&data->items[%s]' % (iter_name))|ws(8)}
     }
+      %endif
     ${print_whitespace()}
     printf(${'"</%s>\\n"'}, name);
     %else:
