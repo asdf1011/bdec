@@ -33,7 +33,7 @@ class TestConstraint(unittest.TestCase):
            min.check(field, 7, {})
            raise Exception('Minimum constraint failed!')
         except DecodeError, ex:
-           expected = "binary 'a' constaint failed; 7 < 8"
+           expected = "Expected ${a} >= 8; got 7"
            self.assertEqual(expected, str(ex)) 
 
     def test_maximum(self):
@@ -45,7 +45,7 @@ class TestConstraint(unittest.TestCase):
            min.check(field, 9, {})
            raise Exception('Maximum constraint failed!')
         except DecodeError, ex:
-           expected = "binary 'a' constaint failed; 9 > 8"
+           expected = "Expected ${a} <= 8; got 9"
            self.assertEqual(expected, str(ex)) 
 
     def test_equals(self):
@@ -56,5 +56,5 @@ class TestConstraint(unittest.TestCase):
             min.check(field, 'dog', {})
             raise Exception('Maximum constraint failed!')
         except DecodeError, ex:
-            expected = "binary 'a' constaint failed; dog != cat"
+            expected = "Expected ${a} == cat; got dog"
             self.assertEqual(expected, str(ex)) 

@@ -26,10 +26,13 @@ from bdec.inspect.range import Range
 class ConstraintError(DecodeError):
     def __init__(self, entry, actual, comparison, limit):
         DecodeError.__init__(self, entry)
-        self._error = '%s %s %s' % (str(actual), comparison, str(limit))
+        self._comparision = comparison
+        self._expected = limit
+        self._actual = actual
 
     def __str__(self):
-        return '%s constaint failed; %s' % (self.entry, self._error)
+        return 'Expected ${%s} %s %s; got %s' % (self.entry.name,
+                self._comparision, self._expected, self._actual)
 
 def _limit(expression):
     try:
@@ -51,7 +54,7 @@ class Minimum:
             # It is useful to check the bounds of a text character...
             value = ord(value)
         if int(value) < expected:
-            raise ConstraintError(entry, int(value), '<', expected)
+            raise ConstraintError(entry, int(value), '>=', expected)
 
     def range(self):
         return Range(_limit(self.limit), None)
@@ -70,7 +73,7 @@ class Maximum:
             # It is useful to check the bounds of a text character...
             value = ord(value)
         if int(value) > expected:
-            raise ConstraintError(entry, int(value), '>', expected)
+            raise ConstraintError(entry, int(value), '<=', expected)
 
     def range(self):
         return Range(None, _limit(self.limit))
@@ -87,7 +90,7 @@ class Equals:
         expected = self.limit.evaluate(context)
         if isinstance(expected, int):
             if int(value) !=  expected:
-                raise ConstraintError(entry, int(value), '!=', expected)
+                raise ConstraintError(entry, int(value), '==', expected)
         elif isinstance(expected, Data):
             # We aren't checking the length here, only the value (for example,
             # the expected value for a variable length binary field will have
@@ -105,10 +108,10 @@ class Equals:
                     # We can safely pop the leading bits.
                     expected = shorter
             if value !=  expected:
-                raise ConstraintError(entry, value, '!=', expected)
+                raise ConstraintError(entry, value, '==', expected)
         else:
             if value !=  expected:
-                raise ConstraintError(entry, value, '!=', expected)
+                raise ConstraintError(entry, value, '==', expected)
 
     def range(self):
         limit = _limit(self.limit)
@@ -126,10 +129,10 @@ class NotEquals:
         expected = self.limit.evaluate(context)
         if isinstance(expected, int):
             if int(value) ==  expected:
-                raise ConstraintError(entry, int(value), '==', expected)
+                raise ConstraintError(entry, int(value), '!=', expected)
         else:
             if value !=  expected:
-                raise ConstraintError(entry, value, '==', expected)
+                raise ConstraintError(entry, value, '!=', expected)
 
     def range(self):
         limit = _limit(self.limit)
