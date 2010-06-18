@@ -22,6 +22,7 @@ import unittest
 
 from bdec.constraints import Equals, ConstraintError
 import bdec.entry as ent
+from bdec.expression import ValueResult
 import bdec.data as dt
 import bdec.field as fld
 
@@ -202,3 +203,7 @@ class TestField(unittest.TestCase):
     def test_data_is_available(self):
         a = fld.Field('a', length=8)
         self.assertRaises(fld.FieldDataError, list, a.decode(dt.Data()))
+
+    def test_encode_value_without_length(self):
+        a = fld.Field('a', length=ValueResult('unknown'))
+        self.assertEqual(dt.Data('\x01'), a.encode_value('00000001'))

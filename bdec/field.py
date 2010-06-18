@@ -173,7 +173,7 @@ class Field(bdec.entry.Entry):
         if length is None:
             try:
                 length = self.length.evaluate({})
-            except exp.UndecodedReferenceError:
+            except bdec.expression.UndecodedReferenceError:
                 # The length isn't available...
                 pass
 
