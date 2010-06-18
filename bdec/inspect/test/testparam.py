@@ -434,7 +434,7 @@ class TestResultParameters(unittest.TestCase):
         b = seq.Sequence('b', [a])
         lookup = prm.ResultParameters([b])
         self.assertEqual([prm.Param('result', prm.Param.OUT, EntryType(a))], lookup.get_params(a))
-        self.assertEqual([prm.Param('unknown', prm.Param.OUT, EntryType(a))], lookup.get_passed_variables(b, b.children[0]))
+        self.assertEqual([prm.Param('magic unknown param', prm.Param.OUT, EntryType(a))], lookup.get_passed_variables(b, b.children[0]))
         self.assertEqual([prm.Param('result', prm.Param.OUT, EntryType(b))], lookup.get_params(b))
 
     def test_hidden_field(self):
