@@ -27,34 +27,34 @@ class TestConstraint(unittest.TestCase):
     def test_minimum(self):
         field = Field('a', 8)
         min = Minimum(8)
-        min.check(field, 8)
-        min.check(field, 9)
+        min.check(field, 8, {})
+        min.check(field, 9, {})
         try:
-           min.check(field, 7)
+           min.check(field, 7, {})
            raise Exception('Minimum constraint failed!')
         except DecodeError, ex:
-           expected = "binary 'a' (big endian) constaint error; 7 < 8"
+           expected = "binary 'a' constaint failed; 7 < 8"
            self.assertEqual(expected, str(ex)) 
 
     def test_maximum(self):
         field = Field('a', 8)
         min = Maximum(8)
-        min.check(field, 7)
-        min.check(field, 8)
+        min.check(field, 7, {})
+        min.check(field, 8, {})
         try:
-           min.check(field, 9)
+           min.check(field, 9, {})
            raise Exception('Maximum constraint failed!')
         except DecodeError, ex:
-           expected = "binary 'a' (big endian) constaint error; 9 > 8"
+           expected = "binary 'a' constaint failed; 9 > 8"
            self.assertEqual(expected, str(ex)) 
 
     def test_equals(self):
         field = Field('a', 8)
         min = Equals('cat')
-        min.check(field, 'cat')
+        min.check(field, 'cat', {})
         try:
-            min.check(field, 'dog')
+            min.check(field, 'dog', {})
             raise Exception('Maximum constraint failed!')
         except DecodeError, ex:
-            expected = "binary 'a' (big endian) constaint error; 'dog' != 'cat'"
+            expected = "binary 'a' constaint failed; dog != cat"
             self.assertEqual(expected, str(ex)) 
