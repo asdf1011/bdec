@@ -19,6 +19,7 @@
 import operator
 
 from bdec import DecodeError
+from bdec.data import Data
 from bdec.expression import Expression, Constant, UndecodedReferenceError
 from bdec.inspect.range import Range
 
@@ -87,6 +88,24 @@ class Equals:
         if isinstance(expected, int):
             if int(value) !=  expected:
                 raise ConstraintError(entry, int(value), '!=', expected)
+        elif isinstance(expected, Data):
+            # We aren't checking the length here, only the value (for example,
+            # the expected value for a variable length binary field will have
+            # a different length than the actual). Only compare the bits that
+            # are valid.
+            length_diff = len(value) - len(expected)
+            if length_diff > 0:
+                # The expected value is shorter than the actual, so grow it.
+                expected = Data('\x00' * (length_diff / 8), 0, length_diff) + expected
+            elif length_diff < 0:
+                # The expected value is longer than the actual, so shrink it.
+                shorter = expected.copy()
+                leading = shorter.pop(-length_diff)
+                if not int(leading):
+                    # We can safely pop the leading bits.
+                    expected = shorter
+            if value !=  expected:
+                raise ConstraintError(entry, value, '!=', expected)
         else:
             if value !=  expected:
                 raise ConstraintError(entry, value, '!=', expected)

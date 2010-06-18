@@ -1040,6 +1040,27 @@ class TestXml(unittest.TestCase):
         specs, common, lookup = load_specs([('<string>', text, 'xml')], should_remove_unused=True)
         self.assertEqual(0, len(common))
 
+    def test_variable_length_field_with_expected_value(self):
+        text = '''
+            <protocol>
+              <sequence name="a">
+                <field name="length:" length="8" />
+                <field name="value" length="${length:} * 8" value="0x1" />
+              </sequence>
+            </protocol>'''
+        spec = loads(text)[0]
+
+        # Test decoding of the varaiable length portion
+        self.assertEqual(dt.Data('\x01'), list(spec.decode(dt.Data('\x01\x01')))[-2][-1])
+        self.assertEqual(dt.Data('\x00\x01'), list(spec.decode(dt.Data('\x02\x00\x01')))[-2][-1])
+        self.assertEqual(dt.Data('\x00\x00\x01'), list(spec.decode(dt.Data('\x03\x00\x00\x01')))[-2][-1])
+
+        # Test that it fails when we don't have any data
+        self.assertRaises(ConstraintError, list, spec.decode(dt.Data('\x00')))
+
+        # Test that if fails when the data doesn't match
+        self.assertRaises(ConstraintError, list, spec.decode(dt.Data('\x01\x02')))
+
 
 class TestSave(unittest.TestCase):
     """Test decoding of the xml save functionality.

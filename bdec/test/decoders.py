@@ -223,9 +223,8 @@ def _validate_xml(spec, data, xmltext):
                     expected_text = xmlout.xml_strip(unicode(expected))
                     expected_data = entry.encode_value(expected_text, len(data))
                     escaped_expected = entry.decode_value(expected_data)
-                    if escaped_expected != actual:
-                        raise Exception("'%s' expected value of '%s', got '%s'" %
-                                (entry, repr(expected), repr(actual)))
+                    constraint = Equals(escaped_expected)
+                    constraint.check(entry, actual, {})
             elif a_elem.text is not None and a_elem.text.strip():
                 raise Exception("Expected empty text in entry '%s', got '%s'!" %
                         (a_elem.tag, a_elem.text))
