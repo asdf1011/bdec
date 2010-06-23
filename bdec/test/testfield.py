@@ -21,10 +21,14 @@ import operator
 import unittest
 
 from bdec.constraints import Equals, ConstraintError
+from bdec.encode.entry import DataLengthError
 import bdec.entry as ent
 from bdec.expression import ValueResult
 import bdec.data as dt
 import bdec.field as fld
+
+def query(context, name, i):
+    return context
 
 class TestField(unittest.TestCase):
     def assertNearlyEqual(self, a, b):
@@ -59,7 +63,7 @@ class TestField(unittest.TestCase):
 
     def _get_encode_value(self, length, format, value, encoding=""):
         field = fld.Field("bob", length, format, encoding)
-        result = field.encode(None, value)
+        result = field.encode(query, value)
         return reduce(operator.__add__, result)
 
     def test_binary_type(self):
@@ -102,7 +106,7 @@ class TestField(unittest.TestCase):
 
     def test_encode(self):
         field = fld.Field("bob", 8, format=fld.Field.INTEGER)
-        result = field.encode(None, 0x3f)
+        result = field.encode(query, 0x3f)
         self.assertEqual(0x3f, int(result.next()))
 
     def test_encoded_size_matches_expected_size(self):
@@ -110,16 +114,16 @@ class TestField(unittest.TestCase):
         When we specify a size for a field, what we actually encode should match it.
         """
         text = fld.Field("bob", 48, format=fld.Field.TEXT)
-        self.assertEqual("rabbit", text.encode(None, "rabbit").next().bytes())
-        self.assertRaises(ent.DataLengthError, list, text.encode(None, "boxfish"))
+        self.assertEqual("rabbit", text.encode(query, "rabbit").next().bytes())
+        self.assertRaises(DataLengthError, list, text.encode(query, "boxfish"))
 
         binary = fld.Field("bob", 8, format=fld.Field.BINARY)
-        self.assertEqual("\x39", binary.encode(None, "00111001").next().bytes())
-        self.assertRaises(ent.DataLengthError, list, binary.encode(None, "1011"))
+        self.assertEqual("\x39", binary.encode(query, "00111001").next().bytes())
+        self.assertRaises(DataLengthError, list, binary.encode(query, "1011"))
 
         hex = fld.Field("bob", 8, format=fld.Field.HEX)
-        self.assertEqual("\xe7", hex.encode(None, "e7").next().bytes())
-        self.assertRaises(ent.DataLengthError, list, hex.encode(None, "ecd"))
+        self.assertEqual("\xe7", hex.encode(query, "e7").next().bytes())
+        self.assertRaises(DataLengthError, list, hex.encode(query, "ecd"))
 
     def test_string_conversion(self):
         # Just test that we can convert fields to a string sanely... the actual format
@@ -128,11 +132,11 @@ class TestField(unittest.TestCase):
 
     def test_bad_format_error(self):
         field = fld.Field("bob", 8, format=fld.Field.INTEGER)
-        self.assertRaises(fld.BadFormatError, field.encode(lambda name, context: "rabbit", None).next)
+        self.assertRaises(fld.BadFormatError, field.encode(lambda name, context, i: "rabbit", None).next)
 
     def test_encode_of_field_with_expected_value_fails_when_given_bad_data(self):
         field = fld.Field("bob", 8, constraints=[Equals(dt.Data('c'))])
-        self.assertRaises(ConstraintError, field.encode(None, "d").next)
+        self.assertRaises(ConstraintError, field.encode(query, "d").next)
 
     def test_encode_of_field_with_expected_value_succeeds_with_missing_data(self):
         """
@@ -142,7 +146,7 @@ class TestField(unittest.TestCase):
         make for clearer output).
         """
         field = fld.Field("bob", 8, constraints=[Equals(dt.Data("c"))])
-        def no_data_query(obj, name):
+        def no_data_query(obj, name, i):
             return ''
         self.assertEqual("c", field.encode(no_data_query, None).next().bytes())
 

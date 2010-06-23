@@ -21,11 +21,17 @@ import unittest
 
 import bdec.choice as chc
 from bdec.constraints import Equals
+from bdec.encode.sequenceof import InvalidSequenceOfCount
 import bdec.expression as expr
 import bdec.data as dt
 import bdec.field as fld
 import bdec.sequence as seq
 import bdec.sequenceof as sof
+
+def query(context, child, i):
+    if isinstance(context, list):
+        return context[i]
+    return context[child.name]
 
 class TestSequenceOf(unittest.TestCase):
     def test_sequence_of_field(self):
@@ -45,16 +51,14 @@ class TestSequenceOf(unittest.TestCase):
 
     def test_encode(self):
         sequenceof = sof.SequenceOf("blah", fld.Field("cat", 8, format=fld.Field.INTEGER), 3)
-        data = [5, 9, 0xf6]
-        query = lambda context, child: context[child.name] 
+        data = {'blah' : [5, 9, 0xf6]}
         data = reduce(lambda a,b:a+b, sequenceof.encode(query, data))
         self.assertEqual("\x05\x09\xf6", data.bytes())
 
     def test_invalid_encoding_count(self):
         sequenceof = sof.SequenceOf("blah", fld.Field("cat", 8, format=fld.Field.INTEGER), 3)
-        data = [5, 9]
-        query = lambda context, child: context[child.name] 
-        self.assertRaises(sof.InvalidSequenceOfCount, list, sequenceof.encode(query, data))
+        data = {'blah':[5, 9]}
+        self.assertRaises(InvalidSequenceOfCount, list, sequenceof.encode(query, data))
 
     def test_greedy_decode(self):
         sequenceof = sof.SequenceOf("blah", fld.Field("cat", 8, format=fld.Field.TEXT), None, length=None)
@@ -82,8 +86,7 @@ class TestSequenceOf(unittest.TestCase):
 
     def test_encoding_greedy_sequenceof(self):
         sequenceof = sof.SequenceOf("blah", fld.Field("cat", 8, format=fld.Field.INTEGER), None)
-        data = [5, 9, 0xf6]
-        query = lambda context, child: context[child.name] 
+        data = {'blah':[5, 9, 0xf6]}
         data = reduce(lambda a,b:a+b, sequenceof.encode(query, data))
         self.assertEqual("\x05\x09\xf6", data.bytes())
 

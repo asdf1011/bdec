@@ -194,19 +194,6 @@ class Field(bdec.entry.Entry):
             result = self.decode_value(expected)
         return result
 
-    def _fixup_value(self, value):
-        expected = self._get_expected()
-        if expected is not None and value in [None, '']:
-            # We handle strings as a prompt to use the expected value. This is
-            # because the named item may be in the output, but not necessarily
-            # the value (eg: in the xml representation, it is clearer to not
-            # display the expected value).
-            value = self.decode_value(expected)
-        return value
-
-    def _encode(self, query, value):
-        yield self.encode_value(value)
-
     def __str__(self):
         result = "%s '%s'" % (self.format, self.name)
         if self.format not in [self.HEX, self.BINARY]:

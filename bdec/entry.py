@@ -27,18 +27,6 @@ import bdec
 import bdec.data as dt
 from bdec.expression import Expression, Constant, UndecodedReferenceError
 
-class MissingInstanceError(bdec.DecodeError):
-    """
-    Error raised during encoding when a parent object doesn't have a named child object.
-    """
-    def __init__(self, parent, child):
-        bdec.DecodeError.__init__(self, child)
-        self.parent = parent
-        self.child = child
-
-    def __str__(self):
-        return "object '%s' doesn't have child object '%s'" % (self.parent, self.child.name)
-
 class EntryDataError(bdec.DecodeError):
     """Error raised when an error was found with the entries data.
     
@@ -58,16 +46,6 @@ class DecodeLengthError(bdec.DecodeError):
 
     def __str__(self):
         return "'%s' left %i bits of data undecoded (%s)" % (self.entry, len(self.unused), self.unused.get_binary_text())
-
-class DataLengthError(bdec.DecodeError):
-    """Encoded data has the wrong length."""
-    def __init__(self, entry, expected, actual):
-        bdec.DecodeError.__init__(self, entry)
-        self.expected = expected
-        self.actual = actual
-
-    def __str__(self):
-        return "%s expected length %i, got length %i" % (self.entry, self.expected, self.actual)
 
 class EncodeError(bdec.DecodeError):
     pass
@@ -140,6 +118,7 @@ class Entry(object):
         self._children = ()
         self.children = children
         self._decoder = None
+        self._encoder = None
 
         self.constraints = list(constraints)
         for constraint in self.constraints:
@@ -172,63 +151,11 @@ class Entry(object):
         self._validate()
         return self._decoder.decode(data, context, name)
 
-    def _get_context(self, query, parent):
-        # This interface isn't too good; it requires us to load the _entire_ document
-        # into memory. This is because it supports 'searching backwards', plus the
-        # reference to the root element is kept. Maybe a push system would be better?
-        #
-        # Problem is, push doesn't work particularly well for bdec.output.instance, nor
-        # for choice entries (where we need to re-wind...)
-        try:
-            return query(parent, self)
-        except MissingInstanceError:
-            if self.is_hidden():
-                return None
-            raise
-
-    def get_context(self, query, parent):
-        return self._get_context(query, parent)
-
-    def _encode(self, query, value):
-        """
-        Encode a data source, with the context being the data to encode.
-        """
-        raise NotImplementedError()
-
-    def _fixup_value(self, value):
-        """
-        Allow entries to modify the value to be encoded.
-        """
-        return value
-
     def encode(self, query, value):
-        """Return an iterator of bdec.data.Data instances.
-
-        query -- Function to return a value to be encoded when given an entry
-          instance and the parent entry's value. If the parent doesn't contain
-          the expected instance, MissingInstanceError should be raised.
-        value -- This entry's value that is to be encoded.
-        """
-        encode_length = 0
-        value = self._fixup_value(value)
-        context = {}
-
-        length = None
-        if self.length is not None:
-            try:
-                length = self.length.evaluate(context)
-            except UndecodedReferenceError:
-                raise NotEnoughContextError(self)
-
-        for constraint in self.constraints:
-            constraint.check(self, value, context)
-
-        for data in self._encode(query, value):
-            encode_length += len(data)
-            yield data
-
-        if length is not None and encode_length != length:
-            raise DataLengthError(self, length, encode_length)
+        if self._encoder is None:
+            from bdec.encode import Encoder
+            self._encoder = Encoder(self)
+        return self._encoder.encode(query, value)
 
     def is_hidden(self):
         """Is this a 'hidden' entry."""

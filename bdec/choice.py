@@ -32,36 +32,6 @@ class Choice(bdec.entry.Entry):
 
         assert len(children) > 0
 
-    def _get_context(self, query, parent):
-        try:
-            return query(parent, self)
-        except bdec.entry.MissingInstanceError:
-            # Choice entries can be completely hidden
-            return parent
-
-    def _encode(self, query, value):
-        # We attempt to encode all of the embedded items, until we find
-        # an encoder capable of doing it.
-        best_guess = None
-        best_guess_bits = 0
-        for child in self.children:
-            try:
-                bits_encoded = 0
-                child_value = child.entry.get_context(query, value)
-                for data in child.entry.encode(query, child_value):
-                    bits_encoded += len(data)
-
-                # We successfully encoded the entry!
-                best_guess = child
-                break
-            except bdec.DecodeError:
-                if best_guess is None or bits_encoded > best_guess_bits:
-                    best_guess = child
-                    best_guess_bits = bits_encoded
-
-        child_value = best_guess.entry.get_context(query, value)
-        return best_guess.entry.encode(query, child_value)
-
     def _range(self, ignore_entries):
         minimum = min(child.entry.range(ignore_entries).min for child in self.children)
         maximum = max(child.entry.range(ignore_entries).max for child in self.children)

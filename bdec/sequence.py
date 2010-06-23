@@ -37,11 +37,5 @@ class Sequence(bdec.entry.Entry):
         bdec.entry.Entry.__init__(self, name, length, children, constraints)
         self.value = value
 
-    def _encode(self, query, value):
-        for child in self.children:
-            child_value = child.entry.get_context(query, value)
-            for data in child.entry.encode(query, child_value):
-                yield data
-            
     def _range(self, ignore_entries):
         return sum((child.entry.range(ignore_entries) for child in self.children), bdec.entry.Range(0, 0))

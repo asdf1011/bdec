@@ -24,6 +24,7 @@ import xml.sax.saxutils
 import xml.sax.xmlreader
 
 from bdec.constraints import Equals
+from bdec.encode.entry import MissingInstanceError
 import bdec.entry as ent
 import bdec.choice as chc
 import bdec.field as fld
@@ -130,23 +131,28 @@ class _SequenceOfIter:
             if node.nodeType == xml.dom.Node.ELEMENT_NODE:
                 yield _get_element_value(node, self._child)
 
-def _query_element(obj, child):
+def _query_element(obj, child, offset):
     """
     Get a named child-element of a node.
 
     If the child has no sub-elements itself, return the element text contents.
     """
+    if isinstance(obj, _SequenceOfIter):
+        for i, value in enumerate(obj):
+            if i == offset:
+                return value
+        raise MissingInstanceError(obj, child)
     try:
         childNodes = obj.childNodes
     except AttributeError:
-        raise ent.MissingInstanceError(obj, child)
+        raise MissingInstanceError(obj, child)
 
     name = escape_name(child.name)
     for child_node in childNodes:
         if child_node.nodeType == xml.dom.Node.ELEMENT_NODE and child_node.tagName == name:
             return _get_element_value(child_node, child)
 
-    raise ent.MissingInstanceError(obj, child)
+    raise MissingInstanceError(obj, child)
 
 def _get_element_value(element, entry):
     """Get an instance that can be encoded for a given xml element node.
@@ -179,6 +185,5 @@ def encode(protocol, xmldata):
     if isinstance(xmldata, basestring):
         xmldata = StringIO.StringIO(xmldata)
     document = xml.dom.minidom.parse(xmldata)
-    value = protocol.get_context(_query_element, document)
-    return protocol.encode(_query_element, value)
+    return protocol.encode(_query_element, document)
 

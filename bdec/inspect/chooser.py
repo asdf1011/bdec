@@ -21,6 +21,7 @@ import operator
 import bdec.choice as chc
 from bdec.constraints import Equals, Maximum, Minimum
 import bdec.data as dt
+from bdec.encode.entry import MissingInstanceError
 import bdec.entry as ent
 import bdec.expression as expr
 import bdec.field as fld
@@ -124,9 +125,9 @@ class _ProtocolStream:
             value = _get_constraint(self.entry, Equals)
             try:
                 if value is not None:
-                    def query(context, entry):
-                        raise bdec.entry.MissingInstanceError()
-                    data = reduce(operator.add, self.entry.encode(query, value))
+                    def query(context, entry, i):
+                        return value
+                    data = reduce(operator.add, self.entry.encode(query, None))
                     return data
             except ent.NotEnoughContextError:
                 # We can't encode this entry; see if we know how long it is.

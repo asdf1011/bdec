@@ -19,6 +19,7 @@
 #!/usr/bin/env python
 import unittest
 
+from bdec.encode.entry import MissingInstanceError
 import bdec.entry as ent
 import bdec.choice as chc
 from bdec.constraints import Equals, ConstraintError
@@ -112,9 +113,9 @@ class TestChoice(unittest.TestCase):
 
         # First try encoding a number that will only fit in the 16 bit storage
         struct = {"bob" : {"dog" : 10023}}
-        def query(context, child):
+        def query(context, child, i):
             if child.name not in context:
-                raise ent.MissingInstanceError(context, child)
+                raise MissingInstanceError(context, child)
             return context[child.name]
         data = reduce(lambda a,b:a+b, choice.encode(query, struct))
         self.assertEqual(17, len(data))

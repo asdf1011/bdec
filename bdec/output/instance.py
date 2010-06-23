@@ -16,6 +16,7 @@
 #   License along with this library; if not, see
 #   <http://www.gnu.org/licenses/>.
 
+from bdec.encode.entry import MissingInstanceError
 import bdec.entry as ent
 import bdec.field as fld
 import bdec.output
@@ -98,17 +99,25 @@ def decode(decoder, binary):
     assert len(stack) == 1
     return stack[0].get_value(None)
 
-def _get_data(obj,child):
+def _get_data(obj, child, i):
+    if isinstance(obj, list):
+        return obj[i]
+
     name = child.name
     if name.endswith(':'):
-        raise ent.MissingInstanceError(obj, child)
+        raise MissingInstanceError(obj, child)
 
     name = escape(name)
 
     try: 
         return getattr(obj, name)
     except (AttributeError, KeyError):
-        raise ent.MissingInstanceError(obj, child)
+        pass
+
+    try:
+        return obj[name]
+    except (AttributeError, KeyError, TypeError):
+        raise MissingInstanceError(obj, child)
 
 def encode(protocol, value):
     """
@@ -116,4 +125,4 @@ def encode(protocol, value):
 
     Returns an iterator to data objects representing the encoded structure.
     """
-    return protocol.encode(_get_data, value)
+    return protocol.encode(_get_data, {protocol.name: value})
