@@ -60,7 +60,7 @@ class Expression(object):
         raise NotImplementedError
 
 
-class Delayed(Expression):
+class ArithmeticExpression(Expression):
     """
     Class to delay the operation of an integer operation.
 
@@ -153,7 +153,7 @@ def _half(op):
     of the binary expression.
     """
     def handler(s,l,t):
-        return lambda left: Delayed(op, left, t[1])
+        return lambda left: ArithmeticExpression(op, left, t[1])
     return handler
 
 def _collapse(s,l,t):
@@ -220,9 +220,9 @@ def parse_conditional_inverse(text):
 
     bool_int_operators = [
             ('>', Maximum),
-            ('>=', lambda limit: Maximum(Delayed(operator.sub, limit, Constant(1)))),
+            ('>=', lambda limit: Maximum(ArithmeticExpression(operator.sub, limit, Constant(1)))),
             ('<', Minimum),
-            ('<=', lambda limit: Minimum(Delayed(operator.add, limit, Constant(1)))),
+            ('<=', lambda limit: Minimum(ArithmeticExpression(operator.add, limit, Constant(1)))),
             ('==', NotEquals),
             ('!=', Equals),
             ]

@@ -22,7 +22,7 @@
 import operator
 
 import bdec.choice as chc
-from bdec.expression import Delayed, Constant, ValueResult, LengthResult
+from bdec.expression import ArithmeticExpression, Constant, ValueResult, LengthResult
 import bdec.field as fld
 from bdec.inspect.range import Range
 import bdec.sequence as seq
@@ -58,7 +58,7 @@ def _reference_length_range(value, entry, parameters):
 
 _handlers = {
         Constant: _constant_range,
-        Delayed: _delayed_range,
+        ArithmeticExpression: _delayed_range,
         ValueResult: _reference_value_range,
         LengthResult: _reference_length_range,
         }

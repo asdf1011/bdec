@@ -23,7 +23,7 @@ Classes for defining higher level integer encodings in a low level representatio
 import operator
 
 from bdec.choice import Choice
-from bdec.expression import compile, Constant, Delayed, UndecodedReferenceError
+from bdec.expression import compile, Constant, ArithmeticExpression, UndecodedReferenceError
 from bdec.field import Field
 from bdec.sequence import Sequence
 
@@ -43,7 +43,7 @@ class Integers:
             result = self.common[name]
         except KeyError:
             is_signed = Field('signed:', 1)
-            value = Field('value:', Delayed(operator.sub, length_expr, Constant(1)))
+            value = Field('value:', ArithmeticExpression(operator.sub, length_expr, Constant(1)))
             expression = compile('${signed:} * ((0 - 1) << (%s - 1)) + ${value:}' % (length_expr))
             result = Sequence(name, [is_signed, value], value=expression)
             self.common[name] = result

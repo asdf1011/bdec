@@ -301,7 +301,7 @@ class ExpressionParameters(_Parameters):
             result.append(expression)
         elif isinstance(expression, expr.LengthResult):
             result.append(expression)
-        elif isinstance(expression, expr.Delayed):
+        elif isinstance(expression, expr.ArithmeticExpression):
             result = self._collect_references(expression.left) + \
                      self._collect_references(expression.right)
         else:
