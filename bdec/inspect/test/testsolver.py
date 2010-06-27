@@ -54,3 +54,21 @@ class TestSolver (unittest.TestCase):
             Sequence('c', [], value=parse('${b} + 3')),
             ])
         self.assertEqual({'${b}':7}, _solve(a, 1, 10))
+
+    def test_single_value_multiply(self):
+        # Test when the expression is the value of an entry multipled by something
+        a = Sequence('a', [
+            Field('b', length=8),
+            Sequence('c', [], value=parse('${b} * 2')),
+            ])
+        self.assertEqual({'${b}':4}, _solve(a, 1, 8))
+
+    def test_single_value_bimdas(self):
+        # Test that we correctly resolve the value when there are addition
+        # and multiplication involved.
+        a = Sequence('a', [
+            Field('b', length=8),
+            Sequence('c', [], value=parse('(${b} + 3) * 8')),
+            ])
+        self.assertEqual({'${b}':5}, _solve(a, 1, 64))
+

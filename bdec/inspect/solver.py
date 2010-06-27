@@ -79,8 +79,18 @@ def _break_into_parts(expression):
             # don't attempt to at the moment...
             raise ExpressionSeperationError(expression)
         else:
-            # Only the left or right (or neither) have non constant parameters
-            raise NotImplementedError()
+            # Either the left or right expression has a non constant value of 0.
+            if expression.op == operator.mul:
+                #   f(y) = (left(params) + kl) * (right(params) + kr)
+                # where left(params) or right(params) is zero. So the result will be
+                #   f(y) = kr * left(params) + kl * right(params) + kl * kr
+                for ref, expr in left.items():
+                    result[ref] = ArithmeticExpression(expression.op, expr, rconst)
+                for ref, expr in right.items():
+                    result[ref] = ArithmeticExpression(expression.op, expr, lconst)
+                constant = ArithmeticExpression(expression.op, lconst, rconst)
+            else:
+                raise NotImplementedError()
     elif isinstance(expression, Constant):
         constant = expression
     elif isinstance(expression, ReferenceExpression):
@@ -89,6 +99,10 @@ def _break_into_parts(expression):
         raise Exception("Unknown expression entry %s!" % expression)
     return result, constant
 
+def _is_constant(expression):
+    references, constant = _break_into_parts(expression)
+    return not references
+
 def _invert(expression):
     """Convert a function value=f(x) into x=f(value)"""
     left = ValueResult('result')
@@ -96,7 +110,26 @@ def _invert(expression):
 
     # Reduce 'right' until it is just the single parameter
     while not isinstance(right, ReferenceExpression):
-        raise ExpressionInvertError(expression)
+        if isinstance(right, ArithmeticExpression):
+            is_left_const = _is_constant(right.left)
+            is_right_const = _is_constant(right.right)
+            if not is_left_const and not is_right_const:
+                # The code doesn't handle the same entry being referenced
+                # multiple times at the moment... (eg: y = x + x)
+                raise ExpressionInvertError(expression)
+            if right.op == operator.mul:
+                if is_right_const:
+                    # left = right * k  ->   left / k = right
+                    left = ArithmeticExpression(operator.div, left, right.right)
+                    right = right.left
+                else:
+                    # left = k * right  -> left / k = right
+                    left = ArithmeticExpression(operator.div, left, right.left)
+                    right = right.right
+            else:
+                raise ExpressionInvertError(expression)
+        else:
+            raise ExpressionInvertError(expression)
     return left
 
 def solve(expression, entry, params, value):
@@ -127,7 +160,7 @@ def solve(expression, entry, params, value):
     value -= constant.evaluate({})
     for ref, expr in variables:
         result[ref] = _invert(expr).evaluate({'result' : value})
-        value -= result[ref]
+        value -= expr.evaluate({ref.name:result[ref]})
     if value != 0:
         raise Exception("Should have been able to solve '%s', but the result "
                 "components came to '%s' which leaves a remainder of %i!" %
