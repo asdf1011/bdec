@@ -1,4 +1,5 @@
 #   Copyright (C) 2008 Henry Ludemann
+#   Copyright (C) 2010 PRESENSE Technologies GmbH
 #
 #   This file is part of the bdec decoder library.
 #
@@ -108,7 +109,12 @@ class Constant(Expression):
         return str(self.value)
 
 
-class ValueResult(Expression):
+class ReferenceExpression(Expression):
+    """A reference to a value or length of another entry."""
+    pass
+
+
+class ValueResult(ReferenceExpression):
     """
     Object returning the result of a entry when cast to an integer.
     """
@@ -126,7 +132,7 @@ class ValueResult(Expression):
         return '${%s}' % self.name
 
 
-class LengthResult(Expression):
+class LengthResult(ReferenceExpression):
     """
     Object returning the length of a decoded entry.
     """
