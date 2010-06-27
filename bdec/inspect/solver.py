@@ -65,8 +65,14 @@ def _break_into_parts(expression):
         left, lconst = _break_into_parts(expression.left)
         right, rconst = _break_into_parts(expression.right)
         if expression.op in (operator.add, operator.sub):
-            # We need add all / subtract the common components
-            raise NotImplementedError()
+            # We need to add / subtract the common components
+            constant = ArithmeticExpression(expression.op, lconst, rconst)
+            result = left
+            for ref, expr in right.items():
+                if ref in result:
+                    result[ref] = ArithmeticExpression(expression.op, result[ref], expr)
+                else:
+                    result[ref] = expr
         elif left and right:
             # We can't able to handle the case where the left & right _both_
             # have parameters for non addition / subtraction. Or at least, we

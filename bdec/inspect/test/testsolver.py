@@ -45,3 +45,12 @@ class TestSolver (unittest.TestCase):
             Sequence('c', [], value=parse('${b}')),
             ])
         self.assertEqual({'${b}':5}, _solve(a, 1, 5))
+
+    def test_single_value_addition(self):
+        # Test that we correctly resolve the correct value when there is an
+        # addition involved
+        a = Sequence('a', [
+            Field('b', length=8),
+            Sequence('c', [], value=parse('${b} + 3')),
+            ])
+        self.assertEqual({'${b}':7}, _solve(a, 1, 10))
