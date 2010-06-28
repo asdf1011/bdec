@@ -48,6 +48,7 @@ project_dir = os.path.join(root_path, '..', 'protocollogic', 'protocollogic.com'
 freshmeat_pass = os.path.join(website_dir, 'freshmeat.txt')
 
 def _check_copyright_statements(subdirs):
+    print 'Checking for copyright notices in source files...'
     is_missing_copyright = False
     for subdir in subdirs:
         for dir, subdirs, filenames in os.walk(os.path.join(root_path, subdir)):
