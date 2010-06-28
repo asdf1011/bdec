@@ -495,15 +495,34 @@ class ExpressionParameters(_Parameters):
         result.sort(key=lambda a:a.name)
         return result
 
+    def _get_params(self, entry):
+        assert isinstance(entry, bdec.entry.Entry)
+        params = list(self._params[entry])
+
+        def compare_references(left, right):
+            # It doesn't really matter what order we use for parameters, but it
+            # has to be consistent. As such we order by name, and put value types
+            # before length types.
+            result = cmp(left.reference.name, right.reference.name)
+            if result:
+                return result
+            if isinstance(left.reference, expr.ValueResult) and \
+                    not isinstance(right.reference, expr.ValueResult):
+                return -1
+            if not isinstance(left.reference, expr.ValueResult) and \
+                    isinstance(right.reference, expr.ValueResult):
+                return 1
+            return 0
+
+        params.sort(cmp=compare_references)
+        return params
+
     def get_params(self, entry):
         """
         Get an iterator to all parameters passed to an entry due to value references.
         """
-        assert isinstance(entry, bdec.entry.Entry)
-        params = list(self._params[entry])
-        params.sort(key=lambda a:a.reference.name)
         try:
-            return [param.get_param() for param in params]
+            return [param.get_param() for param in self._get_params(entry)]
         except _FailedToResolveError, ex:
             raise UnknownReferenceError(entry, ex.name)
 
@@ -518,9 +537,7 @@ class ExpressionParameters(_Parameters):
         """
         assert isinstance(entry, bdec.entry.Entry)
         assert isinstance(child, bdec.entry.Child)
-        child_params = list(self._params[child.entry])
-        child_params.sort(key=lambda a:a.reference.name)
-        for param in child_params:
+        for param in self._get_params(child.entry):
             local = self._get_local_reference(entry, child, param)
             yield Param(_get_reference_name(local), param.direction, param.get_type())
 
