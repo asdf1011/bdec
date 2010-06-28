@@ -24,6 +24,9 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import unittest
+
+from bdec.constraints import Minimum, Maximum
+from bdec.entry import Child
 from bdec.expression import parse
 from bdec.field import Field
 from bdec.inspect.param import ExpressionParameters
@@ -32,7 +35,8 @@ from bdec.inspect.type import EntryValueType
 from bdec.sequence import Sequence
 
 def _solve(entry, child, value):
-    result = solve(entry.children[child].entry.value, entry,
+    ent = entry.children[child].entry if child is not None else entry
+    result = solve(ent.value, entry,
             ExpressionParameters([entry]), value)
     return dict((str(c), v) for c,v in result.items())
 
@@ -107,3 +111,18 @@ class TestSolver (unittest.TestCase):
         # TODO: What should we do in this case? This is a lossy conversion... See issue246.
         #self.assertEqual({'${b}':20}, _solve(a, 1, 10))
         self.assertRaises(SolverError, _solve, a, 1, 10)
+
+    def test_digit(self):
+        # Tests a common case of representing text digits
+        digit = Sequence('digit', [Field('char:', length=8, constraints=[Minimum(48), Maximum(57)])],
+                value = parse('${char:} - 48'))
+        self.assertEqual({'${char:}':54}, _solve(digit, None, 6))
+
+    def test_two_digits(self):
+        # Tests a common case of representing text digits
+        digit = Sequence('digit', [Field('char:', length=8, constraints=[Minimum(48), Maximum(57)])],
+                value = parse('${char:} - 48'))
+        two_digits = Sequence('two digits', [Child('digit 1:', digit),
+            Child('digit 2:', digit)], value=parse('${digit 1:} * 10 + ${digit 2:}'))
+        self.assertEqual({'${digit 1:}':6, '${digit 2:}' : 7},
+                _solve(two_digits, None, 67))
