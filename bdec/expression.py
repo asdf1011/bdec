@@ -60,6 +60,27 @@ class Expression(object):
     def evaluate(self, context):
         raise NotImplementedError
 
+    def __mul__(self, other):
+        return ArithmeticExpression(operator.mul, self, other)
+
+    def __div__(self, other):
+        return ArithmeticExpression(operator.div, self, other)
+
+    def __mod__(self, other):
+        return ArithmeticExpression(operator.mod, self, other)
+
+    def __add__(self, other):
+        return ArithmeticExpression(operator.add, self, other)
+
+    def __sub__(self, other):
+        return ArithmeticExpression(operator.sub, self, other)
+
+    def __lshift__(self, other):
+        return ArithmeticExpression(operator.lshift, self, other)
+
+    def __rshift__(self, other):
+        return ArithmeticExpression(operator.rshift, self, other)
+
 
 class ArithmeticExpression(Expression):
     """
@@ -111,17 +132,23 @@ class Constant(Expression):
 
 class ReferenceExpression(Expression):
     """A reference to a value or length of another entry."""
-    pass
+    def __init__(self, name):
+        assert isinstance(name, basestring)
+        self.name = name
+
+    def __eq__(self, other):
+        if type(self) != type(other):
+            return False
+        return self.name == other.name
+
+    def __hash__(self):
+        return hash(self.name)
 
 
 class ValueResult(ReferenceExpression):
     """
     Object returning the result of a entry when cast to an integer.
     """
-    def __init__(self, name):
-        assert isinstance(name, basestring)
-        self.name = name
-
     def evaluate(self, context):
         try:
             return context[self.name]
@@ -136,10 +163,6 @@ class LengthResult(ReferenceExpression):
     """
     Object returning the length of a decoded entry.
     """
-    def __init__(self, name):
-        assert isinstance(name, basestring)
-        self.name = name
-
     def evaluate(self, context):
         name = self.name + ' length'
         try:

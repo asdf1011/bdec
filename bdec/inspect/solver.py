@@ -30,23 +30,12 @@ from bdec.expression import ArithmeticExpression, Constant, \
 from bdec.inspect.type import expression_range as erange
 
 class SolverError(Exception):
-    pass
-
-
-class ExpressionSeperationError(SolverError):
-    def __init__(self, expr):
+    def __init__(self, expr, reason):
         self.expr = expr
+        self.reason = reason
 
     def __str__(self):
-        return "Unable to seperate '%s' into independant components!" % self.expr
-
-
-class ExpressionInvertError(SolverError):
-    def __init__(self, expr):
-        self.expr = expr
-
-    def __str__(self):
-        return "Unable to invert expression '%s' when creating encoder!" % self.expr
+        return "%s: %s" % (self.reason, self.expr)
 
 
 def _break_into_parts(expression):
@@ -77,7 +66,7 @@ def _break_into_parts(expression):
             # We can't able to handle the case where the left & right _both_
             # have parameters for non addition / subtraction. Or at least, we
             # don't attempt to at the moment...
-            raise ExpressionSeperationError(expression)
+            raise SolverError(expression, 'Unable to handle expression where left and right are non constant')
         else:
             # Either the left or right expression has a non constant value of 0.
             if expression.op == operator.mul:
@@ -85,19 +74,19 @@ def _break_into_parts(expression):
                 # where left(params) or right(params) is zero. So the result will be
                 #   f(y) = kr * left(params) + kl * right(params) + kl * kr
                 for ref, expr in left.items():
-                    result[ref] = ArithmeticExpression(expression.op, expr, rconst)
+                    result[ref] = expr * rconst
                 for ref, expr in right.items():
-                    result[ref] = ArithmeticExpression(expression.op, expr, lconst)
-                constant = ArithmeticExpression(expression.op, lconst, rconst)
+                    result[ref] = expr * lconst
+                constant = lconst * rconst
             elif expression.op == operator.lshift:
                 if right:
                     # Don't support shifting by a non-constant
-                    raise ExpressionSeperationError(expression)
+                    raise SolverError(expression, 'Shifting by a non constant not supported')
                 for ref, expr in left.items():
-                    result[ref] = ArithmeticExpression(operator.lshift, expr, rconst)
-                constant = ArithmeticExpression(operator.lshift, constant, rconst)
+                    result[ref] = expr << rconst
+                constant = constant << rconst
             else:
-                raise NotImplementedError()
+                raise SolverError(expression, 'Breaking apart expressions with %s not supported' % expression.op)
     elif isinstance(expression, Constant):
         constant = expression
     elif isinstance(expression, ReferenceExpression):
@@ -123,7 +112,9 @@ def _invert(expression):
             if not is_left_const and not is_right_const:
                 # The code doesn't handle the same entry being referenced
                 # multiple times at the moment... (eg: y = x + x)
-                raise ExpressionInvertError(expression)
+                raise SolverError(expression, 'Unable to invert '
+                        'expressions where the same entry is referenced on '
+                        'the left and right of an expression')
             if right.op == operator.mul:
                 if is_right_const:
                     # left = right * k  ->   left / k = right
@@ -137,9 +128,11 @@ def _invert(expression):
                 left = ArithmeticExpression(operator.rshift, left, right.right)
                 right = right.left
             else:
-                raise ExpressionInvertError(expression)
+                raise SolverError(expression, 'Unable to invert '
+                        'expressions containing operator %s' % right.op)
         else:
-            raise ExpressionInvertError(expression)
+            raise SolverError(expression, 'Right expression is not '
+                    'an arithmetic expression')
     return left
 
 def solve(expression, entry, params, value):

@@ -27,7 +27,7 @@ import unittest
 from bdec.expression import parse
 from bdec.field import Field
 from bdec.inspect.param import ExpressionParameters
-from bdec.inspect.solver import solve
+from bdec.inspect.solver import solve, SolverError
 from bdec.inspect.type import EntryValueType
 from bdec.sequence import Sequence
 
@@ -90,3 +90,20 @@ class TestSolver (unittest.TestCase):
             ])
         self.assertEqual({'${b1}':0x34, '${b2}':0x12}, _solve(a, 2, 0x1234))
 
+    def test_same_reference_multiple_times(self):
+        a = Sequence('a', [
+            Field('b', length=8),
+            Sequence('c', [], value=parse('${b} + ${b}')),
+            ])
+        # TODO: We should correctly be able to invert 'c = b + b'. See issue245.
+        #self.assertEqual({'${b}':7}, _solve(a, 1, 14))
+        self.assertRaises(SolverError, _solve, a, 1, 14)
+
+    def test_divide(self):
+        a = Sequence('a', [
+            Field('b', length=8),
+            Sequence('c', [], value=parse('${b} / 2')),
+            ])
+        # TODO: What should we do in this case? This is a lossy conversion... See issue246.
+        #self.assertEqual({'${b}':20}, _solve(a, 1, 10))
+        self.assertRaises(SolverError, _solve, a, 1, 10)
