@@ -72,3 +72,21 @@ class TestSolver (unittest.TestCase):
             ])
         self.assertEqual({'${b}':5}, _solve(a, 1, 64))
 
+    def test_big_endian(self):
+        # Test that we can break apart a big endian style number
+        a = Sequence('a', [
+            Field('b1', length=8),
+            Field('b2', length=8),
+            Sequence('c', [], value=parse('(${b1} << 8) + ${b2} ')),
+            ])
+        self.assertEqual({'${b1}':0x12, '${b2}':0x34}, _solve(a, 2, 0x1234))
+
+    def test_little_endian(self):
+        # Test that we can break apart a little endian style number
+        a = Sequence('a', [
+            Field('b1', length=8),
+            Field('b2', length=8),
+            Sequence('c', [], value=parse('(${b2} << 8) + ${b1} ')),
+            ])
+        self.assertEqual({'${b1}':0x34, '${b2}':0x12}, _solve(a, 2, 0x1234))
+

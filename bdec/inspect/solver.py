@@ -89,6 +89,13 @@ def _break_into_parts(expression):
                 for ref, expr in right.items():
                     result[ref] = ArithmeticExpression(expression.op, expr, lconst)
                 constant = ArithmeticExpression(expression.op, lconst, rconst)
+            elif expression.op == operator.lshift:
+                if right:
+                    # Don't support shifting by a non-constant
+                    raise ExpressionSeperationError(expression)
+                for ref, expr in left.items():
+                    result[ref] = ArithmeticExpression(operator.lshift, expr, rconst)
+                constant = ArithmeticExpression(operator.lshift, constant, rconst)
             else:
                 raise NotImplementedError()
     elif isinstance(expression, Constant):
@@ -126,6 +133,9 @@ def _invert(expression):
                     # left = k * right  -> left / k = right
                     left = ArithmeticExpression(operator.div, left, right.left)
                     right = right.right
+            elif is_right_const and right.op == operator.lshift:
+                left = ArithmeticExpression(operator.rshift, left, right.right)
+                right = right.left
             else:
                 raise ExpressionInvertError(expression)
         else:

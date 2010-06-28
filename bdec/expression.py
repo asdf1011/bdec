@@ -79,7 +79,7 @@ class ArithmeticExpression(Expression):
     def evaluate(self, context):
         return self.op(self.left.evaluate(context), self.right.evaluate(context))
 
-    def __str__(self):
+    def __repr__(self):
         lookup = {}
         for ops in _operators:
             lookup.update((op, name) for name, op in ops)
@@ -93,7 +93,7 @@ class Constant(Expression):
     def evaluate(self, context):
         return self.value
 
-    def __str__(self):
+    def __repr__(self):
         if isinstance(self.value, dt.Data):
             value = self.value
             if len(value) % 8:
@@ -128,7 +128,7 @@ class ValueResult(ReferenceExpression):
         except KeyError:
             raise UndecodedReferenceError(self.name, context)
 
-    def __str__(self):
+    def __repr__(self):
         return '${%s}' % self.name
 
 
@@ -147,7 +147,7 @@ class LengthResult(ReferenceExpression):
         except KeyError:
             raise UndecodedReferenceError(name, context)
 
-    def __str__(self):
+    def __repr__(self):
         return "len{%s}" % self.name
 
 
