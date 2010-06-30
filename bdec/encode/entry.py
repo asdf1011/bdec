@@ -19,6 +19,9 @@
 
 import bdec
 
+from bdec.entry import UndecodedReferenceError, NotEnoughContextError
+from bdec.inspect.solver import solve
+
 class DataLengthError(bdec.DecodeError):
     """Encoded data has the wrong length."""
     def __init__(self, entry, expected, actual):
@@ -123,19 +126,23 @@ class EntryEncoder:
             # We are hidden; get the value from the context.
             value = context[name]
 
-        length = None
-        if self.entry.length is not None:
-            try:
-                length = self.entry.length.evaluate(context)
-            except UndecodedReferenceError:
-                raise NotEnoughContextError(self)
-
         for constraint in self.entry.constraints:
             constraint.check(self.entry, value, context)
 
         for data in self._encode(query, value, context):
             encode_length += len(data)
             yield data
+
+        length = None
+        if self.entry.length is not None:
+            ref_values = solve(self.entry.length, self.entry, self._params, encode_length)
+            for ref, ref_value in ref_values.items():
+                context[ref.name] = ref_value
+
+            try:
+                length = self.entry.length.evaluate(context)
+            except UndecodedReferenceError, ex:
+                raise NotEnoughContextError(self.entry)
 
         if length is not None and encode_length != length:
             raise DataLengthError(self.entry, length, encode_length)

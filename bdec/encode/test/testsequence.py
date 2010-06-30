@@ -16,3 +16,13 @@ class TestSequence(unittest.TestCase):
 
         self.assertEqual("\x01", encode(a, {"c" : 0x01}).bytes())
 
+    def test_encode_length_reference(self):
+        a = Sequence('a', [
+            Field('length:', 8),
+            Sequence('payload', [
+                Field('data', length=32, format=Field.TEXT)
+                ], length=parse("${length:} * 8"))])
+        data = {
+                'payload':{'data':'abcd'}
+                }
+        self.assertEqual('\x04abcd', encode(a, data).bytes())
