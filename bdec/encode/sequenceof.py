@@ -19,6 +19,7 @@
 
 from bdec import DecodeError
 from bdec.encode.entry import EntryEncoder
+from bdec.inspect.solver import solve
 
 class InvalidSequenceOfCount(DecodeError):
     """Raised during encoding when an invalid length is found."""
@@ -39,5 +40,11 @@ class SequenceOfEncoder(EntryEncoder):
             for data in self._encode_child(self.children[0], query, value, i, context):
                 yield data
 
-        if self.entry.count is not None and self.entry.count.evaluate({}) != count:
-            raise InvalidSequenceOfCount(self.entry, self.entry.count.evaluate({}), count)
+        if self.entry.count:
+            # Update the context with the detected parameters
+            ref_values = solve(self.entry.count, self.entry, self._params, count)
+            for ref, ref_value in ref_values.items():
+                context[ref.name] = ref_value
+
+            if self.entry.count.evaluate(context) != count:
+                raise InvalidSequenceOfCount(self.entry, self.entry.count.evaluate({}), count)

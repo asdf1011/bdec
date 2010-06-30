@@ -137,7 +137,10 @@ class Field(bdec.entry.Entry):
         if isinstance(data, dt.Data):
             result = data.copy()
         elif self.format == self.BINARY:
-            result = dt.Data.from_binary_text(self._convert_type(data, str))
+            if isinstance(data, int):
+                result = dt.Data.from_int_big_endian(data, length)
+            else:
+                result = dt.Data.from_binary_text(self._convert_type(data, str))
         elif self.format == self.HEX:
             result = dt.Data.from_hex(self._convert_type(data, str))
         elif self.format == self.TEXT:

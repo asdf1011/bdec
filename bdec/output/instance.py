@@ -16,6 +16,8 @@
 #   License along with this library; if not, see
 #   <http://www.gnu.org/licenses/>.
 
+import operator
+
 from bdec.encode.entry import MissingInstanceError
 import bdec.entry as ent
 import bdec.field as fld
@@ -123,6 +125,6 @@ def encode(protocol, value):
     """
     Encode a python instance to binary data.
 
-    Returns an iterator to data objects representing the encoded structure.
+    Returns a bdec.data.Data instance.
     """
-    return protocol.encode(_get_data, {protocol.name: value})
+    return reduce(operator.add, protocol.encode(_get_data, {protocol.name: value}))

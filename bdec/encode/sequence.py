@@ -17,6 +17,8 @@
 #   License along with this library; if not, see
 #   <http://www.gnu.org/licenses/>.
 
+import operator
+
 from bdec.encode.entry import EntryEncoder
 from bdec.inspect.solver import solve
 
@@ -33,8 +35,8 @@ class SequenceEncoder(EntryEncoder):
         # entry).
         sequence_data = []
         for child in reversed(self.children):
-            for data in self._encode_child(child, query, value, 0, context):
-                sequence_data.append(data)
+            data = reduce(operator.add, self._encode_child(child, query, value, 0, context))
+            sequence_data.append(data)
         for data in reversed(sequence_data):
             yield data
 
