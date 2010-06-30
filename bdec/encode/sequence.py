@@ -18,10 +18,28 @@
 #   <http://www.gnu.org/licenses/>.
 
 from bdec.encode.entry import EntryEncoder
+from bdec.inspect.solver import solve
 
 class SequenceEncoder(EntryEncoder):
-    def _encode(self, query, value):
-        for child in self.children:
-            for data in child.encoder.encode(query, value, 0):
-                yield data
+    def _encode(self, query, value, context):
+        # We encode sequences in reverse, as earlier hidden fields and
+        # sequences cannot always be encoded without information from the later
+        # encoded elements. For example, a length field cannot be encoded
+        # without knowing the length of the field which it is to encode.
+        #
+        # FIXME: We should do a proper dependancy analysis, and only rearrage
+        # entries as required (for example, this logic will fail if a later
+        # entry requires the knowledge of the encoded length of an earlier
+        # entry).
+        sequence_data = []
+        for child in reversed(self.children):
+            for data in self._encode_child(child, query, value, 0, context):
+                sequence_data.append(data)
+        for data in reversed(sequence_data):
+            yield data
 
+        if self.entry.value:
+            # Update the context with the detected parameters
+            ref_values = solve(self.entry.value, self.entry, self._params, value)
+            for ref, ref_value in ref_values.items():
+                context[ref.name] = ref_value

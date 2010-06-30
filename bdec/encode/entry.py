@@ -43,17 +43,29 @@ class MissingInstanceError(bdec.DecodeError):
 
 
 class Child:
-    def __init__(self, name, encoder):
+    def __init__(self, name, encoder, passed_params):
         self.name = name
         self.encoder = encoder
+        self.params = list(passed_params)
 
     def __str__(self):
         return str(self.encoder)
 
 class EntryEncoder:
-    def __init__(self, entry):
+    def __init__(self, entry, params):
         self.entry = entry
         self.children = []
+
+        self._inputs = []
+        self._outputs = []
+        self._params = params
+        for param in params.get_params(entry):
+            # When encoding, the direction of the parameters is inverted. What
+            # would usually be an output, is now an input.
+            if param.direction is param.OUT:
+                self._inputs.append(param)
+            else:
+                self._outputs.append(param)
 
     def _get_context(self, query, parent, offset):
         # This interface isn't too good; it requires us to load the _entire_ document
@@ -69,14 +81,26 @@ class EntryEncoder:
                 return None
             raise
 
-    def get_context(self, query, parent):
-        return self._get_context(query, parent)
-
     def _encode(self, query, value):
         """
         Encode a data source, with the context being the data to encode.
         """
         raise NotImplementedError()
+
+    def _encode_child(self, child, query, value, offset, context):
+        child_context = {}
+        for param in child.params:
+            if param.direction == param.OUT:
+                # Note that we are inversed; if we are parsing out, we are
+                # really passing in.
+                child_context[param.name] = context[param.name]
+        for data in child.encoder.encode(query, value, offset, child_context, child.name):
+            yield data
+
+        for param in child.params:
+            if param.direction == param.IN:
+                # Update our context with the child's ouptputs...
+                context[param.name] = child_context[param.name]
 
     def _fixup_value(self, value):
         """
@@ -84,7 +108,7 @@ class EntryEncoder:
         """
         return value
 
-    def encode(self, query, value, offset):
+    def encode(self, query, value, offset, context, name):
         """Return an iterator of bdec.data.Data instances.
 
         query -- Function to return a value to be encoded when given an entry
@@ -92,11 +116,12 @@ class EntryEncoder:
           the expected instance, MissingInstanceError should be raised.
         value -- This entry's value that is to be encoded.
         """
-        value = self._get_context(query, value, offset)
-
         encode_length = 0
+        value = self._get_context(query, value, offset)
         value = self._fixup_value(value)
-        context = {}
+        if value is None:
+            # We are hidden; get the value from the context.
+            value = context[name]
 
         length = None
         if self.entry.length is not None:
@@ -108,7 +133,7 @@ class EntryEncoder:
         for constraint in self.entry.constraints:
             constraint.check(self.entry, value, context)
 
-        for data in self._encode(query, value):
+        for data in self._encode(query, value, context):
             encode_length += len(data)
             yield data
 

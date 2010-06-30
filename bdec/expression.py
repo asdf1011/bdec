@@ -138,7 +138,7 @@ class ReferenceExpression(Expression):
 
     def __eq__(self, other):
         if type(self) != type(other):
-            return False
+            return NotImplemented
         return self.name == other.name
 
     def __hash__(self):

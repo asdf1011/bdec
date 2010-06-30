@@ -31,6 +31,7 @@ from bdec.encode.sequence import SequenceEncoder
 from bdec.encode.sequenceof import SequenceOfEncoder
 from bdec.choice import Choice
 from bdec.field import Field
+from bdec.inspect.param import ExpressionParameters
 from bdec.sequence import Sequence
 from bdec.sequenceof import SequenceOf
 
@@ -41,22 +42,21 @@ _encoders = {
         SequenceOf : SequenceOfEncoder,
         }
 
-class Encoder:
-    def __init__(self, entry):
-        self._entries = {}
-        self._encoder = self._get_encoder(entry)
+def _get_encoder(entry, params, entries):
+    try:
+        encoder = entries[entry]
+    except KeyError:
+        # We haven't created an encoder for this entry yet.
+        encoder = _encoders[type(entry)](entry, params)
+        entries[entry] = encoder
 
-    def _get_encoder(self, entry):
-        try:
-            encoder = self._entries[entry]
-        except KeyError:
-            # We haven't created an encoder for this entry yet.
-            encoder = _encoders[type(entry)](entry)
-            self._entries[entry] = encoder
+        for child in entry.children:
+            encoder.children.append(Child(child.name,
+                _get_encoder(child.entry, params, entries),
+                params.get_passed_variables(entry, child)))
+    return encoder
 
-            for child in entry.children:
-                encoder.children.append(Child(child.name, self._get_encoder(child.entry)))
-        return encoder
+def create_encoder(entry):
+    params = ExpressionParameters([entry])
+    return _get_encoder(entry, params, {})
 
-    def encode(self, query, value):
-        return self._encoder.encode(query, value, 0)

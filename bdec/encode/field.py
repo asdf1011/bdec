@@ -20,7 +20,7 @@
 from bdec.encode.entry import EntryEncoder
 
 class FieldEncoder(EntryEncoder):
-    def _encode(self, query, value):
+    def _encode(self, query, value, context):
         yield self.entry.encode_value(value)
 
     def _fixup_value(self, value):
