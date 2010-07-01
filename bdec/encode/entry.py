@@ -49,26 +49,25 @@ class Child:
     def __init__(self, name, encoder, passed_params):
         self.name = name
         self.encoder = encoder
-        self.params = list(passed_params)
+
+        # The in & out parameter directions are reveresed for encoding
+        self.inputs = list(p for p in passed_params if p.direction == p.OUT)
+        self.outputs = list(p for p in passed_params if p.direction == p.IN)
 
     def __str__(self):
         return str(self.encoder)
+
 
 class EntryEncoder:
     def __init__(self, entry, params):
         self.entry = entry
         self.children = []
 
-        self._inputs = []
-        self._outputs = []
+        # When encoding, the direction of the parameters is inverted. What
+        # would usually be an output, is now an input.
+        self.inputs = [p for p in params.get_params(entry) if p.direction == p.OUT]
+        self.outputs = [p for p in params.get_params(entry) if p.direction == p.IN]
         self._params = params
-        for param in params.get_params(entry):
-            # When encoding, the direction of the parameters is inverted. What
-            # would usually be an output, is now an input.
-            if param.direction is param.OUT:
-                self._inputs.append(param)
-            else:
-                self._outputs.append(param)
 
     def _get_context(self, query, parent, offset):
         # This interface isn't too good; it requires us to load the _entire_ document
@@ -92,18 +91,19 @@ class EntryEncoder:
 
     def _encode_child(self, child, query, value, offset, context):
         child_context = {}
-        for param in child.params:
-            if param.direction == param.OUT:
-                # Note that we are inversed; if we are parsing out, we are
-                # really passing in.
-                child_context[param.name] = context[param.name]
+        assert len(child.inputs) == len(child.encoder.inputs)
+        for our_param, child_param in zip(child.inputs, child.encoder.inputs):
+            # Update the child with its required parameters
+            child_context[child_param.name] = context[our_param.name]
+
         for data in child.encoder.encode(query, value, offset, child_context, child.name):
             yield data
 
-        for param in child.params:
-            if param.direction == param.IN:
-                # Update our context with the child's ouptputs...
-                context[param.name] = child_context[param.name]
+        assert len(child.outputs) == len(child.encoder.outputs), \
+                'Child has %s outputs, we expected %s' % (child.encoder.outputs, child.outputs)
+        for our_param, child_param in zip(child.outputs, child.encoder.outputs):
+            # Update our context with the child's outputs...
+            context[our_param.name] = child_context[child_param.name]
 
     def _fixup_value(self, value):
         """

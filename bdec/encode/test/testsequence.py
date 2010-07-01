@@ -26,3 +26,9 @@ class TestSequence(unittest.TestCase):
                 'payload':{'data':'abcd'}
                 }
         self.assertEqual('\x04abcd', encode(a, data).bytes())
+
+    def test_full_names(self):
+        a = Sequence('a', [
+            Sequence('b', [Field('length:', length=8)]),
+            Sequence('c', [Field('data', length=parse('${b.length:} * 8'), format=Field.TEXT)])])
+        self.assertEqual('\x03abc', encode(a, {'b':{}, 'c':{'data':'abc'}}).bytes())

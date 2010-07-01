@@ -19,6 +19,7 @@
 
 import operator
 
+from bdec.data import Data
 from bdec.encode.entry import EntryEncoder
 from bdec.inspect.solver import solve
 
@@ -35,7 +36,7 @@ class SequenceEncoder(EntryEncoder):
         # entry).
         sequence_data = []
         for child in reversed(self.children):
-            data = reduce(operator.add, self._encode_child(child, query, value, 0, context))
+            data = reduce(operator.add, self._encode_child(child, query, value, 0, context), Data())
             sequence_data.append(data)
         for data in reversed(sequence_data):
             yield data

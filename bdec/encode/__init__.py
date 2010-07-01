@@ -53,7 +53,7 @@ def _get_encoder(entry, params, entries):
         for child in entry.children:
             encoder.children.append(Child(child.name,
                 _get_encoder(child.entry, params, entries),
-                params.get_passed_variables(entry, child)))
+                list(params.get_passed_variables(entry, child))))
     return encoder
 
 def create_encoder(entry):
