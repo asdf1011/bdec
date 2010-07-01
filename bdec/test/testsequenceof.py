@@ -28,10 +28,10 @@ import bdec.field as fld
 import bdec.sequence as seq
 import bdec.sequenceof as sof
 
-def query(context, child, i):
+def query(context, child, i, name):
     if isinstance(context, list):
         return context[i]
-    return context[child.name]
+    return context[name]
 
 class TestSequenceOf(unittest.TestCase):
     def test_sequence_of_field(self):

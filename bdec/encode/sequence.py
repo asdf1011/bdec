@@ -34,6 +34,10 @@ class SequenceEncoder(EntryEncoder):
         # entries as required (for example, this logic will fail if a later
         # entry requires the knowledge of the encoded length of an earlier
         # entry).
+        if self.entry.value:
+            # Update the context with the detected parameters
+            self._solve(self.entry.value, value, context)
+
         sequence_data = []
         for child in reversed(self.children):
             data = reduce(operator.add, self._encode_child(child, query, value, 0, context), Data())
@@ -41,8 +45,3 @@ class SequenceEncoder(EntryEncoder):
         for data in reversed(sequence_data):
             yield data
 
-        if self.entry.value:
-            # Update the context with the detected parameters
-            ref_values = solve(self.entry.value, self.entry, self._params, value)
-            for ref, ref_value in ref_values.items():
-                context[ref.name] = ref_value

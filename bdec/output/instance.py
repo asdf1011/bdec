@@ -101,18 +101,15 @@ def decode(decoder, binary):
     assert len(stack) == 1
     return stack[0].get_value(None)
 
-def _get_data(obj, child, i):
+def _get_data(obj, child, i, name):
     if isinstance(obj, list):
         return obj[i]
 
-    name = child.name
     if name.endswith(':'):
         raise MissingInstanceError(obj, child)
 
-    name = escape(name)
-
     try: 
-        return getattr(obj, name)
+        return getattr(obj, escape(name))
     except (AttributeError, KeyError):
         pass
 

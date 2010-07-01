@@ -125,7 +125,7 @@ class _ProtocolStream:
             value = _get_constraint(self.entry, Equals)
             try:
                 if value is not None:
-                    def query(context, entry, i):
+                    def query(context, entry, i, name):
                         return value
                     data = reduce(operator.add, self.entry.encode(query, None))
                     return data

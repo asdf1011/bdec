@@ -1,5 +1,7 @@
 import unittest
 
+from bdec.constraints import Minimum, Maximum
+from bdec.entry import Child
 from bdec.encode.entry import MissingInstanceError
 from bdec.expression import parse
 from bdec.field import Field
@@ -32,3 +34,20 @@ class TestSequence(unittest.TestCase):
             Sequence('b', [Field('length:', length=8)]),
             Sequence('c', [Field('data', length=parse('${b.length:} * 8'), format=Field.TEXT)])])
         self.assertEqual('\x03abc', encode(a, {'b':{}, 'c':{'data':'abc'}}).bytes())
+
+    def test_multi_digit_encode(self):
+        # Test encoding a multiple text digit entry
+        digit = Sequence('digit',
+                [Field('char:', length=8, constraints=[Minimum(48), Maximum(57)])],
+                value=parse('${char:} - 48'))
+        two_digits = Sequence('two digits', [
+            Child('digit 1:', digit), Child('digit 2:', digit)],
+            value=parse('${digit 1:} * 10 + ${digit 2:}'))
+        four_digits = Sequence('four digits', [
+            Child('digits 1:', two_digits), Child('digits 2:', two_digits)],
+            value=parse('${digits 1:} * 100 + ${digits 2:}'))
+
+        self.assertEqual('12', encode(two_digits, 12).bytes())
+        self.assertEqual('1234', encode(four_digits, 1234).bytes())
+        self.assertEqual('7632', encode(four_digits, 7632).bytes())
+

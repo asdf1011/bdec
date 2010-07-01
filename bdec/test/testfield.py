@@ -27,7 +27,7 @@ from bdec.expression import ValueResult
 import bdec.data as dt
 import bdec.field as fld
 
-def query(context, name, i):
+def query(context, entry, i, name):
     return context
 
 class TestField(unittest.TestCase):
@@ -132,7 +132,7 @@ class TestField(unittest.TestCase):
 
     def test_bad_format_error(self):
         field = fld.Field("bob", 8, format=fld.Field.INTEGER)
-        self.assertRaises(fld.BadFormatError, field.encode(lambda name, context, i: "rabbit", None).next)
+        self.assertRaises(fld.BadFormatError, field.encode(lambda data, context, i, name: "rabbit", None).next)
 
     def test_encode_of_field_with_expected_value_fails_when_given_bad_data(self):
         field = fld.Field("bob", 8, constraints=[Equals(dt.Data('c'))])
@@ -146,7 +146,7 @@ class TestField(unittest.TestCase):
         make for clearer output).
         """
         field = fld.Field("bob", 8, constraints=[Equals(dt.Data("c"))])
-        def no_data_query(obj, name, i):
+        def no_data_query(obj, entry, i, name):
             return ''
         self.assertEqual("c", field.encode(no_data_query, None).next().bytes())
 

@@ -18,8 +18,7 @@
 #   <http://www.gnu.org/licenses/>.
 
 from bdec import DecodeError
-from bdec.encode.entry import EntryEncoder
-from bdec.inspect.solver import solve
+from bdec.encode.entry import EntryEncoder, ExpressionEncodingError
 
 class InvalidSequenceOfCount(DecodeError):
     """Raised during encoding when an invalid length is found."""
@@ -42,9 +41,7 @@ class SequenceOfEncoder(EntryEncoder):
 
         if self.entry.count:
             # Update the context with the detected parameters
-            ref_values = solve(self.entry.count, self.entry, self._params, count)
-            for ref, ref_value in ref_values.items():
-                context[ref.name] = ref_value
-
-            if self.entry.count.evaluate(context) != count:
-                raise InvalidSequenceOfCount(self.entry, self.entry.count.evaluate({}), count)
+            try:
+                self._solve(self.entry.count, count, context)
+            except ExpressionEncodingError, ex:
+                raise InvalidSequenceOfCount(self.entry, ex.error.expr, ex.error.expected)

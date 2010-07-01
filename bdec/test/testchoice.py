@@ -113,7 +113,7 @@ class TestChoice(unittest.TestCase):
 
         # First try encoding a number that will only fit in the 16 bit storage
         struct = {"bob" : {"dog" : 10023}}
-        def query(context, child, i):
+        def query(context, child, i, name):
             if child.name not in context:
                 raise MissingInstanceError(context, child)
             return context[child.name]

@@ -37,6 +37,14 @@ class SolverError(Exception):
     def __str__(self):
         return "%s: %s" % (self.reason, self.expr)
 
+class UnsolvableExpressionError(SolverError):
+    def __init__(self, expression, expected):
+        SolverError.__init__(self, expression, None)
+        self.expected = expected
+
+    def __str__(self):
+        return 'Unsolvable exression: %s != %s' % (self.expr, self.expected)
+
 
 def _break_into_parts(expression):
     """Break an expression into individual expressions.
@@ -160,13 +168,12 @@ def solve(expression, entry, params, value):
     # Figure out the components by working out each item independantly,
     # starting with the most significant.
     result = {}
+    original_value = value
     value -= constant.evaluate({})
     for ref, expr in variables:
         result[ref] = _invert(expr).evaluate({'result' : value})
         value -= expr.evaluate({ref.name:result[ref]})
     if value != 0:
-        raise Exception("Should have been able to solve '%s', but the result "
-                "components came to '%s' which leaves a remainder of %i!" %
-                (expression, result, value))
+        raise UnsolvableExpressionError(expression, original_value)
     return result
 

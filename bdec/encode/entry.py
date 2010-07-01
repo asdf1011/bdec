@@ -19,8 +19,8 @@
 
 import bdec
 
-from bdec.entry import UndecodedReferenceError, NotEnoughContextError
-from bdec.inspect.solver import solve
+from bdec.entry import UndecodedReferenceError, NotEnoughContextError, is_hidden
+from bdec.inspect.solver import solve, SolverError
 
 class DataLengthError(bdec.DecodeError):
     """Encoded data has the wrong length."""
@@ -43,6 +43,14 @@ class MissingInstanceError(bdec.DecodeError):
 
     def __str__(self):
         return "object '%s' doesn't have child object '%s'" % (self.parent, self.child.name)
+
+
+class ExpressionEncodingError(bdec.DecodeError):
+    def __init__(self, error):
+        self.error = error
+
+    def __str__(self):
+        return str(self.error)
 
 
 class Child:
@@ -69,7 +77,16 @@ class EntryEncoder:
         self.outputs = [p for p in params.get_params(entry) if p.direction == p.IN]
         self._params = params
 
-    def _get_context(self, query, parent, offset):
+    def _solve(self, expression, value, context):
+        try:
+            ref_values = solve(expression, self.entry, self._params, value)
+        except SolverError, ex:
+            raise ExpressionEncodingError(ex)
+
+        for ref, ref_value in ref_values.items():
+            context[ref.name] = ref_value
+
+    def _get_context(self, query, parent, offset, name):
         # This interface isn't too good; it requires us to load the _entire_ document
         # into memory. This is because it supports 'searching backwards', plus the
         # reference to the root element is kept. Maybe a push system would be better?
@@ -77,9 +94,9 @@ class EntryEncoder:
         # Problem is, push doesn't work particularly well for bdec.output.instance, nor
         # for choice entries (where we need to re-wind...)
         try:
-            return query(parent, self.entry, offset)
+            return query(parent, self.entry, offset, name)
         except MissingInstanceError:
-            if self.entry.is_hidden():
+            if is_hidden(name):
                 return None
             raise
 
@@ -120,11 +137,11 @@ class EntryEncoder:
         value -- This entry's value that is to be encoded.
         """
         encode_length = 0
-        value = self._get_context(query, value, offset)
+        value = self._get_context(query, value, offset, name)
         value = self._fixup_value(value)
         if value is None:
             # We are hidden; get the value from the context.
-            value = context[name]
+            value = context[self.entry.name]
 
         for constraint in self.entry.constraints:
             constraint.check(self.entry, value, context)
@@ -135,17 +152,15 @@ class EntryEncoder:
 
         length = None
         if self.entry.length is not None:
-            ref_values = solve(self.entry.length, self.entry, self._params, encode_length)
-            for ref, ref_value in ref_values.items():
-                context[ref.name] = ref_value
+            try:
+                self._solve(self.entry.length, encode_length, context)
+            except ExpressionEncodingError, ex:
+                raise DataLengthError(self.entry, ex.error.expr, ex.error.expected)
 
             try:
                 length = self.entry.length.evaluate(context)
             except UndecodedReferenceError, ex:
                 raise NotEnoughContextError(self.entry)
-
-        if length is not None and encode_length != length:
-            raise DataLengthError(self.entry, length, encode_length)
 
     def __str__(self):
         return 'encoder for %s' % self.entry

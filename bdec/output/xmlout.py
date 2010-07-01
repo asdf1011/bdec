@@ -131,7 +131,7 @@ class _SequenceOfIter:
             if node.nodeType == xml.dom.Node.ELEMENT_NODE:
                 yield _get_element_value(node, self._child)
 
-def _query_element(obj, child, offset):
+def _query_element(obj, child, offset, name):
     """
     Get a named child-element of a node.
 
@@ -147,7 +147,7 @@ def _query_element(obj, child, offset):
     except AttributeError:
         raise MissingInstanceError(obj, child)
 
-    name = escape_name(child.name)
+    name = escape_name(name)
     for child_node in childNodes:
         if child_node.nodeType == xml.dom.Node.ELEMENT_NODE and child_node.tagName == name:
             return _get_element_value(child_node, child)
