@@ -24,7 +24,7 @@ from bdec.encode.entry import EntryEncoder
 from bdec.inspect.solver import solve
 
 class SequenceEncoder(EntryEncoder):
-    def _encode(self, query, value, context):
+    def _encode(self, query, value, context, is_hidden):
         # We encode sequences in reverse, as earlier hidden fields and
         # sequences cannot always be encoded without information from the later
         # encoded elements. For example, a length field cannot be encoded
@@ -40,7 +40,7 @@ class SequenceEncoder(EntryEncoder):
 
         sequence_data = []
         for child in reversed(self.children):
-            data = reduce(operator.add, self._encode_child(child, query, value, 0, context), Data())
+            data = reduce(operator.add, self._encode_child(child, query, value, 0, context, is_hidden), Data())
             sequence_data.append(data)
         for data in reversed(sequence_data):
             yield data

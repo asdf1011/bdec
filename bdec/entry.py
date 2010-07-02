@@ -155,7 +155,7 @@ class Entry(object):
         if self._encoder is None:
             from bdec.encode import create_encoder
             self._encoder = create_encoder(self)
-        return self._encoder.encode(query, value, 0, {}, self.name)
+        return self._encoder.encode(query, value, 0, {}, self.name, False)
 
     def is_hidden(self):
         """Is this a 'hidden' entry."""

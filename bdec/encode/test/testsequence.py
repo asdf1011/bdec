@@ -51,3 +51,8 @@ class TestSequence(unittest.TestCase):
         self.assertEqual('1234', encode(four_digits, 1234).bytes())
         self.assertEqual('7632', encode(four_digits, 7632).bytes())
 
+    def test_encode_hidden_sequence(self):
+        # When encoding an item that is hidden, we should use null characters.
+        a = Sequence('a', [Sequence('b:', [Field('c', length=8)])])
+        self.assertEqual('\x00', encode(a, None).bytes())
+

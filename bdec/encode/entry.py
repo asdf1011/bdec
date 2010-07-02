@@ -86,7 +86,7 @@ class EntryEncoder:
         for ref, ref_value in ref_values.items():
             context[ref.name] = ref_value
 
-    def _get_context(self, query, parent, offset, name):
+    def _get_child_value(self, query, parent, offset, name, is_hidden, context):
         # This interface isn't too good; it requires us to load the _entire_ document
         # into memory. This is because it supports 'searching backwards', plus the
         # reference to the root element is kept. Maybe a push system would be better?
@@ -96,24 +96,29 @@ class EntryEncoder:
         try:
             return query(parent, self.entry, offset, name)
         except MissingInstanceError:
-            if is_hidden(name):
+            if not is_hidden:
+                raise
+            try:
+                # This is a hidden entry; it's value may be stored in the parameter
+                # context.
+                return context[self.entry.name]
+            except KeyError:
                 return None
-            raise
 
-    def _encode(self, query, value):
+    def _encode(self, query, value, context, is_hidden):
         """
         Encode a data source, with the context being the data to encode.
         """
         raise NotImplementedError()
 
-    def _encode_child(self, child, query, value, offset, context):
+    def _encode_child(self, child, query, value, offset, context, is_entry_hidden):
         child_context = {}
         assert len(child.inputs) == len(child.encoder.inputs)
         for our_param, child_param in zip(child.inputs, child.encoder.inputs):
             # Update the child with its required parameters
             child_context[child_param.name] = context[our_param.name]
 
-        for data in child.encoder.encode(query, value, offset, child_context, child.name):
+        for data in child.encoder.encode(query, value, offset, child_context, child.name, is_entry_hidden):
             yield data
 
         assert len(child.outputs) == len(child.encoder.outputs), \
@@ -122,13 +127,13 @@ class EntryEncoder:
             # Update our context with the child's outputs...
             context[our_param.name] = child_context[child_param.name]
 
-    def _fixup_value(self, value):
+    def _fixup_value(self, value, is_hidden):
         """
         Allow entries to modify the value to be encoded.
         """
         return value
 
-    def encode(self, query, value, offset, context, name):
+    def encode(self, query, value, offset, context, name, is_entry_hidden):
         """Return an iterator of bdec.data.Data instances.
 
         query -- Function to return a value to be encoded when given an entry
@@ -136,17 +141,21 @@ class EntryEncoder:
           the expected instance, MissingInstanceError should be raised.
         value -- This entry's value that is to be encoded.
         """
+        is_entry_hidden |= is_hidden(name)
+
         encode_length = 0
-        value = self._get_context(query, value, offset, name)
-        value = self._fixup_value(value)
-        if value is None:
-            # We are hidden; get the value from the context.
-            value = context[self.entry.name]
+        try:
+            value = self._get_child_value(query, value, offset, name, is_entry_hidden, context)
+        except MissingInstanceError:
+            if not is_entry_hidden:
+                raise
+            value = None
+        value = self._fixup_value(value, is_entry_hidden)
 
         for constraint in self.entry.constraints:
             constraint.check(self.entry, value, context)
 
-        for data in self._encode(query, value, context):
+        for data in self._encode(query, value, context, is_entry_hidden):
             encode_length += len(data)
             yield data
 
