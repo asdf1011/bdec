@@ -24,3 +24,6 @@ def main():
         (filename, line_number, column_number) = lookup[ex.entry]
         sys.exit("%s[%i]: %s" % (filename, line_number, str(ex)))
     sys.stdout.write(binary)
+
+if __name__ == '__main__':
+    main()
