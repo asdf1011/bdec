@@ -19,7 +19,8 @@
 
 from bdec import DecodeError
 from bdec.data import Data
-from bdec.encode.entry import EntryEncoder, MissingInstanceError
+from bdec.encode.entry import EntryEncoder, MissingInstanceError, NotEnoughContextError
+from bdec.expression import UndecodedReferenceError
 
 class MissingFieldException(DecodeError):
     def __str__(self):
@@ -45,4 +46,10 @@ class FieldEncoder(EntryEncoder):
         return value
 
     def _encode(self, query, value, context, is_hidden):
-        yield self.entry.encode_value(value)
+        try:
+            length = self.entry.length.evaluate(context)
+        except UndecodedReferenceError, ex:
+            raise NotEnoughContextError(self.entry, ex)
+
+        yield self.entry.encode_value(value, length)
+

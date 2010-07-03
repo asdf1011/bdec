@@ -169,7 +169,7 @@ class EntryEncoder:
             try:
                 length = self.entry.length.evaluate(context)
             except UndecodedReferenceError, ex:
-                raise NotEnoughContextError(self.entry)
+                raise NotEnoughContextError(self.entry, ex)
 
     def __str__(self):
         return 'encoder for %s' % self.entry

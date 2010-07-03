@@ -51,8 +51,12 @@ class EncodeError(bdec.DecodeError):
     pass
 
 class NotEnoughContextError(EncodeError):
+    def __init__(self, entry, error):
+        EncodeError.__init__(self, entry)
+        self.error = error
+
     def __str__(self):
-        return "%s needs context to encode" % self.entry
+        return "%s: %s" % (self.entry, self.error)
 
 
 def is_hidden(name):

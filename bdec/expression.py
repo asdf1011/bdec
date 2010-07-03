@@ -44,6 +44,14 @@ class UndecodedReferenceError(Exception):
 
     We don't derive this from DecodeError, as it is an internal program error.
     """
+    def __init__(self, name, context):
+        self.name = name
+        self.context = context
+
+    def __str__(self):
+        return "Missing context '%s' (have %s)" % (self.name,
+                ', '.join("'%s'" % k for k in self.context.keys()))
+
 
 class ExpressionError(Exception):
     def __init__(self, ex):
