@@ -36,7 +36,7 @@ class SequenceEncoder(EntryEncoder):
         # entry).
         if self.entry.value:
             # Update the context with the detected parameters
-            self._solve(self.entry.value, value, context)
+            self._solve(self.entry.value, int(value), context)
 
         sequence_data = []
         for child in reversed(self.children):
