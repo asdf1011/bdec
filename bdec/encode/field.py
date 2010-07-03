@@ -49,7 +49,10 @@ class FieldEncoder(EntryEncoder):
         try:
             length = self.entry.length.evaluate(context)
         except UndecodedReferenceError, ex:
-            raise NotEnoughContextError(self.entry, ex)
+            # We don't know how long this entry should be. Most types have an
+            # implicit length (eg: for a string, it is the length of the,
+            # string, etc).
+            length = None
 
         yield self.entry.encode_value(value, length)
 

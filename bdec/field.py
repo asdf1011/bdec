@@ -150,7 +150,9 @@ class Field(bdec.entry.Entry):
             except UnicodeDecodeError:
                 raise BadEncodingError(self, data)
         elif self.format == self.INTEGER:
-            
+            if length is None:
+                raise FieldDataError(self, 'Unable to encode integer field '
+                        'without explicit length')
             assert self.encoding in [self.BIG_ENDIAN, self.LITTLE_ENDIAN]
             if self.encoding == self.BIG_ENDIAN:
                 result = dt.Data.from_int_big_endian(self._convert_type(data, int), length)
