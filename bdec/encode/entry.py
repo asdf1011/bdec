@@ -21,6 +21,7 @@ import bdec
 
 from bdec.entry import UndecodedReferenceError, NotEnoughContextError, is_hidden
 from bdec.inspect.solver import solve, SolverError
+from bdec.inspect.type import EntryLengthType
 
 class DataLengthError(bdec.DecodeError):
     """Encoded data has the wrong length."""
@@ -30,7 +31,7 @@ class DataLengthError(bdec.DecodeError):
         self.actual = actual
 
     def __str__(self):
-        return "%s expected length %i, got length %i" % (self.entry, self.expected, self.actual)
+        return "%s expected length %s, got length %i" % (self.entry, self.expected, self.actual)
 
 class MissingInstanceError(bdec.DecodeError):
     """
@@ -52,6 +53,28 @@ class ExpressionEncodingError(bdec.DecodeError):
     def __str__(self):
         return str(self.error)
 
+def _params(params):
+    inputs = []
+    outputs = []
+    for p in params:
+        if isinstance(p.type, EntryLengthType):
+            # We treat length references as the same as they during encoding,
+            # such that inputs are inputs and outputs are outputs.
+            if p.direction == p.IN:
+                inputs.append(p)
+            else:
+                outputs.append(p)
+        else:
+            # Value references are inverted, as we derive the earlier values
+            # from when they are encoded later.
+            # TODO: We only need to invert values that are hidden... we should
+            # keep the direction the same for referenced entries that are
+            # visible.
+            if p.direction == p.IN:
+                outputs.append(p)
+            else:
+                inputs.append(p)
+    return inputs, outputs
 
 class Child:
     def __init__(self, name, encoder, passed_params):
@@ -59,10 +82,9 @@ class Child:
         self.encoder = encoder
 
         # The in & out parameter directions are reveresed for encoding
-        self.inputs = list(p for p in passed_params if p.direction == p.OUT)
-        self.outputs = list(p for p in passed_params if p.direction == p.IN)
+        self.inputs, self.outputs = _params(passed_params)
 
-    def __str__(self):
+    def __repr__(self):
         return str(self.encoder)
 
 
@@ -73,13 +95,13 @@ class EntryEncoder:
 
         # When encoding, the direction of the parameters is inverted. What
         # would usually be an output, is now an input.
-        self.inputs = [p for p in params.get_params(entry) if p.direction == p.OUT]
-        self.outputs = [p for p in params.get_params(entry) if p.direction == p.IN]
+        self.inputs, self.outputs = _params(params.get_params(entry))
         self._params = params
+        self._is_length_referenced = params.is_length_referenced(entry)
 
     def _solve(self, expression, value, context):
         try:
-            ref_values = solve(expression, self.entry, self._params, value)
+            ref_values = solve(expression, self.entry, self._params, context, value)
         except SolverError, ex:
             raise ExpressionEncodingError(ex)
 
@@ -170,6 +192,9 @@ class EntryEncoder:
                 length = self.entry.length.evaluate(context)
             except UndecodedReferenceError, ex:
                 raise NotEnoughContextError(self.entry, ex)
+        if self._is_length_referenced:
+            context[self.entry.name + ' length'] = length
 
-    def __str__(self):
+    def __repr__(self):
         return 'encoder for %s' % self.entry
+

@@ -3,6 +3,7 @@ import unittest
 from bdec.constraints import Minimum, Maximum
 from bdec.entry import Child
 from bdec.encode.entry import MissingInstanceError
+from bdec.encode.sequence import CyclicEncodingError
 from bdec.expression import parse
 from bdec.field import Field
 from bdec.sequence import Sequence
@@ -56,3 +57,30 @@ class TestSequence(unittest.TestCase):
         a = Sequence('a', [Sequence('b:', [Field('c', length=8)])])
         self.assertEqual('\x00', encode(a, None).bytes())
 
+    def test_cyclic_dependency_error(self):
+        a = Sequence('a', [
+            Sequence('header:', [Field('length', length=8)]),
+            Field('payload', length=parse('${header:.length} * 8 - len{header:}'), format=Field.TEXT)])
+        try:
+            encode(a, {'payload':'boom'})
+        except CyclicEncodingError, ex:
+            self.assertTrue("'header:' -> 'payload' -> 'header:'" in str(ex), str(ex))
+
+    def test_length_reference(self):
+        # Test that we can correctly encode entries that use length references
+        a = Sequence('a', [
+            Field('packet length:', length=8),
+            Field('data length:', length=8),
+            Field('data', length=parse('${data length:} * 8'), format=Field.TEXT),
+            Field('unused', length=parse('${packet length:} * 8 - len{data}'), format=Field.TEXT)])
+        self.assertEqual('\x05\x03aaabb', encode(a, {'data':'aaa', 'unused':'bb'}).bytes())
+
+    def test_complex_length_reference(self):
+        # Here we try to encode a complex length reference that includes a
+        # length reference
+        a = Sequence('a', [
+            Field('packet length:', length=8, format=Field.INTEGER),
+            Field('header length:', length=8, format=Field.INTEGER),
+            Field('header', length=parse('${header length:} * 8'), format=Field.TEXT),
+            Field('packet', length=parse('${packet length:} * 8 - len{header}'), format=Field.TEXT)])
+        self.assertEqual('\x06\x02hhpppp', encode(a, {'header':'hh', 'packet':'pppp'}).bytes())
