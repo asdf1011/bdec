@@ -144,6 +144,9 @@ class ReferenceExpression(Expression):
         assert isinstance(name, basestring)
         self.name = name
 
+    def param_name(self):
+        raise NotImplementedError()
+
     def __eq__(self, other):
         if type(self) != type(other):
             return NotImplemented
@@ -157,9 +160,12 @@ class ValueResult(ReferenceExpression):
     """
     Object returning the result of a entry when cast to an integer.
     """
+    def param_name(self):
+        return self.name
+
     def evaluate(self, context):
         try:
-            return context[self.name]
+            return context[self.param_name()]
         except KeyError:
             raise UndecodedReferenceError(self.name, context)
 
@@ -171,12 +177,14 @@ class LengthResult(ReferenceExpression):
     """
     Object returning the length of a decoded entry.
     """
+    def param_name(self):
+        return self.name + ' length'
+
     def evaluate(self, context):
-        name = self.name + ' length'
         try:
-            return context[name]
+            return context[self.param_name()]
         except KeyError:
-            raise UndecodedReferenceError(name, context)
+            raise UndecodedReferenceError(self.param_name(), context)
 
     def __repr__(self):
         return "len{%s}" % self.name

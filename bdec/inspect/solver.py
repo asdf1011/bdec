@@ -147,8 +147,8 @@ def solve(expression, entry, params, value):
     """Solve an expression given the result and the input parameters.
     
     expression -- A bdec.expression.Expression instance to solve.
-    params -- A list of bdec.param.Param instances representing all values
-        passed into the expression.
+    params -- A bdec.param.ExpressionParameters instance used to query all
+        values passed into the expression.
     value -- The integer value to use when solving the expression.
     result -- Returns a dict of {ReferenceExpression: value} """
     components, constant = _break_into_parts(expression)

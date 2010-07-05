@@ -23,7 +23,7 @@ import bdec.choice as chc
 from bdec.entry import Entry
 import bdec.field as fld
 import bdec.sequence as seq
-from bdec.expression import ArithmeticExpression, ValueResult, LengthResult, Constant
+from bdec.expression import ArithmeticExpression, ReferencedExpression, Constant
 from bdec.inspect.param import Local, Param, MAGIC_UNKNOWN_NAME
 from bdec.inspect.type import EntryLengthType, EntryValueType, IntegerType, EntryType, expression_range
 
@@ -279,10 +279,8 @@ def value(entry, expr):
       elif expr.value > (1 << 31):
           return "%iL" % expr.value
       return int(expr.value)
-  elif isinstance(expr, ValueResult):
-      return _value_ref(local_name(entry, expr.name), entry)
-  elif isinstance(expr, LengthResult):
-      return _value_ref(local_name(entry, expr.name + ' length'), entry)
+  elif isinstance(expr, ReferenceExpression):
+      return _value_ref(local_name(entry, expr.param_name()), entry)
   elif isinstance(expr, ArithmeticExpression):
       left = value(entry, expr.left)
       right = value(entry, expr.right)

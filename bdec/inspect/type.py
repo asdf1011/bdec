@@ -49,18 +49,14 @@ def _get_param(entry, name, parameters):
                 return param
     raise Exception("Failed to find parameter '%s' in params for entry '%s'!" % (name, entry))
 
-def _reference_value_range(value, entry, parameters):
-    return _get_param(entry, value.name, parameters).type.range(parameters)
-
-def _reference_length_range(value, entry, parameters):
-    name = value.name + ' length'
-    return _get_param(entry, name, parameters).type.range(parameters)
+def _reference_range(value, entry, parameters):
+    return _get_param(entry, value.param_name(), parameters).type.range(parameters)
 
 _handlers = {
         Constant: _constant_range,
         ArithmeticExpression: _delayed_range,
-        ValueResult: _reference_value_range,
-        LengthResult: _reference_length_range,
+        ValueResult: _reference_range,
+        LengthResult: _reference_range,
         }
 
 def expression_range(expression, entry=None, parameters=None):

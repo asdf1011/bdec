@@ -199,14 +199,6 @@ class EndEntryParameters(_Parameters):
         return entry in self._end_sequenceof_entries
 
 
-def _get_reference_name(reference):
-    if isinstance(reference, expr.ValueResult):
-        return reference.name
-    elif isinstance(reference, expr.LengthResult):
-        return reference.name + ' length'
-    raise Exception("Unknown reference type '%s'" % reference)
-
-
 class _VariableParam:
     def __init__(self, reference, direction, type):
         assert isinstance(reference, expr.ValueResult) or isinstance(reference, expr.LengthResult)
@@ -236,7 +228,7 @@ class _VariableParam:
 
     def get_param(self):
         """Construct a parameter from this internal parameter type."""
-        return Param(_get_reference_name(self.reference), self.direction, self.get_type())
+        return Param(self.reference.param_name(), self.direction, self.get_type())
 
 
 class ExpressionParameters(_Parameters):
@@ -483,8 +475,7 @@ class ExpressionParameters(_Parameters):
                 if child_param.direction == Param.OUT:
                     local = self._get_local_reference(entry, child, child_param)
                     if _VariableParam(local, child_param.direction, None) not in params:
-                        name = _get_reference_name(local)
-                        locals.setdefault(name, []).append(child_param.get_type())
+                        locals.setdefault(local.param_name(), []).append(child_param.get_type())
         result = []
         for name, types in locals.items():
             if len(types) == 1:
@@ -539,7 +530,7 @@ class ExpressionParameters(_Parameters):
         assert isinstance(child, bdec.entry.Child)
         for param in self._get_params(child.entry):
             local = self._get_local_reference(entry, child, param)
-            yield Param(_get_reference_name(local), param.direction, param.get_type())
+            yield Param(local.param_name(), param.direction, param.get_type())
 
     def is_value_referenced(self, entry):
         """ Is the decoded value of an entry used elsewhere. """
