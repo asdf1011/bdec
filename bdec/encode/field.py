@@ -46,7 +46,9 @@ class FieldEncoder(EntryEncoder):
             # display the expected value).
             expected = self.entry.expected
             if expected is not None:
-                value = self.entry.decode_value(expected)
+                value = expected
+                if isinstance(value, Data):
+                    value = self.entry.decode_value(value)
             elif is_hidden:
                 if self._params.is_value_referenced(self.entry):
                     raise MissingFieldException(self.entry)

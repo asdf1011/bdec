@@ -128,3 +128,12 @@ class TestXml(unittest.TestCase):
             seq.Sequence('c', [], value=parse('${b:}'), constraints=[Equals(5)])])
         self.assertEqual('\x05', xml.encode(a, text).bytes())
 
+    def test_integer_field_with_expected_value(self):
+        a = fld.Field('a', length=16, format=fld.Field.INTEGER,
+                encoding=fld.Field.LITTLE_ENDIAN, constraints=[Equals(7)])
+        self.assertEqual('\x07\x00', xml.encode(a, '<a/>').bytes())
+
+    def test_text_field_with_expected_value(self):
+        a = fld.Field('a', length=32, format=fld.Field.TEXT, constraints=[Equals('abcd')])
+        self.assertEqual('abcd', xml.encode(a, '<a/>').bytes())
+
