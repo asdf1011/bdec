@@ -17,6 +17,7 @@
 #   <http://www.gnu.org/licenses/>.
 
 import logging
+import operator
 import string
 import StringIO
 import xml.dom.minidom
@@ -185,5 +186,5 @@ def encode(protocol, xmldata):
     if isinstance(xmldata, basestring):
         xmldata = StringIO.StringIO(xmldata)
     document = xml.dom.minidom.parse(xmldata)
-    return protocol.encode(_query_element, document)
+    return reduce(operator.add, protocol.encode(_query_element, document))
 

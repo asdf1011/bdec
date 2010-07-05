@@ -21,6 +21,7 @@ from collections import defaultdict
 import operator
 
 from bdec import DecodeError
+from bdec.constraints import Equals
 from bdec.data import Data
 from bdec.encode.entry import EntryEncoder
 from bdec.inspect.solver import solve
@@ -92,6 +93,19 @@ def _encoding_order(encoder, is_hidden):
 
 
 class SequenceEncoder(EntryEncoder):
+
+    def _fixup_value(self, value, is_hidden):
+        """
+        Allow entries to modify the value to be encoded.
+        """
+        if self.entry.value:
+            if value in [None, '']:
+                # This could be a hidden entry; get the expected value from the
+                # constraints
+                for constraint in self.entry.constraints:
+                    if isinstance(constraint, Equals):
+                        return constraint.limit.evaluate({})
+        return value
 
     def _encode(self, query, value, context, is_hidden):
         if self.entry.value:

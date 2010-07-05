@@ -37,9 +37,8 @@ def main():
     else:
         xml = sys.stdin.read()
 
-    data = xmlout.encode(protocol, xml)
     try:
-        binary = reduce(lambda a,b:a+b, data).bytes()
+        binary = xmlout.encode(protocol, xml).bytes()
     except bdec.DecodeError, ex:
         (filename, line_number, column_number) = lookup[ex.entry]
         sys.exit("%s[%i]: %s" % (filename, line_number, str(ex)))

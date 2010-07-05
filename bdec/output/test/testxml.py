@@ -23,6 +23,7 @@ import bdec.choice as chc
 from bdec.constraints import Equals
 import bdec.data as dt
 import bdec.entry as ent
+from bdec.expression import parse
 import bdec.field as fld
 import bdec.output.xmlout as xml
 import bdec.sequence as seq
@@ -47,15 +48,14 @@ class TestXml(unittest.TestCase):
         sequence = seq.Sequence("blah", [
             fld.Field("cat", 8, fld.Field.INTEGER),
             fld.Field("dog", 8, fld.Field.INTEGER)])
-        data = reduce(lambda a,b:a+b, xml.encode(sequence, text))
-        self.assertEqual("\x05\x12", data.bytes())
+        self.assertEqual("\x05\x12", xml.encode(sequence, text).bytes())
 
     def test_choice_encode(self):
         a = fld.Field('a', 8, constraints=[Equals(dt.Data('a'))])
         b = fld.Field('b', 8, constraints=[Equals(dt.Data('b'))])
         choice = chc.Choice('blah', [a, b])
         text = "<b />"
-        data = reduce(lambda a,b:a+b, xml.encode(choice, text))
+        data = xml.encode(choice, text)
         self.assertEqual("b", data.bytes())
 
     def test_verbose(self):
@@ -71,19 +71,19 @@ class TestXml(unittest.TestCase):
         self.assertEqual(expected, text)
 
         # Now test that we can re-encode verbose generated xml...
-        data = reduce(lambda a,b:a+b, xml.encode(sequence, text))
+        data = xml.encode(sequence, text)
         self.assertEqual("mzip", data.bytes())
 
     def test_encode_sequenceof(self):
         spec = sof.SequenceOf('cat', fld.Field('dog', 8, fld.Field.TEXT), 4)
         text = "<cat> <dog>a</dog> <dog>b</dog> <dog>c</dog> <dog>d</dog> </cat>"
-        data = reduce(lambda a,b:a+b, xml.encode(spec, text))
+        data = xml.encode(spec, text)
         self.assertEqual("abcd", data.bytes())
 
     def test_re_encoding_of_whitespace(self):
         spec = fld.Field('blah', 64, fld.Field.TEXT)
         text = xml.to_string(spec, dt.Data('  bob   '))
-        data = reduce(lambda a,b:a+b, xml.encode(spec, text))
+        data = xml.encode(spec, text)
         self.assertEqual("  bob   ", data.bytes())
 
     def test_nameless_entry(self):
@@ -120,4 +120,11 @@ class TestXml(unittest.TestCase):
         a = seq.Sequence('a', [], value=expr.compile('1'), constraints=[Equals(1)])
         text = xml.to_string(a, dt.Data())
         self.assertEqual('<a></a>\n', text)
+
+    def test_sequence_with_expected_value(self):
+        text = '<a><c/></a>'
+        a = seq.Sequence('a', [
+            fld.Field('b:', 8),
+            seq.Sequence('c', [], value=parse('${b:}'), constraints=[Equals(5)])])
+        self.assertEqual('\x05', xml.encode(a, text).bytes())
 
