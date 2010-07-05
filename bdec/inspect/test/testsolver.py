@@ -34,10 +34,12 @@ from bdec.inspect.solver import solve, SolverError
 from bdec.inspect.type import EntryValueType
 from bdec.sequence import Sequence
 
-def _solve(entry, child, value):
+def _solve(entry, child, value, context=None):
+    if context is None:
+        context = {}
     ent = entry.children[child].entry if child is not None else entry
     result = solve(ent.value, entry,
-            ExpressionParameters([entry]), value)
+            ExpressionParameters([entry]), context, value)
     return dict((str(c), v) for c,v in result.items())
 
 
@@ -126,3 +128,12 @@ class TestSolver (unittest.TestCase):
             Child('digit 2:', digit)], value=parse('${digit 1:} * 10 + ${digit 2:}'))
         self.assertEqual({'${digit 1:}':6, '${digit 2:}' : 7},
                 _solve(two_digits, None, 67))
+
+    def test_length_reference(self):
+        a = Sequence('a', [
+            Field('data length:', length=8),
+            Field('b', length=16),
+            Sequence('footer length', [], value=parse('${data length:} * 8 - len{b}'))])
+        # We now try to solve 'data length:' given that we know the value for 'b length'
+        self.assertEqual({'${data length:}' : 5}, _solve(a, 2, 24, {'b length':16}))
+

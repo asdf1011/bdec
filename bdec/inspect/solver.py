@@ -46,7 +46,7 @@ class UnsolvableExpressionError(SolverError):
         return 'Unsolvable exression: %s != %s' % (self.expr, self.expected)
 
 
-def _break_into_parts(expression):
+def _break_into_parts(expression, context):
     """Break an expression into individual expressions.
 
     Each individual expression should have a single parameter referenced,
@@ -59,8 +59,8 @@ def _break_into_parts(expression):
     result = {}
     constant = Constant(0)
     if isinstance(expression, ArithmeticExpression):
-        left, lconst = _break_into_parts(expression.left)
-        right, rconst = _break_into_parts(expression.right)
+        left, lconst = _break_into_parts(expression.left, context)
+        right, rconst = _break_into_parts(expression.right, context)
         if expression.op in (operator.add, operator.sub):
             # We need to add / subtract the common components
             constant = ArithmeticExpression(expression.op, lconst, rconst)
@@ -98,16 +98,21 @@ def _break_into_parts(expression):
     elif isinstance(expression, Constant):
         constant = expression
     elif isinstance(expression, ReferenceExpression):
-        result[expression] = expression
+        if expression.param_name() not in context:
+            # This is one of the parameters that we need to solve
+            result[expression] = expression
+        else:
+            # We know the value of this parameter; treat it as constant.
+            constant = expression
     else:
         raise Exception("Unknown expression entry %s!" % expression)
     return result, constant
 
-def _is_constant(expression):
-    references, constant = _break_into_parts(expression)
+def _is_constant(expression, context):
+    references, constant = _break_into_parts(expression, context)
     return not references
 
-def _invert(expression):
+def _invert(expression, context):
     """Convert a function value=f(x) into x=f(value)"""
     left = ValueResult('result')
     right = expression
@@ -115,8 +120,8 @@ def _invert(expression):
     # Reduce 'right' until it is just the single parameter
     while not isinstance(right, ReferenceExpression):
         if isinstance(right, ArithmeticExpression):
-            is_left_const = _is_constant(right.left)
-            is_right_const = _is_constant(right.right)
+            is_left_const = _is_constant(right.left, context)
+            is_right_const = _is_constant(right.right, context)
             if not is_left_const and not is_right_const:
                 # The code doesn't handle the same entry being referenced
                 # multiple times at the moment... (eg: y = x + x)
@@ -143,15 +148,17 @@ def _invert(expression):
                     'an arithmetic expression')
     return left
 
-def solve(expression, entry, params, value):
+def solve(expression, entry, params, context, value):
     """Solve an expression given the result and the input parameters.
     
     expression -- A bdec.expression.Expression instance to solve.
     params -- A bdec.param.ExpressionParameters instance used to query all
         values passed into the expression.
     value -- The integer value to use when solving the expression.
+    context -- A dict of (name:value) representing all known parameter
+        values that can be used for solving.
     result -- Returns a dict of {ReferenceExpression: value} """
-    components, constant = _break_into_parts(expression)
+    components, constant = _break_into_parts(expression, context)
 
     # Sort the components in order influence on the output
     def influence(component):
@@ -169,10 +176,18 @@ def solve(expression, entry, params, value):
     # starting with the most significant.
     result = {}
     original_value = value
-    value -= constant.evaluate({})
+    value -= constant.evaluate(context)
     for ref, expr in variables:
-        result[ref] = _invert(expr).evaluate({'result' : value})
-        value -= expr.evaluate({ref.name:result[ref]})
+        # Work out a value for this variable
+        c = context.copy()
+        c['result'] = value
+        result[ref] = _invert(expr, context).evaluate(c)
+
+        # Remove it's impact from the overall value so we can work out the next
+        # variable
+        c = context.copy()
+        c[ref.param_name()] = result[ref]
+        value -= expr.evaluate(c)
     if value != 0:
         raise UnsolvableExpressionError(expression, original_value)
     return result
