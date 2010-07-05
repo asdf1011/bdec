@@ -19,12 +19,23 @@
 
 from bdec import DecodeError
 from bdec.data import Data
+from bdec.field import FieldDataError
 from bdec.encode.entry import EntryEncoder, MissingInstanceError, NotEnoughContextError
 from bdec.expression import UndecodedReferenceError
+from bdec.inspect.type import expression_range as erange
 
 class MissingFieldException(DecodeError):
     def __str__(self):
         return 'Unknown value when encoding %s.' % self.entry
+
+class VariableIntegerTooLongError(DecodeError):
+    def __init__(self, entry, value):
+        DecodeError.__init__(self, entry)
+        self.value = value
+
+    def __str__(self):
+        return '%s is too long to fit in variable length integer %s' % (self.value, self.entry)
+
 
 class FieldEncoder(EntryEncoder):
     def _fixup_value(self, value, is_hidden):
@@ -48,11 +59,36 @@ class FieldEncoder(EntryEncoder):
     def _encode(self, query, value, context, is_hidden):
         try:
             length = self.entry.length.evaluate(context)
+            yield self.entry.encode_value(value, length)
         except UndecodedReferenceError, ex:
-            # We don't know how long this entry should be. Most types have an
-            # implicit length (eg: for a string, it is the length of the,
-            # string, etc).
-            length = None
-
-        yield self.entry.encode_value(value, length)
+            # We don't know how long this entry should be.
+            if self.entry.format == self.entry.INTEGER:
+                # Integers require a specific length of encoding. If one is
+                # not specified, we'll try several lengths until we find one
+                # that fits.
+                #
+                # We only consider lengths that are in the range specified by
+                # the entry length to avoid choosing an out of bounds length.
+                length_range = erange(self.entry.length, self.entry, self._params)
+                def is_valid(length):
+                    if length_range.min is not None and length_range.min > length:
+                        return False
+                    if length_range.max is not None and length_range.max < length:
+                        return False
+                    return True
+                possible_lengths = [8, 16, 32, 64]
+                for length in (l for l in possible_lengths if is_valid(l)):
+                    try:
+                        yield self.entry.encode_value(value, length)
+                        break
+                    except FieldDataError:
+                        # The value didn't fit in this length... try the next
+                        # one.
+                        pass
+                else:
+                    raise VariableIntegerTooLongError(self.entry, value)
+            else:
+                # All other types (eg: string, binary, hex) have an implicit
+                # length that the encoder can use.
+                yield self.entry.encode_value(value, None)
 
