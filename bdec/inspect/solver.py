@@ -25,12 +25,14 @@
 
 import operator
 
+from bdec import DecodeError
 from bdec.expression import ArithmeticExpression, Constant, \
     ReferenceExpression, ValueResult
 from bdec.inspect.type import expression_range as erange
 
-class SolverError(Exception):
-    def __init__(self, expr, reason):
+class SolverError(DecodeError):
+    def __init__(self, entry, expr, reason):
+        DecodeError.__init__(self, entry)
         self.expr = expr
         self.reason = reason
 
@@ -38,15 +40,15 @@ class SolverError(Exception):
         return "%s: %s" % (self.reason, self.expr)
 
 class UnsolvableExpressionError(SolverError):
-    def __init__(self, expression, expected):
-        SolverError.__init__(self, expression, None)
+    def __init__(self, entry, expression, expected):
+        SolverError.__init__(self, entry, expression, None)
         self.expected = expected
 
     def __str__(self):
         return 'Unsolvable exression: %s != %s' % (self.expr, self.expected)
 
 
-def _break_into_parts(expression, context):
+def _break_into_parts(entry, expression, context):
     """Break an expression into individual expressions.
 
     Each individual expression should have a single parameter referenced,
@@ -59,8 +61,8 @@ def _break_into_parts(expression, context):
     result = {}
     constant = Constant(0)
     if isinstance(expression, ArithmeticExpression):
-        left, lconst = _break_into_parts(expression.left, context)
-        right, rconst = _break_into_parts(expression.right, context)
+        left, lconst = _break_into_parts(entry, expression.left, context)
+        right, rconst = _break_into_parts(entry, expression.right, context)
         if expression.op in (operator.add, operator.sub):
             # We need to add / subtract the common components
             constant = ArithmeticExpression(expression.op, lconst, rconst)
@@ -74,7 +76,7 @@ def _break_into_parts(expression, context):
             # We can't able to handle the case where the left & right _both_
             # have parameters for non addition / subtraction. Or at least, we
             # don't attempt to at the moment...
-            raise SolverError(expression, 'Unable to handle expression where left and right are non constant')
+            raise SolverError(entry, expression, 'Unable to handle expression where left and right are non constant')
         else:
             # Either the left or right expression has a non constant value of 0.
             if expression.op == operator.mul:
@@ -89,12 +91,12 @@ def _break_into_parts(expression, context):
             elif expression.op == operator.lshift:
                 if right:
                     # Don't support shifting by a non-constant
-                    raise SolverError(expression, 'Shifting by a non constant not supported')
+                    raise SolverError(entry, expression, 'Shifting by a non constant not supported')
                 for ref, expr in left.items():
                     result[ref] = expr << rconst
                 constant = constant << rconst
             else:
-                raise SolverError(expression, 'Breaking apart expressions with %s not supported' % expression.op)
+                raise SolverError(entry, expression, 'Breaking apart expressions with %s not supported' % expression.op)
     elif isinstance(expression, Constant):
         constant = expression
     elif isinstance(expression, ReferenceExpression):
@@ -108,11 +110,11 @@ def _break_into_parts(expression, context):
         raise Exception("Unknown expression entry %s!" % expression)
     return result, constant
 
-def _is_constant(expression, context):
-    references, constant = _break_into_parts(expression, context)
+def _is_constant(entry, expression, context):
+    references, constant = _break_into_parts(entry, expression, context)
     return not references
 
-def _invert(expression, context):
+def _invert(entry, expression, context):
     """Convert a function value=f(x) into x=f(value)"""
     left = ValueResult('result')
     right = expression
@@ -120,12 +122,12 @@ def _invert(expression, context):
     # Reduce 'right' until it is just the single parameter
     while not isinstance(right, ReferenceExpression):
         if isinstance(right, ArithmeticExpression):
-            is_left_const = _is_constant(right.left, context)
-            is_right_const = _is_constant(right.right, context)
+            is_left_const = _is_constant(entry, right.left, context)
+            is_right_const = _is_constant(entry, right.right, context)
             if not is_left_const and not is_right_const:
                 # The code doesn't handle the same entry being referenced
                 # multiple times at the moment... (eg: y = x + x)
-                raise SolverError(expression, 'Unable to invert '
+                raise SolverError(entry, expression, 'Unable to invert '
                         'expressions where the same entry is referenced on '
                         'the left and right of an expression')
             if right.op == operator.mul:
@@ -141,10 +143,10 @@ def _invert(expression, context):
                 left = ArithmeticExpression(operator.rshift, left, right.right)
                 right = right.left
             else:
-                raise SolverError(expression, 'Unable to invert '
+                raise SolverError(entry, expression, 'Unable to invert '
                         'expressions containing operator %s' % right.op)
         else:
-            raise SolverError(expression, 'Right expression is not '
+            raise SolverError(entry, expression, 'Right expression is not '
                     'an arithmetic expression')
     return left
 
@@ -158,7 +160,7 @@ def solve(expression, entry, params, context, value):
     context -- A dict of (name:value) representing all known parameter
         values that can be used for solving.
     result -- Returns a dict of {ReferenceExpression: value} """
-    components, constant = _break_into_parts(expression, context)
+    components, constant = _break_into_parts(entry, expression, context)
 
     # Sort the components in order influence on the output
     def influence(component):
@@ -181,7 +183,7 @@ def solve(expression, entry, params, context, value):
         # Work out a value for this variable
         c = context.copy()
         c['result'] = value
-        result[ref] = _invert(expr, context).evaluate(c)
+        result[ref] = _invert(entry, expr, context).evaluate(c)
 
         # Remove it's impact from the overall value so we can work out the next
         # variable
@@ -189,6 +191,6 @@ def solve(expression, entry, params, context, value):
         c[ref.param_name()] = result[ref]
         value -= expr.evaluate(c)
     if value != 0:
-        raise UnsolvableExpressionError(expression, original_value)
+        raise UnsolvableExpressionError(entry, expression, original_value)
     return result
 

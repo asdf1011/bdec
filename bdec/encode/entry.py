@@ -46,13 +46,6 @@ class MissingInstanceError(bdec.DecodeError):
         return "object '%s' doesn't have child object '%s'" % (self.parent, self.child.name)
 
 
-class ExpressionEncodingError(bdec.DecodeError):
-    def __init__(self, error):
-        self.error = error
-
-    def __str__(self):
-        return str(self.error)
-
 def _params(params):
     inputs = []
     outputs = []
@@ -100,10 +93,11 @@ class EntryEncoder:
         self._is_length_referenced = params.is_length_referenced(entry)
 
     def _solve(self, expression, value, context):
-        try:
-            ref_values = solve(expression, self.entry, self._params, context, value)
-        except SolverError, ex:
-            raise ExpressionEncodingError(ex)
+        '''Solve an expression given the result and context.
+
+        Will throw a bdec.inspect.solver.SolverError if the expression cannot
+        be resolved correctly.'''
+        ref_values = solve(expression, self.entry, self._params, context, value)
 
         for ref, ref_value in ref_values.items():
             context[ref.name] = ref_value
@@ -185,8 +179,8 @@ class EntryEncoder:
         if self.entry.length is not None:
             try:
                 self._solve(self.entry.length, encode_length, context)
-            except ExpressionEncodingError, ex:
-                raise DataLengthError(self.entry, ex.error.expr, ex.error.expected)
+            except SolverError, ex:
+                raise DataLengthError(self.entry, ex.expr, ex.expected)
 
             try:
                 length = self.entry.length.evaluate(context)
