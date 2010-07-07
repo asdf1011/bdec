@@ -132,7 +132,13 @@ class EntryEncoder:
         assert len(child.inputs) == len(child.encoder.inputs)
         for our_param, child_param in zip(child.inputs, child.encoder.inputs):
             # Update the child with its required parameters
-            child_context[child_param.name] = context[our_param.name]
+            try:
+                child_context[child_param.name] = context[our_param.name]
+            except KeyError:
+                # When encoding, output value references become input
+                # references, but these are not necessarily populated
+                # everywhere. In these cases we'll populate them with None...
+                child_context[child_param.name] = None
 
         for data in child.encoder.encode(query, value, offset, child_context, child.name, is_entry_hidden):
             yield data

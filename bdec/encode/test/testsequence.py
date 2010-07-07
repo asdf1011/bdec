@@ -84,3 +84,13 @@ class TestSequence(unittest.TestCase):
             Field('header', length=parse('${header length:} * 8'), format=Field.TEXT),
             Field('packet', length=parse('${packet length:} * 8 - len{header}'), format=Field.TEXT)])
         self.assertEqual('\x06\x02hhpppp', encode(a, {'header':'hh', 'packet':'pppp'}).bytes())
+
+    def test_common_entry_with_referenced_value(self):
+        # Just because an entry is sometimes referenced doesn't mean it always
+        # has to be... here we create an element 'a' whose value is only
+        # sometimes referenced elsewhere.
+        a = Field('a', length=8)
+        b = Sequence('b', [Child('a:', a)], value=parse('${a:}'))
+        c = Sequence('c', [a, b])
+        self.assertEqual('\x45\x23', encode(c, {'a':0x45, 'b':0x23}).bytes())
+
