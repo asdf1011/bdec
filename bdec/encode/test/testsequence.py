@@ -25,7 +25,8 @@
 
 import unittest
 
-from bdec.constraints import Minimum, Maximum
+from bdec.choice import Choice
+from bdec.constraints import Minimum, Maximum, Equals
 from bdec.entry import Child
 from bdec.encode.entry import MissingInstanceError
 from bdec.encode.sequence import CyclicEncodingError
@@ -118,4 +119,46 @@ class TestSequence(unittest.TestCase):
         b = Sequence('b', [Child('a:', a)], value=parse('${a:}'))
         c = Sequence('c', [a, b])
         self.assertEqual('\x45\x23', encode(c, {'a':0x45, 'b':0x23}).bytes())
+
+    def test_fixed_sequence_value(self):
+        # We create an entry with a fixed / visible value, and reference it
+        # within a choice when deciding how to encode. This is similar to how
+        # the optional big/little endian fields work.
+        optional_endian = Sequence('optional_endian', [
+            Choice('number:', [
+                Sequence('big endian:', [
+                    Sequence('big check:', [], value=parse('${is big endian:}'), constraints=[Equals(1)]),
+                    Field('internal:', length=16)],
+                    value=parse('${internal:}')),
+                Sequence('little endian:', [
+                    Sequence('little check:', [], value=parse('${is big endian:}'), constraints=[Equals(0)]),
+                    Sequence('internal:', [
+                        Field('byte 1:', length=8),
+                        Field('byte 2:', length=8)],
+                        value=parse('(${byte 2:} << 8) + ${byte 1:}'))],
+                    value=parse('${internal:}'))])],
+            value=parse('${number:}'))
+
+        # Check that we correctly encode when the 'is big endian' is a fixed value
+        a = Sequence('a', [
+            Sequence('is big endian:', [], value=parse('1')),
+            Child('value', optional_endian)])
+        self.assertEqual('\x00\x01', encode(a, {'value':1}).bytes())
+
+        b = Sequence('b', [
+            Sequence('is big endian:', [], value=parse('0')),
+            Child('value', optional_endian)])
+        self.assertEqual('\x01\x00', encode(b, {'value':1}).bytes())
+
+        # FIXME: This fails, because the 'number:' decide that as 'is big endian:'
+        # is hidden (and doesn't have an expected value) that it must be derived,
+        # so changes the 'is big endian:' from an output to an input. See issue247.
+
+        # Check that we correctly encode when the 'is big endian' is a field
+        c = Sequence('c', [
+            Field('is big endian', length=8, format=Field.INTEGER),
+            Sequence('is big endian:', [], value=parse('${is big endian}')),
+            Child('value', optional_endian)])
+        #self.assertEqual('\x00\x00\x01', encode(c, {'is big endian':0, 'value':1}).bytes())
+        #self.assertEqual('\x01\x01\x00', encode(c, {'is big endian':1, 'value':1}).bytes())
 

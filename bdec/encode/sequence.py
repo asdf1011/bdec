@@ -24,6 +24,7 @@ from bdec import DecodeError
 from bdec.constraints import Equals
 from bdec.data import Data
 from bdec.encode.entry import EntryEncoder
+from bdec.expression import UndecodedReferenceError
 from bdec.inspect.solver import solve
 from bdec.inspect.type import EntryValueType, EntryLengthType
 
@@ -94,17 +95,22 @@ def _encoding_order(encoder, is_hidden):
 
 class SequenceEncoder(EntryEncoder):
 
-    def _fixup_value(self, value, is_hidden):
+    def _fixup_value(self, value, is_hidden, context):
         """
         Allow entries to modify the value to be encoded.
         """
-        if self.entry.value:
-            if value in [None, '']:
-                # This could be a hidden entry; get the expected value from the
-                # constraints
-                for constraint in self.entry.constraints:
-                    if isinstance(constraint, Equals):
-                        return constraint.limit.evaluate({})
+        if self.entry.value and value in [None, '']:
+            try:
+                # Get the value from the expression
+                return self.entry.value.evaluate(context)
+            except UndecodedReferenceError:
+                pass
+
+            # This could be a hidden entry; get the expected value from the
+            # constraints
+            for constraint in self.entry.constraints:
+                if isinstance(constraint, Equals):
+                    return constraint.limit.evaluate({})
         return value
 
     def _encode(self, query, value, context, is_hidden):

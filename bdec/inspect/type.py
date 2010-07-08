@@ -22,6 +22,8 @@
 import operator
 
 import bdec.choice as chc
+from bdec.constraints import Equals
+from bdec.entry import UndecodedReferenceError
 from bdec.expression import ArithmeticExpression, Constant, ValueResult, LengthResult
 import bdec.field as fld
 from bdec.inspect.range import Range
@@ -97,6 +99,9 @@ class IntegerType(VariableType):
         """Return a bdec.inspect.range.Range instance indicating the range of valid values."""
         raise NotImplementedError()
 
+    def has_expected_value(self):
+        """Is the value referenced by this entry constant or visible."""
+        raise NotImplementedError()
 
 class ShouldEndType(IntegerType):
     """Parameter used to pass the 'should end' up to the parent."""
@@ -131,6 +136,9 @@ class EntryLengthType(IntegerType):
             return Range(0, None)
         return expression_range(self.entry.length, self.entry ,parameter)
 
+    def has_expected_value(self):
+        return False
+
 
 class EntryValueType(IntegerType):
     """Parameter value whose source is the integer value of another entry."""
@@ -142,9 +150,6 @@ class EntryValueType(IntegerType):
 
     def __eq__(self, other):
         return isinstance(other, EntryValueType) and self.entry is other.entry
-
-    def __repr__(self):
-        return '${%s}' % self.entry
 
     def range(self, parameters):
         if isinstance(self.entry, fld.Field):
@@ -165,6 +170,32 @@ class EntryValueType(IntegerType):
         for constraint in self.entry.constraints:
             result = result.intersect(constraint.range())
         return result
+
+    def _is_value_known(self, entry):
+        for constaint in entry.constraints:
+            if isinstance(constraint, Equals):
+                return True
+
+        if isinstance(entry, seq.Sequence):
+            if entry.value:
+                # Check to see if the entry value is constant
+                # TODO: We should examine the source parameters of this
+                # value, instead of trying to execute it...
+                try:
+                    entry.value.evaluate({})
+                    return True
+                except UndecodedReferenceError:
+                    pass
+            return False
+        elif isinstance(entry, chc.Choice):
+            for child in entry.children:
+                if not self._is_value_known(child.entry):
+                    return False
+            return True
+        return False
+
+    def has_expected_value(self):
+        return self._is_value_known(self.entry)
 
     def __repr__(self):
         return '${%s}' % self.entry
@@ -191,5 +222,12 @@ class MultiSourceType(IntegerType):
         ranges = (source.range(parameters) for source in self.sources)
         return reduce(Range.union, ranges)
 
+    def has_expected_value(self):
+        for source in self.sources:
+            if not source.has_expected_value():
+                return False
+        return True
+
     def __repr__(self):
         return 'coalsce(%s)' % ','.join(str(source) for source in self.sources)
+

@@ -45,24 +45,18 @@ class MissingInstanceError(bdec.DecodeError):
     def __str__(self):
         return "object '%s' doesn't have child object '%s'" % (self.parent, self.child.name)
 
-
 def _params(params):
     inputs = []
     outputs = []
     for p in params:
-        if isinstance(p.type, EntryLengthType):
-            # We treat length references as the same as they during encoding,
-            # such that inputs are inputs and outputs are outputs.
+        if p.type.has_expected_value() or ':' not in p.name:
+            # The entry is either visible or has a known value; we don't need
+            # to swap the outputs.
             if p.direction == p.IN:
                 inputs.append(p)
             else:
                 outputs.append(p)
         else:
-            # Value references are inverted, as we derive the earlier values
-            # from when they are encoded later.
-            # TODO: We only need to invert values that are hidden... we should
-            # keep the direction the same for referenced entries that are
-            # visible.
             if p.direction == p.IN:
                 outputs.append(p)
             else:
@@ -91,6 +85,7 @@ class EntryEncoder:
         self.inputs, self.outputs = _params(params.get_params(entry))
         self._params = params
         self._is_length_referenced = params.is_length_referenced(entry)
+        self._is_value_referenced = params.is_value_referenced(entry)
 
     def _solve(self, expression, value, context):
         '''Solve an expression given the result and context.
@@ -149,7 +144,7 @@ class EntryEncoder:
             # Update our context with the child's outputs...
             context[our_param.name] = child_context[child_param.name]
 
-    def _fixup_value(self, value, is_hidden):
+    def _fixup_value(self, value, is_hidden, context):
         """
         Allow entries to modify the value to be encoded.
         """
@@ -172,7 +167,7 @@ class EntryEncoder:
             if not is_entry_hidden:
                 raise
             value = None
-        value = self._fixup_value(value, is_entry_hidden)
+        value = self._fixup_value(value, is_entry_hidden, context)
 
         for constraint in self.entry.constraints:
             constraint.check(self.entry, value, context)
@@ -194,6 +189,8 @@ class EntryEncoder:
                 raise NotEnoughContextError(self.entry, ex)
         if self._is_length_referenced:
             context[self.entry.name + ' length'] = length
+        if self._is_value_referenced:
+            context[self.entry.name] = int(value)
 
     def __repr__(self):
         return 'encoder for %s' % self.entry

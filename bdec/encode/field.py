@@ -38,7 +38,7 @@ class VariableIntegerTooLongError(DecodeError):
 
 
 class FieldEncoder(EntryEncoder):
-    def _fixup_value(self, value, is_hidden):
+    def _fixup_value(self, value, is_hidden, context):
         if value in [None, '']:
             # We handle strings as a prompt to use the expected value. This is
             # because the named item may be in the output, but not necessarily
