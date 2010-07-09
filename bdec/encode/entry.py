@@ -97,7 +97,7 @@ class EntryEncoder:
         for ref, ref_value in ref_values.items():
             context[ref.name] = ref_value
 
-    def _get_child_value(self, query, parent, offset, name, is_hidden, context):
+    def _get_value(self, query, parent, offset, name, is_hidden, context):
         # This interface isn't too good; it requires us to load the _entire_ document
         # into memory. This is because it supports 'searching backwards', plus the
         # reference to the root element is kept. Maybe a push system would be better?
@@ -162,7 +162,7 @@ class EntryEncoder:
 
         encode_length = 0
         try:
-            value = self._get_child_value(query, value, offset, name, is_entry_hidden, context)
+            value = self._get_value(query, value, offset, name, is_entry_hidden, context)
         except MissingInstanceError:
             if not is_entry_hidden:
                 raise
