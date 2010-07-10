@@ -50,9 +50,10 @@ def _params(params):
     inputs = []
     outputs = []
     for p in params:
-        if p.type.has_expected_value() or ':' not in p.name:
+        if p.type.has_expected_value() or ':' not in p.name or isinstance(p.type, EntryLengthType):
             # The entry is either visible or has a known value; we don't need
-            # to swap the outputs.
+            # to swap the outputs. For EntryLengthTypes we cannot swap the
+            # direction.
             if p.direction == p.IN:
                 inputs.append(p)
             else:

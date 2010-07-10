@@ -84,6 +84,10 @@ class TestSequence(unittest.TestCase):
         self.assertEqual('\x00', encode(a, None).bytes())
 
     def test_cyclic_dependency_error(self):
+        # This tests that we get a good error when we are unable to encode due
+        # to cyclic dependencies. In this case, we cannot encode 'payload' without
+        # knowing the length of 'header:', but we cannot encode 'header:'
+        # without knowing the length to put in 'header:.length'.
         a = Sequence('a', [
             Sequence('header:', [Field('length', length=8)]),
             Field('payload', length=parse('${header:.length} * 8 - len{header:}'), format=Field.TEXT)])
