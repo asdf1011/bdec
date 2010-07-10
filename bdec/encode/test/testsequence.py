@@ -162,3 +162,25 @@ class TestSequence(unittest.TestCase):
         #self.assertEqual('\x00\x00\x01', encode(c, {'is big endian':0, 'value':1}).bytes())
         #self.assertEqual('\x01\x01\x00', encode(c, {'is big endian':1, 'value':1}).bytes())
 
+    def test_visible_common_entry_is_hidden(self):
+        # When we have a visible common integer that is referenced elsewhere,
+        # check to see what happens when we rename and hide it in another
+        # entry. This happens when we do something like
+        #
+        #   <reference name="bob" type="int8" expected="5" />
+        #
+        # which loads to
+        #
+        #   <sequence name="bob" value="${bob:}" expected="5" >
+        #      <reference name="bob:" type="int8" />
+        #   </sequence>
+        #
+        # We test that references to the renamed entry work correctly, and also
+        # that references to the originally named entry work too.
+
+        a = Field('a', length=8, format=Field.INTEGER)
+        b = Sequence('b', [
+            Sequence('c', [Child('a:', a)], value=parse('${a:}')),
+            Sequence('d', [a, Sequence('d1', [], value=parse('${a}'))])])
+        self.assertEqual('\x05\x07', encode(b, {'c' : 5, 'd':{'a':7, 'd1':7}}).bytes())
+

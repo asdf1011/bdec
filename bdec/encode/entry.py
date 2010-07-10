@@ -20,6 +20,7 @@
 import bdec
 
 from bdec.entry import UndecodedReferenceError, NotEnoughContextError, is_hidden
+from bdec.field import Field
 from bdec.inspect.solver import solve, SolverError
 from bdec.inspect.type import EntryLengthType
 
@@ -74,6 +75,41 @@ class Child:
     def __repr__(self):
         return str(self.encoder)
 
+def _mock_query(parent, entry, offset, name):
+    """A mock query object to return data for hidden common entries.
+
+    It will return null data for fields, etc."""
+    print 'asking for mock query...', name
+    if is_hidden(entry.name):
+        raise MissingInstanceError(parent, entry)
+
+    try:
+        # We have the context passed in; try to find the requested data
+        # from that.
+        return parent[name]
+    except KeyError:
+        pass
+
+    # We have to return some suitable data for these entries; return a null
+    # data object.
+    if isinstance(entry, Field):
+        length = entry.length.evaluate({})
+        if entry.format == Field.INTEGER:
+            return 0
+        elif entry.format == Field.TEXT:
+            return ''
+        elif entry.format == Field.FLOAT:
+            return 0.0
+        else:
+            return Data('\x00' * (length / 8 + 1), length)
+    elif isinstance(entry, Sequence):
+        return {}
+    elif isinstance(entry, SequenceOf):
+        return []
+    elif isinstance(entry, Choice):
+        return {}
+    else:
+        raise NotImplementedError('Unknown entry %s to mock data for...' % entry)
 
 class EntryEncoder:
     def __init__(self, entry, params):
@@ -124,25 +160,34 @@ class EntryEncoder:
 
     def _encode_child(self, child, query, value, offset, context, is_entry_hidden):
         child_context = {}
-        assert len(child.inputs) == len(child.encoder.inputs)
-        for our_param, child_param in zip(child.inputs, child.encoder.inputs):
-            # Update the child with its required parameters
-            try:
-                child_context[child_param.name] = context[our_param.name]
-            except KeyError:
-                # When encoding, output value references become input
-                # references, but these are not necessarily populated
-                # everywhere. In these cases we'll populate them with None...
-                child_context[child_param.name] = None
+        should_use_mock = is_hidden(child.name) and not is_hidden(child.encoder.entry.name)
+        if should_use_mock:
+            # The child entry is hidden, but the parent is visible; create a
+            # 'mock' child entry suitable for encoding. This must contain any
+            # objects that are passed in.
+            query = _mock_query
+            value = context
+        else:
+            assert len(child.inputs) == len(child.encoder.inputs)
+            for our_param, child_param in zip(child.inputs, child.encoder.inputs):
+                # Update the child with its required parameters
+                try:
+                    child_context[child_param.name] = context[our_param.name]
+                except KeyError:
+                    # When encoding, output value references become input
+                    # references, but these are not necessarily populated
+                    # everywhere. In these cases we'll populate them with None...
+                    child_context[child_param.name] = None
 
         for data in child.encoder.encode(query, value, offset, child_context, child.name, is_entry_hidden):
             yield data
 
-        assert len(child.outputs) == len(child.encoder.outputs), \
-                'Child has %s outputs, we expected %s' % (child.encoder.outputs, child.outputs)
-        for our_param, child_param in zip(child.outputs, child.encoder.outputs):
-            # Update our context with the child's outputs...
-            context[our_param.name] = child_context[child_param.name]
+        if not should_use_mock:
+            assert len(child.outputs) == len(child.encoder.outputs), \
+                    'Child has %s outputs, we expected %s' % (child.encoder.outputs, child.outputs)
+            for our_param, child_param in zip(child.outputs, child.encoder.outputs):
+                # Update our context with the child's outputs...
+                context[our_param.name] = child_context[child_param.name]
 
     def _fixup_value(self, value, is_hidden, context):
         """
