@@ -358,8 +358,6 @@ def _save_field(entry, attributes):
     return 'field'
 
 def _save_sequence(entry, attributes):
-    if entry.length is not None:
-        attributes += [('length', str(entry.length))]
     if entry.value is not None:
             attributes += [('value', entry.value)]
     return 'sequence'
@@ -367,13 +365,9 @@ def _save_sequence(entry, attributes):
 def _save_sequenceof(entry, attributes):
     if entry.count is not None:
         attributes += [('count', str(entry.count))]
-    if entry.length is not None:
-        attributes += [('length', str(entry.length))]
     return 'sequenceof'
 
 def _save_choice(entry, attributes):
-    if entry.length is not None:
-        attributes += [('length', str(entry.length))]
     return 'choice'
 
 _handlers = {fld.Field: _save_field,
