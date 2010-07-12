@@ -172,7 +172,7 @@ class EntryValueType(IntegerType):
         return result
 
     def _is_value_known(self, entry):
-        for constaint in entry.constraints:
+        for constraint in entry.constraints:
             if isinstance(constraint, Equals):
                 return True
 
