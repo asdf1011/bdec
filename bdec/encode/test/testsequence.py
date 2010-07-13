@@ -199,3 +199,12 @@ class TestSequence(unittest.TestCase):
         a = Sequence('a', [Sequence('b', [], value=parse('${constant}'))])
         c = Sequence('c', [Field('constant', length=8), Child('a:', a)])
         self.assertEqual('\x07', encode(c, {'constant':7}).bytes())
+
+    def test_hidden_sequence_with_input_param(self):
+        # Here we have a hidden entry that will have to be mocked, but still
+        # requires that data is passed in.
+        c = Sequence('a', [
+            Child('b:', Sequence('b', [Field('c', length=8)])),
+            Sequence('d', [], value=parse('${b:.c}'))])
+        self.assertEqual('\x09', encode(c, {'d':9}).bytes())
+

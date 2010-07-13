@@ -51,9 +51,8 @@ class MissingInstanceError(bdec.DecodeError):
         return "object '%s' doesn't have child object '%s'" % (self.parent, self.child.name)
 
 def _params(params, is_hidden):
-    inputs = []
-    outputs = []
     params = list(params)
+    result = []
     for p in params:
         if (not is_hidden and ':' not in p.name) or \
                 p.type.has_expected_value() or \
@@ -61,23 +60,21 @@ def _params(params, is_hidden):
             # The entry is either visible or has a known value; we don't need
             # to swap the outputs. For EntryLengthTypes we cannot swap the
             # direction.
-            if p.direction == p.IN:
-                inputs.append(p)
-            else:
-                outputs.append(p)
+            result.append(p)
         else:
             if p.direction == p.IN:
-                outputs.append(p)
+                p.direction = p.OUT
             else:
-                inputs.append(p)
-    return inputs, outputs
+                p.direction = p.IN
+            result.append(p)
+    return result
 
 class Child:
     def __init__(self, name, encoder, passed_params, is_hidden):
         self.name = name
         self.encoder = encoder
         passed_params = list(passed_params)
-        self.inputs, self.outputs = _params(passed_params, is_hidden)
+        self.params = _params(passed_params, is_hidden)
         self.is_hidden = is_hidden
 
     def __repr__(self):
@@ -87,15 +84,26 @@ def _mock_query(parent, entry, offset, name):
     """A mock query object to return data for hidden common entries.
 
     It will return null data for fields, etc."""
-    if is_hidden(entry.name):
+    if isinstance(parent, int) or parent is None:
         raise MissingInstanceError(parent, entry)
 
     try:
-        # We have the context passed in; try to find the requested data
-        # from that.
         return parent[name]
     except KeyError:
         pass
+
+    # Check to see if it's a compound name...
+    result = {}
+    for param, value in parent.items():
+        names = param.split('.')
+        if names[0] == name:
+            child_name = '.'.join(names[1:])
+            result[child_name] = value
+    if result:
+        return result
+
+    if is_hidden(entry.name) or is_hidden(name):
+        raise MissingInstanceError(parent, entry)
 
     # We have to return some suitable data for these entries; return a null
     # data object.
@@ -129,7 +137,7 @@ class EntryEncoder:
 
         # When encoding, the direction of the parameters is inverted. What
         # would usually be an output, is now an input.
-        self.inputs, self.outputs = _params(params.get_params(entry), is_hidden)
+        self.params = _params(params.get_params(entry), is_hidden)
         self._params = params
         self._is_length_referenced = params.is_length_referenced(entry)
         self._is_value_referenced = params.is_value_referenced(entry)
@@ -171,18 +179,17 @@ class EntryEncoder:
 
     def _encode_child(self, child, query, value, offset, context, is_entry_hidden):
         child_context = {}
-        should_use_mock = (is_entry_hidden or is_hidden(child.name)) and not child.encoder.entry.is_hidden()
+        should_use_mock = is_hidden(child.name) and not child.encoder.entry.is_hidden()
         if should_use_mock:
             # The child entry is hidden, but the parent is visible; create a
             # 'mock' child entry suitable for encoding. This must contain any
             # objects that are passed in. We use the context, as this contains
             # the required data for this hidden entry.
             query = _mock_query
-            value = context
-        else:
-            assert len(child.inputs) == len(child.encoder.inputs)
-            for our_param, child_param in zip(child.inputs, child.encoder.inputs):
-                # Update the child with its required parameters
+            value = context.copy()
+
+        for our_param, child_param in zip(child.params, child.encoder.params):
+            if child_param.direction == our_param.IN:
                 try:
                     child_context[child_param.name] = context[our_param.name]
                 except KeyError:
@@ -194,10 +201,8 @@ class EntryEncoder:
         for data in child.encoder.encode(query, value, offset, child_context, child.name, is_entry_hidden):
             yield data
 
-        if not should_use_mock:
-            assert len(child.outputs) == len(child.encoder.outputs), \
-                    'Child has %s outputs, we expected %s' % (child.encoder.outputs, child.outputs)
-            for our_param, child_param in zip(child.outputs, child.encoder.outputs):
+        for our_param, child_param in zip(child.params, child.encoder.params):
+            if child_param.direction == our_param.OUT:
                 # Update our context with the child's outputs...
                 context[our_param.name] = child_context[child_param.name]
 

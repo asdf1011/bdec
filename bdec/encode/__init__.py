@@ -67,7 +67,7 @@ def _get_encoder(entry, params, entries, hidden_map):
             encoder.children.append(Child(child.name,
                 _get_encoder(child.entry, params, entries, hidden_map),
                 list(params.get_passed_variables(entry, child)),
-                hidden_map[child.entry]))
+                hidden_map[child.entry] or is_hidden(child.name)))
     return encoder
 
 def create_encoder(entry):
