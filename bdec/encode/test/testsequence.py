@@ -188,3 +188,9 @@ class TestSequence(unittest.TestCase):
             Sequence('d', [a, Sequence('d1', [], value=parse('${a}'))])])
         self.assertEqual('\x05\x07', encode(b, {'c' : 5, 'd':{'a':7, 'd1':7}}).bytes())
 
+    def test_param_from_hidden_entry_with_visible_child(self):
+        a = Sequence('a', [
+            Sequence('b:', [Field('c', length=8)])],
+            value=parse('${b:.c}'))
+        self.assertEqual('\x0a', encode(a, 10).bytes())
+

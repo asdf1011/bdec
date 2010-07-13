@@ -25,7 +25,7 @@
 
 
 from bdec.encode.choice import ChoiceEncoder
-from bdec.encode.entry import Child
+from bdec.encode.entry import Child, is_hidden
 from bdec.encode.field import FieldEncoder
 from bdec.encode.sequence import SequenceEncoder
 from bdec.encode.sequenceof import SequenceOfEncoder
@@ -42,21 +42,37 @@ _encoders = {
         SequenceOf : SequenceOfEncoder,
         }
 
-def _get_encoder(entry, params, entries):
+def _populate_visible(entry, name, entries, visible=True):
+    if entry in entries:
+        return
+
+    visible &= not is_hidden(name)
+    if entry.name != name:
+        # This is a renamed entry (so it's probably common). Reset the visible
+        # flag.
+        visible = True
+    entries[entry] = not visible
+    for child in entry.children:
+        _populate_visible(child.entry, child.name, entries, visible)
+
+def _get_encoder(entry, params, entries, hidden_map):
     try:
         encoder = entries[entry]
     except KeyError:
         # We haven't created an encoder for this entry yet.
-        encoder = _encoders[type(entry)](entry, params)
+        encoder = _encoders[type(entry)](entry, params, hidden_map[entry])
         entries[entry] = encoder
 
         for child in entry.children:
             encoder.children.append(Child(child.name,
-                _get_encoder(child.entry, params, entries),
-                list(params.get_passed_variables(entry, child))))
+                _get_encoder(child.entry, params, entries, hidden_map),
+                list(params.get_passed_variables(entry, child)),
+                hidden_map[child.entry]))
     return encoder
 
 def create_encoder(entry):
     params = ExpressionParameters([entry])
-    return _get_encoder(entry, params, {})
+    hidden_map = {}
+    _populate_visible(entry, entry.name, hidden_map)
+    return _get_encoder(entry, params, {}, hidden_map)
 
