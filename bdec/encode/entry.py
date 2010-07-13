@@ -20,8 +20,11 @@
 import bdec
 
 from bdec.data import Data
+from bdec.choice import Choice
 from bdec.entry import UndecodedReferenceError, NotEnoughContextError, is_hidden
 from bdec.field import Field
+from bdec.sequence import Sequence
+from bdec.sequenceof import SequenceOf
 from bdec.inspect.solver import solve, SolverError
 from bdec.inspect.type import EntryLengthType
 
@@ -107,7 +110,10 @@ def _mock_query(parent, entry, offset, name):
         else:
             return Data('\x00' * (length / 8 + 1), length)
     elif isinstance(entry, Sequence):
-        return {}
+        class Null(dict):
+            def __int__(self):
+                return 0
+        return Null()
     elif isinstance(entry, SequenceOf):
         return []
     elif isinstance(entry, Choice):
@@ -169,7 +175,8 @@ class EntryEncoder:
         if should_use_mock:
             # The child entry is hidden, but the parent is visible; create a
             # 'mock' child entry suitable for encoding. This must contain any
-            # objects that are passed in.
+            # objects that are passed in. We use the context, as this contains
+            # the required data for this hidden entry.
             query = _mock_query
             value = context
         else:

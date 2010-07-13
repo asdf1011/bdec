@@ -194,3 +194,9 @@ class TestSequence(unittest.TestCase):
             value=parse('${b:.c}'))
         self.assertEqual('\x0a', encode(a, 10).bytes())
 
+    def test_hidden_sequence_with_value(self):
+        # Here we have a hidden entry that will have to be mocked, but still
+        # requires that data is passed in.
+        a = Sequence('a', [Sequence('b', [], value=parse('${constant}'))])
+        c = Sequence('c', [Field('constant', length=8), Child('a:', a)])
+        self.assertEqual('\x07', encode(c, {'constant':7}).bytes())
