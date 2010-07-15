@@ -50,8 +50,6 @@ class FieldEncoder(EntryEncoder):
                 if isinstance(value, Data):
                     value = self.entry.decode_value(value)
             elif is_hidden:
-                if self._params.is_value_referenced(self.entry):
-                    raise MissingFieldException(self.entry)
                 length = self.entry.length.evaluate({})
                 value = Data('\x00' * (length / 8 + 1), 0, length)
             else:

@@ -25,6 +25,7 @@
 
 import unittest
 
+from bdec.entry import Child
 from bdec.expression import parse
 from bdec.field import Field
 from bdec.sequence import Sequence
@@ -49,3 +50,11 @@ class TestField(unittest.TestCase):
         self.assertEqual('\x01\x00', encode(a, 0).bytes())
         self.assertEqual('\x01\xff', encode(a, 255).bytes())
         self.assertEqual('\x02\xff\xff', encode(a, 65535).bytes())
+
+    def test_sometimes_referenced_hidden_field(self):
+        # Test encoding a field that is sometimes referenced (but not always).
+        a = Field('a:', length=8, format=Field.INTEGER)
+        b = Sequence('b', [a], value=parse('${a:}'))
+        c = Sequence('c', [a, b])
+        self.assertEqual('\x00\x07', encode(c, {'b':7}).bytes())
+
