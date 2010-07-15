@@ -27,9 +27,12 @@ class MissingReferenceError(Exception):
     def __str__(self):
         return "Reference to unknown entry '%s'!" % self.name
 
-class DuplicateCommonError(DecodeError):
+class DuplicateCommonError(Exception):
+    def __init__(self, name):
+        self.name = name
+
     def __str__(self):
-        return 'Duplicate common entry found: %s' % (self.entry)
+        return "Duplicate common entry '%s'" % (self.name)
 
 class ReferencedEntry:
     """
@@ -95,7 +98,7 @@ class References:
     def add_common(self, entry):
         """Add a common entry that will be resolvable."""
         if entry.name in (e.name for e in self._common):
-            raise DuplicateCommonError(entry)
+            raise DuplicateCommonError(entry.name)
         self._common.append(Child(entry.name, entry))
 
     def resolve_reference(self, ref):

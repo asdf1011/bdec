@@ -30,8 +30,7 @@ import bdec.field as fld
 import bdec.output.instance as inst
 import bdec.sequence as seq
 import bdec.sequenceof as sof
-from bdec.spec import load_specs, ReferenceError, UnspecifiedMainEntry
-from bdec.spec.references import DuplicateCommonError
+from bdec.spec import load_specs, ReferenceError, UnspecifiedMainEntry, LoadError
 import bdec.spec.xmlspec as xml
 from bdec.test.decoders import assert_xml_equivalent
 
@@ -1071,7 +1070,10 @@ class TestXml(unittest.TestCase):
                 <sequence name="a" />
               </common>
             </protocol>'''
-        self.assertRaises(DuplicateCommonError, loads, text)
+        try:
+            loads(text)
+        except LoadError, ex:
+            self.assertEqual("<string>[6]: Duplicate common entry 'a'", str(ex))
 
 class TestSave(unittest.TestCase):
     """Test decoding of the xml save functionality.

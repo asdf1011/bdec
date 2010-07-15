@@ -28,7 +28,7 @@ import bdec.expression as exp
 import bdec.field as fld
 import bdec.inspect.param as prm
 from bdec.spec import LoadErrorWithLocation
-from bdec.spec.references import ReferencedEntry
+from bdec.spec.references import ReferencedEntry, DuplicateCommonError
 from bdec.spec.integer import Integers, IntegerError
 import bdec.sequence as seq
 import bdec.sequenceof as sof
@@ -207,7 +207,10 @@ class _Handler(xml.sax.handler.ContentHandler):
 
     def _common(self, attributes, children, name, length, breaks):
         for entry in children:
-            self._references.add_common(entry)
+            try:
+                self._references.add_common(entry)
+            except DuplicateCommonError, ex:
+                raise self._error(ex)
 
     def _protocol(self, attributes, children, name, length, breaks):
         # Add the used integer entries to the specification
