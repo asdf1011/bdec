@@ -42,6 +42,6 @@ class DecodeError(Exception):
     """ An error raise when decoding fails """
     def __init__(self, entry):
         import bdec.entry as ent
-        assert isinstance(entry, ent.Entry)
+        assert isinstance(entry, ent.Entry), 'DecodeError exception constructed with a non entry! (%s)' % entry
         self.entry = entry
 

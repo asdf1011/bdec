@@ -31,6 +31,7 @@ import bdec.output.instance as inst
 import bdec.sequence as seq
 import bdec.sequenceof as sof
 from bdec.spec import load_specs, ReferenceError, UnspecifiedMainEntry
+from bdec.spec.references import DuplicateCommonError
 import bdec.spec.xmlspec as xml
 from bdec.test.decoders import assert_xml_equivalent
 
@@ -120,12 +121,13 @@ class TestXml(unittest.TestCase):
 
     def test_common(self):
         text = """<protocol> <common> <field name="bob" length="8" /> </common> <reference name="bob" /> </protocol>"""
-        decoder = loads(text)[0]
+        decoder, common, lookup = loads(text)
         self.assertEqual("bob", decoder.name)
         self.assertEqual(8, decoder.length.value)
         result = list(decoder.decode(dt.Data.from_hex("7a")))
         self.assertEqual(2, len(result))
         self.assertEqual(0x7a, int(result[1][3]))
+        self.assertEqual(['bob'], [e.name for e in common])
 
     def test_common_item_references_another(self):
         text = """
@@ -1061,6 +1063,15 @@ class TestXml(unittest.TestCase):
         # Test that if fails when the data doesn't match
         self.assertRaises(ConstraintError, list, spec.decode(dt.Data('\x01\x02')))
 
+    def test_duplicate_common(self):
+        text = '''
+            <protocol>
+              <common>
+                <sequence name="a" />
+                <sequence name="a" />
+              </common>
+            </protocol>'''
+        self.assertRaises(DuplicateCommonError, loads, text)
 
 class TestSave(unittest.TestCase):
     """Test decoding of the xml save functionality.

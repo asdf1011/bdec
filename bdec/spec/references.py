@@ -16,6 +16,7 @@
 #   License along with this library; if not, see
 #   <http://www.gnu.org/licenses/>.
 
+from bdec import DecodeError
 from bdec.entry import Entry, Child
 
 class MissingReferenceError(Exception):
@@ -26,6 +27,9 @@ class MissingReferenceError(Exception):
     def __str__(self):
         return "Reference to unknown entry '%s'!" % self.name
 
+class DuplicateCommonError(DecodeError):
+    def __str__(self):
+        return 'Duplicate common entry found: %s' % (self.entry)
 
 class ReferencedEntry:
     """
@@ -90,31 +94,42 @@ class References:
 
     def add_common(self, entry):
         """Add a common entry that will be resolvable."""
-        self._common.append(entry)
+        if entry.name in (e.name for e in self._common):
+            raise DuplicateCommonError(entry)
+        self._common.append(Child(entry.name, entry))
+
+    def resolve_reference(self, ref):
+        lookup = dict((e.name, e.entry) for e in self._common if not isinstance(e, ReferencedEntry))
+        try:
+            entry = lookup[ref.type]
+        except KeyError:
+            raise MissingReferenceError(ref)
+        if isinstance(entry, ReferencedEntry):
+            raise NotImplementedError("References to references not fully " \
+                    "supported for '%s'; try putting the referenced item " \
+                    "'%s' first." % (ref.name, ref.type))
+        return entry
 
     def resolve(self):
         """ Resolve all references that are in the common list.
 
         Will throw a MissingReferenceError if a referenced entry cannot be
-        found. """
+        found.
+
+        return -- A list of the resolved common entries."""
         # First we find any references in the common list itself.
-        lookup = dict((e.name, e) for e in self._common if not isinstance(e, ReferencedEntry))
-        common_references = [e for e in self._common if isinstance(e, ReferencedEntry)]
-        for ref in common_references:
-            try:
-                entry = lookup[ref.type]
-            except KeyError:
-                raise MissingReferenceError(ref)
-            if isinstance(entry, ReferencedEntry):
-                raise NotImplementedError("References to references not fully " \
-                        "supported for '%s'; try putting the referenced item " \
-                        "'%s' first." % (ref.name, ref.type))
-            lookup[ref.name] = entry
-            ref.resolve(entry)
-            self._unresolved_references.remove(ref)
+        common_references = [c for c in self._common if isinstance(c.entry, ReferencedEntry)]
+        for c in common_references:
+            entry = self.resolve_reference(c.entry)
+            c.entry.resolve(entry)
+            i = self._common.index(c)
+            self._common.pop(i)
+            self._common.insert(i, Child(c.entry.name, entry))
+            self._unresolved_references.remove(c.entry)
 
         # Note the we don't iterate over the unresolved references, as the
         # list can change as we iterate over it (in _get_common_entry).
+        lookup = dict((e.name, e.entry) for e in self._common if not isinstance(e, ReferencedEntry))
         while self._unresolved_references:
             reference = self._unresolved_references.pop()
             try:

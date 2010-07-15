@@ -89,15 +89,15 @@ def _walk(entry, entries):
         _walk(child.entry, entries)
 
 def _resolve(decoder, references, lookup, should_remove_unused):
-    from bdec.spec.references import MissingReferenceError
+    from bdec.spec.references import MissingReferenceError, ReferencedEntry
 
     # Resolve all references
-    references.add_common(decoder)
     try:
         common = references.resolve()
+        if isinstance(decoder, ReferencedEntry):
+            decoder = references.resolve_reference(decoder)
     except MissingReferenceError, ex:
         raise ReferenceError(ex, ex.reference, lookup)
-    decoder = common.pop()
 
     if should_remove_unused:
         # Remove any entries that are unused
