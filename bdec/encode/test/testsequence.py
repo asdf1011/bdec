@@ -223,3 +223,13 @@ class TestSequence(unittest.TestCase):
             a,
             Field('e', length=parse('${a} * 8'), format=Field.TEXT)])
         self.assertEqual('\x02dd\x03eee', encode(b, {'d':'dd', 'a':3, 'e':'eee'}).bytes())
+
+    def test_visible_param_passed_in(self):
+        # Test that we correctly pass visible parameters into hidden entries.
+        # This is commonly used in conditional entries.
+        a = Sequence('a', [
+            Field('b', length=8, format=Field.INTEGER),
+            Sequence('c:', [Field('d:', length=parse('${b} * 8'))])])
+        self.assertEqual('\x00', encode(a, {'b':0}).bytes())
+        self.assertEqual('\x01\x00', encode(a, {'b':1}).bytes())
+        self.assertEqual('\x03\x00\x00\x00', encode(a, {'b':3}).bytes())

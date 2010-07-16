@@ -32,7 +32,7 @@ from bdec.encode.sequenceof import SequenceOfEncoder
 from bdec.choice import Choice
 from bdec.field import Field
 from bdec.inspect.param import ExpressionParameters
-from bdec.inspect.type import EntryLengthType
+from bdec.inspect.type import EntryLengthType, EntryValueType, MultiSourceType
 from bdec.sequence import Sequence
 from bdec.sequenceof import SequenceOf
 
@@ -60,23 +60,42 @@ def _populate_visible(entry, common, entries, visible=True):
     for child in entry.children:
         _populate_visible(child.entry, common, entries, visible)
 
-def _params(params, is_hidden):
-    """Change the order of the parameters such that they are suitable for encoding.
+def _is_source_entry_independant(param_type, hidden_map, is_value_hidden):
+    """Test if the source entry be encoded without knowledge of how its reference is used.
 
-    For example, EntryLengthType references require that the referenced
-    item is always encoded first, so that the length is known. A hidden
-    referenced value, on the other hand (used in the length of another
-    field, for example) should be encoded after the variable length field
-    (as the length will come from the field being encoded)."""
+    For example, if the source entry is visible, or has an expected value, it
+    can be encoded without knowledge of how the reference is used. If the
+    source entry is hidden, and its value used in a visible entry (for example,
+    in the count of a sequence-of), the source entry must be encoded after the
+    user of its reference so the value can be detected."""
+    if param_type.has_expected_value() or isinstance(param_type, EntryLengthType):
+        result = True
+    elif isinstance(param_type, EntryValueType):
+        # If we reference an entry value, the source is independant if it is
+        # visible.
+        if is_value_hidden:
+            return False
+        result = not hidden_map[param_type.entry]
+    elif isinstance(param_type, MultiSourceType):
+        for source in param_type.sources:
+            if not _is_source_entry_independant(source, hidden_map, is_value_hidden):
+                result = False
+                break
+        else:
+            result = True
+    else:
+        raise NotImplementedError('Unknown param type when testing for independance')
+    return result
+
+def _params(params, hidden_map, is_entry_hidden):
+    """Change the order of the parameters such that they are suitable for encoding."""
     params = list(params)
     result = []
     for p in params:
-        if (not is_hidden and ':' not in p.name) or \
-                p.type.has_expected_value() or \
-                isinstance(p.type, EntryLengthType):
-            # The entry is either visible or has a known value; we don't need
-            # to swap the outputs. For EntryLengthTypes we cannot swap the
-            # direction.
+        is_value_hidden = ':' in p.name or (p.direction == p.OUT and is_entry_hidden)
+        if _is_source_entry_independant(p.type, hidden_map, is_value_hidden):
+            # The source entry is indepent of the user of it; no need to swap
+            # the parameters.
             result.append(p)
         else:
             if p.direction == p.IN:
@@ -86,20 +105,23 @@ def _params(params, is_hidden):
             result.append(p)
     return result
 
-def _get_encoder(entry, params, entries, hidden_map):
+def _get_encoder(entry, expression_params, entries, hidden_map):
     try:
         encoder = entries[entry]
     except KeyError:
         # We haven't created an encoder for this entry yet.
-        entry_params = _params(params.get_params(entry), hidden_map[entry])
-        encoder = _encoders[type(entry)](entry, params, entry_params, hidden_map[entry])
+        entry_params = _params(expression_params.get_params(entry), hidden_map,
+                hidden_map[entry])
+        encoder = _encoders[type(entry)](entry, expression_params, entry_params, hidden_map[entry])
         entries[entry] = encoder
 
         for child in entry.children:
             is_child_hidden = hidden_map[child.entry] or is_hidden(child.name)
-            passed_params = _params(params.get_passed_variables(entry, child), is_child_hidden)
+            passed_params = _params(
+                    expression_params.get_passed_variables(entry, child),
+                    hidden_map, is_child_hidden)
             encoder.children.append(Child(child.name,
-                _get_encoder(child.entry, params, entries, hidden_map),
+                _get_encoder(child.entry, expression_params, entries, hidden_map),
                 passed_params, is_child_hidden))
     return encoder
 
