@@ -33,11 +33,11 @@ class InvalidSequenceOfCount(DecodeError):
         return "%s expected count of %i, got %i" % (self.sequenceof, self.expected, self.actual)
 
 class SequenceOfEncoder(EntryEncoder):
-    def _encode(self, query, value, context, is_hidden):
+    def _encode(self, query, value, context):
         count = 0
         for i, child_value in enumerate(value):
             count += 1
-            for data in self._encode_child(self.children[0], query, value, i, context, is_hidden):
+            for data in self._encode_child(self.children[0], query, value, i, context):
                 yield data
 
         if self.entry.count:

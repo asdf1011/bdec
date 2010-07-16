@@ -59,6 +59,13 @@ class Child:
     def __repr__(self):
         return "'%s' %s" % (self.name, str(self.encoder))
 
+class MockSequenceValue(dict):
+    def __int__(self):
+        return 0
+
+    def __eq__(self, other):
+        return isinstance(other, MockSequenceValue)
+
 def _mock_query(parent, entry, offset, name):
     """A mock query object to return data for hidden common entries.
 
@@ -81,7 +88,7 @@ def _mock_query(parent, entry, offset, name):
     if result:
         return result
 
-    if is_hidden(entry.name) or is_hidden(name):
+    if is_hidden(entry.name):
         raise MissingInstanceError(parent, entry)
 
     # We have to return some suitable data for these entries; return a null
@@ -97,7 +104,7 @@ def _mock_query(parent, entry, offset, name):
         else:
             return Data('\x00' * (length / 8 + 1), length)
     elif isinstance(entry, Sequence):
-        return None
+        return MockSequenceValue()
     elif isinstance(entry, SequenceOf):
         return []
     elif isinstance(entry, Choice):
@@ -147,13 +154,13 @@ class EntryEncoder:
             except KeyError:
                 return None
 
-    def _encode(self, query, value, context, is_hidden):
+    def _encode(self, query, value, context):
         """
         Encode a data source, with the context being the data to encode.
         """
         raise NotImplementedError()
 
-    def _encode_child(self, child, query, value, offset, context, is_entry_hidden):
+    def _encode_child(self, child, query, value, offset, context):
         child_context = {}
         should_use_mock = (self.is_hidden or child.is_hidden) and not child.encoder.is_hidden
         if should_use_mock:
@@ -174,7 +181,7 @@ class EntryEncoder:
                     # everywhere. In these cases we'll populate them with None...
                     child_context[child_param.name] = None
 
-        for data in child.encoder.encode(query, value, offset, child_context, child.name, is_entry_hidden):
+        for data in child.encoder.encode(query, value, offset, child_context, child.name):
             yield data
 
         for our_param, child_param in zip(child.params, child.encoder.params):
@@ -188,7 +195,7 @@ class EntryEncoder:
         """
         return value
 
-    def encode(self, query, value, offset, context, name, is_entry_hidden):
+    def encode(self, query, value, offset, context, name):
         """Return an iterator of bdec.data.Data instances.
 
         query -- Function to return a value to be encoded when given an entry
@@ -196,13 +203,12 @@ class EntryEncoder:
           the expected instance, MissingInstanceError should be raised.
         value -- This entry's value that is to be encoded.
         """
-        is_entry_hidden |= is_hidden(name)
 
         encode_length = 0
         try:
             value = self._get_value(query, value, offset, name, context)
         except MissingInstanceError:
-            if not is_entry_hidden:
+            if not self.is_hidden:
                 raise
             value = None
         value = self._fixup_value(value, context)
@@ -210,7 +216,7 @@ class EntryEncoder:
         for constraint in self.entry.constraints:
             constraint.check(self.entry, value, context)
 
-        for data in self._encode(query, value, context, is_entry_hidden):
+        for data in self._encode(query, value, context):
             encode_length += len(data)
             yield data
 

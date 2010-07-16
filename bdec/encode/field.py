@@ -56,7 +56,7 @@ class FieldEncoder(EntryEncoder):
                 raise MissingFieldException(self.entry)
         return value
 
-    def _encode(self, query, value, context, is_hidden):
+    def _encode(self, query, value, context):
         try:
             length = self.entry.length.evaluate(context)
             yield self.entry.encode_value(value, length)

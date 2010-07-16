@@ -28,7 +28,7 @@ class ChoiceEncoder(EntryEncoder):
             # Choice entries can be completely hidden
             return parent
 
-    def _encode(self, query, value, context, is_hidden):
+    def _encode(self, query, value, context):
         # We attempt to encode all of the embedded items, until we find
         # an encoder capable of doing it.
         best_guess = None
@@ -36,7 +36,7 @@ class ChoiceEncoder(EntryEncoder):
         for child in self.children:
             try:
                 bits_encoded = 0
-                for data in self._encode_child(child, query, value, 0, context, is_hidden):
+                for data in self._encode_child(child, query, value, 0, context):
                     bits_encoded += len(data)
 
                 # We successfully encoded the entry!
@@ -47,4 +47,4 @@ class ChoiceEncoder(EntryEncoder):
                     best_guess = child
                     best_guess_bits = bits_encoded
 
-        return self._encode_child(best_guess, query, value, 0, context, is_hidden)
+        return self._encode_child(best_guess, query, value, 0, context)

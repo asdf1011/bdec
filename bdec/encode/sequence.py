@@ -23,7 +23,7 @@ import operator
 from bdec import DecodeError
 from bdec.constraints import Equals
 from bdec.data import Data
-from bdec.encode.entry import EntryEncoder
+from bdec.encode.entry import EntryEncoder, MockSequenceValue
 from bdec.expression import UndecodedReferenceError
 from bdec.inspect.solver import solve
 from bdec.inspect.type import EntryValueType, EntryLengthType
@@ -114,7 +114,7 @@ class SequenceEncoder(EntryEncoder):
         """
         Allow entries to modify the value to be encoded.
         """
-        if self.entry.value and value in [None, '']:
+        if self.entry.value and value in [None, '', MockSequenceValue()]:
             try:
                 # Get the value from the expression
                 return self.entry.value.evaluate(context)
@@ -128,7 +128,7 @@ class SequenceEncoder(EntryEncoder):
                     return constraint.limit.evaluate({})
         return value
 
-    def _encode(self, query, value, context, is_hidden):
+    def _encode(self, query, value, context):
         if self.entry.value:
             # Update the context with the detected parameters
             if value is None:
@@ -140,10 +140,10 @@ class SequenceEncoder(EntryEncoder):
         # we can't encode a hidden field that is referenced elsewhere without
         # first encoding the location where it is referenced to try and
         # determine the value of the hidden field.
-        order = _encoding_order(self, is_hidden)
+        order = _encoding_order(self, self.is_hidden)
         sequence_data = {}
         for child in order:
-            data = reduce(operator.add, self._encode_child(child, query, value, 0, context, is_hidden), Data())
+            data = reduce(operator.add, self._encode_child(child, query, value, 0, context), Data())
             sequence_data[child] = data
         for child in self.children:
             yield sequence_data[child]
