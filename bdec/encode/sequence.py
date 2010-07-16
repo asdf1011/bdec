@@ -46,6 +46,12 @@ class CyclicEncodingError(DecodeError):
                 (self.entry, ' -> '.join("'%s'" % e.name for e in self._loop))
 
 
+class MissingValueError(DecodeError):
+    def __str__(self):
+        return 'Unable to solve value for %s as value is missing. This is an ' \
+                'encoder bug; sorry.' % self.entry
+
+
 def _detect_dependencies(children, is_hidden):
     """Detect dependencies between the child entries.
 
@@ -66,7 +72,11 @@ def _detect_dependencies(children, is_hidden):
                 dependencies[child].extend(users)
     return dependencies
 
-def _populate_dependencies(entry, child, dependencies, visited, chain):
+def _populate_dependencies(entry, child, dependencies, visited=None, chain=None):
+    if visited is None:
+        visited = set()
+    if chain is None:
+        chain = list()
     if child in chain:
         raise CyclicEncodingError(entry, chain + [child])
     visited.add(child)
@@ -81,7 +91,10 @@ def _encoding_order(encoder, is_hidden):
     dependencies = {}
     for child in encoder.children:
         dependencies[child] = _populate_dependencies(encoder.entry, child,
-                direct_dependencies, set(), list())
+                direct_dependencies)
+        # The algorithm adds the child as a dependency of itself; this is a
+        # little ugly in debugging output, so we remove it.
+        dependencies[child].remove(child)
     result = list(encoder.children)
     for child in encoder.children:
         if dependencies[child]:
@@ -118,6 +131,8 @@ class SequenceEncoder(EntryEncoder):
     def _encode(self, query, value, context, is_hidden):
         if self.entry.value:
             # Update the context with the detected parameters
+            if value is None:
+                raise MissingValueError(self.entry)
             self._solve(self.entry.value, int(value), context)
 
         # We perform dependency analysis on the child parameters to determine

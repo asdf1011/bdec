@@ -26,7 +26,6 @@ from bdec.field import Field
 from bdec.sequence import Sequence
 from bdec.sequenceof import SequenceOf
 from bdec.inspect.solver import solve, SolverError
-from bdec.inspect.type import EntryLengthType
 
 class DataLengthError(bdec.DecodeError):
     """Encoded data has the wrong length."""
@@ -50,31 +49,11 @@ class MissingInstanceError(bdec.DecodeError):
     def __str__(self):
         return "object '%s' doesn't have child object '%s'" % (self.parent, self.child.name)
 
-def _params(params, is_hidden):
-    params = list(params)
-    result = []
-    for p in params:
-        if (not is_hidden and ':' not in p.name) or \
-                p.type.has_expected_value() or \
-                isinstance(p.type, EntryLengthType):
-            # The entry is either visible or has a known value; we don't need
-            # to swap the outputs. For EntryLengthTypes we cannot swap the
-            # direction.
-            result.append(p)
-        else:
-            if p.direction == p.IN:
-                p.direction = p.OUT
-            else:
-                p.direction = p.IN
-            result.append(p)
-    return result
-
 class Child:
     def __init__(self, name, encoder, passed_params, is_hidden):
         self.name = name
         self.encoder = encoder
-        passed_params = list(passed_params)
-        self.params = _params(passed_params, is_hidden)
+        self.params = list(passed_params)
         self.is_hidden = is_hidden
 
     def __repr__(self):
@@ -118,10 +97,7 @@ def _mock_query(parent, entry, offset, name):
         else:
             return Data('\x00' * (length / 8 + 1), length)
     elif isinstance(entry, Sequence):
-        class Null(dict):
-            def __int__(self):
-                return 0
-        return Null()
+        return None
     elif isinstance(entry, SequenceOf):
         return []
     elif isinstance(entry, Choice):
@@ -130,17 +106,17 @@ def _mock_query(parent, entry, offset, name):
         raise NotImplementedError('Unknown entry %s to mock data for...' % entry)
 
 class EntryEncoder:
-    def __init__(self, entry, params, is_hidden):
+    def __init__(self, entry, expression_params, params, is_hidden):
         self.entry = entry
         self.children = []
         self.is_hidden = is_hidden
 
         # When encoding, the direction of the parameters is inverted. What
         # would usually be an output, is now an input.
-        self.params = _params(params.get_params(entry), is_hidden)
-        self._params = params
-        self._is_length_referenced = params.is_length_referenced(entry)
-        self._is_value_referenced = params.is_value_referenced(entry)
+        self.params = params
+        self._params = expression_params
+        self._is_length_referenced = expression_params.is_length_referenced(entry)
+        self._is_value_referenced = expression_params.is_value_referenced(entry)
 
     def _solve(self, expression, value, context):
         '''Solve an expression given the result and context.
@@ -179,7 +155,7 @@ class EntryEncoder:
 
     def _encode_child(self, child, query, value, offset, context, is_entry_hidden):
         child_context = {}
-        should_use_mock = is_hidden(child.name) and not child.encoder.entry.is_hidden()
+        should_use_mock = (self.is_hidden or child.is_hidden) and not child.encoder.is_hidden
         if should_use_mock:
             # The child entry is hidden, but the parent is visible; create a
             # 'mock' child entry suitable for encoding. This must contain any

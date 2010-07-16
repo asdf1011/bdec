@@ -120,8 +120,9 @@ class TestSequence(unittest.TestCase):
         # has to be... here we create an element 'a' whose value is only
         # sometimes referenced elsewhere.
         a = Field('a', length=8)
-        b = Sequence('b', [Child('a:', a)], value=parse('${a:}'))
-        c = Sequence('c', [a, b])
+        c = Sequence('c', [
+            a,
+            Sequence('b', [Child('a:', a)], value=parse('${a:}'))])
         self.assertEqual('\x45\x23', encode(c, {'a':0x45, 'b':0x23}).bytes())
 
     def test_fixed_sequence_value(self):
@@ -208,3 +209,17 @@ class TestSequence(unittest.TestCase):
             Sequence('d', [], value=parse('${b:.c}'))])
         self.assertEqual('\x09', encode(c, {'d':9}).bytes())
 
+    def test_hidden_detection(self):
+        # Test the parameter passing when the common entry is first found
+        # in a hidden context. There was a bug if a common entry was initially
+        # found 'hidden', it would always be treated as hidden. This tests it
+        # by creating a common entry that is referenced in two places, once
+        # hidden, once not. For the test to pass the code must be dealing
+        # correctly with the parameters.
+        a = Field('a', length=8, format=Field.INTEGER)
+        b = Sequence('b', [
+            Sequence('c:', [a]),
+            Field('d', length=parse('${c:.a} * 8'), format=Field.TEXT),
+            a,
+            Field('e', length=parse('${a} * 8'), format=Field.TEXT)])
+        self.assertEqual('\x02dd\x03eee', encode(b, {'d':'dd', 'a':3, 'e':'eee'}).bytes())
