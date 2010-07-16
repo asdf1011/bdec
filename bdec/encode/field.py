@@ -38,7 +38,7 @@ class VariableIntegerTooLongError(DecodeError):
 
 
 class FieldEncoder(EntryEncoder):
-    def _fixup_value(self, value, is_hidden, context):
+    def _fixup_value(self, value, context):
         if value in [None, '']:
             # We handle strings as a prompt to use the expected value. This is
             # because the named item may be in the output, but not necessarily
@@ -49,7 +49,7 @@ class FieldEncoder(EntryEncoder):
                 value = expected
                 if isinstance(value, Data):
                     value = self.entry.decode_value(value)
-            elif is_hidden:
+            elif self.is_hidden:
                 length = self.entry.length.evaluate({})
                 value = Data('\x00' * (length / 8 + 1), 0, length)
             else:

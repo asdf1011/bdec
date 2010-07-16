@@ -110,7 +110,7 @@ def _encoding_order(encoder, is_hidden):
 
 class SequenceEncoder(EntryEncoder):
 
-    def _fixup_value(self, value, is_hidden, context):
+    def _fixup_value(self, value, context):
         """
         Allow entries to modify the value to be encoded.
         """

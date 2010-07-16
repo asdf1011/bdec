@@ -21,7 +21,7 @@ from bdec import DecodeError
 from bdec.encode.entry import EntryEncoder, MissingInstanceError
 
 class ChoiceEncoder(EntryEncoder):
-    def _get_value(self, query, parent, offset, name, is_hidden, context):
+    def _get_value(self, query, parent, offset, name, context):
         try:
             return query(parent, self.entry, offset, name)
         except MissingInstanceError:
