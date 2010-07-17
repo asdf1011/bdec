@@ -63,12 +63,19 @@ class ReferenceError(LoadErrorWithLocation):
 
 class UnspecifiedMainEntry(LoadError):
     """Exception thrown when the main entry is not specified."""
-    def __init__(self, names):
+    def __init__(self, names, common):
         self.names = names
+        self.common = common
 
     def __str__(self):
-        result = 'No main entry specified! Entry must be one of:'
-        return '\n  '.join([result] + self.names)
+        if not self.names:
+            result = 'No top level protocol present! Choose one of the common entries to be the main:'
+        else:
+            result = '\n  '.join(['Multiple top level protocols available! Choose one of:'] +\
+                    sorted(self.names))
+            if self.common:
+                result += '\n\nOr one of the following common entries:'
+        return '\n  '.join([result] + sorted(self.common))
 
 
 def _validate_parameters(entries, lookup):
@@ -177,7 +184,7 @@ def load_specs(specs, main_name=None, should_remove_unused=False):
         if len(decoders) != 1:
             # There isn't a single main decoders available from the spec; the
             # user must choose what entry will be the 'main' decoder.
-            raise UnspecifiedMainEntry([d.name for d in decoders] + references.get_names())
+            raise UnspecifiedMainEntry([d.name for d in decoders], references.get_names())
         decoder = decoders[0]
 
     decoder, common = _resolve(decoder, references, lookup, should_remove_unused)

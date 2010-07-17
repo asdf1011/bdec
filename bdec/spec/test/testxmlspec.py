@@ -993,7 +993,7 @@ class TestXml(unittest.TestCase):
             load_specs([('<string a>', a, 'xml'), ('<string b>', b, 'xml')])
             self.fail("Should have failed to load the spec, but didn't!")
         except UnspecifiedMainEntry, ex:
-            self.assertEqual('No main entry specified! Entry must be one of:\n  a\n  b', str(ex))
+            self.assertEqual('Multiple top level protocols available! Choose one of:\n  a\n  b', str(ex))
 
     def test_no_main_decoder(self):
         a = '<protocol ><common><sequence name="a" /></common></protocol>'
@@ -1001,7 +1001,8 @@ class TestXml(unittest.TestCase):
             load_specs([('<string a>', a, 'xml')])
             self.fail("Should have failed to load the spec, but didn't!")
         except UnspecifiedMainEntry, ex:
-            self.assertEqual('No main entry specified! Entry must be one of:\n  a', str(ex))
+            self.assertEqual('No top level protocol present! Choose one of '
+                    'the common entries to be the main:\n  a', str(ex))
 
     def test_choosing_main_decoder(self):
         # Test that we can choose the main decoder when multiple options
