@@ -70,7 +70,7 @@ def _mock_query(parent, entry, offset, name):
     """A mock query object to return data for hidden common entries.
 
     It will return null data for fields, etc."""
-    if isinstance(parent, int) or parent is None:
+    if isinstance(parent, (int, long)) or parent is None:
         raise MissingInstanceError(parent, entry)
 
     try:
