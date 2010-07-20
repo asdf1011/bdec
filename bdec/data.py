@@ -125,6 +125,36 @@ class _ByteBuffer(object):
     def __len__(self):
         raise NotImplementedError()
 
+    def _byte_iter(self):
+        for i in range(len(self)):
+            yield self.read_byte(i)
+
+    def _bytes(self):
+        return ''.join(chr(c) for c in self._byte_iter())
+
+    def __add__(self, other):
+        return _MemoryBuffer(self._bytes() + other._bytes())
+
+    def _shift_chars(self, num_bits):
+        byte = 0
+        for char in self._bytes():
+            value = byte << (8 - num_bits)
+            byte = ord(char)
+            value |= byte >> num_bits
+            yield chr(value & 0xFF)
+        yield chr((byte << (8 - num_bits)) & 0xff)
+
+    def __rshift__(self, num_bits):
+        if num_bits == 0:
+            return self
+        elif num_bits % 8  == 0:
+            return _MemoryBuffer('\x00' * (num_bits / 8) + self._bytes())
+        return _MemoryBuffer(''.join(self._shift_chars(num_bits)))
+
+    def __getslice__(self, start, end):
+        result = _MemoryBuffer(self._bytes()[start:end])
+        return result
+
 
 class _FileBuffer(_ByteBuffer):
     """Byte buffer that reads from a seekable file."""
@@ -147,6 +177,7 @@ class _FileBuffer(_ByteBuffer):
         result = self._file.tell()
         self._file.seek(pos)
         return result
+
 
 class _NonSeekingFileBuffer(_ByteBuffer):
     """Byte buffer that reads from a non-seekable file.
@@ -171,9 +202,11 @@ class _NonSeekingFileBuffer(_ByteBuffer):
         except _OutOfDataError:
             return offset
 
+
 class _MemoryBuffer(_ByteBuffer):
     """Byte buffer that reads directly from in memory data."""
     def __init__(self, buffer):
+        assert isinstance(buffer, str), "Expected a string; got %s!" % repr(buffer)
         self._buffer = buffer
 
     def read_byte(self, offset):
@@ -184,6 +217,9 @@ class _MemoryBuffer(_ByteBuffer):
 
     def __len__(self):
         return len(self._buffer)
+
+    def _bytes(self):
+        return self._buffer
 
 
 class Data(object):
@@ -338,10 +374,12 @@ class Data(object):
         return not self == other
 
     def __len__(self):
-        if self._end is not None:
-            return self._end - self._start
-
-        return len(self._buffer) * 8 - self._start
+        if self._end is None:
+            end = len(self._buffer) * 8
+            if end < self._start:
+                raise NotEnoughDataError(0, end - self._start)
+            self._end = end
+        return self._end - self._start
 
     def __nonzero__(self):
         return not self.empty()
@@ -390,6 +428,9 @@ class Data(object):
         if not self._end:
             return
         length = len(self)
+        if length == 0:
+            return
+
         try:
             # We don't want to ask for the length of the backing store
             # initially, as that may cause it to be loaded into memory (ie:
@@ -422,9 +463,49 @@ class Data(object):
 
     def __add__(self, other):
         if not isinstance(other, Data):
-            return NotImplemented
-        # Incredibly inefficient...
-        return Data.from_binary_text(self.get_binary_text() + other.get_binary_text())
+            raise NotImplementedError()
+
+        if not self._end:
+            self._end = self._start + len(self)
+        if not other._end:
+            other._end = other._start + len(other)
+        self.validate()
+        other.validate()
+
+        left = self._buffer[self._start / 8:(self._end - 1) / 8 + 1]
+        right = other._buffer[other._start / 8:(other._end - 1) / 8 + 1]
+
+        # Shift the shorter data object (as the shift is relatively intensive)
+        distance = (other._start - self._end) % 8
+        if len(self) < len(other):
+            # The left hand buffer is shorter than the right, so shift it so it
+            # aligns with the right
+            left_start = self._start + distance
+            left >>= distance
+
+            # It's possible we have to truncate the buffer here, as we may
+            # have create an extra byte with data we don't care about.
+            left = left[0:(left_start + len(self) - 1) / 8 + 1]
+        else:
+            # The right hand buffer is shorter than the left, so shift it so it
+            # aligns with the left
+            left_start = self._start
+            right >>= distance
+
+        if (left_start + len(self)) % 8 and len(self) and len(other):
+            # The left doesn't end on a whole byte; create a joining byte to
+            # connect the left & right
+            merge_byte = (left_start + len(self) - 1) / 8
+
+            overlapping_bits = self._end % 8
+            overlap =  left.read_byte(merge_byte) & (0xff << (8 - overlapping_bits))
+            overlap |= right.read_byte(0) & (0xff >> overlapping_bits)
+
+            left = left[:merge_byte] + _MemoryBuffer(chr(overlap))
+            right = right[1:(len(other)-1)/8]
+
+        bytes_removed = self._start / 8
+        return Data(left + right, left_start, left_start + len(self) + len(other))
 
     def _get_bytes(self):
         """
