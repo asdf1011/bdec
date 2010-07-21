@@ -120,13 +120,6 @@ class Field(bdec.entry.Entry):
         self.format = format
         self.encoding = encoding
 
-    def _get_expected(self):
-        for constraint in self.constraints:
-            if isinstance(constraint, Equals):
-                return constraint.limit.evaluate({})
-        return None
-    expected = property(_get_expected)
-
     def _convert_type(self, data, expected_type):
         try:
             return expected_type(data)

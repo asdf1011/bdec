@@ -233,3 +233,22 @@ class TestSequence(unittest.TestCase):
         self.assertEqual('\x00', encode(a, {'b':0}).bytes())
         self.assertEqual('\x01\x00', encode(a, {'b':1}).bytes())
         self.assertEqual('\x03\x00\x00\x00', encode(a, {'b':3}).bytes())
+
+    def test_reference_in_constraint(self):
+        # Test that the code correctly encodes when constraints have references
+        a = Sequence('a', [
+            Sequence('b:', [
+                Sequence('b1', [], value=parse('1')),
+                Sequence('b2', [], value=parse('2')),
+                Sequence('b3', [], value=parse('3')),
+                ]),
+            Choice('c', [
+                Field('c1', length=8, constraints=[Equals(parse('${b:.b1}'))]),
+                Field('c2', length=8, constraints=[Equals(parse('${b:.b2}'))]),
+                Field('c3', length=8, constraints=[Equals(parse('${b:.b3}'))]),
+                ])
+            ])
+        self.assertEqual('\x01', encode(a, {'c1':None}).bytes())
+        self.assertEqual('\x02', encode(a, {'c2':None}).bytes())
+        self.assertEqual('\x03', encode(a, {'c3':None}).bytes())
+

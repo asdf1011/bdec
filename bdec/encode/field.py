@@ -18,6 +18,7 @@
 #   <http://www.gnu.org/licenses/>.
 
 from bdec import DecodeError
+from bdec.constraints import Equals
 from bdec.data import Data
 from bdec.field import FieldDataError
 from bdec.encode.entry import EntryEncoder, MissingInstanceError, NotEnoughContextError
@@ -44,19 +45,22 @@ class FieldEncoder(EntryEncoder):
             # because the named item may be in the output, but not necessarily
             # the value (eg: in the xml representation, it is clearer to not
             # display the expected value).
-            expected = self.entry.expected
-            if expected is not None:
-                value = expected
-                if isinstance(value, Data):
-                    value = self.entry.decode_value(value)
-            elif self.is_hidden:
-                try:
-                    length = self.entry.length.evaluate(context)
-                except UndecodedReferenceError, ex:
-                    raise MissingFieldException(self.entry)
-                value = Data('\x00' * (length / 8 + 1), 0, length)
+            for constraint in self.entry.constraints:
+                if isinstance(constraint, Equals):
+                    value = constraint.limit.evaluate(context)
+                    if isinstance(value, Data):
+                        value = self.entry.decode_value(value)
+                    break
             else:
-                raise MissingFieldException(self.entry)
+                if self.is_hidden:
+                    try:
+                        length = self.entry.length.evaluate(context)
+                    except UndecodedReferenceError, ex:
+                        raise MissingFieldException(self.entry)
+                    value = Data('\x00' * (length / 8 + 1), 0, length)
+                else:
+                    raise MissingFieldException(self.entry)
+
         return value
 
     def _encode(self, query, value, context):
