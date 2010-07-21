@@ -29,6 +29,7 @@ from bdec.encode.entry import MissingInstanceError
 import bdec.entry as ent
 import bdec.choice as chc
 import bdec.field as fld
+from bdec.sequence import Sequence
 import bdec.sequenceof as sof
 
 def escape_name(name):
@@ -167,13 +168,21 @@ def _get_element_value(element, entry):
         return _SequenceOfIter(element.childNodes, entry.children[0].entry)
 
     text = ""
+    has_children = False
     for child in element.childNodes:
         if child.nodeType == xml.dom.Node.ELEMENT_NODE:
-            # This element has sub-elements, so return the high-level element
-            # itself.
-            return element
+            has_children = True
         elif child.nodeType == xml.dom.Node.TEXT_NODE:
             text += child.data
+
+    if isinstance(entry, Sequence) and entry.value and text.strip():
+        element.__int__ = lambda: int(text)
+
+    if has_children:
+        # This element has sub-elements, so return the high-level element
+        # itself.
+        return element
+
     # No sub-elements; this element is a 'value' type.
     return text
 

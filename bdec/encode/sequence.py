@@ -110,11 +110,20 @@ def _encoding_order(encoder, is_hidden):
 
 class SequenceEncoder(EntryEncoder):
 
+    def _is_unknown_value(self, value):
+        if value in [None, '', MockSequenceValue()]:
+            return True
+        try:
+            int(value)
+            return False
+        except Exception:
+            return True
+
     def _fixup_value(self, value, context):
         """
         Allow entries to modify the value to be encoded.
         """
-        if self.entry.value and value in [None, '', MockSequenceValue()]:
+        if self.entry.value and self._is_unknown_value(value):
             try:
                 # Get the value from the expression
                 return self.entry.value.evaluate(context)

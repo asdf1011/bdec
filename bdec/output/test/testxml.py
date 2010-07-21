@@ -137,3 +137,9 @@ class TestXml(unittest.TestCase):
         a = fld.Field('a', length=32, format=fld.Field.TEXT, constraints=[Equals('abcd')])
         self.assertEqual('abcd', xml.encode(a, '<a/>').bytes())
 
+    def test_sequence_with_children_and_value(self):
+        a = seq.Sequence('a',
+                [fld.Field('b', length=8, format=fld.Field.INTEGER)],
+                value=parse('${b}'))
+        self.assertEqual('\x05', xml.encode(a, '<a><b>5</b>5</a>').bytes())
+
