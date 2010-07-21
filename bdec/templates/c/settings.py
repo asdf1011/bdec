@@ -23,7 +23,7 @@ import bdec.choice as chc
 from bdec.entry import Entry
 import bdec.field as fld
 import bdec.sequence as seq
-from bdec.expression import ArithmeticExpression, ReferencedExpression, Constant
+from bdec.expression import ArithmeticExpression, ReferenceExpression, Constant
 from bdec.inspect.param import Local, Param, MAGIC_UNKNOWN_NAME
 from bdec.inspect.type import EntryLengthType, EntryValueType, IntegerType, EntryType, expression_range
 
