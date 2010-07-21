@@ -198,3 +198,14 @@ class TestData(unittest.TestCase):
 
     def test_len_not_enough_data(self):
         self.assertRaises(dt.NotEnoughDataError, len, dt.Data('', 4))
+
+    def test_add_not_from_start(self):
+        # There was a bug where it didn't correctly adjust the left start when
+        # creating a new data object.
+        data = dt.Data('abcd\x01\x02\x03\x04')
+
+        # Remove data from the from of the data
+        data.pop(36)
+        data = data + dt.Data('\x00', 0, 4)
+        self.assertEqual('\x10\x20\x30\x40', data.bytes())
+

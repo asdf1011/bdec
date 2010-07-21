@@ -480,7 +480,7 @@ class Data(object):
         if len(self) < len(other):
             # The left hand buffer is shorter than the right, so shift it so it
             # aligns with the right
-            left_start = self._start + distance
+            left_start = (self._start + distance) % 8
             left >>= distance
 
             # It's possible we have to truncate the buffer here, as we may
@@ -489,7 +489,7 @@ class Data(object):
         else:
             # The right hand buffer is shorter than the left, so shift it so it
             # aligns with the left
-            left_start = self._start
+            left_start = self._start % 8
             right >>= distance
 
         if (left_start + len(self)) % 8 and len(self) and len(other):
