@@ -469,7 +469,7 @@ def _write_entry(gen, entry, common, end_entry):
         gen.end('end-sequenceof')
     gen.end(name)
 
-def save(spec, common=[]):
+def dumps(spec, common=[]):
     """Save a specification in the xml format."""
     if spec not in common:
         common = common + [spec]
@@ -488,4 +488,4 @@ def save(spec, common=[]):
         gen.end('common')
     gen.end('protocol')
     return str(gen)
-
+save = dumps
