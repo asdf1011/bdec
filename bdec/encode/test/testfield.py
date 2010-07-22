@@ -58,3 +58,10 @@ class TestField(unittest.TestCase):
         c = Sequence('c', [a, b])
         self.assertEqual('\x00\x07', encode(c, {'b':7}).bytes())
 
+    def test_encode_zero_length_field(self):
+        a = Sequence('a', [
+                Field('b:', length=8),
+                Field('c', format=Field.TEXT, length=parse('${b:} * 8'))
+                ])
+        self.assertEqual('\x02ab', encode(a, {'c':'ab'}).bytes())
+        self.assertEqual('\x00', encode(a, {'c':''}).bytes())

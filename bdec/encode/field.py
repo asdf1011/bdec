@@ -58,7 +58,9 @@ class FieldEncoder(EntryEncoder):
                     except UndecodedReferenceError, ex:
                         raise MissingFieldException(self.entry)
                     value = Data('\x00' * (length / 8 + 1), 0, length)
-                else:
+                elif value is None:
+                    # Only report an error when we have None; if we have an
+                    # empty string here, it's probably just that.
                     raise MissingFieldException(self.entry)
 
         return value
