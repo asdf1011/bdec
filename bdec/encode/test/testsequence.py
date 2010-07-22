@@ -253,3 +253,14 @@ class TestSequence(unittest.TestCase):
         self.assertEqual('\x02', encode(a, {'c2':None}).bytes())
         self.assertEqual('\x03', encode(a, {'c3':None}).bytes())
 
+    def test_referencing_implicit_length(self):
+        # There was a problem when encoding length references to entries that
+        # didn't have an explicit length. Test this.
+        a = Sequence('a', [
+            Field('length:', length=8),
+            Sequence('b', [
+                Field('b1 length:', length=8),
+                Field('b1', length=parse('${b1 length:} * 8'), format=Field.TEXT)]),
+            Field('unused:', length=parse('${length:} * 8 - len{b}'))
+            ])
+        self.assertEqual('\x05\x04abcd', encode(a, {'b':{'b1':'abcd'}}).bytes())

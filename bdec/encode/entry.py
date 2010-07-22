@@ -220,17 +220,13 @@ class EntryEncoder:
             encode_length += len(data)
             yield data
 
-        length = None
+        length = encode_length
         if self.entry.length is not None:
+            # Check that the expression length matches the 'real' length
             try:
                 self._solve(self.entry.length, encode_length, context)
             except SolverError, ex:
                 raise DataLengthError(self.entry, ex.expr, ex.expected)
-
-            try:
-                length = self.entry.length.evaluate(context)
-            except UndecodedReferenceError, ex:
-                raise NotEnoughContextError(self.entry, ex)
         if self._is_length_referenced:
             context[self.entry.name + ' length'] = length
         if self._is_value_referenced:

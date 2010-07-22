@@ -56,7 +56,9 @@ class FieldEncoder(EntryEncoder):
                     try:
                         length = self.entry.length.evaluate(context)
                     except UndecodedReferenceError, ex:
-                        raise MissingFieldException(self.entry)
+                        # We don't know, and can't calculate, the length; try
+                        # making it zero.
+                        length = 0
                     value = Data('\x00' * (length / 8 + 1), 0, length)
                 elif value is None:
                     # Only report an error when we have None; if we have an
