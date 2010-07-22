@@ -134,7 +134,7 @@ class SequenceEncoder(EntryEncoder):
             # constraints
             for constraint in self.entry.constraints:
                 if isinstance(constraint, Equals):
-                    return constraint.limit.evaluate({})
+                    return constraint.limit.evaluate(context)
         return value
 
     def _encode(self, query, value, context):

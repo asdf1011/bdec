@@ -245,7 +245,8 @@ class TestSequence(unittest.TestCase):
             Choice('c', [
                 Field('c1', length=8, constraints=[Equals(parse('${b:.b1}'))]),
                 Field('c2', length=8, constraints=[Equals(parse('${b:.b2}'))]),
-                Field('c3', length=8, constraints=[Equals(parse('${b:.b3}'))]),
+                Sequence('c3', [Field('uint8:', length=8)],
+                    value=parse('${uint8:}'), constraints=[Equals(parse('${b:.b3}'))]),
                 ])
             ])
         self.assertEqual('\x01', encode(a, {'c1':None}).bytes())
