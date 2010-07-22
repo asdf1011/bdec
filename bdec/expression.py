@@ -52,6 +52,9 @@ class UndecodedReferenceError(Exception):
         return "Missing context '%s' (have %s)" % (self.name,
                 ', '.join("'%s'" % k for k in self.context.keys()))
 
+class NullReferenceError(UndecodedReferenceError):
+    def __str__(self):
+        return "Context '%s' present, but is None!" % self.name
 
 class ExpressionError(Exception):
     def __init__(self, ex):
@@ -147,6 +150,15 @@ class ReferenceExpression(Expression):
     def param_name(self):
         raise NotImplementedError()
 
+    def evaluate(self, context):
+        try:
+            result = context[self.param_name()]
+        except KeyError:
+            raise UndecodedReferenceError(self.param_name(), context)
+        if result is None:
+            raise NullReferenceError(self.param_name(), context)
+        return result
+
     def __eq__(self, other):
         if type(self) != type(other):
             return NotImplemented
@@ -163,12 +175,6 @@ class ValueResult(ReferenceExpression):
     def param_name(self):
         return self.name
 
-    def evaluate(self, context):
-        try:
-            return context[self.param_name()]
-        except KeyError:
-            raise UndecodedReferenceError(self.name, context)
-
     def __repr__(self):
         return '${%s}' % self.name
 
@@ -179,12 +185,6 @@ class LengthResult(ReferenceExpression):
     """
     def param_name(self):
         return self.name + ' length'
-
-    def evaluate(self, context):
-        try:
-            return context[self.param_name()]
-        except KeyError:
-            raise UndecodedReferenceError(self.param_name(), context)
 
     def __repr__(self):
         return "len{%s}" % self.name
