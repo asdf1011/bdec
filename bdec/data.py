@@ -472,6 +472,12 @@ class Data(object):
         self.validate()
         other.validate()
 
+        # Check for early outs
+        if not self:
+            return other
+        if not other:
+            return self
+
         left = self._buffer[self._start / 8:(self._end - 1) / 8 + 1]
         right = other._buffer[other._start / 8:(other._end - 1) / 8 + 1]
 

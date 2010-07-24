@@ -17,6 +17,8 @@
 #   <http://www.gnu.org/licenses/>.
 
 #!/usr/bin/env python
+
+import operator
 import StringIO
 import unittest
 
@@ -208,4 +210,11 @@ class TestData(unittest.TestCase):
         data.pop(36)
         data = data + dt.Data('\x00', 0, 4)
         self.assertEqual('\x10\x20\x30\x40', data.bytes())
+
+    def test_join_single_bit(self):
+        data = dt.Data('\x01', 7, 8)
+        self.assertEqual(1, int(data))
+        joined = reduce(operator.add, [data], dt.Data())
+        self.assertEqual(1, len(joined))
+        self.assertEqual(1, int(joined))
 
