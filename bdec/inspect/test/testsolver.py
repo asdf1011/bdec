@@ -137,3 +137,11 @@ class TestSolver (unittest.TestCase):
         # We now try to solve 'data length:' given that we know the value for 'b length'
         self.assertEqual({'${data length:}' : 5}, _solve(a, 2, 24, {'b length':16}))
 
+    def test_subtract(self):
+        a = Sequence('a', [
+            Field('total length:', length=8),
+            Field('partial length:', length=8),
+            Field('data:', length=parse('${partial length:} * 8')),
+            Sequence('unused', [], value=parse('${total length:} * 8 - len{data:}')),
+            ])
+        self.assertEqual({'len{data:}': 800}, _solve(a, 3, 0, {'total length:':100}))

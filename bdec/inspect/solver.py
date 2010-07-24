@@ -68,10 +68,8 @@ def _break_into_parts(entry, expression, context):
             constant = ArithmeticExpression(expression.op, lconst, rconst)
             result = left
             for ref, expr in right.items():
-                if ref in result:
-                    result[ref] = ArithmeticExpression(expression.op, result[ref], expr)
-                else:
-                    result[ref] = expr
+                existing = result.get(ref, Constant(0))
+                result[ref] = ArithmeticExpression(expression.op, existing, expr)
         elif left and right:
             # We can't able to handle the case where the left & right _both_
             # have parameters for non addition / subtraction. Or at least, we
@@ -142,6 +140,14 @@ def _invert(entry, expression, context):
             elif is_right_const and right.op == operator.lshift:
                 left = ArithmeticExpression(operator.rshift, left, right.right)
                 right = right.left
+            elif is_left_const and right.op == operator.sub:
+                # left = k - right  ->   k - left = right
+                left = ArithmeticExpression(operator.sub, right.left, left)
+                right = right.right
+            elif is_left_const and right.op == operator.add:
+                # left = k + right  ->   left - k = right
+                left = ArithmeticExpression(operator.sub, left, right.left)
+                right = right.right
             else:
                 raise SolverError(entry, expression, 'Unable to invert '
                         'expressions containing operator %s' % right.op)
