@@ -218,3 +218,19 @@ class TestData(unittest.TestCase):
         self.assertEqual(1, len(joined))
         self.assertEqual(1, int(joined))
 
+    def test_add_single_bit_on_right(self):
+        a = dt.Data('\x00', 5, 8)
+        b = dt.Data('\x01', 7, 8)
+        self.assertEqual('0001', (a + b).get_binary_text())
+
+    def test_add_single_bit_on_left(self):
+        a = dt.Data('\x01', 7, 8)
+        b = dt.Data('\x00', 5, 8)
+        self.assertEqual('1000', (a + b).get_binary_text())
+
+    def test_add_single_bit_with_overflow(self):
+        # This tests that when the left data shifts all data to the next byte
+        # as part of the shift operation.
+        a = dt.Data('\x01', 7, 8)
+        b = dt.Data('\x0f\xff', 4, 16)
+        self.assertEqual('11111 11111111', (a + b).get_binary_text())

@@ -482,35 +482,39 @@ class Data(object):
         right = other._buffer[other._start / 8:(other._end - 1) / 8 + 1]
 
         # Shift the shorter data object (as the shift is relatively intensive)
-        distance = (other._start - self._end) % 8
         if len(self) < len(other):
             # The left hand buffer is shorter than the right, so shift it so it
             # aligns with the right
-            left_start = (self._start + distance) % 8
+            distance = (other._start - self._end) % 8
+            left_start = self._start % 8 + distance
             left >>= distance
 
             # It's possible we have to truncate the buffer here, as we may
-            # have create an extra byte with data we don't care about.
-            left = left[0:(left_start + len(self) - 1) / 8 + 1]
+            # have create an extra byte on the right that contains data we
+            # don't care about.
+            left = left[:(left_start + len(self) - 1) / 8 + 1]
         else:
             # The right hand buffer is shorter than the left, so shift it so it
             # aligns with the left
+            distance = (self._end - other._start) % 8
+            left_start = (self._start + distance) % 8
             left_start = self._start % 8
             right >>= distance
+            right_start = other._start % 8 + distance
+            right = right[right_start / 8:(right_start + len(other) - 1) / 8 + 1]
 
         if (left_start + len(self)) % 8 and len(self) and len(other):
             # The left doesn't end on a whole byte; create a joining byte to
             # connect the left & right
             merge_byte = (left_start + len(self) - 1) / 8
 
-            overlapping_bits = self._end % 8
+            overlapping_bits = (left_start + len(self)) % 8
             overlap =  left.read_byte(merge_byte) & (0xff << (8 - overlapping_bits))
             overlap |= right.read_byte(0) & (0xff >> overlapping_bits)
 
             left = left[:merge_byte] + _MemoryBuffer(chr(overlap))
-            right = right[1:(len(other)-1)/8]
+            right = right[1:]
 
-        bytes_removed = self._start / 8
         return Data(left + right, left_start, left_start + len(self) + len(other))
 
     def _get_bytes(self):
