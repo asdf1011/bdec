@@ -37,7 +37,7 @@ class SequenceOfEncoder(EntryEncoder):
         count = 0
         for i, child_value in enumerate(value):
             count += 1
-            for data in self._encode_child(self.children[0], query, value, i, context):
+            for data in self._encode_child(self.children[0], query, child_value, i, context):
                 yield data
 
         if self.entry.count:

@@ -181,7 +181,8 @@ class EntryEncoder:
                     # everywhere. In these cases we'll populate them with None...
                     child_context[child_param.name] = None
 
-        for data in child.encoder.encode(query, value, offset, child_context, child.name):
+        child_value = child.encoder.get_value(query, value, offset, child.name, child_context)
+        for data in child.encoder.encode(query, child_value, offset, child_context, child.name):
             yield data
 
         for our_param, child_param in zip(child.params, child.encoder.params):
@@ -195,6 +196,15 @@ class EntryEncoder:
         """
         return value
 
+    def get_value(self, query, value, offset, name, context):
+        try:
+            value = self._get_value(query, value, offset, name, context)
+        except MissingInstanceError:
+            if not self.is_hidden:
+                raise
+            value = None
+        return self._fixup_value(value, context)
+
     def encode(self, query, value, offset, context, name):
         """Return an iterator of bdec.data.Data instances.
 
@@ -205,13 +215,6 @@ class EntryEncoder:
         """
 
         encode_length = 0
-        try:
-            value = self._get_value(query, value, offset, name, context)
-        except MissingInstanceError:
-            if not self.is_hidden:
-                raise
-            value = None
-        value = self._fixup_value(value, context)
 
         for constraint in self.entry.constraints:
             constraint.check(self.entry, value, context)

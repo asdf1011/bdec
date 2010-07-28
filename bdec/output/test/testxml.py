@@ -143,3 +143,11 @@ class TestXml(unittest.TestCase):
                 value=parse('${b}'))
         self.assertEqual('\x05', xml.encode(a, '<a><b>5</b>5</a>').bytes())
 
+    def test_sequenceof_choice(self):
+        a = sof.SequenceOf('a', chc.Choice('b', [
+                fld.Field('b1', length=8, constraints=[Equals(3)]),
+                fld.Field('b2', length=8, constraints=[Equals(5)]),
+                fld.Field('b3', length=8, constraints=[Equals(7)]),
+                ]), count=3)
+        self.assertEqual('\x03\x05\x07', xml.encode(a, '<a><b1/><b2/><b3/></a>').bytes())
+

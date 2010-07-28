@@ -28,6 +28,7 @@ from bdec.constraints import Equals
 from bdec.encode.entry import MissingInstanceError
 import bdec.entry as ent
 import bdec.choice as chc
+from bdec.data import Data
 import bdec.field as fld
 from bdec.sequence import Sequence
 import bdec.sequenceof as sof
@@ -122,16 +123,14 @@ def to_string(decoder, binary, verbose=False):
     to_file(decoder, binary, buffer, verbose=verbose)
     return buffer.getvalue()
 
-class _SequenceOfIter:
+class _SequenceOfEntry:
     """A class to iterate over xml children entries from a sequenceof. """
-    def __init__(self, child_nodes, child):
-        self._child_nodes = child_nodes
-        self._child = child
+    def __init__(self, node):
+        self.childNodes = [node]
 
-    def __iter__(self):
-        for node in self._child_nodes:
-            if node.nodeType == xml.dom.Node.ELEMENT_NODE:
-                yield _get_element_value(node, self._child)
+    def __repr__(self):
+        return 'Sequenceof node %s' % self.childNodes[0]
+
 
 def _query_element(obj, child, offset, name):
     """
@@ -139,11 +138,6 @@ def _query_element(obj, child, offset, name):
 
     If the child has no sub-elements itself, return the element text contents.
     """
-    if isinstance(obj, _SequenceOfIter):
-        for i, value in enumerate(obj):
-            if i == offset:
-                return value
-        raise MissingInstanceError(obj, child)
     try:
         childNodes = obj.childNodes
     except AttributeError:
@@ -165,7 +159,7 @@ def _get_element_value(element, entry):
     if isinstance(entry, sof.SequenceOf):
         # This element represents a sequence of, so we'll return an
         # object to iterate over the children.
-        return _SequenceOfIter(element.childNodes, entry.children[0].entry)
+        return list(_SequenceOfEntry(n) for n in element.childNodes if n.nodeType == xml.dom.Node.ELEMENT_NODE)
 
     text = ""
     has_children = False
@@ -195,5 +189,5 @@ def encode(protocol, xmldata):
     if isinstance(xmldata, basestring):
         xmldata = StringIO.StringIO(xmldata)
     document = xml.dom.minidom.parse(xmldata)
-    return reduce(operator.add, protocol.encode(_query_element, document))
+    return reduce(operator.add, protocol.encode(_query_element, document), Data())
 

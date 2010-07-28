@@ -102,9 +102,6 @@ def decode(decoder, binary):
     return stack[0].get_value(None)
 
 def _get_data(obj, child, i, name):
-    if isinstance(obj, list):
-        return obj[i]
-
     if name.endswith(':'):
         raise MissingInstanceError(obj, child)
 
@@ -118,10 +115,16 @@ def _get_data(obj, child, i, name):
     except (AttributeError, KeyError, TypeError):
         raise MissingInstanceError(obj, child)
 
+def _get_value(obj, child, i, name):
+    result = _get_data(obj, child, i, name)
+    if isinstance(child, sof.SequenceOf):
+        result = [{child.children[0].name: v} for v in result]
+    return result
+
 def encode(protocol, value):
     """
     Encode a python instance to binary data.
 
     Returns a bdec.data.Data instance.
     """
-    return reduce(operator.add, protocol.encode(_get_data, {protocol.name: value}))
+    return reduce(operator.add, protocol.encode(_get_value, {protocol.name: value}))
