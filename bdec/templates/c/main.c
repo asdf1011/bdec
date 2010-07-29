@@ -22,22 +22,49 @@
 
 #include "${protocol.name |filename}.h"
 
-void usage(char* program)
+static void usage(char* program)
 {
-    fprintf(stderr, "Usage:\n");
-    fprintf(stderr, "\t%s <binary file>\n", program);
+    printf("Usage: %s [options] <filename>\n", program);
+    printf("Decode the ${protocol.name} file to xml.\n");
+    printf("Options:\n");
+    printf("   -h    Display this help.\n");
 }
 
 int main(int argc, char* argv[])
 {
-    if (argc != 2)
+    int i;
+    char* encodeFilename = 0;
+    for (i = 1; i < argc; ++i)
+    {
+        if (argv[i][0] == '-')
+        {
+            if (argv[i][1] == 'h')
+            {
+                usage(argv[0]);
+                return 0;
+            }
+            else
+            {
+                fprintf(stderr, "Unknown option '%s'! See %s -h for more details.\n",
+                        argv[i], argv[0]);
+                return 1;
+            }
+        }
+        else
+        {
+            // We've found the first argument
+            break;
+        }
+    }
+
+    if (i != argc - 1)
     {
         /* Bad number of arguments */
-        fprintf(stderr, "Bad number of arguments!\n");
+        fprintf(stderr, "Missing single filename to decode!\nRun %s -h for more details.\n", argv[0]);
         usage(argv[0]);
         return 1;
     }
-    char* filename = argv[1];
+    char* filename = argv[i];
     FILE* datafile = fopen(filename, "rb");
     if (datafile == 0)
     {
