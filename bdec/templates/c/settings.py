@@ -328,6 +328,9 @@ def decode_name(entry):
 def print_name(entry):
     return function('print xml ' + escaped_type(entry))
 
+def encode_name(entry):
+    return function('encode ' + escaped_type(entry))
+
 _var_name_cache = {}
 def var_name(entry, child_index):
     try:

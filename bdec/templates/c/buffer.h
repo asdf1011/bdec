@@ -52,6 +52,13 @@ enum Encoding
     BDEC_LITTLE_ENDIAN
 };
 
+struct EncodedData
+{
+    char* buffer;
+    int numBits;
+    int allocatedLengthBytes;
+};
+
 /**
  * Decode a data buffer to a float.
  *

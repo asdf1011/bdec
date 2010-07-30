@@ -592,3 +592,8 @@ ${static}void ${settings.print_name(entry)}(unsigned int offset, const char* nam
 
 ${recursivePrint(entry, False)}
 
+int ${settings.encode_name(entry)}(${settings.ctype(entry)}* value, struct EncodedData* result)
+{
+    return 0;
+}
+
