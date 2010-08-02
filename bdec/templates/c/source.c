@@ -592,8 +592,11 @@ ${static}void ${settings.print_name(entry)}(unsigned int offset, const char* nam
 
 ${recursivePrint(entry, False)}
 
+%if contains_data(entry):
 int ${settings.encode_name(entry)}(${settings.ctype(entry)}* value, struct EncodedData* result)
+%else:
+int ${settings.encode_name(entry)}(struct EncodedData* result)
+%endif
 {
     return 0;
 }
-

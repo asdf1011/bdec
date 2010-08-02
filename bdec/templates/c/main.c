@@ -120,7 +120,11 @@ int main(int argc, char* argv[])
     if (encodeFilename != 0)
     {
         struct EncodedData encodedData = {0};
+      %if contains_data(protocol):
         if (!${settings.encode_name(protocol)}(&result, &encodedData))
+      %else:
+        if (!${settings.encode_name(protocol)}(&encodedData))
+      %endif
         {
             fprintf(stderr, "Failed to encode data!\n");
           %if contains_data(protocol):

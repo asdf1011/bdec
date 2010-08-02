@@ -43,6 +43,14 @@ import bdec.field as fld
 import bdec.output.xmlout as xmlout
 import bdec.compiler as comp
 
+class ExecuteError(Exception):
+    def __init__(self, exit_code, stderr):
+        self.exit_code = exit_code
+        self.stderr = stderr
+
+    def __str__(self):
+        return 'Execute failed with exit code %i; %s' % (self.exit_code, self.stderr)
+
 def _is_xml_text_equal(a, b):
     a = a.text or ""
     b = b.text or ""
@@ -105,7 +113,7 @@ def generate(spec, common, details):
     comp.generate_code(spec, _load_templates_from_cache(details.LANGUAGE),
             details.TEST_DIR, common)
 
-def compile_and_run(data, details):
+def compile_and_run(data, details, should_encode):
     """Compile a previously generated decoder, and use it to decode a data file.
 
     data -- The data to be decoded.
@@ -125,7 +133,9 @@ def compile_and_run(data, details):
     datafile.write(data)
     datafile.close()
 
-    command = [details.EXECUTABLE, filename]
+    command = [details.EXECUTABLE, '-e', 'encoded.bin', filename]
+    if not should_encode:
+        command = command[0:1] + command[3:4]
     if details.VALGRIND is not None:
         command = [details.VALGRIND, '--tool=memcheck', '--leak-check=full'] + command
     decode = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -136,7 +146,10 @@ def compile_and_run(data, details):
         assert match is not None, stderr
         assert match.group(1) == '0', stderr
 
-    return decode.wait(), xml
+    exit_status = decode.wait()
+    if exit_status != 0:
+        raise ExecuteError(exit_status, stderr)
+    return xml
 
 class _NoExpectedError(Exception):
     pass
@@ -232,23 +245,35 @@ def _validate_xml(spec, data, xmltext):
         else:
             child_tail=None
 
+def _check_encoded_data(spec, sourcefile, actual, actual_xml):
+    sourcefile.seek(0)
+    expected = sourcefile.read()
+    if actual != expected:
+        # The data is different, but it is possibly due to the data being able
+        # to be encoded in multiple ways. Try re-decoding the data to compare
+        # against the original xml.
+        regenerated_xml = xmlout.to_string(spec, dt.Data(actual))
+        assert_xml_equivalent(actual_xml, regenerated_xml)
+
+
 class _CompiledDecoder:
     """Base class for testing decoders that are compiled."""
     TEST_DIR = os.path.join(os.path.dirname(__file__), 'temp')
     EXECUTABLE = os.path.join(TEST_DIR, 'decode')
     VALGRIND = _get_valgrind()
 
-    def _decode_file(self, spec, common, data):
+    def _decode_file(self, spec, common, data, should_check_encoding=True):
         """Return a tuple containing the exit code and the decoded xml."""
         generate(spec, common, self)
-        (exitstatus, xml) = compile_and_run(data, self)
+        xml = compile_and_run(data, self, should_check_encoding)
 
-        if exitstatus == 0:
-            try:
-                _validate_xml(spec, dt.Data(data), xml)
-            except bdec.DecodeError, ex:
-                raise Exception("Compiled decoder succeeded, but should have failed with: %s" % str(ex))
-        return exitstatus, xml
+        try:
+            _validate_xml(spec, dt.Data(data), xml)
+        except bdec.DecodeError, ex:
+            raise Exception("Compiled decoder succeeded, but should have failed with: %s" % str(ex))
+	if should_check_encoding:
+            _check_encoded_data(spec, data, open('encoded.bin', 'rb').read(), xml)
+        return xml
 
 
 class _CDecoder(_CompiledDecoder):
@@ -261,13 +286,17 @@ class _CDecoder(_CompiledDecoder):
 
 class _PythonDecoder:
     """Use the builtin python decoder for the tests."""
-    def _decode_file(self, spec, common, sourcefile):
+    def _decode_file(self, spec, common, sourcefile, should_check_encoding=True):
         data = dt.Data(sourcefile)
-        xml = StringIO.StringIO()
         try:
-            return 0, xmlout.to_string(spec, data)
-        except bdec.DecodeError:
-            return 3, ""
+	    xml = xmlout.to_string(spec, data)
+        except bdec.DecodeError, ex:
+            raise ExecuteError(3, ex)
+
+	if should_check_encoding:
+	    generated_data = xmlout.encode(spec, xml)
+            _check_encoded_data(spec, sourcefile, generated_data.bytes(), xml)
+	return xml
 
 def create_decoder_classes(base_classes, module):
     """
@@ -291,6 +320,6 @@ def create_decoder_classes(base_classes, module):
     for base, prefix in base_classes:
         for decoder, name in decoders:
             test_name = "Test%s%s" % (prefix, name)
-            result[test_name] = type(test_name, (unittest.TestCase, decoder, base), {})
+            result[test_name] = type(test_name, (unittest.TestCase, decoder, base), {'language':name})
             result[test_name].__module__ = module
     return result

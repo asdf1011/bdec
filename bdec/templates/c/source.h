@@ -125,7 +125,11 @@ void ${settings.free_name(entry)}(${settings.ctype(entry)}* value);
  * value -- The entry to be encoded.
  * result -- The encoded data will be appended to this instance.
  */
+%if contains_data(entry):
 int ${settings.encode_name(entry)}(${settings.ctype(entry)}* value, struct EncodedData* result);
+%else:
+int ${settings.encode_name(entry)}(struct EncodedData* result);
+%endif
 
 /**
  * Print an xml representation of a ${entry.name} object.
