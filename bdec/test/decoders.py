@@ -97,7 +97,7 @@ def _load_templates_from_cache(language):
         _template_cache[language] = comp.load_templates(template_dir)
         return _template_cache[language]
 
-def generate(spec, common, details):
+def generate(spec, common, details, should_check_encoding):
     """Create a compiled decoder for a specification in the test directory.
 
     Doesn't attempt to compile the specification.
@@ -110,8 +110,11 @@ def generate(spec, common, details):
         shutil.rmtree(details.TEST_DIR)
     os.mkdir(details.TEST_DIR)
 
+    options = {
+            'generate_encoder':should_check_encoding,
+            }
     comp.generate_code(spec, _load_templates_from_cache(details.LANGUAGE),
-            details.TEST_DIR, common)
+            details.TEST_DIR, common, options)
 
 def compile_and_run(data, details, should_encode):
     """Compile a previously generated decoder, and use it to decode a data file.
@@ -252,8 +255,11 @@ def _check_encoded_data(spec, sourcefile, actual, actual_xml):
         # The data is different, but it is possibly due to the data being able
         # to be encoded in multiple ways. Try re-decoding the data to compare
         # against the original xml.
-        regenerated_xml = xmlout.to_string(spec, dt.Data(actual))
-        assert_xml_equivalent(actual_xml, regenerated_xml)
+        try:
+            regenerated_xml = xmlout.to_string(spec, dt.Data(actual))
+            assert_xml_equivalent(actual_xml, regenerated_xml)
+        except Exception, ex:
+            raise Exception('Re-decoding of encoded data failed: %s' % str(ex))
 
 
 class _CompiledDecoder:
@@ -264,7 +270,7 @@ class _CompiledDecoder:
 
     def _decode_file(self, spec, common, data, should_check_encoding=True):
         """Return a tuple containing the exit code and the decoded xml."""
-        generate(spec, common, self)
+        generate(spec, common, self, should_check_encoding)
         xml = compile_and_run(data, self, should_check_encoding)
 
         try:

@@ -351,7 +351,7 @@ def _whitespace(offset):
         return result
     return filter
 
-def generate_code(spec, templates, output_dir, common_entries=[]):
+def generate_code(spec, templates, output_dir, common_entries=[], options={}):
     """
     Generate code to decode the given specification.
     """
@@ -364,7 +364,7 @@ def generate_code(spec, templates, output_dir, common_entries=[]):
     entries = list(entries)
     entries.sort(key=lambda a:a.name)
 
-    lookup = {}
+    lookup = options.copy()
     data_checker = prm.DataChecker(entries)
     lookup['settings'] = _Settings.load(templates.settings, lookup)
     utils = _Utils(entries, lookup['settings'])

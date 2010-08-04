@@ -55,9 +55,13 @@ enum Encoding
 struct EncodedData
 {
     char* buffer;
-    int numBits;
-    int allocatedLengthBytes;
+    int num_bits;
+    int allocated_length_bytes;
 };
+/**
+ * Ensure there is appropriate space in the encode buffer.
+ */
+void ensureEncodeSpace(struct EncodedData* buffer, int numBits);
 
 /**
  * Decode a data buffer to a float.

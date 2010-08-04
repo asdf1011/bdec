@@ -126,3 +126,21 @@ void print_escaped_string(Text* text)
     }
 }
 
+void encode_big_endian_integer(unsigned int value, int num_bits, struct EncodedData* result)
+{
+    ensureEncodeSpace(result, num_bits);
+    int shiftDistance = result->num_bits % 8 + num_bits;
+    while (shiftDistance > 8)
+    {
+        shiftDistance -= 8;
+        // FIXME: Only overlapping bytes should be ORd; the rest should be set...
+        result->buffer[result->num_bits / 8] |= (unsigned char)(value >> shiftDistance);
+        result->num_bits += 8;
+    }
+    if (shiftDistance > 0)
+    {
+        result->buffer[result->num_bits / 8] = value << (8 - shiftDistance);
+        result->num_bits += shiftDistance;
+    }
+}
+

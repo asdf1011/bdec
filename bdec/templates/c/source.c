@@ -592,11 +592,55 @@ ${static}void ${settings.print_name(entry)}(unsigned int offset, const char* nam
 
 ${recursivePrint(entry, False)}
 
+<%def name="encode_child(child, ref_name)">
+  %if child_contains_data(child):
+    ${settings.encode_name(child.entry)}(${ref_name}, result)
+  %else:
+    ${settings.encode_name(child.entry)}(result)
+  %endif
+</%def>
+
+<%def name="recursiveEncode(entry, is_static)" buffered="True">
+%for child in entry.children:
+  %if child.entry not in common:
+${recursiveEncode(child.entry, True)}
+  %endif
+%endfor
+
+<% static = "static " if is_static else "" %>
 %if contains_data(entry):
-int ${settings.encode_name(entry)}(${settings.ctype(entry)}* value, struct EncodedData* result)
+${static} int ${settings.encode_name(entry)}(${settings.ctype(entry)}* value, struct EncodedData* result)
 %else:
-int ${settings.encode_name(entry)}(struct EncodedData* result)
+${static} int ${settings.encode_name(entry)}(struct EncodedData* result)
 %endif
 {
-    return 0;
+  %if isinstance(entry, Field):
+    %if entry.format == Field.INTEGER:
+      %if entry.encoding == Field.BIG_ENDIAN:
+    encode_big_endian_integer(*value, ${settings.value(entry, entry.length)}, result);
+      %else:
+    encode_little_endian_integer(*value, ${settings.value(entry, entry.length)}, result);
+      %endif
+    %else:
+      <% raise Exception("Don't know how to encode field %s!" % entry) %>
+    %endif
+  %elif isinstance(entry, Sequence):
+    %for i, child in enumerate(entry.children):
+      %if not is_hidden(child.name):
+    if (!${encode_child(child, "&value->%s" % settings.var_name(entry, i))|ws(4)})
+    {
+        return 0;
+    }
+      %endif
+    %endfor
+  %else:
+    <% raise Exception("Don't know how to encode entry %s!" % entry) %>
+  %endif
+    return 1;
 }
+
+</%def>
+
+%if generate_encoder:
+${recursiveEncode(entry, False)}
+%endif

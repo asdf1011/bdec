@@ -29,14 +29,18 @@ static void usage(char* program)
     printf("Usage: %s [options] <filename>\n", program);
     printf("Decode the ${protocol.name} file to xml.\n");
     printf("Options:\n");
+%if generate_encoder:
     printf("   -e <filename>   Re-encode the decoded file, and save it to the given file.\n");
+%endif
     printf("   -h    Display this help.\n");
 }
 
 int main(int argc, char* argv[])
 {
     int i;
+%if generate_encoder:
     char* encodeFilename = 0;
+%endif
     for (i = 1; i < argc; ++i)
     {
         if (argv[i][0] == '-')
@@ -46,6 +50,7 @@ int main(int argc, char* argv[])
                 usage(argv[0]);
                 return 0;
             }
+%if generate_encoder:
             else if (argv[i][1] == 'e')
             {
                 if (i + 1 == argc || argv[i+1][0] == '-')
@@ -56,6 +61,7 @@ int main(int argc, char* argv[])
                 ++i;
                 encodeFilename = argv[i];
             }
+%endif
             else
             {
                 fprintf(stderr, "Unknown option '%s'! See %s -h for more details.\n",
@@ -117,6 +123,7 @@ int main(int argc, char* argv[])
     ${settings.print_name(protocol)}(0, "${protocol.name | xmlname}");
   %endif:
 
+  %if generate_encoder:
     if (encodeFilename != 0)
     {
         struct EncodedData encodedData = {0};
@@ -143,10 +150,11 @@ int main(int argc, char* argv[])
             free(data);
             return 5;
         }
-        fwrite(encodedData.buffer, (encodedData.numBits + 7) / 8, 1, output);
+        fwrite(encodedData.buffer, (encodedData.num_bits + 7) / 8, 1, output);
         fclose(output);
         free(encodedData.buffer);
     }
+  %endif
   %if contains_data(protocol):
     ${settings.free_name(protocol)}(&result);
   %endif

@@ -119,6 +119,7 @@ int ${settings.decode_name(entry)}( BitBuffer* buffer${settings.define_params(en
 void ${settings.free_name(entry)}(${settings.ctype(entry)}* value);
 %endif
 
+%if generate_encoder:
 /**
  * Encode a ${entry.name} instance.
  *
@@ -129,6 +130,7 @@ void ${settings.free_name(entry)}(${settings.ctype(entry)}* value);
 int ${settings.encode_name(entry)}(${settings.ctype(entry)}* value, struct EncodedData* result);
 %else:
 int ${settings.encode_name(entry)}(struct EncodedData* result);
+%endif
 %endif
 
 /**
