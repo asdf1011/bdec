@@ -113,3 +113,18 @@ void ensureEncodeSpace(struct EncodedData* buffer, int numBits)
     }
 }
 
+void appendBuffer(struct EncodedData* result, BitBuffer* data)
+{
+    BitBuffer copy = *data;
+    while (copy.num_bits >= sizeof(unsigned int) * 8)
+    {
+        encode_big_endian_integer(decode_integer(&copy, sizeof(unsigned int) * 8),
+                sizeof(unsigned int) * 8, result);
+    }
+    if (copy.num_bits > 0)
+    {
+        encode_big_endian_integer(decode_integer(&copy, copy.num_bits),
+                copy.num_bits, result);
+    }
+}
+

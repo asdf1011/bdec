@@ -592,12 +592,45 @@ ${static}void ${settings.print_name(entry)}(unsigned int offset, const char* nam
 
 ${recursivePrint(entry, False)}
 
-<%def name="encode_child(child, ref_name)">
-  %if child_contains_data(child):
-    ${settings.encode_name(child.entry)}(${ref_name}, result)
-  %else:
-    ${settings.encode_name(child.entry)}(result)
-  %endif
+<%def name="encodeField(entry)" buffered="True">
+    <% value = settings.get_expected(entry) %>
+    <% value_name = '*value' if value is None else 'value' %>
+    %if value is not None:
+    ${settings.ctype(entry)} value = ${value};
+    %endif
+    %if entry.format == Field.INTEGER:
+      %if entry.encoding == Field.BIG_ENDIAN:
+    encode_big_endian_integer(${value_name}, ${settings.value(entry, entry.length)}, result);
+      %else:
+    encode_little_endian_integer(${value_name}, ${settings.value(entry, entry.length)}, result);
+      %endif
+    %elif entry.format == Field.BINARY:
+      %if settings.is_numeric(settings.ctype(entry)):
+        <% length = EntryLengthType(entry).range(raw_params).min %>
+    BitBuffer copy = {&${value_name}, 8 - ${length}, ${length}};
+      %else:
+    BitBuffer copy = ${value_name};
+      %endif
+
+    appendBuffer(result, &copy);
+    %else:
+      <% raise Exception("Don't know how to encode field %s!" % entry) %>
+    %endif
+</%def>
+
+<%def name="encodeSequence(entry)" buffered="True">
+    %for i, child in enumerate(entry.children):
+      %if not is_hidden(child.name):
+        %if child_contains_data(child):
+    if (!${settings.encode_name(child.entry)}(&value->${settings.var_name(entry, i)}, result))
+        %else:
+    if (!${settings.encode_name(child.entry)}(result))
+        %endif
+    {
+        return 0;
+    }
+      %endif
+    %endfor
 </%def>
 
 <%def name="recursiveEncode(entry, is_static)" buffered="True">
@@ -615,24 +648,9 @@ ${static} int ${settings.encode_name(entry)}(struct EncodedData* result)
 %endif
 {
   %if isinstance(entry, Field):
-    %if entry.format == Field.INTEGER:
-      %if entry.encoding == Field.BIG_ENDIAN:
-    encode_big_endian_integer(*value, ${settings.value(entry, entry.length)}, result);
-      %else:
-    encode_little_endian_integer(*value, ${settings.value(entry, entry.length)}, result);
-      %endif
-    %else:
-      <% raise Exception("Don't know how to encode field %s!" % entry) %>
-    %endif
+    ${encodeField(entry)}
   %elif isinstance(entry, Sequence):
-    %for i, child in enumerate(entry.children):
-      %if not is_hidden(child.name):
-    if (!${encode_child(child, "&value->%s" % settings.var_name(entry, i))|ws(4)})
-    {
-        return 0;
-    }
-      %endif
-    %endfor
+    ${encodeSequence(entry)}
   %else:
     <% raise Exception("Don't know how to encode entry %s!" % entry) %>
   %endif

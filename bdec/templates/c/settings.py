@@ -20,6 +20,7 @@ import operator
 import string
 
 import bdec.choice as chc
+from bdec.constraints import Equals
 from bdec.entry import Entry
 import bdec.field as fld
 import bdec.sequence as seq
@@ -353,3 +354,7 @@ def c_string(data):
     """Return a correctly quoted c-style string for an arbitrary binary string."""
     return '"%s"' % ''.join(_c_repr(char) for char in data)
 
+def get_expected(entry):
+    for constraint in entry.constraints:
+        if isinstance(constraint, Equals):
+            return constraint.limit
