@@ -650,6 +650,21 @@ ${recursivePrint(entry, False)}
     }
 </%def>
 
+<%def name="encodeSequenceof(entry)" buffered="True">
+    int i;
+    for (i = 0; i < value->count; ++i)
+    {
+      %if child_contains_data(entry.children[0]):
+        if (!${settings.encode_name(entry.children[0].entry)}(&value->items[i], result))
+      %else:
+        if (!${settings.encode_name(entry.children[0].entry)}(result))
+      %endif
+        {
+            return 0;
+        }
+    }
+</%def>
+
 <%def name="recursiveEncode(entry, is_static)" buffered="True">
 %for child in entry.children:
   %if child.entry not in common:
@@ -670,6 +685,8 @@ ${static} int ${settings.encode_name(entry)}(struct EncodedData* result)
     ${encodeSequence(entry)}
   %elif isinstance(entry, Choice):
     ${encodeChoice(entry)}
+  %elif isinstance(entry, SequenceOf):
+    ${encodeSequenceof(entry)}
   %else:
     <% raise Exception("Don't know how to encode entry %s!" % entry) %>
   %endif
