@@ -163,3 +163,13 @@ void encode_big_endian_integer(unsigned int value, int num_bits, struct EncodedD
     result->num_bits += num_bits;
 }
 
+void encode_little_endian_integer(unsigned int value, int num_bits, struct EncodedData* result)
+{
+    int i;
+    for (i = 0; i < num_bits / 8; ++i)
+    {
+        encode_big_endian_integer(value & 0xFF, 8, result);
+        value >>= 8;
+    }
+}
+

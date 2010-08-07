@@ -33,6 +33,7 @@ unsigned int decode_little_endian_integer(BitBuffer* buffer, int num_bits);
 
 // Encode a big endian integer
 void encode_big_endian_integer(unsigned int value, int num_bits, struct EncodedData* result);
+void encode_little_endian_integer(unsigned int value, int num_bits, struct EncodedData* result);
 
 // Helper function to print an xml escaped string
 void print_escaped_string(Text* text);
