@@ -357,4 +357,20 @@ def c_string(data):
 def get_expected(entry):
     for constraint in entry.constraints:
         if isinstance(constraint, Equals):
-            return constraint.limit
+            value = constraint.limit
+            if entry.format == fld.Field.INTEGER:
+                return value
+            elif entry.format == fld.Field.TEXT:
+                return '{"%s", %i}' % (value.value, len(value.value))
+            elif entry.format == fld.Field.BINARY:
+                if settings.is_numeric(settings.ctype(entry)):
+                    # This is an integer type
+                    return value
+                else:
+                    # This is a bitbuffer type; add leading null bytes so we can
+                    # represent it in bytes.
+                    null = Data('\x00', 0, len(value.value) % 8)
+                    data = null + value.value
+                    return '{"%s", %i, %i}' % (data.bytes(), len(null), len(data))
+            else:
+                raise Exception("Don't know how to define a constant for %s!" % entry)
