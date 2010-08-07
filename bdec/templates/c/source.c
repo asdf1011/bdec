@@ -633,6 +633,23 @@ ${recursivePrint(entry, False)}
     %endfor
 </%def>
 
+<%def name="encodeChoice(entry)" buffered="True">
+    <% option = 'value->option' if settings.children_contain_data(entry) else '*value' %>
+    switch (${option})
+    {
+      %for i, child in enumerate(entry.children):
+    case ${enum_value(entry, i)}:
+        %if child_contains_data(child):
+        return ${settings.encode_name(child.entry)}(&value->${settings.var_name(entry, i)}, result);
+        %else:
+        return ${settings.encode_name(child.entry)}(result);
+        %endif
+      %endfor
+    default:
+      return 0;
+    }
+</%def>
+
 <%def name="recursiveEncode(entry, is_static)" buffered="True">
 %for child in entry.children:
   %if child.entry not in common:
@@ -651,6 +668,8 @@ ${static} int ${settings.encode_name(entry)}(struct EncodedData* result)
     ${encodeField(entry)}
   %elif isinstance(entry, Sequence):
     ${encodeSequence(entry)}
+  %elif isinstance(entry, Choice):
+    ${encodeChoice(entry)}
   %else:
     <% raise Exception("Don't know how to encode entry %s!" % entry) %>
   %endif
