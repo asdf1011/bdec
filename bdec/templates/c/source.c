@@ -613,6 +613,8 @@ ${recursivePrint(entry, False)}
       %endif
 
     appendBuffer(result, &copy);
+    %elif entry.format == Field.TEXT:
+    appendText(result, value);
     %else:
       <% raise Exception("Don't know how to encode field %s!" % entry) %>
     %endif
@@ -640,7 +642,7 @@ ${recursivePrint(entry, False)}
       %for i, child in enumerate(entry.children):
     case ${enum_value(entry, i)}:
         %if child_contains_data(child):
-        return ${settings.encode_name(child.entry)}(&value->${settings.var_name(entry, i)}, result);
+        return ${settings.encode_name(child.entry)}(&value->value.${settings.var_name(entry, i)}, result);
         %else:
         return ${settings.encode_name(child.entry)}(result);
         %endif

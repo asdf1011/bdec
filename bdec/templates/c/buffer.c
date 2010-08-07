@@ -128,3 +128,9 @@ void appendBuffer(struct EncodedData* result, BitBuffer* data)
     }
 }
 
+void appendText(struct EncodedData* result, Text* value)
+{
+    BitBuffer copy = {(unsigned char*)value->buffer, 0, value->length * 8};
+    appendBuffer(result, &copy);
+}
+
