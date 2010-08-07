@@ -622,16 +622,14 @@ ${recursivePrint(entry, False)}
 
 <%def name="encodeSequence(entry)" buffered="True">
     %for i, child in enumerate(entry.children):
-      %if not is_hidden(child.name):
-        %if child_contains_data(child):
+      %if child_contains_data(child):
     if (!${settings.encode_name(child.entry)}(&value->${settings.var_name(entry, i)}, result))
-        %else:
+      %else:
     if (!${settings.encode_name(child.entry)}(result))
-        %endif
+      %endif
     {
         return 0;
     }
-      %endif
     %endfor
 </%def>
 
