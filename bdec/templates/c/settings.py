@@ -374,3 +374,21 @@ def get_expected(entry):
                     return '{"%s", %i, %i}' % (data.bytes(), len(null), len(data))
             else:
                 raise Exception("Don't know how to define a constant for %s!" % entry)
+
+    # No expected value was found; if the entry is hidden, return a \x00 value.
+    if entry.is_hidden():
+        length = entry.length.evaluate({})
+        if entry.format == fld.Field.INTEGER:
+            return 0
+        elif entry.format == fld.Field.TEXT:
+            return '{"%s", %i}' % ('\x00' * (length / 8), length / 8)
+        elif entry.format == fld.Field.BINARY:
+            if settings.is_numeric(settings.ctype(entry)):
+                # This is an integer type
+                return 0
+            else:
+                # This is a bitbuffer type
+                return '{"%s", 0, %i}' % ('\x00' * (length / 8), length)
+        else:
+            raise Exception("Don't know how to define a constant for %s!" % entry)
+
