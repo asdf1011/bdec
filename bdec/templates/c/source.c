@@ -611,9 +611,11 @@ ${recursivePrint(entry, False)}
       %else:
     BitBuffer copy = ${value_name};
       %endif
-    appendBuffer(result, &copy);
+    appendBitBuffer(result, &copy);
     %elif entry.format == Field.TEXT:
     appendText(result, &${value_name});
+    %elif entry.format == Field.HEX:
+    appendBuffer(result, &${value_name});
     %else:
       <% raise Exception("Don't know how to encode field %s!" % entry) %>
     %endif
