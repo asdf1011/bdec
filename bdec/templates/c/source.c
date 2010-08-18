@@ -6,6 +6,7 @@
   from bdec.data import Data
   from bdec.expression import Constant
   from bdec.field import Field
+  from bdec.inspect.solver import solve_expression
   from bdec.sequence import Sequence
   from bdec.sequenceof import SequenceOf
  %>
@@ -593,10 +594,10 @@ ${static}void ${settings.print_name(entry)}(unsigned int offset, const char* nam
 ${recursivePrint(entry, False)}
 
 <%def name="encodeField(entry)" buffered="True">
-    <% value = settings.get_expected(entry) %>
-    <% value_name = '*value' if value is None else 'value' %>
-    %if value is not None:
-    ${settings.ctype(entry)} value = ${value};
+    <% expected = settings.get_expected(entry) %>
+    <% value_name = '*value' if expected is None else 'value' %>
+    %if expected is not None:
+    ${settings.ctype(entry)} value = ${expected};
     %endif
     %if entry.format == Field.INTEGER:
       %if entry.encoding == Field.BIG_ENDIAN:
@@ -622,11 +623,39 @@ ${recursivePrint(entry, False)}
 </%def>
 
 <%def name="encodeSequence(entry)" buffered="True">
+    %if entry.value is not None:
+    ## This sequence has a value. Figure out what the component values are...
+    <%
+       if not entry.is_hidden():
+           # This entry is visible; use its 'value' input.
+           value_name = '*value' if settings.is_numeric(settings.ctype(entry)) else 'value->value'
+       else:
+           # This entry is hidden; use its parameter value (assuming it has
+           # been referenced).
+           value_name = esc_names([entry.name], variable)[0]
+       inputs = [p.name for p in encode_params.get_params(entry) if p.direction == p.IN]
+       constant, components = solve_expression(entry.value, entry, raw_decode_params, inputs)
+    %>
+    %if constant.evaluate({}) != 0:
+    ${value_name} -= ${settings.value(entry, constant, encode_params)};
+    %endif
+    %for name, expr, invert_expr in components:
+    <% variable_name = _value_ref(local_name(entry, name.name), entry, encode_params) %>
+    ${variable_name} = ${settings.value(entry, invert_expr, encode_params)};
+    ${value_name} -= ${settings.value(entry, expr, encode_params)};
+    %endfor
+    if (${value_name} != 0)
+    {
+        // We failed to solve this expression...
+        return 0;
+    }
+    %endif
+
     %for i, child in enumerate(entry.children):
       %if child_contains_data(child):
-    if (!${settings.encode_name(child.entry)}(&value->${settings.var_name(entry, i)}, result))
+    if (!${settings.encode_name(child.entry)}(&value->${settings.var_name(entry, i)}, result${encode_passed_params(entry, i)}))
       %else:
-    if (!${settings.encode_name(child.entry)}(result))
+    if (!${settings.encode_name(child.entry)}(result${encode_passed_params(entry, i)}))
       %endif
     {
         return 0;
@@ -641,9 +670,9 @@ ${recursivePrint(entry, False)}
       %for i, child in enumerate(entry.children):
     case ${enum_value(entry, i)}:
         %if child_contains_data(child):
-        return ${settings.encode_name(child.entry)}(&value->value.${settings.var_name(entry, i)}, result);
+        return ${settings.encode_name(child.entry)}(&value->value.${settings.var_name(entry, i)}, result${encode_passed_params(entry, i)});
         %else:
-        return ${settings.encode_name(child.entry)}(result);
+        return ${settings.encode_name(child.entry)}(result${encode_passed_params(entry, i)});
         %endif
       %endfor
     default:
@@ -656,9 +685,9 @@ ${recursivePrint(entry, False)}
     for (i = 0; i < value->count; ++i)
     {
       %if child_contains_data(entry.children[0]):
-        if (!${settings.encode_name(entry.children[0].entry)}(&value->items[i], result))
+        if (!${settings.encode_name(entry.children[0].entry)}(&value->items[i], result${encode_passed_params(entry, 0)}))
       %else:
-        if (!${settings.encode_name(entry.children[0].entry)}(result))
+        if (!${settings.encode_name(entry.children[0].entry)}(result${encode_passed_params(entry, 0)}))
       %endif
         {
             return 0;
@@ -675,11 +704,15 @@ ${recursiveEncode(child.entry, True)}
 
 <% static = "static " if is_static else "" %>
 %if contains_data(entry):
-${static} int ${settings.encode_name(entry)}(${settings.ctype(entry)}* value, struct EncodedData* result)
+${static} int ${settings.encode_name(entry)}(${settings.ctype(entry)}* value, struct EncodedData* result${settings.encode_params(entry)})
 %else:
-${static} int ${settings.encode_name(entry)}(struct EncodedData* result)
+${static} int ${settings.encode_name(entry)}(struct EncodedData* result${settings.encode_params(entry)})
 %endif
 {
+  %for local in settings.local_variables(entry):
+    ${settings.ctype(local.type)} ${local.name};
+  %endfor
+
   %if isinstance(entry, Field):
     ${encodeField(entry)}
   %elif isinstance(entry, Sequence):

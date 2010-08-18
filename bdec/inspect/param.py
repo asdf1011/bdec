@@ -797,3 +797,6 @@ class EncodeParameters(_Parameters):
                 result.append(p)
         return result
 
+    def get_locals(self, entry):
+        return self.expression_params.get_locals(entry)
+

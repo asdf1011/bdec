@@ -117,7 +117,7 @@ def _generate_template(output_dir, filename, lookup, template):
         output.close()
 
 
-class _EntryInfo(prm.CompoundParameters):
+class _EscapedParameters(prm.CompoundParameters):
     def __init__(self, utils, params):
         self._utils = utils
         prm.CompoundParameters.__init__(self, params)
@@ -131,7 +131,14 @@ class _EntryInfo(prm.CompoundParameters):
         param_escaped = self._utils.esc_names(param_names, self._utils.variable_name)
         local_escaped = self._utils.esc_names(local_names, self._utils.variable_name, param_escaped)
 
-        return dict(zip(param_names + local_names, param_escaped + local_escaped))
+        result = dict(zip(param_names + local_names, param_escaped + local_escaped))
+
+        if entry.name not in result:
+            # FIXME: This is a nasty hack. Add the name of the entry itself
+            # (for the solver expression). This is necessary if the sequence
+            # isn't explicitly referenced.
+            result[entry.name] = '*value'
+        return result
 
     def get_local_name(self, entry, name):
         """Map an unescaped name to the 'local' variable name.
@@ -374,7 +381,7 @@ def generate_code(spec, templates, output_dir, common_entries=[], options={}):
         prm.ExpressionParameters(entries),
         prm.EndEntryParameters(entries),
         ])
-    info = _EntryInfo(utils, [params])
+    info = _EscapedParameters(utils, [params])
 
     lookup['protocol'] = spec
     lookup['common'] = entries
@@ -403,6 +410,10 @@ def generate_code(spec, templates, output_dir, common_entries=[], options={}):
     lookup['variable'] = utils.variable_name
     lookup['ws'] = _whitespace
     lookup['xmlname'] = bdec.output.xmlout.escape_name
+
+    lookup['decode_params'] = info
+    lookup['raw_decode_params'] = params
+    lookup['encode_params'] = _EscapedParameters(utils, [prm.EncodeParameters(entries)])
 
     for filename, template in templates.common:
         _generate_template(output_dir, filename, lookup, template)

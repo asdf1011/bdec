@@ -160,14 +160,20 @@ def ctype(variable):
     else:
         raise Exception("Unknown parameter type '%s'!" % variable)
 
-def define_params(entry):
+def _get_param_string(params):
     result = ""
-    for param in get_params(entry):
+    for param in params:
         if param.direction is param.IN:
             result += ", %s %s" % (ctype(param.type), param.name)
         else:
             result += ", %s* %s" % (ctype(param.type), param.name)
     return result
+
+def define_params(entry):
+    return _get_param_string(get_params(entry))
+
+def encode_params(entry):
+    return _get_param_string(encode_params.get_params(entry))
 
 def option_output_temporaries(entry, child_index):
     """Return a dictionary of {name : temp_name}.
@@ -196,8 +202,8 @@ def option_output_temporaries(entry, child_index):
             result[param.name] = '%s%i' % (param.name, child_index)
     return result
 
-def local_variables(entry):
-    for local in local_vars(entry):
+def _locals(entry, params):
+    for local in params.get_locals(entry):
         yield local
     if isinstance(entry, chc.Choice):
         for i, child in enumerate(entry.children):
@@ -210,28 +216,34 @@ def local_variables(entry):
                     # This variable isn't output from the choice...
                     pass
 
-def _passed_variables(entry, child_index):
+def local_variables(entry):
+    return _locals(entry, decode_params)
+
+def encode_local_variables(entry):
+    return _locals(entry, encode_params)
+
+def _passed_variables(entry, child_index, params):
     temp = {}
     if isinstance(entry, chc.Choice):
         temp = option_output_temporaries(entry, child_index)
 
-    for param in get_passed_variables(entry, entry.children[child_index]):
+    for param in params.get_passed_variables(entry, entry.children[child_index]):
         try:
             # First check to see if the parameter is one that we map locally...
             yield Param(temp[param.name], param.OUT, param.type)
         except KeyError:
             yield param
 
-def is_pointer(name, entry):
+def is_pointer(name, entry, params):
     """Check to see if a variable is a pointer (ie: an output parameter)"""
-    return name in (p.name for p in get_params(entry) if p.direction == p.OUT)
+    return name in (p.name for p in params.get_params(entry) if p.direction == p.OUT)
 
-def _value_ref(name, entry):
-    if is_pointer(name, entry):
+def _value_ref(name, entry, params):
+    if is_pointer(name, entry, params):
         return '*%s' % name
     return name
 
-def call_params(parent, i, result_name):
+def _call_params(parent, i, result_name, params):
     # How we should reference the variable passed to the child is from the
     # following table;
     #
@@ -242,18 +254,23 @@ def call_params(parent, i, result_name):
     #         Output param |   *name    |    name     |
     #                       --------------------------
     result = ""
-    for param in _passed_variables(parent, i):
+    for param in _passed_variables(parent, i, params):
         if param.direction is param.OUT and param.name == MAGIC_UNKNOWN_NAME:
             result += ', %s' % result_name
         elif param.direction == param.IN:
-            result += ', %s' % _value_ref(param.name, parent)
+            result += ', %s' % _value_ref(param.name, parent, params)
         else:
-            if is_pointer(param.name, parent):
+            if is_pointer(param.name, parent, params):
                 result += ", %s" % param.name
             else:
                 result += ", &%s" % param.name
     return result
 
+def call_params(parent, i, result_name):
+    return _call_params(parent, i, result_name, decode_params)
+
+def encode_passed_params(parent, i):
+    return _call_params(parent, i, 'whoops', encode_params)
 
 _OPERATORS = {
         operator.__div__ : '/', 
@@ -265,13 +282,15 @@ _OPERATORS = {
         operator.rshift : '>>',
         }
 
-def value(entry, expr):
+def value(entry, expr, params=None):
   """
   Convert an expression object to a valid C expression.
 
   entry -- The entry that will use this value.
   expr -- The bdec.expression.Expression instance to represent in C code.
   """
+  if params is None:
+      params = decode_params
   if isinstance(expr, int):
       return str(expr)
   elif isinstance(expr, Constant):
@@ -281,7 +300,7 @@ def value(entry, expr):
           return "%iL" % expr.value
       return int(expr.value)
   elif isinstance(expr, ReferenceExpression):
-      return _value_ref(local_name(entry, expr.param_name()), entry)
+      return _value_ref(local_name(entry, expr.param_name()), entry, params)
   elif isinstance(expr, ArithmeticExpression):
       left = value(entry, expr.left)
       right = value(entry, expr.right)
@@ -375,20 +394,25 @@ def get_expected(entry):
             else:
                 raise Exception("Don't know how to define a constant for %s!" % entry)
 
-    # No expected value was found; if the entry is hidden, return a \x00 value.
+    # No expected value was found
     if entry.is_hidden():
-        length = entry.length.evaluate({})
-        if entry.format == fld.Field.INTEGER:
-            return 0
-        elif entry.format == fld.Field.TEXT:
-            return '{"%s", %i}' % ('\x00' * (length / 8), length / 8)
-        elif entry.format == fld.Field.BINARY:
-            if settings.is_numeric(settings.ctype(entry)):
-                # This is an integer type
-                return 0
-            else:
-                # This is a bitbuffer type
-                return '{"%s", 0, %i}' % ('\x00' * (length / 8), length)
+        if is_value_referenced(entry):
+            # The field's value is referenced elsewhere, use the reference value.
+            return variable(entry.name)
         else:
-            raise Exception("Don't know how to define a constant for %s!" % entry)
+            # The entry is hidden, so use a \x00 (null) value.
+            length = entry.length.evaluate({})
+            if entry.format == fld.Field.INTEGER:
+                return 0
+            elif entry.format == fld.Field.TEXT:
+                return '{"%s", %i}' % ('\x00' * (length / 8), length / 8)
+            elif entry.format == fld.Field.BINARY:
+                if settings.is_numeric(settings.ctype(entry)):
+                    # This is an integer type
+                    return 0
+                else:
+                    # This is a bitbuffer type
+                    return '{"%s", 0, %i}' % ('\x00' * (length / 8), length)
+            else:
+                raise Exception("Don't know how to define a constant for %s!" % entry)
 

@@ -48,7 +48,7 @@ class UnsolvableExpressionError(SolverError):
         return 'Unsolvable exression: %s != %s' % (self.expr, self.expected)
 
 
-def _break_into_parts(entry, expression, context):
+def _break_into_parts(entry, expression, input_params):
     """Break an expression into individual expressions.
 
     Each individual expression should have a single parameter referenced,
@@ -61,8 +61,8 @@ def _break_into_parts(entry, expression, context):
     result = {}
     constant = Constant(0)
     if isinstance(expression, ArithmeticExpression):
-        left, lconst = _break_into_parts(entry, expression.left, context)
-        right, rconst = _break_into_parts(entry, expression.right, context)
+        left, lconst = _break_into_parts(entry, expression.left, input_params)
+        right, rconst = _break_into_parts(entry, expression.right, input_params)
         if expression.op in (operator.add, operator.sub):
             # We need to add / subtract the common components
             constant = ArithmeticExpression(expression.op, lconst, rconst)
@@ -98,7 +98,7 @@ def _break_into_parts(entry, expression, context):
     elif isinstance(expression, Constant):
         constant = expression
     elif isinstance(expression, ReferenceExpression):
-        if expression.param_name() not in context:
+        if expression.param_name() not in input_params:
             # This is one of the parameters that we need to solve
             result[expression] = expression
         else:
@@ -108,20 +108,20 @@ def _break_into_parts(entry, expression, context):
         raise Exception("Unknown expression entry %s!" % expression)
     return result, constant
 
-def _is_constant(entry, expression, context):
-    references, constant = _break_into_parts(entry, expression, context)
+def _is_constant(entry, expression, input_params):
+    references, constant = _break_into_parts(entry, expression, input_params)
     return not references
 
-def _invert(entry, expression, context):
+def _invert(entry, expression, input_params):
     """Convert a function value=f(x) into x=f(value)"""
-    left = ValueResult('result')
+    left = ValueResult(entry.name)
     right = expression
 
     # Reduce 'right' until it is just the single parameter
     while not isinstance(right, ReferenceExpression):
         if isinstance(right, ArithmeticExpression):
-            is_left_const = _is_constant(entry, right.left, context)
-            is_right_const = _is_constant(entry, right.right, context)
+            is_left_const = _is_constant(entry, right.left, input_params)
+            is_right_const = _is_constant(entry, right.right, input_params)
             if not is_left_const and not is_right_const:
                 # The code doesn't handle the same entry being referenced
                 # multiple times at the moment... (eg: y = x + x)
@@ -156,18 +156,15 @@ def _invert(entry, expression, context):
                     'an arithmetic expression')
     return left
 
-def solve(expression, entry, params, context, value):
-    """Solve an expression given the result and the input parameters.
+def solve_expression(expression, entry, params, input_params):
+    """Get a list of expression for solving the given expression.
     
-    expression -- A bdec.expression.Expression instance to solve.
-    params -- A bdec.param.ExpressionParameters instance used to query all
-        values passed into the expression.
-    value -- The integer value to use when solving the expression.
-    context -- A dict of (name:value) representing all known parameter
-        values that can be used for solving.
-    result -- Returns a dict of {ReferenceExpression: value} """
-    components, constant = _break_into_parts(entry, expression, context)
-
+    return -- A (constant, [(name, expression, inverted)]), where constant is
+        a constant expression, and the name / expression / inverted  tuple is
+        the name of an unknown parameter, the portion of the expression that
+        is made up of this entry, and the inverted expression to calculate
+        its value given it's component of the expression. """
+    components, constant = _break_into_parts(entry, expression, input_params)
     # Sort the components in order influence on the output
     def influence(component):
         reference, expression = component
@@ -179,17 +176,30 @@ def solve(expression, entry, params, context, value):
             result = max(abs(output.max), result)
         return result
     variables = sorted(components.items(), key=influence, reverse=True)
+    return constant, [(name, expr, _invert(entry, expr, input_params)) for name, expr in variables]
+
+def solve(expression, entry, params, context, value):
+    """Solve an expression given the result and the input parameters.
+
+    expression -- A bdec.expression.Expression instance to solve.
+    params -- A bdec.param.ExpressionParameters instance used to query all
+        values passed into the expression.
+    value -- The integer value to use when solving the expression.
+    context -- A dict of (name:value) representing all known parameter
+        values that can be used for solving.
+    result -- Returns a dict of {ReferenceExpression: value} """
 
     # Figure out the components by working out each item independantly,
     # starting with the most significant.
+    constant, variables = solve_expression(expression, entry, params, context.keys())
     result = {}
     original_value = value
     value -= constant.evaluate(context)
-    for ref, expr in variables:
+    for ref, expr, inverted_expr in variables:
         # Work out a value for this variable
         c = context.copy()
-        c['result'] = value
-        result[ref] = _invert(entry, expr, context).evaluate(c)
+        c[entry.name] = value
+        result[ref] = inverted_expr.evaluate(c)
 
         # Remove it's impact from the overall value so we can work out the next
         # variable

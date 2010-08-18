@@ -40,16 +40,23 @@ def _constant_range(constant, entry, parameters):
 
 def _get_param(entry, name, parameters):
     """Get the parameter 'input' to entry with a given name."""
+    names = []
     for param in parameters.get_params(entry):
+        names.append(param.name)
         if param.name == name and param.direction == param.IN:
             return param
     # The param wasn't passed _into_ this entry; check to see if it comes out
     # of one of its children...
     for child in entry.children:
         for param in parameters.get_passed_variables(entry, child):
+            names.append(param.name)
             if param.name == name:
                 return param
-    raise Exception("Failed to find parameter '%s' in params for entry '%s'!" % (name, entry))
+    if name == entry.name:
+        # We are referencing the entry itself (probably from a solve expression)
+        from bdec.inspect.param import Param
+        return Param(entry.name, Param.OUT, EntryValueType(entry))
+    raise Exception("Failed to find parameter '%s' in params for entry '%s'! Found params are %s" % (name, entry, names))
 
 def _reference_range(value, entry, parameters):
     return _get_param(entry, value.param_name(), parameters).type.range(parameters)
