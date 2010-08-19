@@ -11,10 +11,10 @@ from bdec.test.decoders import create_decoder_classes, assert_xml_equivalent, Ex
 class _Regression:
     """A base test case for running regression tests on specfications."""
 
-    def _test_failure(self, spec, common, spec_filename, data_filename):
+    def _test_failure(self, spec, common, spec_filename, data_filename, should_encode):
         datafile = open(data_filename, 'rb')
         try:
-            xml = self._decode_file(spec, common, datafile)
+            xml = self._decode_file(spec, common, datafile, should_encode)
             raise Exception("'%s' should have failed to decode '%s', but succeeded with output:\n%s" % (spec_filename, data_filename, xml))
         except ExecuteError, ex:
             if ex.exit_code != 3:
@@ -53,7 +53,7 @@ class _Regression:
             self._test_success(spec, common, spec_filename, data_filename, expected_xml, should_encode)
 
         for data_filename in failures:
-            self._test_failure(spec, common, spec_filename, data_filename)
+            self._test_failure(spec, common, spec_filename, data_filename, should_encode)
 
 def _create_test_method(name, test_name, filename, successes, failures):
     result = lambda self: self._test_spec(name, filename, successes, failures)
