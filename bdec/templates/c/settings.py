@@ -395,7 +395,7 @@ def get_expected(entry):
                 raise Exception("Don't know how to define a constant for %s!" % entry)
 
     # No expected value was found
-    if entry.is_hidden():
+    if not contains_data(entry):
         if is_value_referenced(entry):
             # The field's value is referenced elsewhere, use the reference value.
             return variable(entry.name)
