@@ -750,7 +750,9 @@ ${recursivePrint(entry, False)}
     }
     %endif
 
+    %if entry.count is not None:
     ${solve(entry, entry.count, 'i')}
+    %endif
 </%def>
 
 <%def name="recursiveEncode(entry, is_static)" buffered="True">
