@@ -621,6 +621,9 @@ ${recursivePrint(entry, False)}
     %else:
       <% raise Exception("Don't know how to encode field %s!" % entry) %>
     %endif
+    %if is_value_referenced(entry) and not entry.is_hidden():
+    *${entry.name |variable} = ${value_name};
+    %endif
 </%def>
 
 <%def name="solve(entry, expression, value_name)">
@@ -709,6 +712,9 @@ ${recursivePrint(entry, False)}
     %for temp_buffer in temp_buffers:
     free(${temp_buffer['name']}.buffer);
     %endfor
+    %if is_value_referenced(entry) and not entry.is_hidden():
+    *${entry.name |variable} = ${value_name};
+    %endif
 </%def>
 
 <%def name="encodeChoice(entry)" buffered="True">
