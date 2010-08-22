@@ -397,9 +397,12 @@ def get_expected(entry):
                 else:
                     # This is a bitbuffer type; add leading null bytes so we can
                     # represent it in bytes.
-                    null = Data('\x00', 0, len(value.value) % 8)
+                    null = Data('\x00', 0, 8 - (len(value.value) % 8))
                     data = null + value.value
-                    return '{"%s", %i, %i}' % (data.bytes(), len(null), len(data))
+                    result = '{(unsigned char*)%s, %i, %i}' % (
+                            c_string(data.bytes()), len(null),
+                            len(data) - len(null))
+                    return result
             else:
                 raise Exception("Don't know how to define a constant for %s!" % entry)
 
