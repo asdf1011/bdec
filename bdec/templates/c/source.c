@@ -718,7 +718,13 @@ ${recursivePrint(entry, False)}
       %for i, child in enumerate(entry.children):
     case ${enum_value(entry, i)}:
         %if child_contains_data(child):
-        return ${settings.encode_name(child.entry)}(&value->value.${settings.var_name(entry, i)}, result${encode_passed_params(entry, i)});
+          <%
+              name = "value->value.%s" % settings.var_name(entry, i)
+              if not is_recursive(entry, child.entry):
+                  # Recursive types are stored as pointers
+                  name = '&' + name
+          %>
+        return ${settings.encode_name(child.entry)}(${name}, result${encode_passed_params(entry, i)});
         %else:
         return ${settings.encode_name(child.entry)}(result${encode_passed_params(entry, i)});
         %endif
