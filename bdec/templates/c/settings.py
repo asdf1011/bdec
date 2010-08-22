@@ -21,6 +21,7 @@ import string
 
 import bdec.choice as chc
 from bdec.constraints import Equals
+from bdec.data import Data
 from bdec.entry import Entry
 import bdec.field as fld
 import bdec.sequence as seq
