@@ -4,7 +4,8 @@
   from bdec.choice import Choice
   from bdec.constraints import Equals
   from bdec.data import Data
-  from bdec.expression import Constant
+  from bdec.encode import get_encoder
+  from bdec.expression import Constant, ValueResult
   from bdec.field import Field
   from bdec.inspect.solver import solve_expression
   from bdec.sequence import Sequence
@@ -622,9 +623,29 @@ ${recursivePrint(entry, False)}
     %endif
 </%def>
 
+<%def name="solve(entry, expression, value_name)">
+    <%
+       magic_expression = expression
+       inputs = [p.name for p in encode_params.get_params(entry) if p.direction == p.IN]
+       constant, components = solve_expression(magic_expression, expression, entry, raw_decode_params, inputs)
+    %>
+    %if constant.evaluate({}) != 0:
+    ${value_name} -= ${settings.value(entry, constant, encode_params)};
+    %endif
+    %for ref, expr, invert_expr in components:
+    <% variable_name = _value_ref(local_name(entry, ref.name), entry, encode_params) %>
+    ${variable_name} = ${settings.value(entry, invert_expr, encode_params, magic_expression, value_name)};
+    ${value_name} -= ${settings.value(entry, expr, encode_params)};
+    %endfor
+    if (${value_name} != 0)
+    {
+        // We failed to solve this expression...
+        return 0;
+    }
+</%def>
+
 <%def name="encodeSequence(entry)" buffered="True">
     %if entry.value is not None:
-    ## This sequence has a value. Figure out what the component values are...
     <%
        if not entry.is_hidden():
            # This entry is visible; use its 'value' input.
@@ -633,33 +654,60 @@ ${recursivePrint(entry, False)}
            # This entry is hidden; use its parameter value (assuming it has
            # been referenced).
            value_name = esc_names([entry.name], variable)[0]
-       inputs = [p.name for p in encode_params.get_params(entry) if p.direction == p.IN]
-       constant, components = solve_expression(entry.value, entry, raw_decode_params, inputs)
     %>
-    %if constant.evaluate({}) != 0:
-    ${value_name} -= ${settings.value(entry, constant, encode_params)};
-    %endif
-    %for name, expr, invert_expr in components:
-    <% variable_name = _value_ref(local_name(entry, name.name), entry, encode_params) %>
-    ${variable_name} = ${settings.value(entry, invert_expr, encode_params)};
-    ${value_name} -= ${settings.value(entry, expr, encode_params)};
-    %endfor
-    if (${value_name} != 0)
-    {
-        // We failed to solve this expression...
-        return 0;
-    }
+    ${solve(entry, entry.value, value_name)}
     %endif
 
-    %for i, child in enumerate(entry.children):
-      %if child_contains_data(child):
-    if (!${settings.encode_name(child.entry)}(&value->${settings.var_name(entry, i)}, result${encode_passed_params(entry, i)}))
+    <% result_offset = 0 %>
+    <% temp_buffers = [] %>
+    <% encoder = get_encoder(entry, raw_encode_params) %>
+    %for child_encoder in encoder.order():
+      <% child = child_encoder.child %>
+      <% i = entry.children.index(child) %>
+
+      %if i == result_offset:
+        ## We can encode this entry directly into the result buffer
+        <% buffer_name = 'result' %>
+        <% result_offset += 1 %>
       %else:
-    if (!${settings.encode_name(child.entry)}(result${encode_passed_params(entry, i)}))
+        ## This entry must be buffered (it cannot be directly appended onto result)
+        <%
+          for b in  temp_buffers:
+              if b['end'] == i:
+                  # We found an existing temporary buffer we can append to
+                  temp_buffer = b
+                  break
+          else:
+              ## There isn't an existing temporary buffer we can reuse; create a new one.
+              temp_buffer = {'name':'tempBuffer%i' % len(temp_buffers), 'start':i, 'end':i}
+              temp_buffers.append(temp_buffer)
+          temp_buffer['end'] += 1
+          buffer_name = '&%s' % temp_buffer['name']
+        %>
+        %if temp_buffer['start'] == i:
+    struct EncodedData ${temp_buffers[-1]['name']} = {0};
+        %endif
+      %endif
+      %if child_contains_data(child):
+    if (!${settings.encode_name(child.entry)}(&value->${settings.var_name(entry, i)}, ${buffer_name}${encode_passed_params(entry, i)}))
+      %else:
+    if (!${settings.encode_name(child.entry)}(${buffer_name}${encode_passed_params(entry, i)}))
       %endif
     {
+      %for temp_buffer in temp_buffers:
+        free(${temp_buffer['name']}.buffer);
+      %endfor
         return 0;
     }
+      %for temp_buffer in temp_buffers:
+        %if temp_buffer['start'] == result_offset:
+    appendEncodedBuffer(result, &${temp_buffer['name']});
+        <% result_offset = temp_buffer['end'] %>
+        %endif
+      %endfor
+    %endfor
+    %for temp_buffer in temp_buffers:
+    free(${temp_buffer['name']}.buffer);
     %endfor
 </%def>
 
@@ -681,7 +729,8 @@ ${recursivePrint(entry, False)}
 </%def>
 
 <%def name="encodeSequenceof(entry)" buffered="True">
-    int i;
+    int i = 0;
+    %if contains_data(entry):
     for (i = 0; i < value->count; ++i)
     {
       %if child_contains_data(entry.children[0]):
@@ -693,11 +742,14 @@ ${recursivePrint(entry, False)}
             return 0;
         }
     }
+    %endif
+
+    ${solve(entry, entry.count, 'i')}
 </%def>
 
 <%def name="recursiveEncode(entry, is_static)" buffered="True">
 %for child in entry.children:
-  %if child.entry not in common:
+  %if child.entry not in common and not is_empty_sequenceof(entry):
 ${recursiveEncode(child.entry, True)}
   %endif
 %endfor

@@ -413,7 +413,8 @@ def generate_code(spec, templates, output_dir, common_entries=[], options={}):
 
     lookup['decode_params'] = info
     lookup['raw_decode_params'] = params
-    lookup['encode_params'] = _EscapedParameters(utils, [prm.EncodeParameters(entries)])
+    lookup['raw_encode_params'] = prm.EncodeParameters(entries)
+    lookup['encode_params'] = _EscapedParameters(utils, [lookup['raw_encode_params']])
 
     for filename, template in templates.common:
         _generate_template(output_dir, filename, lookup, template)

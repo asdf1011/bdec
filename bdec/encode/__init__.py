@@ -57,7 +57,9 @@ def _detect_common(entry, name, common, visited=None):
     for child in entry.children:
         _detect_common(child.entry, child.name, common, visited)
 
-def _get_encoder(entry, params, entries):
+def get_encoder(entry, params, entries=None):
+    if entries is None:
+        entries = {}
     try:
         encoder = entries[entry]
     except KeyError:
@@ -67,8 +69,8 @@ def _get_encoder(entry, params, entries):
 
         for child in entry.children:
             is_child_hidden = params.is_hidden(child.entry) or is_hidden(child.name)
-            encoder.children.append(Child(child.name,
-                _get_encoder(child.entry, params, entries),
+            encoder.children.append(Child(child,
+                get_encoder(child.entry, params, entries),
                 params.get_passed_variables(entry, child), is_child_hidden))
     return encoder
 
@@ -76,5 +78,5 @@ def create_encoder(entry):
     common = set([entry])
     _detect_common(entry, entry.name, common)
     params = EncodeParameters(common)
-    return _get_encoder(entry, params, {})
+    return get_encoder(entry, params)
 

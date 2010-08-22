@@ -116,7 +116,7 @@ def generate(spec, common, details, should_check_encoding):
     comp.generate_code(spec, _load_templates_from_cache(details.LANGUAGE),
             details.TEST_DIR, common, options)
 
-def compile_and_run(data, details, should_encode):
+def compile_and_run(data, details, encode_filename=None):
     """Compile a previously generated decoder, and use it to decode a data file.
 
     data -- The data to be decoded.
@@ -136,8 +136,9 @@ def compile_and_run(data, details, should_encode):
     datafile.write(data)
     datafile.close()
 
-    command = [details.EXECUTABLE, '-e', 'encoded.bin', filename]
-    if not should_encode:
+    command = [details.EXECUTABLE, '-e', encode_filename, filename]
+    if not encode_filename:
+        # We don't want to encode; strip out those parameters.
         command = command[0:1] + command[3:4]
     if details.VALGRIND is not None:
         command = [details.VALGRIND, '--tool=memcheck', '--leak-check=full'] + command
@@ -271,14 +272,15 @@ class _CompiledDecoder:
     def _decode_file(self, spec, common, data, should_check_encoding=True):
         """Return a tuple containing the exit code and the decoded xml."""
         generate(spec, common, self, should_check_encoding)
-        xml = compile_and_run(data, self, should_check_encoding)
+        encode_filename = os.path.join(self.TEST_DIR, 'encoded.bin') if should_check_encoding else None
+        xml = compile_and_run(data, self, encode_filename)
 
         try:
             _validate_xml(spec, dt.Data(data), xml)
         except bdec.DecodeError, ex:
             raise Exception("Compiled decoder succeeded, but should have failed with: %s" % str(ex))
 	if should_check_encoding:
-            _check_encoded_data(spec, data, open('encoded.bin', 'rb').read(), xml)
+            _check_encoded_data(spec, data, open(encode_filename, 'rb').read(), xml)
         return xml
 
 

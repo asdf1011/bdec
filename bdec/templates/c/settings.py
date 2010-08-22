@@ -24,6 +24,7 @@ from bdec.constraints import Equals
 from bdec.entry import Entry
 import bdec.field as fld
 import bdec.sequence as seq
+from bdec.sequenceof import SequenceOf
 from bdec.expression import ArithmeticExpression, ReferenceExpression, Constant
 from bdec.inspect.param import Local, Param, MAGIC_UNKNOWN_NAME
 from bdec.inspect.type import EntryLengthType, EntryValueType, IntegerType, EntryType, expression_range
@@ -282,16 +283,23 @@ _OPERATORS = {
         operator.rshift : '>>',
         }
 
-def value(entry, expr, params=None):
+def value(entry, expr, params=None, magic_expression=None, magic_name=None):
   """
   Convert an expression object to a valid C expression.
 
   entry -- The entry that will use this value.
   expr -- The bdec.expression.Expression instance to represent in C code.
+  params -- The parameters to use for finding variables. If None, it will use
+    the decode parameters (decode_params).
+  magic_expression -- If the 'magic_expression' is found it will be replaced
+    with the 'magic_name'.
+  magic_name -- The 'magic' name to use when 'magic_expression' is found.
   """
   if params is None:
       params = decode_params
-  if isinstance(expr, int):
+  if expr is magic_expression:
+      return magic_name
+  elif isinstance(expr, int):
       return str(expr)
   elif isinstance(expr, Constant):
       if expr.value >= (1 << 32):
@@ -302,8 +310,8 @@ def value(entry, expr, params=None):
   elif isinstance(expr, ReferenceExpression):
       return _value_ref(local_name(entry, expr.param_name()), entry, params)
   elif isinstance(expr, ArithmeticExpression):
-      left = value(entry, expr.left)
-      right = value(entry, expr.right)
+      left = value(entry, expr.left, params, magic_expression, magic_name)
+      right = value(entry, expr.right, params, magic_expression, magic_name)
 
       cast = ""
       left_type = _type_from_range(expression_range(expr.left, entry, raw_params))
@@ -416,3 +424,6 @@ def get_expected(entry):
             else:
                 raise Exception("Don't know how to define a constant for %s!" % entry)
 
+
+def is_empty_sequenceof(entry):
+    return isinstance(entry, SequenceOf) and not contains_data(entry)

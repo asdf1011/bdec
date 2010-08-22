@@ -140,3 +140,9 @@ void appendBuffer(struct EncodedData* result, Buffer* value)
     appendBitBuffer(result, &copy);
 }
 
+void appendEncodedBuffer(struct EncodedData* result, struct EncodedData* value)
+{
+    BitBuffer temp = {(unsigned char*)value->buffer, 0, value->num_bits};
+    appendBitBuffer(result, &temp);
+}
+

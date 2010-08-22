@@ -50,8 +50,9 @@ class MissingInstanceError(bdec.DecodeError):
         return "object '%s' doesn't have child object '%s'" % (self.parent, self.child.name)
 
 class Child:
-    def __init__(self, name, encoder, passed_params, is_hidden):
-        self.name = name
+    def __init__(self, child, encoder, passed_params, is_hidden):
+        self.name = child.name
+        self.child = child
         self.encoder = encoder
         self.params = list(passed_params)
         self.is_hidden = is_hidden

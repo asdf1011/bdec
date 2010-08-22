@@ -68,6 +68,7 @@ void ensureEncodeSpace(struct EncodedData* buffer, int numBits);
 void appendBitBuffer(struct EncodedData* result, BitBuffer* data);
 void appendText(struct EncodedData* result, Text* value);
 void appendBuffer(struct EncodedData* result, Buffer* value);
+void appendEncodedBuffer(struct EncodedData* result, struct EncodedData* value);
 
 /**
  * Decode a data buffer to a float.

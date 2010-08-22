@@ -112,9 +112,9 @@ def _is_constant(entry, expression, input_params):
     references, constant = _break_into_parts(entry, expression, input_params)
     return not references
 
-def _invert(entry, expression, input_params):
+def _invert(result_expr, entry, expression, input_params):
     """Convert a function value=f(x) into x=f(value)"""
-    left = ValueResult(entry.name)
+    left = result_expr
     right = expression
 
     # Reduce 'right' until it is just the single parameter
@@ -156,12 +156,12 @@ def _invert(entry, expression, input_params):
                     'an arithmetic expression')
     return left
 
-def solve_expression(expression, entry, params, input_params):
+def solve_expression(result_expr, expression, entry, params, input_params):
     """Get a list of expression for solving the given expression.
     
-    return -- A (constant, [(name, expression, inverted)]), where constant is
-        a constant expression, and the name / expression / inverted  tuple is
-        the name of an unknown parameter, the portion of the expression that
+    return -- A (constant, [(reference, expression, inverted)]), where constant is
+        a constant expression, and the reference / expression / inverted  tuple is
+        the reference to an unknown parameter, the portion of the expression that
         is made up of this entry, and the inverted expression to calculate
         its value given it's component of the expression. """
     components, constant = _break_into_parts(entry, expression, input_params)
@@ -176,7 +176,7 @@ def solve_expression(expression, entry, params, input_params):
             result = max(abs(output.max), result)
         return result
     variables = sorted(components.items(), key=influence, reverse=True)
-    return constant, [(name, expr, _invert(entry, expr, input_params)) for name, expr in variables]
+    return constant, [(ref, expr, _invert(result_expr, entry, expr, input_params)) for ref, expr in variables]
 
 def solve(expression, entry, params, context, value):
     """Solve an expression given the result and the input parameters.
@@ -190,15 +190,18 @@ def solve(expression, entry, params, context, value):
     result -- Returns a dict of {ReferenceExpression: value} """
 
     # Figure out the components by working out each item independantly,
-    # starting with the most significant.
-    constant, variables = solve_expression(expression, entry, params, context.keys())
+    # starting with the most significant. We create a reference to a
+    # 'solve result' variable which we will reference in the inverted
+    # expressions.
+    solve_result = ValueResult('solve result')
+    constant, variables = solve_expression(solve_result, expression, entry, params, context.keys())
     result = {}
     original_value = value
     value -= constant.evaluate(context)
     for ref, expr, inverted_expr in variables:
         # Work out a value for this variable
         c = context.copy()
-        c[entry.name] = value
+        c[solve_result.name] = value
         result[ref] = inverted_expr.evaluate(c)
 
         # Remove it's impact from the overall value so we can work out the next
