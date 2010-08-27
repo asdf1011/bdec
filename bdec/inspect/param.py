@@ -724,14 +724,16 @@ class EncodeParameters(_Parameters):
         return self.expression_params.is_value_referenced(entry)
 
     def get_params(self, entry):
-        result = self._params(self.expression_params.get_params(entry),
+        result = self._reorder_params(self.expression_params.get_params(entry),
                 self._hidden_map[entry])
         return result
 
     def get_passed_variables(self, entry, child):
-        is_child_hidden = self.is_hidden(child.entry) or ent.is_hidden(child.name)
-        result = self._params(self.expression_params.get_passed_variables(entry, child),
-                is_child_hidden)
+        our_params = self.expression_params.get_passed_variables(entry, child)
+        child_params = self.get_params(child.entry)
+        result = []
+        for our_param, child_param in zip(our_params, child_params):
+            result.append(Param(our_param.name, child_param.direction, our_param.type))
         return result
 
     def _populate_visible(self, entry, common, entries, visible=True):
@@ -752,7 +754,7 @@ class EncodeParameters(_Parameters):
             self._populate_visible(child.entry, common, entries, visible)
 
     def _is_source_entry_independant(self, param_type, is_value_hidden):
-        """Test if the source entry be encoded without knowledge of how its reference is used.
+        """Test if the source entry can be encoded without knowledge of how it is referenced.
 
         For example, if the source entry is visible, or has an expected value, it
         can be encoded without knowledge of how the reference is used. If the
@@ -779,7 +781,7 @@ class EncodeParameters(_Parameters):
         return result
 
 
-    def _params(self, params, is_entry_hidden):
+    def _reorder_params(self, params, is_entry_hidden):
         """Change the order of the parameters such that they are suitable for encoding."""
         params = list(params)
         result = []

@@ -59,17 +59,21 @@ def _detect_dependencies(children, is_hidden):
     only be decoded after the value children."""
     dependencies = defaultdict(list)
     for child in children:
-        for input in child.params:
-            if input.direction == input.IN:
-                # Find all other parameters using this child
-                users = []
-                for other in children:
-                    for output in other.params:
-                        if output.direction == output.OUT:
-                            if output.name == input.name:
-                                users.append(other)
-                                break
-                dependencies[child].extend(users)
+        for output in child.params:
+            if output.direction == output.OUT:
+                name = output.name.split('.')[0]
+                if name != child.name:
+                    # We have an output for another child; find out who it
+                    # is, and add a dependancy on it.
+                    for other in children:
+                        if other.name == name:
+                            dependencies[other].append(child)
+                        else:
+                            # Find all other parameters using this child
+                            for input in other.params:
+                                if input.direction == input.IN:
+                                    if output.name == input.name:
+                                        dependencies[other].append(child)
     return dependencies
 
 def _populate_dependencies(entry, child, dependencies, visited=None, chain=None):

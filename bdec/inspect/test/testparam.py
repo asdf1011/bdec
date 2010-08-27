@@ -519,3 +519,18 @@ class TestDataChecker(unittest.TestCase):
         self.assertTrue(checker.contains_data(a))
         self.assertFalse(checker.contains_data(b))
 
+
+class TestEncodeParameters(unittest.TestCase):
+    def test_referenced_renamed_child(self):
+        # Here 'a' is a common entry (as it has been renamed). The visible
+        # 'a' entry should have an output parameter 'a', but 'c' should also
+        # have it as an output; 'b' will be responsible for mocking the
+        # parameter to pass into 'a:' during encoding.
+        a = fld.Field('a', 8)
+        b = seq.Sequence('b', [
+            ent.Child('a:', a),
+            seq.Sequence('c', [], value=expr.parse('${a:}'))])
+        params = prm.EncodeParameters([a, b])
+        self.assertEqual([prm.Param('a', prm.Param.OUT, _Integer())], params.get_params(a))
+        self.assertEqual([prm.Param('a:', prm.Param.OUT, _Integer())], params.get_passed_variables(b, b.children[0]))
+        self.assertEqual([prm.Param('a:', prm.Param.OUT, _Integer())], params.get_params(b.children[1].entry))

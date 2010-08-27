@@ -52,10 +52,10 @@ def _detect_common(entry, name, common, visited=None):
         visited = set()
     if entry in visited or entry.name != name:
         common.add(entry)
-        return
-    visited.add(entry)
-    for child in entry.children:
-        _detect_common(child.entry, child.name, common, visited)
+    if entry not in visited:
+        visited.add(entry)
+        for child in entry.children:
+            _detect_common(child.entry, child.name, common, visited)
 
 def get_encoder(entry, params, entries=None):
     if entries is None:
