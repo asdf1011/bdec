@@ -431,3 +431,24 @@ def get_expected(entry):
 
 def is_empty_sequenceof(entry):
     return isinstance(entry, SequenceOf) and not contains_data(entry)
+
+def set_mock_param(entry, i, param, child_variable):
+    """ Return an expression setting the parameter value in the mock object.
+
+    Mock objects are used when visible common entries are hidden locally; to
+    encode these we have to construct a temporary mock instance, populating
+    the parameters as necessary. This function is responsible for setting the
+    parameters within the mock object."""
+    child = entry.children[i]
+    for i, p in enumerate(encode_params.get_passed_variables(entry, child)):
+        if p.name == param.name:
+            break
+    else:
+        raise Exception('Failed to find param %s!' % param)
+    raw_param = raw_encode_params.get_passed_variables(entry, child)[i]
+    if raw_param.name == child.name:
+        # The child is the referenced instance
+        return '%s = %s;' % (child_variable, param.name)
+    else:
+        raise NotImplementedError("Setting sub-mock object isn't implement yet (%s)" % param)
+

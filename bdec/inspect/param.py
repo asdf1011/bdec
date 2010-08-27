@@ -724,8 +724,22 @@ class EncodeParameters(_Parameters):
         return self.expression_params.is_value_referenced(entry)
 
     def get_params(self, entry):
-        result = self._reorder_params(self.expression_params.get_params(entry),
-                self._hidden_map[entry])
+        # Change the order of the parameters such that they are suitable for encoding.
+        params = list(self.expression_params.get_params(entry))
+        is_entry_hidden = self._hidden_map[entry]
+        result = []
+        for p in params:
+            is_value_hidden = ':' in p.name or (p.direction == p.OUT and is_entry_hidden)
+            if self._is_source_entry_independant(p.type, is_value_hidden):
+                # The source entry is indepent of the user of it; no need to swap
+                # the parameters.
+                result.append(p)
+            else:
+                if p.direction == p.IN:
+                    p.direction = p.OUT
+                else:
+                    p.direction = p.IN
+                result.append(p)
         return result
 
     def get_passed_variables(self, entry, child):
@@ -778,25 +792,6 @@ class EncodeParameters(_Parameters):
                 result = True
         else:
             raise NotImplementedError('Unknown param type when testing for independance')
-        return result
-
-
-    def _reorder_params(self, params, is_entry_hidden):
-        """Change the order of the parameters such that they are suitable for encoding."""
-        params = list(params)
-        result = []
-        for p in params:
-            is_value_hidden = ':' in p.name or (p.direction == p.OUT and is_entry_hidden)
-            if self._is_source_entry_independant(p.type, is_value_hidden):
-                # The source entry is indepent of the user of it; no need to swap
-                # the parameters.
-                result.append(p)
-            else:
-                if p.direction == p.IN:
-                    p.direction = p.OUT
-                else:
-                    p.direction = p.IN
-                result.append(p)
         return result
 
     def get_locals(self, entry):

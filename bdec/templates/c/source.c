@@ -8,6 +8,7 @@
   from bdec.expression import Constant, ValueResult
   from bdec.field import Field
   from bdec.inspect.solver import solve_expression
+  from bdec.inspect.type import expression_range as erange
   from bdec.sequence import Sequence
   from bdec.sequenceof import SequenceOf
  %>
@@ -594,6 +595,29 @@ ${static}void ${settings.print_name(entry)}(unsigned int offset, const char* nam
 
 ${recursivePrint(entry, False)}
 
+<%def name="ifChildEncodeFails(entry, i, child_variable, buffer_name='result')" buffered="True">
+  <% child = entry.children[i] %>
+  %if contains_data(child.entry):
+      %if not child_contains_data(child):
+        ## The child is a common entry that has been hidden; we need to create a
+        ## pretend variable to pass in. We'll reuse the 'unused' local variable;
+        ## this is a little hackish...
+        <% child_variable = '%s' % variable('unused %s' % child.name) %>
+    memset(&${child_variable}, 0, sizeof(${settings.ctype(child.entry)}));
+        %for param in encode_params.get_passed_variables(entry, child):
+            %if param.direction == param.OUT:
+    ${settings.set_mock_param(entry, i, param, child_variable)}
+            %endif
+        %endfor
+        <% child_variable = '&%s' % child_variable %>
+      %endif
+    if (!${settings.encode_name(child.entry)}(${child_variable}, ${buffer_name}${encode_passed_params(entry, i)}))
+  %else:
+    ## The child entry doesn't contain data
+    if (!${settings.encode_name(child.entry)}(${buffer_name}${encode_passed_params(entry, i)}))
+  %endif
+</%def>
+
 <%def name="encodeField(entry)" buffered="True">
     <% expected = settings.get_expected(entry) %>
     <% value_name = '*value' if expected is None else 'value' %>
@@ -635,12 +659,13 @@ ${recursivePrint(entry, False)}
     %if constant.evaluate({}) != 0:
     ${value_name} -= ${settings.value(entry, constant, encode_params)};
     %endif
+    ${settings._type_from_range(erange(expression, entry, raw_decode_params))} remainder = ${value_name};
     %for ref, expr, invert_expr in components:
     <% variable_name = _value_ref(local_name(entry, ref.name), entry, encode_params) %>
-    ${variable_name} = ${settings.value(entry, invert_expr, encode_params, magic_expression, value_name)};
-    ${value_name} -= ${settings.value(entry, expr, encode_params)};
+    ${variable_name} = ${settings.value(entry, invert_expr, encode_params, magic_expression, 'remainder')};
+    remainder -= ${settings.value(entry, expr, encode_params)};
     %endfor
-    if (${value_name} != 0)
+    if (remainder != 0)
     {
         // We failed to solve this expression...
         return 0;
@@ -650,13 +675,19 @@ ${recursivePrint(entry, False)}
 <%def name="encodeSequence(entry)" buffered="True">
     %if entry.value is not None:
     <%
-       if not entry.is_hidden():
-           # This entry is visible; use its 'value' input.
-           value_name = '*value' if settings.is_numeric(settings.ctype(entry)) else 'value->value'
+       # When we have an expected value, we should using that as the value to solve...
+       for constraint in entry.constraints:
+           if isinstance(constraint, Equals):
+               value_name = constraint.limit
+               break
        else:
-           # This entry is hidden; use its parameter value (assuming it has
-           # been referenced).
-           value_name = esc_names([entry.name], variable)[0]
+           if not entry.is_hidden():
+               # This entry is visible; use its 'value' input.
+               value_name = '*value' if settings.is_numeric(settings.ctype(entry)) else 'value->value'
+           else:
+               # This entry is hidden; use its parameter value (assuming it has
+               # been referenced).
+               value_name = esc_names([entry.name], variable)[0]
     %>
     ${solve(entry, entry.value, value_name)}
     %endif
@@ -681,7 +712,7 @@ ${recursivePrint(entry, False)}
                   temp_buffer = b
                   break
           else:
-              ## There isn't an existing temporary buffer we can reuse; create a new one.
+              # There isn't an existing temporary buffer we can reuse; create a new one.
               temp_buffer = {'name':'tempBuffer%i' % len(temp_buffers), 'start':i, 'end':i}
               temp_buffers.append(temp_buffer)
           temp_buffer['end'] += 1
@@ -691,11 +722,7 @@ ${recursivePrint(entry, False)}
     struct EncodedData ${temp_buffers[-1]['name']} = {0};
         %endif
       %endif
-      %if child_contains_data(child):
-    if (!${settings.encode_name(child.entry)}(&value->${settings.var_name(entry, i)}, ${buffer_name}${encode_passed_params(entry, i)}))
-      %else:
-    if (!${settings.encode_name(child.entry)}(${buffer_name}${encode_passed_params(entry, i)}))
-      %endif
+    ${ifChildEncodeFails(entry, i, '&value->%s' % settings.var_name(entry, i), buffer_name)}
     {
       %for temp_buffer in temp_buffers:
         free(${temp_buffer['name']}.buffer);
@@ -723,21 +750,21 @@ ${recursivePrint(entry, False)}
     {
       %for i, child in enumerate(entry.children):
     case ${enum_value(entry, i)}:
-        %if child_contains_data(child):
           <%
               name = "value->value.%s" % settings.var_name(entry, i)
               if not is_recursive(entry, child.entry):
                   # Recursive types are stored as pointers
                   name = '&' + name
           %>
-        return ${settings.encode_name(child.entry)}(${name}, result${encode_passed_params(entry, i)});
-        %else:
-        return ${settings.encode_name(child.entry)}(result${encode_passed_params(entry, i)});
-        %endif
+      ${ifChildEncodeFails(entry, i, name)}
+      {
+          return 0;
+      }
       %endfor
     default:
       return 0;
     }
+    return 1;
 </%def>
 
 <%def name="encodeSequenceof(entry)" buffered="True">
@@ -745,11 +772,7 @@ ${recursivePrint(entry, False)}
     %if contains_data(entry):
     for (i = 0; i < value->count; ++i)
     {
-      %if child_contains_data(entry.children[0]):
-        if (!${settings.encode_name(entry.children[0].entry)}(&value->items[i], result${encode_passed_params(entry, 0)}))
-      %else:
-        if (!${settings.encode_name(entry.children[0].entry)}(result${encode_passed_params(entry, 0)}))
-      %endif
+        ${ifChildEncodeFails(entry, i, '&value->items[i]')}
         {
             return 0;
         }
