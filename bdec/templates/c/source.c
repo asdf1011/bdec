@@ -772,7 +772,7 @@ ${recursivePrint(entry, False)}
     %if contains_data(entry):
     for (i = 0; i < value->count; ++i)
     {
-        ${ifChildEncodeFails(entry, i, '&value->items[i]')}
+        ${ifChildEncodeFails(entry, 0, '&value->items[i]')}
         {
             return 0;
         }
