@@ -765,6 +765,7 @@ ${recursivePrint(entry, False)}
       {
           return 0;
       }
+      break;
       %endfor
     default:
       return 0;
