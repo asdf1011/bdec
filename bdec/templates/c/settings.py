@@ -328,7 +328,7 @@ def value(entry, expr, params=None, magic_expression=None, magic_name=None):
           cast = "(%s)" % result_type
       return "(%s%s %s %s)" % (cast, left, _OPERATORS[expr.op], right)
   else:
-      raise Exception('Unknown length value', expression)
+      raise Exception('Unknown length value', expr)
 
 def enum_type_name(entry):
     return typename(settings.escaped_type(entry) + ' option')
@@ -382,29 +382,33 @@ def c_string(data):
     """Return a correctly quoted c-style string for an arbitrary binary string."""
     return '"%s"' % ''.join(_c_repr(char) for char in data)
 
-def get_expected(entry):
+def get_equals(entry):
     for constraint in entry.constraints:
         if isinstance(constraint, Equals):
-            value = constraint.limit
-            if entry.format == fld.Field.INTEGER:
+            return constraint.limit
+
+def get_expected(entry):
+    value = get_equals(entry)
+    if value is not None:
+        if entry.format == fld.Field.INTEGER:
+            return value
+        elif entry.format == fld.Field.TEXT:
+            return '{"%s", %i}' % (value.value, len(value.value))
+        elif entry.format == fld.Field.BINARY:
+            if settings.is_numeric(settings.ctype(entry)):
+                # This is an integer type
                 return value
-            elif entry.format == fld.Field.TEXT:
-                return '{"%s", %i}' % (value.value, len(value.value))
-            elif entry.format == fld.Field.BINARY:
-                if settings.is_numeric(settings.ctype(entry)):
-                    # This is an integer type
-                    return value
-                else:
-                    # This is a bitbuffer type; add leading null bytes so we can
-                    # represent it in bytes.
-                    null = Data('\x00', 0, 8 - (len(value.value) % 8))
-                    data = null + value.value
-                    result = '{(unsigned char*)%s, %i, %i}' % (
-                            c_string(data.bytes()), len(null),
-                            len(data) - len(null))
-                    return result
             else:
-                raise Exception("Don't know how to define a constant for %s!" % entry)
+                # This is a bitbuffer type; add leading null bytes so we can
+                # represent it in bytes.
+                null = Data('\x00', 0, 8 - (len(value.value) % 8))
+                data = null + value.value
+                result = '{(unsigned char*)%s, %i, %i}' % (
+                        c_string(data.bytes()), len(null),
+                        len(data) - len(null))
+                return result
+        else:
+            raise Exception("Don't know how to define a constant for %s!" % entry)
 
     # No expected value was found
     if not contains_data(entry):

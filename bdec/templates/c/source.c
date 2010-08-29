@@ -680,20 +680,25 @@ ${recursivePrint(entry, False)}
     %if entry.value is not None:
     <%
        # When we have an expected value, we should using that as the value to solve...
-       for constraint in entry.constraints:
-           if isinstance(constraint, Equals):
-               value_name = constraint.limit
-               break
-       else:
+       value_name = settings.get_equals(entry)
+       should_solve = True
+       if value_name is None:
            if not entry.is_hidden():
                # This entry is visible; use its 'value' input.
                value_name = '*value' if settings.is_numeric(settings.ctype(entry)) else 'value->value'
            else:
                # This entry is hidden; use its parameter value (assuming it has
                # been referenced).
-               value_name = esc_names([entry.name], variable)[0]
+               value_name = variable(entry.name)
+               if value_name not in [p.name for p in encode_params.get_params(entry) if p.direction == IN]:
+                   # This isn't being passed as an input parameter! Presumably
+                   # it is has a fixed value....
+                   should_solve = False
+                   value_name = settings.value(entry, entry.value)
     %>
+      %if should_solve:
     ${solve(entry, entry.value, value_name)}
+      %endif
     %endif
 
     <% result_offset = 0 %>
@@ -743,7 +748,7 @@ ${recursivePrint(entry, False)}
     %for temp_buffer in temp_buffers:
     free(${temp_buffer['name']}.buffer);
     %endfor
-    %if is_value_referenced(entry) and not entry.is_hidden():
+    %if variable(entry.name) in [p.name for p in encode_params.get_params(entry) if p.direction == p.OUT]:
     *${entry.name |variable} = ${value_name};
     %endif
 </%def>
