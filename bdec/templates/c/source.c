@@ -179,7 +179,7 @@
 
 <%def name="decodeSequence(entry)">
     %for i, child in enumerate(entry.children):
-    if (!${settings.decode_name(child.entry)}(buffer${settings.call_params(entry, i, '&result->%s' % settings.var_name(entry, i))}))
+    if (!${settings.decode_name(child.entry)}(buffer${settings.decode_passed_params(entry, i, '&result->%s' % settings.var_name(entry, i))}))
     {
         %for j, previous in enumerate(entry.children[:i]):
             %if child_contains_data(previous):
@@ -255,7 +255,7 @@
         <% validate_end = '' %>
       %endif
 
-        if (${validate_end}!${settings.decode_name(entry.children[0].entry)}(buffer${settings.call_params(entry, 0, '&result->items[i]')}))
+        if (${validate_end}!${settings.decode_name(entry.children[0].entry)}(buffer${settings.decode_passed_params(entry, 0, '&result->items[i]')}))
         {
       %if child_contains_data(entry.children[0]):
             unsigned int j;
@@ -300,9 +300,9 @@
     <% temp_name = 'result->value.' + settings.var_name(entry, i) %>
       %endif
     <% if_ = "if" if i == 0 else 'else if' %>
-    ${if_} (temp = *buffer, ${settings.decode_name(child.entry)}(&temp${settings.call_params(entry, i, "&%s" % temp_name)}))
+    ${if_} (temp = *buffer, ${settings.decode_name(child.entry)}(&temp${settings.decode_passed_params(entry, i, "&%s" % temp_name)}))
     {
-      %for name, temp in settings.option_output_temporaries(entry, i).items():
+      %for name, temp in settings.option_output_temporaries(entry, i, decode_params).items():
         %if name not in [local.name for local in local_vars(entry)]:
         *${name} = ${temp};
         %else:
@@ -595,8 +595,9 @@ ${static}void ${settings.print_name(entry)}(unsigned int offset, const char* nam
 
 ${recursivePrint(entry, False)}
 
-<%def name="ifChildEncodeFails(entry, i, child_variable, buffer_name='result')" buffered="True">
+<%def name="ifChildEncode(entry, i, child_variable, buffer_name='result', is_successful=True)" buffered="True">
   <% child = entry.children[i] %>
+  <% prefix = '' if is_successful else '!' %>
   %if contains_data(child.entry):
       %if not child_contains_data(child):
         ## The child is a common entry that has been hidden; we need to create a
@@ -611,10 +612,10 @@ ${recursivePrint(entry, False)}
         %endfor
         <% child_variable = '&%s' % child_variable %>
       %endif
-    if (!${settings.encode_name(child.entry)}(${child_variable}, ${buffer_name}${encode_passed_params(entry, i)}))
+    if (${prefix}${settings.encode_name(child.entry)}(${child_variable}, ${buffer_name}${encode_passed_params(entry, i)}))
   %else:
     ## The child entry doesn't contain data
-    if (!${settings.encode_name(child.entry)}(${buffer_name}${encode_passed_params(entry, i)}))
+    if (${prefix}${settings.encode_name(child.entry)}(${buffer_name}${encode_passed_params(entry, i)}))
   %endif
 </%def>
 
@@ -625,11 +626,10 @@ ${recursivePrint(entry, False)}
     ${settings.ctype(entry)} value = ${expected};
     %endif
     %if entry.format == Field.INTEGER:
-      %if entry.encoding == Field.BIG_ENDIAN:
-    encode_big_endian_integer(${value_name}, ${settings.value(entry, entry.length)}, result);
-      %else:
-    encode_little_endian_integer(${value_name}, ${settings.value(entry, entry.length)}, result);
-      %endif
+      <% long_name = 'long_' if EntryValueType(entry).range(raw_params).max > 0xffffffff else '' %>
+      <% length = settings.value(entry, entry.length) %>
+      <% endian = 'big' if entry.encoding == Field.BIG_ENDIAN else 'little' %>
+    encode_${long_name}${endian}_endian_integer(${value_name}, ${length}, result);
     %elif entry.format == Field.BINARY:
       %if settings.is_numeric(settings.ctype(entry)):
         <% length = EntryLengthType(entry).range(raw_params).min %>
@@ -645,7 +645,7 @@ ${recursivePrint(entry, False)}
     %else:
       <% raise Exception("Don't know how to encode field %s!" % entry) %>
     %endif
-    %if is_value_referenced(entry) and not entry.is_hidden():
+    %if is_value_referenced(entry) and expected is None:
     *${entry.name |variable} = ${value_name};
     %endif
 </%def>
@@ -722,7 +722,7 @@ ${recursivePrint(entry, False)}
     struct EncodedData ${temp_buffers[-1]['name']} = {0};
         %endif
       %endif
-    ${ifChildEncodeFails(entry, i, '&value->%s' % settings.var_name(entry, i), buffer_name)}
+    ${ifChildEncode(entry, i, '&value->%s' % settings.var_name(entry, i), buffer_name, is_successful=False)}
     {
       %for temp_buffer in temp_buffers:
         free(${temp_buffer['name']}.buffer);
@@ -745,6 +745,7 @@ ${recursivePrint(entry, False)}
 </%def>
 
 <%def name="encodeChoice(entry)" buffered="True">
+  %if contains_data(entry):
     <% option = 'value->option' if settings.children_contain_data(entry) else '*value' %>
     switch (${option})
     {
@@ -756,7 +757,7 @@ ${recursivePrint(entry, False)}
                   # Recursive types are stored as pointers
                   name = '&' + name
           %>
-      ${ifChildEncodeFails(entry, i, name)}
+      ${ifChildEncode(entry, i, name, is_successful=False)}
       {
           return 0;
       }
@@ -765,6 +766,19 @@ ${recursivePrint(entry, False)}
       return 0;
     }
     return 1;
+  %else:
+    ## This choice doesn't contain data; try each option in turn until one
+    ## works.
+    int numActualBits = result->num_bits;
+      %for i, child in enumerate(entry.children):
+    ${ifChildEncode(entry, i, '')}
+    {
+        return 1;
+    }
+    result->num_bits = numActualBits;
+      %endfor
+    return 0;
+  %endif
 </%def>
 
 <%def name="encodeSequenceof(entry)" buffered="True">
@@ -772,7 +786,7 @@ ${recursivePrint(entry, False)}
     %if contains_data(entry):
     for (i = 0; i < value->count; ++i)
     {
-        ${ifChildEncodeFails(entry, 0, '&value->items[i]')}
+        ${ifChildEncode(entry, 0, '&value->items[i]', is_successful=False)}
         {
             return 0;
         }
@@ -798,7 +812,7 @@ ${static} int ${settings.encode_name(entry)}(${settings.ctype(entry)}* value, st
 ${static} int ${settings.encode_name(entry)}(struct EncodedData* result${settings.encode_params(entry)})
 %endif
 {
-  %for local in settings.local_variables(entry):
+  %for local in settings.encode_local_variables(entry):
     ${settings.ctype(local.type)} ${local.name};
   %endfor
 

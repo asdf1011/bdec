@@ -173,3 +173,16 @@ void encode_little_endian_integer(unsigned int value, int num_bits, struct Encod
     }
 }
 
+void encode_long_big_endian_integer(unsigned long long value, int num_bits, struct EncodedData* result)
+{
+    if (num_bits > 32)
+    {
+        // Encode the highest four bytes
+        num_bits -= 32;
+        unsigned int upper = value >> num_bits;
+        encode_big_endian_integer(upper, 32, result);
+        value -= ((unsigned long long)upper) << num_bits;
+    }
+    encode_big_endian_integer(value, num_bits, result);
+}
+

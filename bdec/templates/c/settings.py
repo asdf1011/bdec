@@ -177,7 +177,7 @@ def define_params(entry):
 def encode_params(entry):
     return _get_param_string(encode_params.get_params(entry))
 
-def option_output_temporaries(entry, child_index):
+def option_output_temporaries(entry, child_index, params):
     """Return a dictionary of {name : temp_name}.
 
     This maps the option entries name to a local's name. This is done because
@@ -193,11 +193,11 @@ def option_output_temporaries(entry, child_index):
     # them to the 'real' output at the end.
     assert isinstance(entry, chc.Choice)
     result = {}
-    params = [param.name for param in get_params(entry)]
-    params.extend(local.name for local in local_vars(entry))
+    param_names = [param.name for param in params.get_params(entry)]
+    param_names.extend(local.name for local in params.get_locals(entry))
 
-    for param in get_passed_variables(entry, entry.children[child_index]):
-        if param.direction == param.OUT and param.name in params:
+    for param in params.get_passed_variables(entry, entry.children[child_index]):
+        if param.direction == param.OUT and param.name in param_names:
             # We found a parameter that is output from the entry; to
             # avoid the possibility that this is a different type to
             # the parent output, we stash it in a temporary location.
@@ -209,7 +209,7 @@ def _locals(entry, params):
         yield local
     if isinstance(entry, chc.Choice):
         for i, child in enumerate(entry.children):
-            lookup = option_output_temporaries(entry, i)
+            lookup = option_output_temporaries(entry, i, params)
             for param in get_passed_variables(entry, entry.children[i]):
                 try:
                     # Create a temporary local for this parameter...
@@ -227,7 +227,7 @@ def encode_local_variables(entry):
 def _passed_variables(entry, child_index, params):
     temp = {}
     if isinstance(entry, chc.Choice):
-        temp = option_output_temporaries(entry, child_index)
+        temp = option_output_temporaries(entry, child_index, params)
 
     for param in params.get_passed_variables(entry, entry.children[child_index]):
         try:
@@ -268,7 +268,7 @@ def _call_params(parent, i, result_name, params):
                 result += ", &%s" % param.name
     return result
 
-def call_params(parent, i, result_name):
+def decode_passed_params(parent, i, result_name):
     return _call_params(parent, i, result_name, decode_params)
 
 def encode_passed_params(parent, i):
