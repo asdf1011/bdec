@@ -642,6 +642,10 @@ ${recursivePrint(entry, False)}
     appendText(result, &${value_name});
     %elif entry.format == Field.HEX:
     appendBuffer(result, &${value_name});
+    %elif entry.format == Field.FLOAT:
+      <% floatType = 'Float' if (EntryLengthType(entry).range(raw_params).max == 32) else 'Double' %>
+      <% encoding = 'BIG_ENDIAN' if entry.encoding == entry.BIG_ENDIAN else 'LITTLE_ENDIAN' %>
+    append${floatType}(${value_name}, BDEC_${encoding}, result);
     %else:
       <% raise Exception("Don't know how to encode field %s!" % entry) %>
     %endif

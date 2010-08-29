@@ -77,6 +77,7 @@ void appendEncodedBuffer(struct EncodedData* result, struct EncodedData* value);
  *   or the code will assert.
  */
 double decodeFloat(BitBuffer* data, enum Encoding encoding);
+void appendFloat(float value, enum Encoding encoding, struct EncodedData* output);
 
 /**
  * Decode a data buffer to a float.
@@ -85,6 +86,7 @@ double decodeFloat(BitBuffer* data, enum Encoding encoding);
  *   or the code will assert.
  */
 double decodeDouble(BitBuffer* data, enum Encoding encoding);
+void appendDouble(double value, enum Encoding encoding, struct EncodedData* output);
 
 #ifdef __cplusplus
 }

@@ -63,6 +63,26 @@ static void convertEndian(enum Encoding encoding, unsigned char output[], BitBuf
     }
 }
 
+static void appendFloatBuffer(unsigned char source[], int numBytes, enum Encoding encoding, struct EncodedData* output)
+{
+    if (encoding == getMachineEncoding())
+    {
+        int i;
+        for (i = 0; i < numBytes; ++i)
+        {
+            encode_big_endian_integer(source[i], 8, output);
+        }
+    }
+    else
+    {
+        int i;
+        for (i = 0; i < numBytes; ++i)
+        {
+            encode_big_endian_integer(source[numBytes - 1 - i], 8, output);
+        }
+    }
+}
+
 double decodeFloat(BitBuffer* data, enum Encoding encoding)
 {
     assert(data->num_bits == 32);
@@ -77,6 +97,20 @@ double decodeDouble(BitBuffer* data, enum Encoding encoding)
     union FloatConversion conv;
     convertEndian(encoding, conv.buffer, data);
     return conv.doubleValue;
+}
+
+void appendFloat(float value, enum Encoding encoding, struct EncodedData* output)
+{
+    union FloatConversion conv;
+    conv.floatValue = value;
+    appendFloatBuffer(conv.buffer, 4, encoding, output);
+}
+
+void appendDouble(double value, enum Encoding encoding, struct EncodedData* output)
+{
+    union FloatConversion conv;
+    conv.doubleValue = value;
+    appendFloatBuffer(conv.buffer, 8, encoding, output);
 }
 
 void ensureEncodeSpace(struct EncodedData* buffer, int numBits)
