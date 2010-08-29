@@ -661,9 +661,7 @@ ${recursivePrint(entry, False)}
        constant, components = solve_expression(magic_expression, expression, entry, raw_decode_params, inputs)
     %>
     ${settings._type_from_range(erange(expression, entry, raw_decode_params))} remainder = ${value_name};
-    %if constant.evaluate({}) != 0:
     remainder -= ${settings.value(entry, constant, encode_params)};
-    %endif
     %for ref, expr, invert_expr in components:
     <% variable_name = _value_ref(local_name(entry, ref.name), entry, encode_params) %>
     ${variable_name} = ${settings.value(entry, invert_expr, encode_params, magic_expression, 'remainder')};
