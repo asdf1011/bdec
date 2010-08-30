@@ -37,6 +37,7 @@ def usage(program):
     print '  -h, --help        Print this help.'
     print '  -d <directory>    Directory to save the generated source code. Defaults'
     print '                    to %s.' % os.getcwd()
+    print '  --encoder         Generate an encoder as well as a decoder.'
     print '  --main=<name>     Specify the entry to be use as the default decoder.'
     print '  --remove-unused   Remove any entries that are not referenced from the'
     print '                    main entry.'
@@ -49,7 +50,7 @@ def usage(program):
 
 def main():
     try:
-        opts, args = getopt.getopt(sys.argv[1:], 'd:hV', ['help', 'main=', 'remove-unused', 'template='])
+        opts, args = getopt.getopt(sys.argv[1:], 'd:hV', ['encoder', 'help', 'main=', 'remove-unused', 'template='])
     except getopt.GetoptError, ex:
         sys.exit("%s.\nRun '%s -h' for correct usage." % (ex, sys.argv[0]))
 
@@ -57,9 +58,14 @@ def main():
     template_dir = None
     outputdir = os.getcwd()
     should_remove_unused = False
+    options = {
+            'generate_encoder' : False
+            }
     for opt, arg in opts:
         if opt == '-d':
             outputdir = arg
+        elif opt == '--encoder':
+            options['generate_encoder'] = True
         elif opt in ['-h', '--help']:
             usage(sys.argv[0])
             sys.exit(0)
@@ -90,7 +96,7 @@ def main():
 
     try:
         templates = bdec.compiler.load_templates(template_dir)
-        bdec.compiler.generate_code(spec, templates, outputdir, common)
+        bdec.compiler.generate_code(spec, templates, outputdir, common, options)
     except:
         sys.exit(mako.exceptions.text_error_template().render())
 
