@@ -785,7 +785,7 @@ class EncodeParameters(_Parameters):
             result = not self._hidden_map[param_type.entry]
         elif isinstance(param_type, MultiSourceType):
             for source in param_type.sources:
-                if not _is_source_entry_independant(source, is_value_hidden):
+                if not self._is_source_entry_independant(source, is_value_hidden):
                     result = False
                     break
             else:
