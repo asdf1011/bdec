@@ -672,7 +672,7 @@ ${recursivePrint(entry, False)}
     ${settings._type_from_range(erange(expression, entry, raw_decode_params))} remainder = ${value_name};
     remainder -= ${settings.value(entry, constant, encode_params)};
     %for ref, expr, invert_expr in components:
-    <% variable_name = _value_ref(local_name(entry, ref.name), entry, encode_params) %>
+    <% variable_name = _value_ref(local_name(entry, ref.param_name()), entry, encode_params) %>
     ${variable_name} = ${settings.value(entry, invert_expr, encode_params, magic_expression, 'remainder')};
     remainder -= ${settings.value(entry, expr, encode_params)};
     %endfor
@@ -756,7 +756,6 @@ ${recursivePrint(entry, False)}
     default:
       return 0;
     }
-    return 1;
   %else:
     ## This choice doesn't contain data; try each option in turn until one
     ## works.
@@ -764,11 +763,12 @@ ${recursivePrint(entry, False)}
       %for i, child in enumerate(entry.children):
     ${ifChildEncode(entry, i, '')}
     {
-        return 1;
+        goto encode_successful;
     }
     result->num_bits = numActualBits;
       %endfor
     return 0;
+encode_successful:
   %endif
 </%def>
 
@@ -805,6 +805,10 @@ ${static}int ${settings.encode_name(entry)}(struct EncodedData* result${settings
     ${settings.ctype(local.type)} ${local.name};
   %endfor
 
+  %if entry.length is not None:
+  int startBit = result->num_bits;
+  %endif
+
   %if isinstance(entry, Field):
     ${encodeField(entry)}
   %elif isinstance(entry, Sequence):
@@ -815,6 +819,10 @@ ${static}int ${settings.encode_name(entry)}(struct EncodedData* result${settings
     ${encodeSequenceof(entry)}
   %else:
     <% raise Exception("Don't know how to encode entry %s!" % entry) %>
+  %endif
+
+  %if entry.length is not None:
+    ${solve(entry, entry.length, 'result->num_bits - startBit')}
   %endif
     return 1;
 }
