@@ -30,7 +30,7 @@ from bdec.expression import ArithmeticExpression, ReferenceExpression, Constant
 from bdec.inspect.param import Local, Param, MAGIC_UNKNOWN_NAME
 from bdec.inspect.type import EntryLengthType, EntryValueType, IntegerType, EntryType, expression_range
 
-keywords=['char', 'int', 'short', 'long', 'float', 'if', 'then', 'else', 'struct', 'for', 'null', 'value', 'signed', 'true', 'false']
+keywords=['char', 'int', 'short', 'long', 'float', 'if', 'then', 'else', 'struct', 'for', 'null', 'signed', 'true', 'false']
 
 # Also define our types as keywords, as we don't want the generated names to
 # clash with our types.
@@ -166,7 +166,9 @@ def _get_param_string(params):
     result = ""
     for param in params:
         if param.direction is param.IN:
-            result += ", %s %s" % (ctype(param.type), param.name)
+            type = ctype(param.type)
+            pointer = '*' if not is_numeric(type) else ''
+            result += ", %s%s %s" % (type, pointer, param.name)
         else:
             result += ", %s* %s" % (ctype(param.type), param.name)
     return result
@@ -237,8 +239,19 @@ def _passed_variables(entry, child_index, params):
             yield param
 
 def is_pointer(name, entry, params):
-    """Check to see if a variable is a pointer (ie: an output parameter)"""
-    return name in (p.name for p in params.get_params(entry) if p.direction == p.OUT)
+    """Check to see if a local variable or a parameter is a pointer.
+
+    name -- The name of the local variable / parameter
+    entry -- The entry containing the variable / parameter
+    params -- A _Parameters instance.
+    """
+    # If the parameter is an output parameter, it must be a pointer.
+    if name in (p.name for p in params.get_params(entry) if p.direction == p.OUT):
+        return True
+    # If it's an input (but is of a complex type), it's also passed as a
+    # pointer.
+    complex_types = list(p.name for p in params.get_params(entry) if not is_numeric(ctype(p.type)))
+    return name in complex_types
 
 def _value_ref(name, entry, params):
     if is_pointer(name, entry, params):
@@ -257,22 +270,34 @@ def _call_params(parent, i, result_name, params):
     #                       --------------------------
     result = ""
     for param in _passed_variables(parent, i, params):
-        if param.direction is param.OUT and param.name == MAGIC_UNKNOWN_NAME:
-            result += ', %s' % result_name
-        elif param.direction == param.IN:
-            result += ', %s' % _value_ref(param.name, parent, params)
+        if param.direction == param.OUT:
+            expects_pointer = True
         else:
-            if is_pointer(param.name, parent, params):
-                result += ", %s" % param.name
-            else:
-                result += ", &%s" % param.name
+            # In parameters expect a pointer for complex types...
+            expects_pointer = not is_numeric(ctype(param.type))
+
+        is_local_pointer = is_pointer(param.name, parent, params)
+        local_name = param.name
+        if param.name == MAGIC_UNKNOWN_NAME:
+            # All 'magic' parameters (ie: those that represent the child's
+            # value, not just references it will use) are pointers.
+            is_local_pointer = True
+            local_name = result_name
+
+        if expects_pointer == is_local_pointer:
+            # If both us & the child are the same, just pass it through
+            result += ', %s' % local_name
+        elif expects_pointer:
+            result += ', &%s' % local_name
+        else:
+            result += ', *%s' % local_name
     return result
 
 def decode_passed_params(parent, i, result_name):
     return _call_params(parent, i, result_name, decode_params)
 
-def encode_passed_params(parent, i):
-    return _call_params(parent, i, 'whoops', encode_params)
+def encode_passed_params(parent, i, result_name):
+    return _call_params(parent, i, result_name, encode_params)
 
 _OPERATORS = {
         operator.__div__ : '/', 
@@ -444,12 +469,12 @@ def set_mock_param(entry, i, param, child_variable):
     the parameters as necessary. This function is responsible for setting the
     parameters within the mock object."""
     child = entry.children[i]
-    for i, p in enumerate(encode_params.get_passed_variables(entry, child)):
+    for i, p in enumerate(stupid_ugly_expression_encode_params.get_passed_variables(entry, child)):
         if p.name == param.name:
             break
     else:
         raise Exception('Failed to find param %s!' % param)
-    raw_param = raw_encode_params.get_passed_variables(entry, child)[i]
+    raw_param = raw_encode_expression_params.get_passed_variables(entry, child)[i]
     if raw_param.name == child.name:
         # The child is the referenced instance
         return '%s = %s;' % (child_variable, param.name)

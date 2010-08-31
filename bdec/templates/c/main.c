@@ -128,7 +128,11 @@ int main(int argc, char* argv[])
     {
         struct EncodedData encodedData = {0};
       %if contains_data(protocol):
-        if (!${settings.encode_name(protocol)}(&result, &encodedData))
+          %if not settings.is_numeric(settings.ctype(protocol)):
+        if (!${settings.encode_name(protocol)}(&encodedData, &result))
+          %else:
+        if (!${settings.encode_name(protocol)}(&encodedData, result))
+          %endif
       %else:
         if (!${settings.encode_name(protocol)}(&encodedData))
       %endif

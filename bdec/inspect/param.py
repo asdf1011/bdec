@@ -707,7 +707,35 @@ class CompoundParameters(_Parameters):
         return False
 
 
-class EncodeParameters(_Parameters):
+class EncodeResultParameters(_Parameters):
+    """Parameters passed around to represent the values being encoded.
+
+    Only visible entries will be passed in this fashion."""
+    def __init__(self, entries):
+        self._result_params = ResultParameters(entries)
+
+    def get_locals(self, entry):
+        """Return an iterable of Local instances. """
+        return self._result_params.get_locals(entry)
+
+    def _invert(self, params):
+        for p in params:
+            name = p.name
+            if name == 'result':
+                name = 'value'
+            yield Param(name, Param.IN, p.type)
+
+    def get_params(self, entry):
+        """Return an iterable of Param instances."""
+        return self._invert(self._result_params.get_params(entry))
+
+    def get_passed_variables(self, entry, child):
+        """Return an iterable of Param instances."""
+        return self._invert(self._result_params.get_passed_variables(entry, child))
+
+
+class EncodeExpressionParameters(_Parameters):
+    """The parameters passed around to handle encoding due to expression references."""
     def __init__(self, entries):
         self._hidden_map = {}
         for entry in entries:

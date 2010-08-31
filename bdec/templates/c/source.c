@@ -42,9 +42,9 @@
 %endfor
 #include "variable_integer.h"
 
-<%def name="compare_binary_expected(entry, expected)">
+<%def name="compare_binary_expected(value, entry, expected)">
   %if expression_range(expected).max is not None and expression_range(expected).max < 2^64:
-    if (get_integer(&value) != ${settings.value(entry, expected)})
+    if (get_integer(&${value}) != ${settings.value(entry, expected)})
   %else:
     ## NOTE: We are assuming that if a constraint is longer than a long int, it
     ## is a constant constraint.
@@ -53,7 +53,7 @@
     <% data = expected.value + Data('\x00', 0, padding_len) %>
     BitBuffer expected = {(unsigned char*)${settings.c_string(data.bytes())}, 0, ${len(expected.value)}};
     int isMatch = 1;
-    BitBuffer actual = value;
+    BitBuffer actual = ${value};
     while (expected.num_bits > 0)
     {
         if (decode_integer(&expected, 1) != decode_integer(&actual, 1))
@@ -72,7 +72,7 @@
       %if settings.is_numeric(settings.ctype(entry)) or isinstance(entry, Sequence):
     if (${value} != ${settings.value(entry, constraint.limit)})
       %elif settings.ctype(entry) == 'BitBuffer':
-    ${compare_binary_expected(entry, constraint.limit)}
+    ${compare_binary_expected(value, entry, constraint.limit)}
       %elif settings.ctype(entry) in ['Buffer', 'Text']:
       <% assert isinstance(constraint.limit, Constant) %>
       <% expected = entry.encode_value(constraint.limit.value) %>
@@ -103,51 +103,52 @@
 </%def>
 
 <%def name="decodeField(entry)">
-    ${settings.ctype(entry)} value;
+    <% value = variable(entry.name + ' value') %>
+    ${settings.ctype(entry)} ${value};
   %if settings.is_numeric(settings.ctype(entry)):
     %if entry.encoding == Field.LITTLE_ENDIAN:
-    value = decode_little_endian_integer(buffer, ${settings.value(entry, entry.length)});
+    ${value} = decode_little_endian_integer(buffer, ${settings.value(entry, entry.length)});
     %else:
       %if EntryValueType(entry).range(raw_params).max <= 0xffffffff:
-    value = decode_integer(buffer, ${settings.value(entry, entry.length)});
+    ${value} = decode_integer(buffer, ${settings.value(entry, entry.length)});
       %else:
-    value = decode_long_integer(buffer, ${settings.value(entry, entry.length)});
+    ${value} = decode_long_integer(buffer, ${settings.value(entry, entry.length)});
       %endif
     %endif
     %if is_value_referenced(entry):
-    *${entry.name |variable} = value;
+    *${entry.name |variable} = ${value};
     %endif
   %elif entry.format == Field.TEXT:
     unsigned int i;
-    value.length = ${settings.value(entry, entry.length)} / 8;
-    value.buffer = (char*)malloc(value.length + 1);
-    value.buffer[value.length] = 0;
-    for (i = 0; i < value.length; ++i)
+    ${value}.length = ${settings.value(entry, entry.length)} / 8;
+    ${value}.buffer = (char*)malloc(${value}.length + 1);
+    ${value}.buffer[${value}.length] = 0;
+    for (i = 0; i < ${value}.length; ++i)
     {
-        value.buffer[i] = decode_integer(buffer, 8);
+        ${value}.buffer[i] = decode_integer(buffer, 8);
     }
   %elif entry.format == Field.HEX:
     unsigned int i;
     assert((${settings.value(entry, entry.length)}) % 8 == 0);
-    value.length = ${settings.value(entry, entry.length)} / 8;
-    value.buffer = (unsigned char*)malloc(value.length);
-    for (i = 0; i < value.length; ++i)
+    ${value}.length = ${settings.value(entry, entry.length)} / 8;
+    ${value}.buffer = (unsigned char*)malloc(${value}.length);
+    for (i = 0; i < ${value}.length; ++i)
     {
-        value.buffer[i] = decode_integer(buffer, 8);
+        ${value}.buffer[i] = decode_integer(buffer, 8);
     }
   %elif entry.format == Field.BINARY:
-    value.start_bit = buffer->start_bit;
-    value.num_bits = ${settings.value(entry, entry.length)};
+    ${value}.start_bit = buffer->start_bit;
+    ${value}.num_bits = ${settings.value(entry, entry.length)};
     unsigned int numBytes = (buffer->start_bit + buffer->num_bits + 7) / 8;
-    value.buffer = (unsigned char*)malloc(numBytes);
-    memcpy(value.buffer, buffer->buffer, numBytes);
-    buffer->start_bit += value.num_bits;
+    ${value}.buffer = (unsigned char*)malloc(numBytes);
+    memcpy(${value}.buffer, buffer->buffer, numBytes);
+    buffer->start_bit += ${value}.num_bits;
     buffer->buffer += buffer->start_bit / 8;
     buffer->start_bit %= 8;
-    buffer->num_bits -= value.num_bits;
+    buffer->num_bits -= ${value}.num_bits;
 
     %if is_value_referenced(entry):
-    *${entry.name |variable} = ${get_integer(entry)}(&value);
+    *${entry.name |variable} = ${get_integer(entry)}(&${value});
     %endif
   %elif entry.format == Field.FLOAT:
     <% encoding = 'BDEC_LITTLE_ENDIAN' if entry.encoding == Field.LITTLE_ENDIAN \
@@ -156,10 +157,10 @@
     switch (${settings.value(entry, entry.length)})
     {
     case 32:
-        value = decodeFloat(buffer, ${encoding});
+        ${value} = decodeFloat(buffer, ${encoding});
         break;
     case 64:
-        value = decodeDouble(buffer, ${encoding});
+        ${value} = decodeDouble(buffer, ${encoding});
         break;
     default:
         return 0;
@@ -167,12 +168,12 @@
   %else:
     <% raise Exception('Unknown field type %s' % entry) %>
   %endif
-    ${checkConstraints(entry, 'value', '&value')}
+    ${checkConstraints(entry, value, '&%s' % value)}
     %if contains_data(entry):
-    (*result) = value;
+    (*result) = ${value};
     %else:
       %if entry.format != Field.INTEGER:
-    ${settings.free_name(entry)}(&value);
+    ${settings.free_name(entry)}(&${value});
       %endif
     %endif
 </%def>
@@ -190,17 +191,18 @@
     }
     %endfor
     %if entry.value is not None:
-    ${ctype(EntryValueType(entry))} value = ${settings.value(entry, entry.value)};
-    ${checkConstraints(entry, 'value', 'result')}
+    <% value = variable(entry.name + ' value') %>
+    ${ctype(EntryValueType(entry))} ${value} = ${settings.value(entry, entry.value)};
+    ${checkConstraints(entry, value, 'result')}
       %if contains_data(entry):
         %if settings.is_numeric(settings.ctype(entry)):
-    *result = value;
+    *result = ${value};
         %else:
-    result->value = value;
+    result->value = ${value};
         %endif
       %endif
       %if is_value_referenced(entry):
-    *${entry.name |variable} = value;
+    *${entry.name |variable} = ${value};
       %endif
     %endif
 </%def>
@@ -595,6 +597,8 @@ ${static}void ${settings.print_name(entry)}(unsigned int offset, const char* nam
 
 ${recursivePrint(entry, False)}
 
+## ========= Entry encoding ===========
+
 <%def name="ifChildEncode(entry, i, child_variable, buffer_name='result', is_successful=True)" buffered="True">
   <% child = entry.children[i] %>
   <% prefix = '' if is_successful else '!' %>
@@ -605,25 +609,31 @@ ${recursivePrint(entry, False)}
         ## this is a little hackish...
         <% child_variable = '%s' % variable('unused %s' % child.name) %>
     memset(&${child_variable}, 0, sizeof(${settings.ctype(child.entry)}));
-        %for param in encode_params.get_passed_variables(entry, child):
+        %for param in stupid_ugly_expression_encode_params.get_passed_variables(entry, child):
             %if param.direction == param.OUT:
     ${settings.set_mock_param(entry, i, param, child_variable)}
             %endif
         %endfor
         <% child_variable = '&%s' % child_variable %>
       %endif
-    if (${prefix}${settings.encode_name(child.entry)}(${child_variable}, ${buffer_name}${encode_passed_params(entry, i)}))
   %else:
-    ## The child entry doesn't contain data
-    if (${prefix}${settings.encode_name(child.entry)}(${buffer_name}${encode_passed_params(entry, i)}))
+    <% child_variable = "don't look here, move along." %>
   %endif
+  if (${prefix}${settings.encode_name(child.entry)}(${buffer_name}${encode_passed_params(entry, i, child_variable)}))
 </%def>
 
 <%def name="encodeField(entry)" buffered="True">
     <% expected = settings.get_expected(entry) %>
-    <% value_name = '*value' if expected is None else 'value' %>
     %if expected is not None:
-    ${settings.ctype(entry)} value = ${expected};
+        <% value_name = variable(entry.name + ' value') %>
+    ${settings.ctype(entry)} ${value_name} = ${expected};
+    %else:
+    <%
+       if settings.is_numeric(ctype(entry)):
+           value_name = 'value'
+       else:
+           value_name = '*value'
+    %>
     %endif
     %if entry.format == Field.INTEGER:
       <% long_name = 'long_' if EntryValueType(entry).range(raw_params).max > 0xffffffff else '' %>
@@ -683,12 +693,12 @@ ${recursivePrint(entry, False)}
        if value_name is None:
            if not entry.is_hidden():
                # This entry is visible; use its 'value' input.
-               value_name = '*value' if settings.is_numeric(settings.ctype(entry)) else 'value->value'
+               value_name = 'value' if settings.is_numeric(settings.ctype(entry)) else 'value->value'
            else:
                # This entry is hidden; use its parameter value (assuming it has
                # been referenced).
                value_name = variable(entry.name)
-               if value_name not in [p.name for p in encode_params.get_params(entry) if p.direction == IN]:
+               if value_name not in [p.name for p in encode_params.get_params(entry) if p.direction == p.IN]:
                    # This isn't being passed as an input parameter! Presumably
                    # it is has a fixed value....
                    should_solve = False
@@ -701,7 +711,7 @@ ${recursivePrint(entry, False)}
 
     <% result_offset = 0 %>
     <% temp_buffers = [] %>
-    <% encoder = get_encoder(entry, raw_encode_params) %>
+    <% encoder = get_encoder(entry, raw_encode_expression_params) %>
     %for child_encoder in encoder.order():
       <% child = child_encoder.child %>
       <% i = entry.children.index(child) %>
@@ -814,11 +824,7 @@ ${recursiveEncode(child.entry, True)}
 %endfor
 
 <% static = "static " if is_static else "" %>
-%if contains_data(entry):
-${static} int ${settings.encode_name(entry)}(${settings.ctype(entry)}* value, struct EncodedData* result${settings.encode_params(entry)})
-%else:
-${static} int ${settings.encode_name(entry)}(struct EncodedData* result${settings.encode_params(entry)})
-%endif
+${static}int ${settings.encode_name(entry)}(struct EncodedData* result${settings.encode_params(entry)})
 {
   %for local in settings.encode_local_variables(entry):
     ${settings.ctype(local.type)} ${local.name};

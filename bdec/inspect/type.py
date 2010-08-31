@@ -99,6 +99,9 @@ class EntryType(VariableType):
             return False
         return other.entry is self.entry
 
+    def __repr__(self):
+        return '(%s)&' % self.entry
+
 
 class IntegerType(VariableType):
     """Base class for describing the type of an integer."""

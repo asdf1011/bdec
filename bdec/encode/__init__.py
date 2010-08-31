@@ -31,7 +31,7 @@ from bdec.encode.sequence import SequenceEncoder
 from bdec.encode.sequenceof import SequenceOfEncoder
 from bdec.choice import Choice
 from bdec.field import Field
-from bdec.inspect.param import EncodeParameters
+from bdec.inspect.param import EncodeExpressionParameters
 from bdec.inspect.type import EntryLengthType, EntryValueType, MultiSourceType
 from bdec.sequence import Sequence
 from bdec.sequenceof import SequenceOf
@@ -77,6 +77,6 @@ def get_encoder(entry, params, entries=None):
 def create_encoder(entry):
     common = set([entry])
     _detect_common(entry, entry.name, common)
-    params = EncodeParameters(common)
+    params = EncodeExpressionParameters(common)
     return get_encoder(entry, params)
 

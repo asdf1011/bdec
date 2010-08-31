@@ -530,7 +530,7 @@ class TestEncodeParameters(unittest.TestCase):
         b = seq.Sequence('b', [
             ent.Child('a:', a),
             seq.Sequence('c', [], value=expr.parse('${a:}'))])
-        params = prm.EncodeParameters([a, b])
+        params = prm.EncodeExpressionParameters([a, b])
         self.assertEqual([prm.Param('a', prm.Param.OUT, _Integer())], params.get_params(a))
         self.assertEqual([prm.Param('a:', prm.Param.OUT, _Integer())], params.get_passed_variables(b, b.children[0]))
         self.assertEqual([prm.Param('a:', prm.Param.OUT, _Integer())], params.get_params(b.children[1].entry))
