@@ -800,7 +800,9 @@ ${recursivePrint(entry, False)}
 </%def>
 
 <%def name="encodeSequenceof(entry)" buffered="True">
+    %if contains_data(entry) or entry.count is not None:
     int i = 0;
+    %endif
     %if contains_data(entry):
     for (i = 0; i < value->count; ++i)
     {
