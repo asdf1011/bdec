@@ -22,6 +22,7 @@ import string
 import bdec.choice as chc
 from bdec.constraints import Equals
 from bdec.data import Data
+from bdec.encode import get_encoder
 from bdec.entry import Entry
 import bdec.field as fld
 import bdec.sequence as seq
@@ -481,3 +482,46 @@ def set_mock_param(entry, i, param, child_variable):
     else:
         raise NotImplementedError("Setting sub-mock object isn't implement yet (%s)" % param)
 
+def sequence_encoder_order(entry):
+    """Return the order we should be encoding the child entries in a sequence.
+
+    Returns a iterable of (child_offset, start_temp_buffer, buffer_name, end_temp_buffer)
+    tuples."""
+    result_offset = 0
+    temp_buffers = []
+    encoder = get_encoder(entry, raw_encode_expression_params)
+    for child_encoder in encoder.order():
+        child = child_encoder.child
+        i = entry.children.index(child)
+
+        start_temp_buffer = None
+        if i == result_offset:
+            # We can encode this entry directly into the result buffer
+            buffer_name = 'result'
+            result_offset += 1
+        else:
+            # This entry must be buffered (it cannot be directly appended onto result)
+            for b in  temp_buffers:
+                if b['end'] == i:
+                    # We found an existing temporary buffer we can append to
+                    temp_buffer = b
+                    break
+            else:
+                # There isn't an existing temporary buffer we can reuse; create a new one.
+                temp_buffer = {'name':'tempBuffer%i' % len(temp_buffers), 'start':i, 'end':i}
+                temp_buffers.append(temp_buffer)
+            temp_buffer['end'] += 1
+            buffer_name = '&%s' % temp_buffer['name']
+
+            if temp_buffer['start'] == i:
+                # We found a temporary buffer that starts here
+                start_temp_buffer = temp_buffer['name']
+
+        for temp_buffer in temp_buffers:
+            if temp_buffer['start'] == result_offset:
+                # We found a temporary buffer that ends here
+                end_temp_buffer = temp_buffer['name']
+                break
+        else:
+            end_temp_buffer = None
+        yield i, start_temp_buffer, buffer_name, end_temp_buffer

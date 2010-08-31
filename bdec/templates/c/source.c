@@ -4,7 +4,6 @@
   from bdec.choice import Choice
   from bdec.constraints import Equals
   from bdec.data import Data
-  from bdec.encode import get_encoder
   from bdec.expression import Constant, ValueResult
   from bdec.field import Field
   from bdec.inspect.solver import solve_expression
@@ -709,52 +708,26 @@ ${recursivePrint(entry, False)}
       %endif
     %endif
 
-    <% result_offset = 0 %>
     <% temp_buffers = [] %>
-    <% encoder = get_encoder(entry, raw_encode_expression_params) %>
-    %for child_encoder in encoder.order():
-      <% child = child_encoder.child %>
-      <% i = entry.children.index(child) %>
-
-      %if i == result_offset:
-        ## We can encode this entry directly into the result buffer
-        <% buffer_name = 'result' %>
-        <% result_offset += 1 %>
-      %else:
-        ## This entry must be buffered (it cannot be directly appended onto result)
-        <%
-          for b in  temp_buffers:
-              if b['end'] == i:
-                  # We found an existing temporary buffer we can append to
-                  temp_buffer = b
-                  break
-          else:
-              # There isn't an existing temporary buffer we can reuse; create a new one.
-              temp_buffer = {'name':'tempBuffer%i' % len(temp_buffers), 'start':i, 'end':i}
-              temp_buffers.append(temp_buffer)
-          temp_buffer['end'] += 1
-          buffer_name = '&%s' % temp_buffer['name']
-        %>
-        %if temp_buffer['start'] == i:
-    struct EncodedData ${temp_buffers[-1]['name']} = {0};
-        %endif
+    %for i, start_temp_buffer, buffer_name, end_temp_buffer in settings.sequence_encoder_order(entry):
+      <% child = entry.children[i] %>
+      %if start_temp_buffer is not None:
+    struct EncodedData ${start_temp_buffer} = {0};
+        <% temp_buffers.append(start_temp_buffer) %>
       %endif
     ${ifChildEncode(entry, i, '&value->%s' % settings.var_name(entry, i), buffer_name, is_successful=False)}
     {
       %for temp_buffer in temp_buffers:
-        free(${temp_buffer['name']}.buffer);
+        free(${temp_buffer}.buffer);
       %endfor
         return 0;
     }
-      %for temp_buffer in temp_buffers:
-        %if temp_buffer['start'] == result_offset:
-    appendEncodedBuffer(result, &${temp_buffer['name']});
-        <% result_offset = temp_buffer['end'] %>
-        %endif
-      %endfor
+      %if end_temp_buffer:
+    appendEncodedBuffer(result, &${temp_buffer});
+      %endif
     %endfor
     %for temp_buffer in temp_buffers:
-    free(${temp_buffer['name']}.buffer);
+    free(${temp_buffer}.buffer);
     %endfor
     %if variable(entry.name) in [p.name for p in encode_params.get_params(entry) if p.direction == p.OUT]:
     *${entry.name |variable} = ${value_name};
