@@ -1,0 +1,10 @@
+<protocol>
+    <sequence name="a">
+        <field name="length:" length="8" />
+        <sequence name="b">
+            <field name="b1 length:" length="8" />
+            <field name="b1" type="text" length="(${b1 length:} * 8)" />
+        </sequence>
+        <field name="unused:" length="((${length:} * 8) - len{b})" />
+    </sequence>
+</protocol>

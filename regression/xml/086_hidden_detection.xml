@@ -1,0 +1,13 @@
+<protocol>
+    <sequence name="b">
+        <sequence name="c:">
+            <reference name="a" />
+        </sequence>
+        <field name="d" type="text" length="(${c:.a} * 8)" />
+        <reference name="a" />
+        <field name="e" type="text" length="(${a} * 8)" />
+    </sequence>
+    <common>
+        <field name="a" type="integer" length="8" />
+    </common>
+</protocol>
