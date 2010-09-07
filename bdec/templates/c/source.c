@@ -4,7 +4,7 @@
   from bdec.choice import Choice
   from bdec.constraints import Equals
   from bdec.data import Data
-  from bdec.expression import Constant, ValueResult
+  from bdec.expression import Constant, ValueResult, UndecodedReferenceError
   from bdec.field import Field
   from bdec.inspect.solver import solve_expression
   from bdec.inspect.type import expression_range as erange
@@ -668,9 +668,15 @@ ${recursivePrint(entry, False)}
        magic_expression = expression
        inputs = [p.name for p in encode_params.get_params(entry) if p.direction == p.IN]
        constant, components = solve_expression(magic_expression, expression, entry, raw_decode_params, inputs)
+       try:
+          constant = constant.evaluate({})
+       except UndecodedReferenceError:
+           pass
     %>
     ${settings._type_from_range(erange(expression, entry, raw_decode_params))} remainder = ${value_name};
+    %if constant != 0:
     remainder -= ${settings.value(entry, constant, encode_params)};
+    %endif
     %for ref, expr, invert_expr in components:
     <% variable_name = _value_ref(local_name(entry, ref.param_name()), entry, encode_params) %>
     ${variable_name} = ${settings.value(entry, invert_expr, encode_params, magic_expression, 'remainder')};
