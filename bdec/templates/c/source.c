@@ -93,7 +93,7 @@
       %endif
     %endif
     {
-      %if contains_data(entry) or (isinstance(entry, Field) and entry.format != Field.INTEGER):
+      %if result is not None and (contains_data(entry) or (isinstance(entry, Field) and entry.format != Field.INTEGER)):
         ${settings.free_name(entry)}(${result});
       %endif
         return 0;
@@ -622,17 +622,39 @@ ${recursivePrint(entry, False)}
 </%def>
 
 <%def name="encodeField(entry)" buffered="True">
-    <% expected = settings.get_expected(entry) %>
-    %if expected is not None:
-        <% value_name = variable(entry.name + ' value') %>
-    ${settings.ctype(entry)} ${value_name} = ${expected};
-    %else:
+    %if contains_data(entry):
     <%
+       # This entry has a visible value; use its passed in value object.
        if settings.is_numeric(ctype(entry)):
            value_name = 'value'
        else:
            value_name = '*value'
     %>
+    %else:
+        <% expected = settings.get_expected(entry) %>
+        <% value_name = variable(entry.name + ' value') %>
+        %if expected is not None:
+            ## This any has an expected value; use it when encoding.
+    ${settings.ctype(entry)} ${value_name} = ${expected};
+        %elif is_value_referenced(entry):
+            ## This entry is used in an expression. Use the value that is passed
+            ## when encoding.
+            <% name = variable(entry.name) %>
+            %if settings.is_numeric(settings.ctype(entry)):
+    ${settings.ctype(entry)} ${value_name} = ${name};
+            %else:
+                <% long_name = 'long_' if EntryValueType(entry).range(raw_params).max > 0xffffffff else '' %>
+                <% endian = 'big' if entry.encoding == Field.BIG_ENDIAN else 'little' %>
+                <% length = settings.value(entry, entry.length) %>
+    char tempBuffer[(${length} + 7) / 8];
+    struct EncodedData binaryValue = {tempBuffer, 0, (${length} + 7) / 8};
+    encode_${long_name}${endian}_endian_integer(${name}, ${length}, &binaryValue);
+    BitBuffer ${value_name} = {(unsigned char*)binaryValue.buffer, 0, ${length}};
+            %endif
+        %else:
+            ## This entry doesn't have a known value; mock it.
+    ${settings.ctype(entry)} ${value_name} = ${settings.get_null_mock_value(entry)};
+        %endif
     %endif
     %if entry.format == Field.INTEGER:
       <% long_name = 'long_' if EntryValueType(entry).range(raw_params).max > 0xffffffff else '' %>
@@ -658,7 +680,7 @@ ${recursivePrint(entry, False)}
     %else:
       <% raise Exception("Don't know how to encode field %s!" % entry) %>
     %endif
-    %if is_value_referenced(entry) and expected is None:
+    %if is_value_referenced(entry) and contains_data(entry):
     *${entry.name |variable} = ${value_name};
     %endif
 </%def>
@@ -691,25 +713,9 @@ ${recursivePrint(entry, False)}
 
 <%def name="encodeSequence(entry)" buffered="True">
     %if entry.value is not None:
-    <%
-       # When we have an expected value, we should using that as the value to solve...
-       value_name = settings.get_equals(entry)
-       should_solve = True
-       if value_name is None:
-           if not entry.is_hidden():
-               # This entry is visible; use its 'value' input.
-               value_name = 'value' if settings.is_numeric(settings.ctype(entry)) else 'value->value'
-           else:
-               # This entry is hidden; use its parameter value (assuming it has
-               # been referenced).
-               value_name = variable(entry.name)
-               if value_name not in [p.name for p in encode_params.get_params(entry) if p.direction == p.IN]:
-                   # This isn't being passed as an input parameter! Presumably
-                   # it is has a fixed value....
-                   should_solve = False
-                   value_name = settings.value(entry, entry.value)
-    %>
+      <% value_name, should_solve = settings.get_sequence_value(entry) %>
       %if should_solve:
+    ${checkConstraints(entry, value_name, None)}
     ${solve(entry, entry.value, value_name)}
       %endif
     %endif

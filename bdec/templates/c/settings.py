@@ -24,6 +24,7 @@ from bdec.constraints import Equals
 from bdec.data import Data
 from bdec.encode import get_encoder
 from bdec.entry import Entry
+from bdec.inspect.solver import solve_expression
 import bdec.field as fld
 import bdec.sequence as seq
 from bdec.sequenceof import SequenceOf
@@ -408,13 +409,56 @@ def c_string(data):
     """Return a correctly quoted c-style string for an arbitrary binary string."""
     return '"%s"' % ''.join(_c_repr(char) for char in data)
 
-def get_equals(entry):
+def _get_equals(entry):
     for constraint in entry.constraints:
         if isinstance(constraint, Equals):
             return constraint.limit
 
+def _are_expression_inputs_available(expr, entry):
+    """Check to see if all of the inputs to an expression are available."""
+    names = [p.name for p in encode_params.get_params(entry) if p.direction == p.IN]
+
+    result = ReferenceExpression('result')
+    inputs = [p.name for p in encode_params.get_params(entry) if p.direction == p.IN]
+    constant, components = solve_expression(result, expr, entry, raw_decode_params, inputs)
+    for ref, expr, inverted in components:
+        if variable(ref.name) not in names:
+            # The expression references an item that isn't being passed in.
+            return False
+    return True
+
+def get_sequence_value(entry):
+    """Get a sequences value when encoding.
+
+    Returns a (value, should_solve) tuple."""
+    # When we have an expected value, we should using that as the value to solve...
+    should_solve = True
+    in_params = [p.name for p in encode_params.get_params(entry) if p.direction == p.IN]
+    if contains_data(entry):
+        # This entry is visible; use its 'value' input.
+        value_name = 'value' if is_numeric(ctype(entry)) else 'value->value'
+    elif variable(entry.name) in in_params:
+        # This entry has been referenced elsewhere, and it's value is
+        # being passed as an exression.
+        value_name = variable(entry.name)
+    elif _are_expression_inputs_available(entry.value, entry):
+        # All of the components of this entrie's value are being passed in (ie:
+        # we can determine its value)
+        value_name = value(entry, entry.value)
+    elif _get_equals(entry) is not None:
+        # This entry has an expected value
+        value_name = _get_equals(entry)
+    else:
+        # We cannot determine the value of this entry! It's probably being
+        # derived from child values.
+        # This isn't being passed in an input parameter! Presumably
+        # it is has a fixed value, or is derived from other values...
+        should_solve = False
+        value_name = value(entry, entry.value)
+    return value_name, should_solve
+
 def get_expected(entry):
-    value = get_equals(entry)
+    value = _get_equals(entry)
     if value is not None:
         if entry.format == fld.Field.INTEGER:
             return value
@@ -436,27 +480,21 @@ def get_expected(entry):
         else:
             raise Exception("Don't know how to define a constant for %s!" % entry)
 
-    # No expected value was found
-    if not contains_data(entry):
-        if is_value_referenced(entry):
-            # The field's value is referenced elsewhere, use the reference value.
-            return variable(entry.name)
+def get_null_mock_value(entry):
+    # The entry is hidden, so use a \x00 (null) value.
+    if entry.format == fld.Field.INTEGER:
+        return 0
+    elif entry.format == fld.Field.TEXT:
+        return '{"%s", %i}' % ('\x00' * (length / 8), length / 8)
+    elif entry.format == fld.Field.BINARY:
+        if settings.is_numeric(settings.ctype(entry)):
+            # This is an integer type
+            return 0
         else:
-            # The entry is hidden, so use a \x00 (null) value.
-            length = entry.length.evaluate({})
-            if entry.format == fld.Field.INTEGER:
-                return 0
-            elif entry.format == fld.Field.TEXT:
-                return '{"%s", %i}' % ('\x00' * (length / 8), length / 8)
-            elif entry.format == fld.Field.BINARY:
-                if settings.is_numeric(settings.ctype(entry)):
-                    # This is an integer type
-                    return 0
-                else:
-                    # This is a bitbuffer type
-                    return '{"%s", 0, %i}' % ('\x00' * (length / 8), length)
-            else:
-                raise Exception("Don't know how to define a constant for %s!" % entry)
+            # This is a bitbuffer type
+            return '{"%s", 0, %i}' % ('\x00' * ((length + 7) / 8), length)
+    else:
+        raise Exception("Don't know how to define a constant for %s!" % entry)
 
 
 def is_empty_sequenceof(entry):
@@ -525,3 +563,4 @@ def sequence_encoder_order(entry):
         else:
             end_temp_buffer = None
         yield i, start_temp_buffer, buffer_name, end_temp_buffer
+
