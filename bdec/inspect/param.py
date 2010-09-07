@@ -548,6 +548,7 @@ class DataChecker:
         All other entries reachable by these entries can also be checked."""
         self._common = entries[:]
         self._has_data = {}
+        self._parents = {}
         entries = set(entries)
         while entries:
             entry = entries.pop()
@@ -579,6 +580,10 @@ class DataChecker:
         self._has_data[entry] = not entry.is_hidden()
         stack.append(entry)
         for child in entry.children:
+             assert child not in self._parents, \
+                     "Found child '%s' in parents '%s' and '%s'!" % (child,
+                             entry, self._parents[child])
+             self._parents[child] = entry
              self._populate(child.entry, stack, intermediates)
         stack.remove(entry)
 
@@ -631,7 +636,9 @@ class DataChecker:
 
         This is different from contains_data when a referenced entry has been
         hidden."""
-        return not ent.is_hidden(child.name) and self._has_data[child.entry]
+        entry = self._parents[child]
+        return self.contains_data(entry) and not ent.is_hidden(child.name) \
+                and self._has_data[child.entry]
 
 
 class ResultParameters(_Parameters):
