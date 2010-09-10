@@ -533,6 +533,7 @@ def sequence_encoder_order(entry):
         i = entry.children.index(child)
 
         start_temp_buffer = None
+        end_temp_buffer = None
         if i == result_offset:
             # We can encode this entry directly into the result buffer
             buffer_name = 'result'
@@ -559,8 +560,7 @@ def sequence_encoder_order(entry):
             if temp_buffer['start'] == result_offset:
                 # We found a temporary buffer that ends here
                 end_temp_buffer = temp_buffer['name']
+                result_offset = temp_buffer['end']
                 break
-        else:
-            end_temp_buffer = None
         yield i, start_temp_buffer, buffer_name, end_temp_buffer
 
