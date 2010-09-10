@@ -514,11 +514,11 @@ def set_mock_param(entry, i, param, child_variable):
     else:
         raise Exception('Failed to find param %s!' % param)
     raw_param = raw_encode_expression_params.get_passed_variables(entry, child)[i]
-    if raw_param.name == child.name:
-        # The child is the referenced instance
-        return '%s = %s;' % (child_variable, param.name)
-    else:
-        raise NotImplementedError("Setting sub-mock object isn't implement yet (%s)" % param)
+    # Note: This only works if the referenced item is sequences! If we're
+    # referencing a choice, we should be setting 'choice.value.xxx'.
+    names = list(variable(p) for p in raw_param.name.split('.'))
+    names[0] = child_variable
+    return '%s = %s;' % ('.'.join(names), param.name)
 
 def sequence_encoder_order(entry):
     """Return the order we should be encoding the child entries in a sequence.
