@@ -685,7 +685,7 @@ ${recursivePrint(entry, False)}
     %endif
 </%def>
 
-<%def name="solve(entry, expression, value_name)">
+<%def name="solve(entry, expression, value_name, prefix)">
     <%
        magic_expression = expression
        inputs = [p.name for p in encode_params.get_params(entry) if p.direction == p.IN]
@@ -695,16 +695,17 @@ ${recursivePrint(entry, False)}
        except UndecodedReferenceError:
            pass
     %>
-    ${settings._type_from_range(erange(expression, entry, raw_decode_params))} remainder = ${value_name};
+    <% remainder = variable('%s remainder' % prefix) %>
+    ${settings._type_from_range(erange(expression, entry, raw_decode_params))} ${remainder} = ${value_name};
     %if constant != 0:
-    remainder -= ${settings.value(entry, constant, encode_params)};
+    ${remainder} -= ${settings.value(entry, constant, encode_params)};
     %endif
     %for ref, expr, invert_expr in components:
     <% variable_name = _value_ref(local_name(entry, ref.param_name()), entry, encode_params) %>
-    ${variable_name} = ${settings.value(entry, invert_expr, encode_params, magic_expression, 'remainder')};
-    remainder -= ${settings.value(entry, expr, encode_params)};
+    ${variable_name} = ${settings.value(entry, invert_expr, encode_params, magic_expression, remainder)};
+    ${remainder} -= ${settings.value(entry, expr, encode_params)};
     %endfor
-    if (remainder != 0)
+    if (${remainder} != 0)
     {
         // We failed to solve this expression...
         return 0;
@@ -716,7 +717,7 @@ ${recursivePrint(entry, False)}
       <% value_name, should_solve = settings.get_sequence_value(entry) %>
       %if should_solve:
     ${checkConstraints(entry, value_name, None)}
-    ${solve(entry, entry.value, value_name)}
+    ${solve(entry, entry.value, value_name, 'value')}
       %endif
     %endif
 
@@ -799,7 +800,7 @@ encode_successful:
     %endif
 
     %if entry.count is not None:
-    ${solve(entry, entry.count, 'i')}
+    ${solve(entry, entry.count, 'i', 'count')}
     %endif
 </%def>
 
@@ -834,7 +835,7 @@ ${static}int ${settings.encode_name(entry)}(struct EncodedData* result${settings
   %endif
 
   %if entry.length is not None:
-    ${solve(entry, entry.length, 'result->num_bits - startBit')}
+    ${solve(entry, entry.length, 'result->num_bits - startBit', 'length')}
   %endif
     return 1;
 }
