@@ -141,6 +141,7 @@ int main(int argc, char* argv[])
           %if contains_data(protocol):
             ${settings.free_name(protocol)}(&result);
           %endif
+            free(encodedData.buffer);
             free(data);
             return 4;
         }
@@ -151,6 +152,7 @@ int main(int argc, char* argv[])
           %if contains_data(protocol):
             ${settings.free_name(protocol)}(&result);
           %endif
+            free(encodedData.buffer);
             free(data);
             return 5;
         }
