@@ -482,17 +482,18 @@ def get_expected(entry):
 
 def get_null_mock_value(entry):
     # The entry is hidden, so use a \x00 (null) value.
+    length = entry.length.evaluate({})
     if entry.format == fld.Field.INTEGER:
         return 0
     elif entry.format == fld.Field.TEXT:
-        return '{"%s", %i}' % ('\x00' * (length / 8), length / 8)
+        return '{"%s", %i}' % ('\\000' * (length / 8), length / 8)
     elif entry.format == fld.Field.BINARY:
         if settings.is_numeric(settings.ctype(entry)):
             # This is an integer type
             return 0
         else:
             # This is a bitbuffer type
-            return '{"%s", 0, %i}' % ('\x00' * ((length + 7) / 8), length)
+            return '{(unsigned char*)"%s", 0, %i}' % ('\\000' * ((length + 7) / 8), length)
     else:
         raise Exception("Don't know how to define a constant for %s!" % entry)
 
