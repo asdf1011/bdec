@@ -186,3 +186,13 @@ void encode_long_big_endian_integer(unsigned long long value, int num_bits, stru
     encode_big_endian_integer(value, num_bits, result);
 }
 
+void encode_long_little_endian_integer(unsigned long long value, int num_bits, struct EncodedData* result)
+{
+    int i;
+    for (i = 0; i < num_bits / 8; ++i)
+    {
+        encode_big_endian_integer(value & 0xFF, 8, result);
+        value >>= 8;
+    }
+}
+
