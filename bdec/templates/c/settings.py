@@ -520,6 +520,28 @@ def get_null_mock_value(entry):
 def is_empty_sequenceof(entry):
     return isinstance(entry, SequenceOf) and not contains_data(entry)
 
+def _get_child_reference(entry, names):
+    if not names:
+        # This is the referenced item.
+        if is_numeric(ctype(entry)):
+            return ''
+        elif isinstance(entry, seq.Sequence) and entry.value is not None:
+            return '.value'
+        raise NotImplementedError("Mocking %s is currently not supported" % entry)
+
+    name = names.pop(0)
+    for child in entry.children:
+        if child.name == name:
+            break
+    else:
+        raise Exception('Failed to find child named %s in %s' % (name, entry))
+
+    if isinstance(entry, Sequence):
+        result = '.%s' % variable(child.name)
+    else:
+        raise NotImplementedError('Mock references under %s not supported' % entry)
+    return result + _get_child_reference(child.entry, names)
+
 def set_mock_param(entry, i, param, child_variable):
     """ Return an expression setting the parameter value in the mock object.
 
@@ -534,11 +556,11 @@ def set_mock_param(entry, i, param, child_variable):
     else:
         raise Exception('Failed to find param %s!' % param)
     raw_param = raw_encode_expression_params.get_passed_variables(entry, child)[i]
-    # Note: This only works if the referenced item is sequences! If we're
-    # referencing a choice, we should be setting 'choice.value.xxx'.
+
+    # Drill down into the structure, and set the appropriate member.
     names = list(variable(p) for p in raw_param.name.split('.'))
-    names[0] = child_variable
-    return '%s = %s;' % ('.'.join(names), param.name)
+    names.pop(0)
+    return '%s%s = %s;' % (child_variable, _get_child_reference(child.entry, names), param.name)
 
 def sequence_encoder_order(entry):
     """Return the order we should be encoding the child entries in a sequence.
