@@ -447,7 +447,7 @@ def get_sequence_value(entry):
         value_name = value(entry, entry.value)
     elif _get_equals(entry) is not None:
         # This entry has an expected value
-        value_name = _get_equals(entry)
+        value_name = value(entry, _get_equals(entry))
     else:
         # We cannot determine the value of this entry! It's probably being
         # derived from child values.
@@ -458,21 +458,21 @@ def get_sequence_value(entry):
     return value_name, should_solve
 
 def get_expected(entry):
-    value = _get_equals(entry)
-    if value is not None:
+    expected = _get_equals(entry)
+    if expected is not None:
         if entry.format == fld.Field.INTEGER:
-            return value
+            return value(entry, expected)
         elif entry.format == fld.Field.TEXT:
-            return '{"%s", %i}' % (value.value, len(value.value))
+            return '{"%s", %i}' % (expected.value, len(expected.value))
         elif entry.format == fld.Field.BINARY:
             if settings.is_numeric(settings.ctype(entry)):
                 # This is an integer type
-                return value
+                return value(entry, expected)
             else:
                 # This is a bitbuffer type; add leading null bytes so we can
                 # represent it in bytes.
-                null = Data('\x00', 0, 8 - (len(value.value) % 8))
-                data = null + value.value
+                null = Data('\x00', 0, 8 - (len(expected.value) % 8))
+                data = null + expected.value
                 result = '{(unsigned char*)%s, %i, %i}' % (
                         c_string(data.bytes()), len(null),
                         len(data) - len(null))
