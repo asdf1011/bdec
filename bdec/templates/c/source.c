@@ -622,6 +622,7 @@ ${recursivePrint(entry, False)}
 </%def>
 
 <%def name="encodeField(entry)" buffered="True">
+    <% should_free_buffer = False %>
     %if contains_data(entry):
     <%
        # This entry has a visible value; use its passed in value object.
@@ -653,7 +654,8 @@ ${recursivePrint(entry, False)}
             %endif
         %else:
             ## This entry doesn't have a known value; mock it.
-    ${settings.ctype(entry)} ${value_name} = ${settings.get_null_mock_value(entry)};
+            <% mock_value, should_free_buffer = settings.get_null_mock_value(entry) %>
+    ${settings.ctype(entry)} ${value_name} = ${mock_value};
         %endif
     %endif
     %if entry.format == Field.INTEGER:
@@ -679,6 +681,10 @@ ${recursivePrint(entry, False)}
     append${floatType}(${value_name}, BDEC_${encoding}, result);
     %else:
       <% raise Exception("Don't know how to encode field %s!" % entry) %>
+    %endif
+
+    %if should_free_buffer:
+    free(${value_name}.buffer);
     %endif
     %if is_value_referenced(entry) and contains_data(entry):
     *${entry.name |variable} = ${value_name};

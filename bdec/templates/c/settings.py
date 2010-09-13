@@ -28,7 +28,7 @@ from bdec.inspect.solver import solve_expression
 import bdec.field as fld
 import bdec.sequence as seq
 from bdec.sequenceof import SequenceOf
-from bdec.expression import ArithmeticExpression, ReferenceExpression, Constant
+from bdec.expression import ArithmeticExpression, ReferenceExpression, Constant, UndecodedReferenceError
 from bdec.inspect.param import Local, Param, MAGIC_UNKNOWN_NAME
 from bdec.inspect.type import EntryLengthType, EntryValueType, IntegerType, EntryType, expression_range
 
@@ -480,22 +480,41 @@ def get_expected(entry):
         else:
             raise Exception("Don't know how to define a constant for %s!" % entry)
 
+def _is_length_known(entry):
+    inputs = [p.name for p in raw_encode_params.get_params(entry) if p.direction == p.IN]
+    constant, components = solve_expression(entry.length, entry.length, entry, raw_decode_params, inputs)
+    return len(components) == 0
+
 def get_null_mock_value(entry):
-    # The entry is hidden, so use a \x00 (null) value.
-    length = entry.length.evaluate({})
-    if entry.format == fld.Field.INTEGER:
-        return 0
-    elif entry.format == fld.Field.TEXT:
-        return '{"%s", %i}' % ('\\000' * (length / 8), length / 8)
-    elif entry.format == fld.Field.BINARY:
-        if settings.is_numeric(settings.ctype(entry)):
-            # This is an integer type
-            return 0
+    """Get a mock value for the given entry.
+
+    Returns a (mock string, should_free_buffer) tuple."""
+    should_free_buffer = False
+    if settings.is_numeric(settings.ctype(entry)):
+        return 0, should_free_buffer
+
+    try:
+        # If this entry has a fixed (known) length, just allocate a null
+        # buffer on the stack.
+        length = entry.length.evaluate({})
+        data = '"\\000"' * ((length + 7) / 8)
+    except UndecodedReferenceError:
+        if _is_length_known(entry):
+            # There is an explicit length for this entry.
+            length = value(entry, entry.length, encode_params)
+            data = "calloc((%s) / 8, 1)" % length
+            should_free_buffer = True
         else:
-            # This is a bitbuffer type
-            return '{(unsigned char*)"%s", 0, %i}' % ('\\000' * ((length + 7) / 8), length)
+            # The length isn't known; just default it to zero.
+            length = 0
+            data = '""'
+    if entry.format == fld.Field.TEXT:
+        value = '{%s, (%s) / 8}' % (data, length)
+    elif entry.format == fld.Field.BINARY:
+        value = '{(unsigned char*)%s, 0, %s}' % (data, length)
     else:
         raise Exception("Don't know how to define a constant for %s!" % entry)
+    return value, should_free_buffer
 
 
 def is_empty_sequenceof(entry):
