@@ -1,8 +1,8 @@
 <protocol>
     <sequence name="a">
         <field name="packet length:" length="8" />
-        <field name="data length:" length="8" />
-        <field name="data" type="text" length="(${data length:} * 8)" />
+        <field name="length:" length="8" />
+        <field name="data" type="text" length="(${length:} * 8)" />
         <field name="unused" type="text" length="((${packet length:} * 8) - len{data})" />
     </sequence>
 </protocol>

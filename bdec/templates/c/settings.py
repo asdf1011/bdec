@@ -524,7 +524,7 @@ def set_mock_param(entry, i, param, child_variable):
 def sequence_encoder_order(entry):
     """Return the order we should be encoding the child entries in a sequence.
 
-    Returns a iterable of (child_offset, start_temp_buffer, buffer_name, end_temp_buffer)
+    Returns a iterable of (child_offset, start_temp_buffer, buffer_name, end_temp_buffers)
     tuples."""
     result_offset = 0
     temp_buffers = []
@@ -534,7 +534,6 @@ def sequence_encoder_order(entry):
         i = entry.children.index(child)
 
         start_temp_buffer = None
-        end_temp_buffer = None
         if i == result_offset:
             # We can encode this entry directly into the result buffer
             buffer_name = 'result'
@@ -557,11 +556,19 @@ def sequence_encoder_order(entry):
                 # We found a temporary buffer that starts here
                 start_temp_buffer = temp_buffer['name']
 
-        for temp_buffer in temp_buffers:
-            if temp_buffer['start'] == result_offset:
-                # We found a temporary buffer that ends here
-                end_temp_buffer = temp_buffer['name']
-                result_offset = temp_buffer['end']
-                break
-        yield i, start_temp_buffer, buffer_name, end_temp_buffer
+        # Check for temporary buffers that start here; not that there can be
+        # several temp buffers that need to be chained together (see the
+        # xml/089_length_reference regression test).
+        end_temp_buffers = []
+        should_stop = False
+        while not should_stop:
+            for temp_buffer in temp_buffers:
+                if temp_buffer['start'] == result_offset:
+                    # We found a temporary buffer that ends here
+                    end_temp_buffers.append(temp_buffer['name'])
+                    result_offset = temp_buffer['end']
+                    break
+            else:
+                should_stop = True
+        yield i, start_temp_buffer, buffer_name, end_temp_buffers
 

@@ -688,7 +688,7 @@ ${recursivePrint(entry, False)}
 <%def name="solve(entry, expression, value_name, prefix)">
     <%
        magic_expression = expression
-       inputs = [p.name for p in encode_params.get_params(entry) if p.direction == p.IN]
+       inputs = [p.name for p in raw_encode_params.get_params(entry) if p.direction == p.IN]
        constant, components = solve_expression(magic_expression, expression, entry, raw_decode_params, inputs)
        try:
           constant = constant.evaluate({})
@@ -722,7 +722,7 @@ ${recursivePrint(entry, False)}
     %endif
 
     <% temp_buffers = [] %>
-    %for i, start_temp_buffer, buffer_name, end_temp_buffer in settings.sequence_encoder_order(entry):
+    %for i, start_temp_buffer, buffer_name, end_temp_buffers in settings.sequence_encoder_order(entry):
       <% child = entry.children[i] %>
       %if start_temp_buffer is not None:
     struct EncodedData ${start_temp_buffer} = {0};
@@ -735,9 +735,9 @@ ${recursivePrint(entry, False)}
       %endfor
         return 0;
     }
-      %if end_temp_buffer:
+      %for temp_buffer in end_temp_buffers:
     appendEncodedBuffer(result, &${temp_buffer});
-      %endif
+      %endfor
     %endfor
     %for temp_buffer in temp_buffers:
     free(${temp_buffer}.buffer);
@@ -818,7 +818,7 @@ ${static}int ${settings.encode_name(entry)}(struct EncodedData* result${settings
     ${settings.ctype(local.type)} ${local.name};
   %endfor
 
-  %if entry.length is not None:
+  %if entry.length is not None or is_length_referenced(entry):
   int startBit = result->num_bits;
   %endif
 
@@ -836,6 +836,9 @@ ${static}int ${settings.encode_name(entry)}(struct EncodedData* result${settings
 
   %if entry.length is not None:
     ${solve(entry, entry.length, 'result->num_bits - startBit', 'length')}
+  %endif
+  %if is_length_referenced(entry):
+    *${entry.name + ' length' |variable} = result->num_bits - startBit;
   %endif
     return 1;
 }
