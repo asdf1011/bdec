@@ -509,12 +509,12 @@ def get_null_mock_value(entry):
             length = 0
             data = '""'
     if entry.format == fld.Field.TEXT:
-        value = '{%s, (%s) / 8}' % (data, length)
+        value_text = '{%s, (%s) / 8}' % (data, length)
     elif entry.format == fld.Field.BINARY:
-        value = '{(unsigned char*)%s, 0, %s}' % (data, length)
+        value_text = '{(unsigned char*)%s, 0, %s}' % (data, length)
     else:
         raise Exception("Don't know how to define a constant for %s!" % entry)
-    return value, should_free_buffer
+    return value_text, should_free_buffer
 
 
 def is_empty_sequenceof(entry):
