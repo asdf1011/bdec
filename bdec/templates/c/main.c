@@ -33,6 +33,7 @@ static void usage(char* program)
     printf("   -e <filename>   Re-encode the decoded file, and save it to the given file.\n");
 %endif
     printf("   -h    Display this help.\n");
+    printf("   -q    Quiet output (don't print xml).\n");
 }
 
 int main(int argc, char* argv[])
@@ -41,6 +42,7 @@ int main(int argc, char* argv[])
 %if generate_encoder:
     char* encodeFilename = 0;
 %endif
+    int should_print_xml = 1;
     for (i = 1; i < argc; ++i)
     {
         if (argv[i][0] == '-')
@@ -62,6 +64,10 @@ int main(int argc, char* argv[])
                 encodeFilename = argv[i];
             }
 %endif
+            else if (argv[i][1] == 'q')
+            {
+                should_print_xml = 0;
+            }
             else
             {
                 fprintf(stderr, "Unknown option '%s'! See %s -h for more details.\n",
@@ -117,11 +123,14 @@ int main(int argc, char* argv[])
 
 
     /* Print the decoded data */
+    if (should_print_xml)
+    {
   %if contains_data(protocol):
-    ${settings.print_name(protocol)}(&result, 0, "${protocol.name | xmlname}");
+        ${settings.print_name(protocol)}(&result, 0, "${protocol.name | xmlname}");
   %else:
-    ${settings.print_name(protocol)}(0, "${protocol.name | xmlname}");
+        ${settings.print_name(protocol)}(0, "${protocol.name | xmlname}");
   %endif:
+    }
 
   %if generate_encoder:
     if (encodeFilename != 0)
