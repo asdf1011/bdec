@@ -249,18 +249,21 @@ def _validate_xml(spec, data, xmltext):
         else:
             child_tail=None
 
-def _check_encoded_data(spec, sourcefile, actual, actual_xml):
+def _check_encoded_data(spec, sourcefile, actual, actual_xml, require_exact_encoding):
     sourcefile.seek(0)
     expected = sourcefile.read()
     if actual != expected:
-        # The data is different, but it is possibly due to the data being able
-        # to be encoded in multiple ways. Try re-decoding the data to compare
-        # against the original xml.
-        try:
-            regenerated_xml = xmlout.to_string(spec, dt.Data(actual))
-            assert_xml_equivalent(actual_xml, regenerated_xml)
-        except Exception, ex:
-            raise Exception('Re-decoding of encoded data failed: %s' % str(ex))
+        if require_exact_encoding:
+            raise Exception("Encoded data doesn't match, but we require exact encoding!")
+        else:
+            # The data is different, but it is possibly due to the data being able
+            # to be encoded in multiple ways. Try re-decoding the data to compare
+            # against the original xml.
+            try:
+                regenerated_xml = xmlout.to_string(spec, dt.Data(actual))
+                assert_xml_equivalent(actual_xml, regenerated_xml)
+            except Exception, ex:
+                raise Exception('Re-decoding of encoded data failed: %s' % str(ex))
 
 
 class _CompiledDecoder:
@@ -269,7 +272,7 @@ class _CompiledDecoder:
     EXECUTABLE = os.path.join(TEST_DIR, 'decode')
     VALGRIND = _get_valgrind()
 
-    def _decode_file(self, spec, common, data, should_check_encoding=True):
+    def _decode_file(self, spec, common, data, should_check_encoding=True, require_exact_encoding=False):
         """Return a tuple containing the exit code and the decoded xml."""
         generate(spec, common, self, should_check_encoding)
         encode_filename = os.path.join(self.TEST_DIR, 'encoded.bin') if should_check_encoding else None
@@ -280,7 +283,7 @@ class _CompiledDecoder:
         except bdec.DecodeError, ex:
             raise Exception("Compiled decoder succeeded, but should have failed with: %s" % str(ex))
 	if should_check_encoding:
-            _check_encoded_data(spec, data, open(encode_filename, 'rb').read(), xml)
+            _check_encoded_data(spec, data, open(encode_filename, 'rb').read(), xml, require_exact_encoding)
         return xml
 
 
@@ -294,7 +297,7 @@ class _CDecoder(_CompiledDecoder):
 
 class _PythonDecoder:
     """Use the builtin python decoder for the tests."""
-    def _decode_file(self, spec, common, sourcefile, should_check_encoding=True):
+    def _decode_file(self, spec, common, sourcefile, should_check_encoding=True, require_exact_encoding=False):
         data = dt.Data(sourcefile)
         try:
 	    xml = xmlout.to_string(spec, data)
@@ -303,7 +306,7 @@ class _PythonDecoder:
 
 	if should_check_encoding:
 	    generated_data = xmlout.encode(spec, xml)
-            _check_encoded_data(spec, sourcefile, generated_data.bytes(), xml)
+            _check_encoded_data(spec, sourcefile, generated_data.bytes(), xml, require_exact_encoding)
 	return xml
 
 def create_decoder_classes(base_classes, module):
