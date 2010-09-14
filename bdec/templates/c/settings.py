@@ -510,7 +510,7 @@ def get_null_mock_value(entry):
             data = '""'
     if entry.format == fld.Field.TEXT:
         value_text = '{%s, (%s) / 8}' % (data, length)
-    if entry.format == fld.Field.HEX:
+    elif entry.format == fld.Field.HEX:
         value_text = '{(unsigned char*)%s, (%s) / 8}' % (data, length)
     elif entry.format == fld.Field.BINARY:
         value_text = '{(unsigned char*)%s, 0, %s}' % (data, length)
