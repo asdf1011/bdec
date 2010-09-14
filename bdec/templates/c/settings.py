@@ -538,7 +538,7 @@ def _get_child_reference(entry, names):
     else:
         raise Exception('Failed to find child named %s in %s' % (name, entry))
 
-    if isinstance(entry, Sequence):
+    if isinstance(entry, seq.Sequence):
         result = '.%s' % variable(child.name)
     else:
         raise NotImplementedError('Mock references under %s not supported' % entry)
