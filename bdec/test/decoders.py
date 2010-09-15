@@ -253,17 +253,17 @@ def _check_encoded_data(spec, sourcefile, actual, actual_xml, require_exact_enco
     sourcefile.seek(0)
     expected = sourcefile.read()
     if actual != expected:
+        # The data is different, but it is possibly due to the data being able
+        # to be encoded in multiple ways. Try re-decoding the data to compare
+        # against the original xml.
+        try:
+            regenerated_xml = xmlout.to_string(spec, dt.Data(actual))
+            assert_xml_equivalent(actual_xml, regenerated_xml)
+        except Exception, ex:
+            raise Exception('Re-decoding of encoded data failed: %s' % str(ex))
+
         if require_exact_encoding:
             raise Exception("Encoded data doesn't match, but we require exact encoding!")
-        else:
-            # The data is different, but it is possibly due to the data being able
-            # to be encoded in multiple ways. Try re-decoding the data to compare
-            # against the original xml.
-            try:
-                regenerated_xml = xmlout.to_string(spec, dt.Data(actual))
-                assert_xml_equivalent(actual_xml, regenerated_xml)
-            except Exception, ex:
-                raise Exception('Re-decoding of encoded data failed: %s' % str(ex))
 
 
 class _CompiledDecoder:
