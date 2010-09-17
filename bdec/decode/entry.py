@@ -44,6 +44,9 @@ class Child:
             else:
                 self.outputs.append(names)
 
+    def __str__(self):
+        return '%s %s' % (str(self.decoder), self.name)
+
 
 class EntryDecoder:
     def __init__(self, entry, params, is_end_sequenceof, is_value_referenced, is_length_referenced):
@@ -137,3 +140,5 @@ class EntryDecoder:
         for our_name, child_name in child.outputs:
             context[our_name] = child_context[child_name]
 
+    def __str__(self):
+        return str(self.entry)

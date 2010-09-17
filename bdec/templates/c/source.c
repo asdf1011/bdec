@@ -603,14 +603,17 @@ ${recursivePrint(entry, False)}
   <% prefix = '' if is_successful else '!' %>
   %if contains_data(child.entry):
       %if not child_contains_data(child):
-        ## The child is a common entry that has been hidden; we need to create a
-        ## pretend variable to pass in. We'll reuse the 'unused' local variable;
-        ## this is a little hackish...
+        ## The child is a common entry that has been hidden
         <% child_variable = '%s' % variable('unused %s' % child.name) %>
     memset(&${child_variable}, 0, sizeof(${settings.ctype(child.entry)}));
-        %for param in stupid_ugly_expression_encode_params.get_passed_variables(entry, child):
-            %if param.direction == param.OUT:
-    ${settings.set_mock_param(entry, i, param, child_variable)}
+        <% raw_params = raw_encode_expression_params.get_passed_variables(entry, child) %>
+        <% esc_params = stupid_ugly_expression_encode_params.get_passed_variables(entry, child) %>
+        %for raw_param, esc_param in zip(raw_params, esc_params):
+            %if raw_param.direction == raw_param.OUT and raw_encode_expression_params.is_output_param_used(entry, child, raw_param):
+              ## For every expression parameter that is passed out, that is an
+              ## value that during encoding comes from the value parameter we
+              ## pass in. Thus we have to set the mock parameters appropriately...
+    ${settings.set_mock_param(entry, i, esc_param, child_variable)}
             %endif
         %endfor
         <% child_variable = '&%s' % child_variable %>

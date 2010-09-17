@@ -201,6 +201,7 @@ class EndEntryParameters(_Parameters):
 
 class _VariableParam:
     def __init__(self, reference, direction, type):
+        # The reference is an expression reference
         assert isinstance(reference, expr.ValueResult) or isinstance(reference, expr.LengthResult)
         self.reference = reference
         self.direction = direction
@@ -326,7 +327,10 @@ class ExpressionParameters(_Parameters):
         # resolved for this entry to decode)
         child_unknowns = set()
         for child in entry.children:
-            child_unknowns.update(unreferenced_entries[child.entry])
+            unknowns = unreferenced_entries[child.entry]
+            self._local_child_param_name.setdefault(entry, {}).setdefault(child, {}).update(
+                    (ref.name, ref.name) for ref in unknowns)
+            child_unknowns.update(unknowns)
 
         if isinstance(entry, seq.Sequence) and entry.value is not None:
             child_unknowns.update(self._collect_references(entry.value))
@@ -359,6 +363,15 @@ class ExpressionParameters(_Parameters):
                     param.types.add(param_type)
                     self._populate_child_input_parameter_type(child.entry, name, param_type)
 
+    def is_output_param_used(self, entry, child, param):
+        """Check to see if an parameter is used."""
+        assert param.direction == Param.OUT
+        try:
+            return param.name in self._local_child_param_name[entry][child].values()
+        except KeyError:
+            # The parameter doesn't have a local name; it must be unused.
+            return False
+
     def _get_local_reference(self, entry, child, param):
         """Get the local of a parameter used by a child entry.
 
@@ -368,10 +381,10 @@ class ExpressionParameters(_Parameters):
         try:
             name = self._local_child_param_name[entry][child][param.reference.name]
         except KeyError:
-            # TODO: This _may_ be an output from a child that we don't use.
-            # It may also be coming from one of our input parameters?? If it's
-            # an unused, we should name it 'unused XXX'.
-            name = param.reference.name
+            # If an output parameter isn't in the lookup, it it's because
+            # the child is a common entry that has been referenced
+            # elsewhere (but isn't used in this context).
+            name = 'unused %s' % param.reference.name
 
         # Create a new instance of the expression reference, using the new name
         return type(param.reference)(name)
@@ -421,6 +434,12 @@ class ExpressionParameters(_Parameters):
                 child_type = self._add_out_params(child.entry, reference)
                 self._params[child.entry].add(_VariableParam(reference, Param.OUT, child_type))
                 option_types.append(child_type)
+
+                sub_name = '.'.join(reference.name.split('.')[1:])
+                name = child.name
+                if sub_name:
+                    name = '%s.%s' % (name, sub_name)
+                self._local_child_param_name.setdefault(entry, {}).setdefault(child, {})[reference.name] = reference.name
             result =  MultiSourceType(option_types)
         elif isinstance(entry, seq.Sequence):
             child_params = self._local_child_param_name.setdefault(entry, {})
@@ -475,11 +494,11 @@ class ExpressionParameters(_Parameters):
                 if child_param.direction == Param.OUT:
                     local = self._get_local_reference(entry, child, child_param)
                     if _VariableParam(local, child_param.direction, None) not in params:
-                        locals.setdefault(local.param_name(), []).append(child_param.get_type())
+                        locals.setdefault(local.param_name(), set()).add(child_param.get_type())
         result = []
         for name, types in locals.items():
             if len(types) == 1:
-                type = types[0]
+                type = types.pop()
             else:
                 type = MultiSourceType(types)
             result.append(Local(name, type))
@@ -748,6 +767,9 @@ class EncodeExpressionParameters(_Parameters):
         for entry in entries:
             self._populate_visible(entry, entries, self._hidden_map)
         self.expression_params = ExpressionParameters(entries)
+
+    def is_output_param_used(self, entry, child, param):
+        return self.expression_params.is_output_param_used(entry, child, param)
 
     def is_hidden(self, entry):
         return self._hidden_map[entry]

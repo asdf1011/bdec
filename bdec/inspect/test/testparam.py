@@ -204,8 +204,8 @@ class TestExpressionParameters(unittest.TestCase):
 
         # Now test the passing out (and ignoring) of the length value within 'b'
         self.assertEqual([], vars.get_params(b))
-        self.assertEqual([prm.Local('length', _Integer())], vars.get_locals(b))
-        self.assertEqual([prm.Param('length', prm.Param.OUT, _Integer())], list(vars.get_passed_variables(b, b.children[0])))
+        self.assertEqual([prm.Local('unused length', _Integer())], vars.get_locals(b))
+        self.assertEqual([prm.Param('unused length', prm.Param.OUT, _Integer())], list(vars.get_passed_variables(b, b.children[0])))
         self.assertEqual([], list(vars.get_passed_variables(spec, spec.children[0])))
 
     def test_referencing_sequence_without_value(self):
@@ -394,9 +394,9 @@ class TestExpressionParameters(unittest.TestCase):
         d2 = seq.Sequence('d2', [a2, fld.Field('e2', length=expr.compile('${a}'))])
 
         lookup = prm.ExpressionParameters([a1, a2, c, d1, d2])
-        self.assertEqual([prm.Param('a', prm.Param.OUT, _Integer())], list(lookup.get_passed_variables(c, c.children[0])))
-        self.assertEqual([prm.Param('a', prm.Param.OUT, _Integer())], list(lookup.get_passed_variables(c, c.children[1])))
-        self.assertEqual([prm.Local('a', _Integer())], lookup.get_locals(c))
+        self.assertEqual([prm.Param('unused a', prm.Param.OUT, _Integer())], list(lookup.get_passed_variables(c, c.children[0])))
+        self.assertEqual([prm.Param('unused a', prm.Param.OUT, _Integer())], list(lookup.get_passed_variables(c, c.children[1])))
+        self.assertEqual([prm.Local('unused a', _Integer())], lookup.get_locals(c))
 
     def test_sequence_with_referenced_value(self):
         a = fld.Field('a', length=8)
