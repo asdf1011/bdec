@@ -38,7 +38,13 @@ class Integers:
         self.common = {}
 
     def signed_big_endian(self, length_expr):
-        name = 'big endian integer'
+        try:
+            # We try to choose the name based on the length value. If we
+            # cannot evaluate the length, we'll use the length name.
+            name = 'big endian integer %s' % length_expr.evaluate({})
+        except UndecodedReferenceError:
+            name = 'big endian integer %s' % length_expr
+
         try:
             result = self.common[name]
         except KeyError:

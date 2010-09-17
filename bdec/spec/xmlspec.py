@@ -247,6 +247,7 @@ class _Handler(xml.sax.handler.ContentHandler):
                 "binary" : fld.Field.BINARY,
                 "hex" : fld.Field.HEX,
                 "integer" : fld.Field.INTEGER,
+                "unsigned integer" : fld.Field.INTEGER,
                 "signed integer" : fld.Field.INTEGER,
                 "text" : fld.Field.TEXT,
                 "float" : fld.Field.FLOAT,
