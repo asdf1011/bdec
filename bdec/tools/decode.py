@@ -40,18 +40,19 @@ def usage(program):
     print '  -h, --help        Print this help.'
     print '  -l                Log status messages.'
     print '  --main=<name>     Specify the entry to be used as the decoder.'
+    print '  -q                Quiet output. Only errors will be printed to stderr.'
     print '  --remove-unused   Remove any entries that are not referenced from the main'
     print '                    entry.'
     print '  --verbose         Include hidden entries and raw data in the decoded output.'
     print '  -V                Print the version of the bdec compiler.'
 
 def _parse_args():
-    verbose = False
+    verbose = 1
     binary = sys.stdin
     main_spec = None
     should_remove_unused = False
     try:
-        opts, args = getopt.getopt(sys.argv[1:], 'f:hlV', ['help', 'main=', 'remove-unused', 'verbose'])
+        opts, args = getopt.getopt(sys.argv[1:], 'f:hlqV', ['help', 'main=', 'remove-unused', 'verbose'])
     except getopt.GetoptError, ex:
         sys.exit("%s\nSee '%s -h' for correct usage." % (ex, sys.argv[0]))
     for opt, arg in opts:
@@ -62,8 +63,10 @@ def _parse_args():
             sys.exit(0)
         elif opt == '--main':
             main_spec = arg
+        elif opt == '-q':
+            verbose = 0
         elif opt == '--verbose':
-            verbose = True
+            verbose = 2
         elif opt == '--remove-unused':
             should_remove_unused = True
         elif opt == "-l":
@@ -89,7 +92,11 @@ def main():
 
     data = dt.Data(binary)
     try:
-        xmlout.to_file(decoder, data, sys.stdout, verbose=verbose)
+        if verbose == 0:
+            for item in decoder.decode(data):
+                pass
+        else:
+            xmlout.to_file(decoder, data, sys.stdout, verbose=(verbose==2))
     except bdec.DecodeError, ex:
         try:
             (filename, line_number, column_number) = lookup[ex.entry]
