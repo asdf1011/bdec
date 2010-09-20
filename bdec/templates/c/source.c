@@ -105,15 +105,9 @@
     <% value = variable(entry.name + ' value') %>
     ${settings.ctype(entry)} ${value};
   %if settings.is_numeric(settings.ctype(entry)):
-    %if entry.encoding == Field.LITTLE_ENDIAN:
-    ${value} = decode_little_endian_integer(buffer, ${settings.value(entry, entry.length)});
-    %else:
-      %if EntryValueType(entry).range(raw_params).max <= 0xffffffff:
-    ${value} = decode_integer(buffer, ${settings.value(entry, entry.length)});
-      %else:
-    ${value} = decode_long_integer(buffer, ${settings.value(entry, entry.length)});
-      %endif
-    %endif
+      <% prefix = 'little_endian_' if entry.encoding == Field.LITTLE_ENDIAN else '' %>
+      <% prefix = 'long_%s' % prefix if EntryValueType(entry).range(raw_params).max > 0xffffffff else prefix %>
+    ${value} = decode_${prefix}integer(buffer, ${settings.value(entry, entry.length)});
     %if is_value_referenced(entry):
     *${entry.name |variable} = ${value};
     %endif

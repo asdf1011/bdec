@@ -30,6 +30,7 @@ unsigned long long get_long_integer(BitBuffer* buffer);
 unsigned int decode_integer(BitBuffer* buffer, int num_bits);
 unsigned long long decode_long_integer(BitBuffer* buffer, int num_bits);
 unsigned int decode_little_endian_integer(BitBuffer* buffer, int num_bits);
+unsigned long long decode_long_little_endian_integer(BitBuffer* buffer, int num_bits);
 
 // Encode a big endian integer
 void encode_big_endian_integer(unsigned int value, int num_bits, struct EncodedData* result);

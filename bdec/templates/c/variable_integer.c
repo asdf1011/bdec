@@ -97,6 +97,22 @@ unsigned int decode_little_endian_integer(BitBuffer* buffer, int num_bits)
     return result;
 }
 
+unsigned long long decode_long_little_endian_integer(BitBuffer* buffer, int num_bits)
+{
+    // Little endian conversion only works for fields that are a multiple
+    // of 8 bits.
+    assert(num_bits % 8  == 0);
+
+    int i;
+    unsigned long long result = 0;
+    for (i = 0; i < num_bits / 8; ++i)
+    {
+        unsigned long long value = decode_integer(buffer, 8);
+        result |= value << (i * 8);
+    }
+    return result;
+}
+
 void print_escaped_string(Text* text)
 {
     char c;
