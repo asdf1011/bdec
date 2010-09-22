@@ -260,6 +260,18 @@ def _value_ref(name, entry, params):
         return '*%s' % name
     return name
 
+def local_reference_name(entry, ref, params):
+    return _value_ref(local_name(entry, ref.param_name()), entry, params)
+
+def relative_reference_name(entries, ref, local_name):
+    """Return the name of the referenced entry relative to the top of the entries stack."""
+    # TODO: At the moment it only walks down the reference stack; it should also
+    # attempt to walk up it.
+    names = ref.name.split('.')
+    entry_stack = list(entries)
+    entry_stack += _get_child_entries(entries[-1][0], names)
+    return '%s.%s' % (local_name, _get_child_reference(entry_stack[1:]))
+
 def _call_params(parent, i, result_name, params):
     # How we should reference the variable passed to the child is from the
     # following table;
@@ -311,7 +323,7 @@ _OPERATORS = {
         operator.rshift : '>>',
         }
 
-def value(entry, expr, params=None, magic_expression=None, magic_name=None):
+def value(entry, expr, params=None, magic_expression=None, magic_name=None, ref_name=None):
   """
   Convert an expression object to a valid C expression.
 
@@ -323,6 +335,7 @@ def value(entry, expr, params=None, magic_expression=None, magic_name=None):
     with the 'magic_name'.
   magic_name -- The 'magic' name to use when 'magic_expression' is found.
   """
+  ref_name = ref_name or local_reference_name
   if params is None:
       params = decode_params
   if expr is magic_expression:
@@ -336,7 +349,7 @@ def value(entry, expr, params=None, magic_expression=None, magic_name=None):
           return "%iL" % expr.value
       return int(expr.value)
   elif isinstance(expr, ReferenceExpression):
-      return _value_ref(local_name(entry, expr.param_name()), entry, params)
+      return ref_name(entry, expr, params)
   elif isinstance(expr, ArithmeticExpression):
       left = value(entry, expr.left, params, magic_expression, magic_name)
       right = value(entry, expr.right, params, magic_expression, magic_name)
@@ -536,6 +549,11 @@ def _get_child_entries(entry, child_names):
         for entry, name in _get_child_entries(child.entry, child_names):
             yield entry, name
 
+def get_reference_stack(entry, i, param):
+    child = entry.children[i]
+    entries = [(child.entry, child.name)] + list(_get_child_entries(child.entry, param.name.split('.')[1:]))
+    return entries
+
 def _get_child_reference(entries):
     """Get the c-style reference to the entry specified in 'entries'.
 
@@ -562,10 +580,8 @@ def _get_child_reference(entries):
 def get_child_variable(entry, i, param, child_variable):
     """Return the variable referenced by the parameter pass to the i-th child of entry."""
     child = entry.children[i]
-    names = param.name.split('.')
-    names.pop(0)
     return _get_child_reference([(child.entry, child_variable)] +
-        list(_get_child_entries(child.entry, names)))
+            list(_get_child_entries(child.entry, param.name.split('.')[1:])))
 
 def sequence_encoder_order(entry):
     """Return the order we should be encoding the child entries in a sequence.

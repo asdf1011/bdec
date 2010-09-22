@@ -597,7 +597,10 @@ ${recursivePrint(entry, False)}
   <% prefix = '' if is_successful else '!' %>
   %if contains_data(child.entry):
       %if not child_contains_data(child):
-        ## The child is a common entry that has been hidden
+        ## The child is a common entry that has been hidden. We need to create
+        ## a mock object, as the encode function expects an object to encode.
+        ## We need to populate this variable with any output parameters that
+        ## have been referenced from it.
         <% child_variable = '%s' % variable('unused %s' % child.name) %>
     memset(&${child_variable}, 0, sizeof(${settings.ctype(child.entry)}));
         <% raw_params = raw_encode_expression_params.get_passed_variables(entry, child) %>
@@ -607,7 +610,18 @@ ${recursivePrint(entry, False)}
               ## For every expression parameter that is passed out, that is an
               ## value that during encoding comes from the value parameter we
               ## pass in. Thus we have to set the mock parameters appropriately...
-    ${settings.get_child_variable(entry, i, raw_param, child_variable)} = ${esc_param.name};
+              <% value_name = settings.get_child_variable(entry, i, raw_param, child_variable) %>
+    ${value_name} = ${esc_param.name};
+              <% entry_stack = settings.get_reference_stack(entry, i, raw_param) %>
+              <% referenced = entry_stack[-1][0] %>
+              %if isinstance(referenced, Sequence):
+                ## Check to see if there are any visible items referenced by this
+                ## sequence value. If so, we need to solve them (eg:
+                ## regression/xml/098_solve_during_mock.xml).
+                <% def mock_name(ref_entry, ref, params):
+                      return settings.relative_reference_name(entry_stack, ref, child_variable) %>
+    ${solve(referenced, referenced.value, value_name, variable('mock %s' % raw_param.name), mock_name)}
+              %endif
             %endif
         %endfor
         <% child_variable = '&%s' % child_variable %>
@@ -688,7 +702,8 @@ ${recursivePrint(entry, False)}
     %endif
 </%def>
 
-<%def name="solve(entry, expression, value_name, prefix)">
+<%def name="solve(entry, expression, value_name, prefix, solved_name=None)">
+    <% solved_name = solved_name or settings.local_reference_name %>
     <% constant, components = settings.breakup_expression(expression, entry) %>
     <% remainder = variable('%s remainder' % prefix) %>
     ${settings._type_from_range(erange(expression, entry, raw_decode_params))} ${remainder} = ${value_name};
@@ -696,9 +711,8 @@ ${recursivePrint(entry, False)}
     ${remainder} -= ${settings.value(entry, constant, encode_params)};
     %endif
     %for ref, expr, invert_expr in components:
-    <% variable_name = _value_ref(local_name(entry, ref.param_name()), entry, encode_params) %>
-    ${variable_name} = ${settings.value(entry, invert_expr, encode_params, expression, remainder)};
-    ${remainder} -= ${settings.value(entry, expr, encode_params)};
+    ${solved_name(entry, ref, encode_params)} = ${settings.value(entry, invert_expr, encode_params, expression, remainder)};
+    ${remainder} -= ${settings.value(entry, expr, encode_params, ref_name=solved_name)};
     %endfor
     if (${remainder} != 0)
     {
