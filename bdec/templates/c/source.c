@@ -615,7 +615,7 @@ ${recursivePrint(entry, False)}
   %else:
     <% child_variable = "don't look here, move along." %>
   %endif
-  if (${prefix}${settings.encode_name(child.entry)}(${buffer_name}${encode_passed_params(entry, i, child_variable)}))
+    if (${prefix}${settings.encode_name(child.entry)}(${buffer_name}${encode_passed_params(entry, i, child_variable)}))
 </%def>
 
 <%def name="encodeField(entry)" buffered="True">
@@ -689,15 +689,7 @@ ${recursivePrint(entry, False)}
 </%def>
 
 <%def name="solve(entry, expression, value_name, prefix)">
-    <%
-       magic_expression = expression
-       inputs = [p.name for p in raw_encode_params.get_params(entry) if p.direction == p.IN]
-       constant, components = solve_expression(magic_expression, expression, entry, raw_decode_params, inputs)
-       try:
-          constant = constant.evaluate({})
-       except UndecodedReferenceError:
-           pass
-    %>
+    <% constant, components = settings.breakup_expression(expression, entry) %>
     <% remainder = variable('%s remainder' % prefix) %>
     ${settings._type_from_range(erange(expression, entry, raw_decode_params))} ${remainder} = ${value_name};
     %if constant != 0:
@@ -705,7 +697,7 @@ ${recursivePrint(entry, False)}
     %endif
     %for ref, expr, invert_expr in components:
     <% variable_name = _value_ref(local_name(entry, ref.param_name()), entry, encode_params) %>
-    ${variable_name} = ${settings.value(entry, invert_expr, encode_params, magic_expression, remainder)};
+    ${variable_name} = ${settings.value(entry, invert_expr, encode_params, expression, remainder)};
     ${remainder} -= ${settings.value(entry, expr, encode_params)};
     %endfor
     if (${remainder} != 0)

@@ -615,3 +615,12 @@ def sequence_encoder_order(entry):
                 should_stop = True
         yield i, start_temp_buffer, buffer_name, end_temp_buffers
 
+def breakup_expression(expression, entry):
+   inputs = [p.name for p in raw_encode_params.get_params(entry) if p.direction == p.IN]
+   constant, components = solve_expression(expression, expression, entry, raw_decode_params, inputs)
+   try:
+      constant = constant.evaluate({})
+   except UndecodedReferenceError:
+       pass
+   return constant, components
+
