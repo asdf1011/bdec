@@ -607,7 +607,7 @@ ${recursivePrint(entry, False)}
               ## For every expression parameter that is passed out, that is an
               ## value that during encoding comes from the value parameter we
               ## pass in. Thus we have to set the mock parameters appropriately...
-    ${settings.set_mock_param(entry, i, esc_param, child_variable)}
+    ${settings.get_child_variable(entry, i, raw_param, child_variable)} = ${esc_param.name};
             %endif
         %endfor
         <% child_variable = '&%s' % child_variable %>

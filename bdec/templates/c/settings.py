@@ -522,47 +522,50 @@ def get_null_mock_value(entry):
 def is_empty_sequenceof(entry):
     return isinstance(entry, SequenceOf) and not contains_data(entry)
 
-def _get_child_reference(entry, names):
-    if not names:
+def _get_child_entries(entry, child_names):
+    """Get an iterable to the list of entries from entry to the items defined by names."""
+    if child_names:
+        child_name = child_names.pop(0)
+        for child in entry.children:
+            if child.name == child_name:
+                break
+        else:
+            raise Exception('Failed to find child named %s in %s' % (child_name, entry))
+
+        yield child.entry, variable(child.name)
+        for entry, name in _get_child_entries(child.entry, child_names):
+            yield entry, name
+
+def _get_child_reference(entries):
+    """Get the c-style reference to the entry specified in 'entries'.
+
+    For example, ${header.data length} would be return 'header.dataLength'.
+    """
+    assert len(entries) != 0
+    entry, result = entries.pop(0)
+    if not entries:
         # This is the referenced item.
         if is_numeric(ctype(entry)):
-            return ''
+            pass
         elif isinstance(entry, seq.Sequence) and entry.value is not None:
-            return '.value'
-        raise NotImplementedError("Mocking %s is currently not supported" % entry)
-
-    name = names.pop(0)
-    for child in entry.children:
-        if child.name == name:
-            break
+            result = '%s.value' % result
+        else:
+            raise NotImplementedError("Mocking %s is currently not supported" % entry)
     else:
-        raise Exception('Failed to find child named %s in %s' % (name, entry))
+        # We are referencing a child of this entry
+        if isinstance(entry, seq.Sequence):
+            result = '%s.%s' % (result, _get_child_reference(entries))
+        else:
+            raise NotImplementedError('Mock references under %s not supported' % entry)
+    return result
 
-    if isinstance(entry, seq.Sequence):
-        result = '.%s' % variable(child.name)
-    else:
-        raise NotImplementedError('Mock references under %s not supported' % entry)
-    return result + _get_child_reference(child.entry, names)
-
-def set_mock_param(entry, i, param, child_variable):
-    """ Return an expression setting the parameter value in the mock object.
-
-    Mock objects are used when visible common entries are hidden locally; to
-    encode these we have to construct a temporary mock instance, populating
-    the parameters as necessary. This function is responsible for setting the
-    parameters within the mock object."""
+def get_child_variable(entry, i, param, child_variable):
+    """Return the variable referenced by the parameter pass to the i-th child of entry."""
     child = entry.children[i]
-    for i, p in enumerate(stupid_ugly_expression_encode_params.get_passed_variables(entry, child)):
-        if p.name == param.name:
-            break
-    else:
-        raise Exception('Failed to find param %s!' % param)
-    raw_param = raw_encode_expression_params.get_passed_variables(entry, child)[i]
-
-    # Drill down into the structure, and set the appropriate member.
-    names = list(variable(p) for p in raw_param.name.split('.'))
+    names = param.name.split('.')
     names.pop(0)
-    return '%s%s = %s;' % (child_variable, _get_child_reference(child.entry, names), param.name)
+    return _get_child_reference([(child.entry, child_variable)] +
+        list(_get_child_entries(child.entry, names)))
 
 def sequence_encoder_order(entry):
     """Return the order we should be encoding the child entries in a sequence.
