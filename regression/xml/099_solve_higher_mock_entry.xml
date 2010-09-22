@@ -1,0 +1,22 @@
+<protocol>
+    <!-- Test solving a mock object's values when the value to be solved is
+         higher in the tree (instead of lower). -->
+    <sequence name="a">
+        <reference name="b1" type="b" expected="8" />
+        <reference name="d:" type="d" />
+        <sequence value="${d:.e}" expected="1205" />
+    </sequence>
+
+    <common>
+        <sequence name="b" value="${c field}">
+            <field name="c field" length="8" type="integer" />
+        </sequence>
+
+        <sequence name="d">
+            <field name="d1" length="8" type="integer" />
+            <sequence name="e" value="${d1} * 100 + ${e1}">
+                <field name="e1" length="8" type="integer" />
+            </sequence>
+        </sequence>
+    </common>
+</protocol>

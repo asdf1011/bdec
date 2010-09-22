@@ -1,0 +1,18 @@
+<protocol>
+    <sequence name="a">
+        <reference name="b:" type="b" />
+        <reference name="c:" type="c" />
+        <reference name="d:" type="d" />
+        <reference name="e:" type="e" />
+    </sequence>
+
+    <common>
+        <field name="b" type="integer" length="32" />
+        <field name="c" type="text" length="64" />
+        <field name="d" type="binary" length="128" />
+        <sequence name="e">
+            <field name="e1" type="text" length="64" />
+            <field name="e2" type="binary" length="128" />
+        </sequence>
+    </common>
+</protocol>
