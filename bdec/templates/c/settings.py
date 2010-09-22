@@ -23,7 +23,7 @@ import bdec.choice as chc
 from bdec.constraints import Equals
 from bdec.data import Data
 from bdec.encode import get_encoder
-from bdec.entry import Entry
+from bdec.entry import Entry, is_hidden
 from bdec.inspect.solver import solve_expression
 import bdec.field as fld
 import bdec.sequence as seq
@@ -82,9 +82,9 @@ def _biggest(types):
 
 def _integer_type(type):
     """Choose an appropriate integral type for the given type."""
-    return _type_from_range(type.range(raw_params))
+    return type_from_range(type.range(raw_params))
 
-def _type_from_range(range):
+def type_from_range(range):
     if range.min is None:
         # This number doesn't have a minimum value; choose the type that can
         # represent the most negative number.
@@ -261,16 +261,20 @@ def _value_ref(name, entry, params):
     return name
 
 def local_reference_name(entry, ref, params):
-    return _value_ref(local_name(entry, ref.param_name()), entry, params)
+    return False, _value_ref(local_name(entry, ref.param_name()), entry, params)
 
 def relative_reference_name(entries, ref, local_name):
     """Return the name of the referenced entry relative to the top of the entries stack."""
+    if is_hidden(ref.name):
+        # This entry is hidden, so we should store it locally.
+        return True, variable('temp ' + ref.name)
+
     # TODO: At the moment it only walks down the reference stack; it should also
     # attempt to walk up it.
     names = ref.name.split('.')
     entry_stack = list(entries)
     entry_stack += _get_child_entries(entries[-1][0], names)
-    return '%s.%s' % (local_name, _get_child_reference(entry_stack[1:]))
+    return False, '%s.%s' % (local_name, _get_child_reference(entry_stack[1:]))
 
 def _call_params(parent, i, result_name, params):
     # How we should reference the variable passed to the child is from the
@@ -349,15 +353,15 @@ def value(entry, expr, params=None, magic_expression=None, magic_name=None, ref_
           return "%iL" % expr.value
       return int(expr.value)
   elif isinstance(expr, ReferenceExpression):
-      return ref_name(entry, expr, params)
+      return ref_name(entry, expr, params)[1]
   elif isinstance(expr, ArithmeticExpression):
       left = value(entry, expr.left, params, magic_expression, magic_name)
       right = value(entry, expr.right, params, magic_expression, magic_name)
 
       cast = ""
-      left_type = _type_from_range(expression_range(expr.left, entry, raw_params))
-      right_type = _type_from_range(expression_range(expr.right, entry, raw_params))
-      result_type = _type_from_range(expression_range(expr, entry, raw_params))
+      left_type = type_from_range(expression_range(expr.left, entry, raw_params))
+      right_type = type_from_range(expression_range(expr.right, entry, raw_params))
+      result_type = type_from_range(expression_range(expr, entry, raw_params))
 
       types = unsigned_types.copy()
       types.update(signed_types)

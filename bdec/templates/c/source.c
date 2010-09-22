@@ -706,12 +706,14 @@ ${recursivePrint(entry, False)}
     <% solved_name = solved_name or settings.local_reference_name %>
     <% constant, components = settings.breakup_expression(expression, entry) %>
     <% remainder = variable('%s remainder' % prefix) %>
-    ${settings._type_from_range(erange(expression, entry, raw_decode_params))} ${remainder} = ${value_name};
+    ${settings.type_from_range(erange(expression, entry, raw_decode_params))} ${remainder} = ${value_name};
     %if constant != 0:
     ${remainder} -= ${settings.value(entry, constant, encode_params)};
     %endif
     %for ref, expr, invert_expr in components:
-    ${solved_name(entry, ref, encode_params)} = ${settings.value(entry, invert_expr, encode_params, expression, remainder)};
+    <% is_temp, solve_name = solved_name(entry, ref, encode_params) %>
+    <% solve_type = '' if not is_temp else '%s ' % settings.type_from_range(erange(expr, entry, raw_decode_params)) %>
+    ${solve_type}${solve_name} = ${settings.value(entry, invert_expr, encode_params, expression, remainder)};
     ${remainder} -= ${settings.value(entry, expr, encode_params, ref_name=solved_name)};
     %endfor
     if (${remainder} != 0)
