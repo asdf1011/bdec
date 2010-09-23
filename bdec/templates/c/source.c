@@ -625,12 +625,13 @@ ${recursivePrint(entry, False)}
                 <% referenced = entry_stack[-1][0] %>
                 %if isinstance(referenced, Sequence):
                   <% def mock_name(ref_entry, ref, params):
-                        # The entry we are solving references another entry; we
-                        # have to solve that one too.
                         result = settings.relative_reference_name(entry_stack, ref, child_variable)
-                        dependency = (settings.get_reference_stack(entry_stack, ref.name.split('.')), result[1], ref.name)
-                        if dependency not in dependencies:
-                            dependencies.append(dependency)
+                        if ':' not in ref.name:
+                            # The entry we are solving references another entry; we
+                            # have to check to see if we should solve that one too.
+                            dependency = (settings.get_reference_stack(entry_stack, ref.name.split('.')), result[1], ref.name)
+                            if dependency not in dependencies:
+                                dependencies.append(dependency)
                         return result
                         %>
     ${solve(referenced, referenced.value, value_name, variable('mock %s' % name), mock_name)}
