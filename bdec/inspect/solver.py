@@ -92,7 +92,7 @@ def _break_into_parts(entry, expression, input_params):
                     raise SolverError(entry, expression, 'Shifting by a non constant not supported')
                 for ref, expr in left.items():
                     result[ref] = expr << rconst
-                constant = constant << rconst
+                constant = lconst << rconst
             else:
                 raise SolverError(entry, expression, 'Breaking apart expressions with %s not supported' % expression.op)
     elif isinstance(expression, Constant):
