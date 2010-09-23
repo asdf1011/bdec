@@ -612,16 +612,30 @@ ${recursivePrint(entry, False)}
               ## pass in. Thus we have to set the mock parameters appropriately...
               <% value_name = settings.get_child_variable(entry, i, raw_param, child_variable) %>
     ${value_name} = ${esc_param.name};
-              <% entry_stack = settings.get_reference_stack(entry, i, raw_param) %>
-              <% referenced = entry_stack[-1][0] %>
-              %if isinstance(referenced, Sequence):
-                ## Check to see if there are any visible items referenced by this
-                ## sequence value. If so, we need to solve them (eg:
-                ## regression/xml/098_solve_during_mock.xml).
-                <% def mock_name(ref_entry, ref, params):
-                      return settings.relative_reference_name(entry_stack, ref, child_variable) %>
-    ${solve(referenced, referenced.value, value_name, variable('mock %s' % raw_param.name), mock_name)}
-              %endif
+              <%
+              # If the parameter we just solved is a sequence that references
+              # other visible entries in the mocked sequence, we need to
+              # recursively solve for those entries too.
+              dependencies = [
+                (settings.get_reference_stack([(child.entry, child.name)], raw_param.name.split('.')[1:]), value_name, raw_param.name)
+                ]
+              %>
+              %while dependencies:
+                <% entry_stack, value_name, name = dependencies.pop() %>
+                <% referenced = entry_stack[-1][0] %>
+                %if isinstance(referenced, Sequence):
+                  <% def mock_name(ref_entry, ref, params):
+                        # The entry we are solving references another entry; we
+                        # have to solve that one too.
+                        result = settings.relative_reference_name(entry_stack, ref, child_variable)
+                        dependency = (settings.get_reference_stack(entry_stack, ref.name.split('.')), result[1], ref.name)
+                        if dependency not in dependencies:
+                            dependencies.append(dependency)
+                        return result
+                        %>
+    ${solve(referenced, referenced.value, value_name, variable('mock %s' % name), mock_name)}
+                %endif
+              %endwhile
             %endif
         %endfor
         <% child_variable = '&%s' % child_variable %>

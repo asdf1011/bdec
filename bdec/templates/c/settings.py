@@ -23,7 +23,7 @@ import bdec.choice as chc
 from bdec.constraints import Equals
 from bdec.data import Data
 from bdec.encode import get_encoder
-from bdec.entry import Entry, is_hidden
+from bdec.entry import Entry
 from bdec.inspect.solver import solve_expression
 import bdec.field as fld
 import bdec.sequence as seq
@@ -263,17 +263,25 @@ def _value_ref(name, entry, params):
 def local_reference_name(entry, ref, params):
     return False, _value_ref(local_name(entry, ref.param_name()), entry, params)
 
-def relative_reference_name(entries, ref, local_name):
-    """Return the name of the referenced entry relative to the top of the entries stack."""
-    if is_hidden(ref.name):
-        # This entry is hidden, so we should store it locally.
-        return True, variable('temp ' + ref.name)
+def get_reference_stack(entries, names):
+    """Get the new stack pointing to a given referenced.
 
+    entries -- The stack of (entry, name) tuples, it will starting searching
+        at the end for the referenced entry.
+    names -- A list of named entries to find.
+    return -- The new stack of (entry,  name) tuples."""
     # TODO: At the moment it only walks down the reference stack; it should also
     # attempt to walk up it.
-    names = ref.name.split('.')
     entry_stack = list(entries)
     entry_stack += _get_child_entries(entries[-1][0], names)
+    return entry_stack
+
+def relative_reference_name(entries, ref, local_name):
+    """Return the name of the referenced entry relative to the top of the entries stack."""
+    if ':' in ref.name:
+        # This entry is hidden, so we should store it locally.
+        return True, variable('temp ' + ref.name)
+    entry_stack = get_reference_stack(entries, ref.name.split('.'))
     return False, '%s.%s' % (local_name, _get_child_reference(entry_stack[1:]))
 
 def _call_params(parent, i, result_name, params):
@@ -355,8 +363,8 @@ def value(entry, expr, params=None, magic_expression=None, magic_name=None, ref_
   elif isinstance(expr, ReferenceExpression):
       return ref_name(entry, expr, params)[1]
   elif isinstance(expr, ArithmeticExpression):
-      left = value(entry, expr.left, params, magic_expression, magic_name)
-      right = value(entry, expr.right, params, magic_expression, magic_name)
+      left = value(entry, expr.left, params, magic_expression, magic_name, ref_name)
+      right = value(entry, expr.right, params, magic_expression, magic_name, ref_name)
 
       cast = ""
       left_type = type_from_range(expression_range(expr.left, entry, raw_params))
@@ -552,11 +560,6 @@ def _get_child_entries(entry, child_names):
         yield child.entry, variable(child.name)
         for entry, name in _get_child_entries(child.entry, child_names):
             yield entry, name
-
-def get_reference_stack(entry, i, param):
-    child = entry.children[i]
-    entries = [(child.entry, child.name)] + list(_get_child_entries(child.entry, param.name.split('.')[1:]))
-    return entries
 
 def _get_child_reference(entries):
     """Get the c-style reference to the entry specified in 'entries'.
