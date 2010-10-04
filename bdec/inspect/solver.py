@@ -27,7 +27,8 @@ import operator
 
 from bdec import DecodeError
 from bdec.expression import ArithmeticExpression, Constant, \
-    ReferenceExpression, ValueResult
+    ReferenceExpression, ValueResult, ConditionalExpression
+from bdec.inspect.range import Range
 from bdec.inspect.type import expression_range as erange
 
 class SolverError(DecodeError):
@@ -112,7 +113,7 @@ def _is_constant(entry, expression, input_params):
     references, constant = _break_into_parts(entry, expression, input_params)
     return not references
 
-def _invert(result_expr, entry, expression, input_params):
+def _invert(result_expr, entry, expression, params, input_params, remainder_range):
     """Convert a function value=f(x) into x=f(value)"""
     left = result_expr
     right = expression
@@ -137,7 +138,39 @@ def _invert(result_expr, entry, expression, input_params):
                     # left = k * right  -> left / k = right
                     left = ArithmeticExpression(operator.div, left, right.left)
                     right = right.right
+
+                # To correctly handle solving signed integers, eg:
+                #    y = (-signed * k) + value
+                # we have to ensure that '-signed / k' is always less than 'y',
+                # as 'value >= 0'. Thus we need to ensure that the inverted
+                # '/' always rounds towards negative infinity. To ensure this
+                # we check to see if we erased any bits in the divide; if so, we
+                # need to account for the rounding.
+                #
+                # To know if we need to round down or up, we need to see
+                # whether we will be positive or negative, and likewise the
+                # value of the remainder. For example, if our output will be
+                # negative (eg: remainder = -signed * k), and the remainder
+                # will be positive (eg: y = value) then we must round UP (so
+                # that the remainder will be positive when solving 'value').
+                # Conversely, if both this expression and the remainder have
+                # the same sign, there is no need for rounding...
+                our_range = erange(expression, entry, params)
+                round_amount = None
+                if (our_range.min is None or our_range.min < 0) and \
+                        (remainder_range.max is None or remainder_range.max > 0):
+                    # We are negative, remainder is position; we need to round up.
+                    round_amount = 1
+                elif our_range.max is None or our_range.max > 0 and \
+                        (remainder_range.min is None or remainder_range.min < 0):
+                    # We are positive, remainder is negative; we need to round up.
+                    round_amount = 1
+                if round_amount:
+                    condition = ArithmeticExpression(operator.mod, left.left, left.right)
+                    rounding = ConditionalExpression(condition, Constant(1), Constant(0))
+                    left = ArithmeticExpression(operator.add, left, rounding)
             elif is_right_const and right.op == operator.lshift:
+                # left = right << k  ->  left >> k = right
                 left = ArithmeticExpression(operator.rshift, left, right.right)
                 right = right.left
             elif is_left_const and right.op == operator.sub:
@@ -176,7 +209,15 @@ def solve_expression(result_expr, expression, entry, params, input_params):
             result = max(abs(output.max), result)
         return result
     variables = sorted(components.items(), key=influence, reverse=True)
-    return constant, [(ref, expr, _invert(result_expr, entry, expr, input_params)) for ref, expr in variables]
+    result_params = []
+    for i, (ref, expr) in enumerate(variables):
+        # Get the range of the remaining references (required so we know what
+        # way we should be rounding divisions / shifts).
+        remaining_range = sum((erange(c[1], entry, params) for c in variables[i+1:]),
+                Range(0, 0))
+        result_params.append((ref, expr, _invert(result_expr, entry, expr,
+            params, input_params, remaining_range)))
+    return constant, result_params
 
 def solve(expression, entry, params, context, value):
     """Solve an expression given the result and the input parameters.

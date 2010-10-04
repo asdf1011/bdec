@@ -118,6 +118,25 @@ class ArithmeticExpression(Expression):
         return '(%s %s %s)' % (self.left, lookup[self.op], self.right)
 
 
+class ConditionalExpression(Expression):
+    """Class to implement a conditional style expression.
+
+    eg: x = (a > 5) ? 1 : 0 """
+    def __init__(self, condition, left, right):
+        self.condition = condition
+        self.left = left
+        self.right = right
+
+    def evaluate(self, context):
+        if self.condition.evaluate(context):
+            return self.left.evaluate(context)
+        else:
+            return self.right.evaluate(context)
+
+    def __repr__(self):
+        return '%s ? %s : %s' % (self.condition, self.left, self.right)
+
+
 class Constant(Expression):
     def __init__(self, value):
         self.value = value

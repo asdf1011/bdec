@@ -145,3 +145,15 @@ class TestSolver (unittest.TestCase):
             Sequence('unused', [], value=parse('${total length:} * 8 - len{data:}')),
             ])
         self.assertEqual({'len{data:}': 800}, _solve(a, 3, 0, {'total length:':100}))
+
+    def test_signed_flag(self):
+        a = Sequence('a', [
+            Field('signed:', 1),
+            Field('value:', 7),
+            Sequence('signed char', [], value=parse('(${signed:} * ((0-1) * 128)) + ${value:}'))
+            ])
+        self.assertEqual({'${signed:}':1, '${value:}':0}, _solve(a, 2, -128))
+        self.assertEqual({'${signed:}':1, '${value:}':0x7f}, _solve(a, 2, -1))
+        self.assertEqual({'${signed:}':0, '${value:}':0}, _solve(a, 2, 0))
+        self.assertEqual({'${signed:}':0, '${value:}':0x7f}, _solve(a, 2, 127))
+
