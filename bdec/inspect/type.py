@@ -24,7 +24,8 @@ import operator
 import bdec.choice as chc
 from bdec.constraints import Equals
 from bdec.entry import UndecodedReferenceError
-from bdec.expression import ArithmeticExpression, Constant, ValueResult, LengthResult
+from bdec.expression import ArithmeticExpression, Constant, ValueResult, \
+        LengthResult, ConditionalExpression
 import bdec.field as fld
 from bdec.inspect.range import Range
 import bdec.sequence as seq
@@ -61,11 +62,17 @@ def _get_param(entry, name, parameters):
 def _reference_range(value, entry, parameters):
     return _get_param(entry, value.param_name(), parameters).type.range(parameters)
 
+def _conditional_range(expr, entry, parameters):
+    left = expression_range(expr.left, entry, parameters)
+    right = expression_range(expr.right, entry, parameters)
+    return left | right
+
 _handlers = {
         Constant: _constant_range,
         ArithmeticExpression: _delayed_range,
         ValueResult: _reference_range,
         LengthResult: _reference_range,
+        ConditionalExpression: _conditional_range,
         }
 
 def expression_range(expression, entry=None, parameters=None):

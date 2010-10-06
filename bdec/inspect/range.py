@@ -190,3 +190,14 @@ class Range:
     def __rshift__(self, other):
         return Range(self.min >> other.max, self.max >> other.min)
 
+    def __or__(self, other):
+        if self.min is None or other.min is None:
+            minimum = None
+        else:
+            minimum = min(self.min, other.min)
+        if self.max is None or other.max is None:
+            maximum = None
+        else:
+            maximum = max(self.max, other.max)
+        return Range(minimum, maximum)
+
