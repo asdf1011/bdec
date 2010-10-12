@@ -41,4 +41,8 @@ void encode_long_little_endian_integer(unsigned long long value, int num_bits, s
 // Helper function to print an xml escaped string
 void print_escaped_string(Text* text);
 
+// Divide with round towards either negative infinity or postive infinity.
+long long ${'divide with rounding' | function}(long long numerator, long long denominator, int should_round_up);
+// TODO: Add a normal width integer version of this function...
+
 #endif

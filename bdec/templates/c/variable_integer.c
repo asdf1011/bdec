@@ -212,3 +212,23 @@ void encode_long_little_endian_integer(unsigned long long value, int num_bits, s
     }
 }
 
+long long ${'divide with rounding' | function}(long long numerator, long long denominator, int should_round_up)
+{
+    long long result = numerator / denominator;
+    long long remainder = numerator % denominator;
+    if (remainder != 0)
+    {
+        if ((numerator < 0 && denominator > 0) || (numerator > 0 && denominator < 0))
+        {
+            // C division is round towards zero, but this function implements round
+            // towards negative infinity...
+            --result;
+        }
+    }
+    if (should_round_up && remainder != 0)
+    {
+        ++result;
+    }
+    return result;
+}
+

@@ -27,7 +27,7 @@ import operator
 
 from bdec import DecodeError
 from bdec.expression import ArithmeticExpression, Constant, \
-    ReferenceExpression, ValueResult, ConditionalExpression
+    ReferenceExpression, ValueResult, RoundUpDivisionExpression
 from bdec.inspect.range import Range
 from bdec.inspect.type import expression_range as erange
 
@@ -156,19 +156,16 @@ def _invert(result_expr, entry, expression, params, input_params, remainder_rang
                 # Conversely, if both this expression and the remainder have
                 # the same sign, there is no need for rounding...
                 our_range = erange(expression, entry, params)
-                round_amount = None
+                should_round_up = False
                 if (our_range.min is None or our_range.min < 0) and \
                         (remainder_range.max is None or remainder_range.max > 0):
                     # We are negative, remainder is position; we need to round up.
-                    round_amount = 1
+                    should_round_up = True
                 elif our_range.max is None or our_range.max > 0 and \
                         (remainder_range.min is None or remainder_range.min < 0):
                     # We are positive, remainder is negative; we need to round up.
-                    round_amount = 1
-                if round_amount:
-                    condition = ArithmeticExpression(operator.mod, left.left, left.right)
-                    rounding = ConditionalExpression(condition, Constant(1), Constant(0))
-                    left = ArithmeticExpression(operator.add, left, rounding)
+                    should_round_up = True
+                left = RoundUpDivisionExpression(left.left, left.right, should_round_up)
             elif is_right_const and right.op == operator.lshift:
                 # left = right << k  ->  left >> k = right
                 left = ArithmeticExpression(operator.rshift, left, right.right)

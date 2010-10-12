@@ -29,7 +29,7 @@ import bdec.field as fld
 import bdec.sequence as seq
 from bdec.sequenceof import SequenceOf
 from bdec.expression import ArithmeticExpression, ReferenceExpression, \
-        Constant, UndecodedReferenceError, ConditionalExpression
+        Constant, UndecodedReferenceError, RoundUpDivisionExpression
 from bdec.inspect.param import Local, Param, MAGIC_UNKNOWN_NAME
 from bdec.inspect.type import EntryLengthType, EntryValueType, IntegerType, EntryType, expression_range
 
@@ -380,11 +380,11 @@ def value(entry, expr, params=None, magic_expression=None, magic_name=None, ref_
           # '1 << 63' is invalid, but '(long long)1 << 63' is ok.
           cast = "(%s)" % result_type
       return "(%s%s %s %s)" % (cast, left, _OPERATORS[expr.op], right)
-  elif isinstance(expr, ConditionalExpression):
-      condition = value(entry, expr.condition, params, magic_expression, magic_name, ref_name)
-      left = value(entry, expr.left, params, magic_expression, magic_name, ref_name)
-      right = value(entry, expr.right, params, magic_expression, magic_name, ref_name)
-      return '%s ? %s : %s' % (condition, left, right)
+  elif isinstance(expr, RoundUpDivisionExpression):
+      left = value(entry, expr.numerator, params, magic_expression, magic_name, ref_name)
+      right = value(entry, expr.denominator, params, magic_expression, magic_name, ref_name)
+      rounding = '1' if expr.should_round_up else '0'
+      return function('divide with rounding') + '(%s, %s, %s)' % (left, right, rounding)
   else:
       raise Exception('Unknown length value', expr)
 

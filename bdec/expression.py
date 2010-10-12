@@ -118,23 +118,26 @@ class ArithmeticExpression(Expression):
         return '(%s %s %s)' % (self.left, lookup[self.op], self.right)
 
 
-class ConditionalExpression(Expression):
-    """Class to implement a conditional style expression.
+class RoundUpDivisionExpression(Expression):
+    """Class to implement division with an optional rounding up.
 
-    eg: x = (a > 5) ? 1 : 0 """
-    def __init__(self, condition, left, right):
-        self.condition = condition
-        self.left = left
-        self.right = right
+    The division is round to minus infinity.
+    """
+    def __init__(self, numerator, denominator, should_round_up):
+        self.numerator = numerator
+        self.denominator = denominator
+        self.should_round_up = should_round_up
 
     def evaluate(self, context):
-        if self.condition.evaluate(context):
-            return self.left.evaluate(context)
-        else:
-            return self.right.evaluate(context)
+        numerator = self.numerator.evaluate(context)
+        denominator = self.denominator.evaluate(context)
 
-    def __repr__(self):
-        return '%s ? %s : %s' % (self.condition, self.left, self.right)
+        # In python -ve / +ve will round towards minus infinity, so we only
+        # need to handle the round up case.
+        result = numerator / denominator
+        if numerator % denominator and self.should_round_up:
+            result += 1
+        return result
 
 
 class Constant(Expression):
