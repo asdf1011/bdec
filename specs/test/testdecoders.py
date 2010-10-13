@@ -29,9 +29,8 @@ class _BaseTest(object):
         else:
             datafile = open(filename, 'rb')
 
-        (exit_code, xml) = self._decode_file(self._spec, self._common,
-                datafile, should_check_encoding=False)
-        self.assertEqual(0, exit_code)
+        xml = self._decode_file(self._spec, self._common, datafile,
+                should_check_encoding=False)
 
 
 def _create_decode_function(name, filename):
