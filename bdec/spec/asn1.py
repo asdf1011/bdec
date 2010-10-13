@@ -84,7 +84,7 @@ class _Loader:
 
     def __init__(self, filename, references):
         self._references = references
-        self._parser, parsers = self._load_ebnf()
+        self._parser, parsers, self._source_lookup = self._load_ebnf()
 
         # Default for all handlers will be to fail on 'not implemented'. We
         # then have to manually go through and enable all handlers explicitly.
@@ -184,7 +184,7 @@ class _Loader:
         parser = parsers['ModuleDefinition'] + StringEnd()
         parser.ignore('--' + SkipTo('\n'))
 
-        return parser, dict((name, entry) for name, entry in parsers.items() if name not in table)
+        return parser, dict((name, entry) for name, entry in parsers.items() if name not in table), lookup
 
     def _create_named_numeric_list(self, s, l, t):
         value = 0
@@ -241,7 +241,7 @@ class _Loader:
         common.update(self._common_entries)
         for module in common.values():
             self._references.add_common(module)
-        return modules[0], {}
+        return modules[0], self._source_lookup
 
     def _create_constructed(self, name, tag, children):
         """Create a constructed entry.
