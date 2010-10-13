@@ -21,10 +21,10 @@ import operator
 import bdec.choice as chc
 from bdec.constraints import Equals, Maximum, Minimum
 import bdec.data as dt
-from bdec.encode.entry import MissingInstanceError
 import bdec.entry as ent
 import bdec.expression as expr
 import bdec.field as fld
+from bdec.inspect.param import UnknownReferenceError
 import bdec.sequence as seq
 import bdec.sequenceof as sof
 
@@ -129,7 +129,7 @@ class _ProtocolStream:
                         return value
                     data = reduce(operator.add, self.entry.encode(query, None))
                     return data
-            except ent.NotEnoughContextError:
+            except UnknownReferenceError:
                 # We can't encode this entry; see if we know how long it is.
                 pass
 

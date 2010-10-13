@@ -21,7 +21,7 @@ from bdec import DecodeError
 from bdec.constraints import Equals
 from bdec.data import Data
 from bdec.field import FieldDataError
-from bdec.encode.entry import EntryEncoder, MissingInstanceError, NotEnoughContextError
+from bdec.encode.entry import EntryEncoder
 from bdec.expression import UndecodedReferenceError
 from bdec.inspect.type import expression_range as erange
 

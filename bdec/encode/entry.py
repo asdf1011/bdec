@@ -21,7 +21,7 @@ import bdec
 
 from bdec.data import Data
 from bdec.choice import Choice
-from bdec.entry import UndecodedReferenceError, NotEnoughContextError, is_hidden
+from bdec.entry import UndecodedReferenceError, is_hidden
 from bdec.field import Field
 from bdec.sequence import Sequence
 from bdec.sequenceof import SequenceOf
