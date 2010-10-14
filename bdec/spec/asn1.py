@@ -247,25 +247,19 @@ class _Loader:
         """Create a constructed entry.
 
         Handles entries with both definite and indefinite lengths. """
-        # FIXME: Handle extra entries after the expected ones...
-        # FIXME: Combine the indefinite & definite sections, and use a
-        # conditional after the children to eat the rest of the data,
-        # depending on whether they are expected or not. This would mean we
-        # don't need to add the children to the common entries...
-        self._common_entries[tag.name] = tag
-        for child in children:
-            if isinstance(child, ent.Child):
-                child = child.entry
-            if child not in self._common_entries:
-                self._common_entries[child.name] = child
+        # Constructed entries can be either indefinite (no specified length,
+        # but terminated with a null), or definite (with a specified length).
+        header = chc.Choice('header:', [
+            seq.Sequence('indefinite', [_field('', 8, 0x80)], value=expr.Constant(1)),
+            seq.Sequence('definite', [self._common('definite length:')], value=expr.Constant(0))])
 
-        indefinite = seq.Sequence('indefinite',
-                [tag, _field('', 8, 0x80)] +
-                children +
-                [_field('', 16, 0x00)])
-        definite = seq.Sequence('definite',
-                [tag, self._common('definite length:')] + children)
-        return chc.Choice(name, [indefinite, definite])
+        # FIXME: Handle extra entries after the expected ones...
+        footer = chc.Choice('footer:', [
+                    seq.Sequence('indefinite', [_field('', 16, 0x00)],
+                        value=expr.ValueResult('header:'),
+                        constraints=[Equals(expr.Constant(1))]),
+                    seq.Sequence('definite', [])])
+        return seq.Sequence(name, [tag, header] + children + [footer])
 
     def _set_entry_name(self, s, loc, toks):
         toks[1].name = toks[0]
@@ -273,6 +267,7 @@ class _Loader:
 
     def _set_type_name(self, s, loc, toks):
         toks[2].name = toks[0]
+        self._common_entries[toks[2].name] = toks[2]
         return toks[2]
 
     def _create_integer(self, s, loc, toks):
