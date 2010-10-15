@@ -33,7 +33,7 @@ class TestPngSample(unittest.TestCase):
         png_filename = os.path.join(test_dir, 'png', 'white.png')
 
         (spec, common, lookup) = load_specs([(spec_filename, None, None)])
-        generate(spec, common, _CDecoder)
+        generate(spec, common, _CDecoder, False)
         shutil.copy(main_filename, _CDecoder.TEST_DIR)
         output = compile_and_run(open(png_filename, 'rb'), _CDecoder)
         self.assertEqual("Image width = 5\nImage height = 5\nComment = I'm an image comment!\n", output)
