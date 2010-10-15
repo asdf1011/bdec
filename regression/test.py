@@ -32,7 +32,8 @@ class _Regression:
     def _test_spec(self, name, spec_filename, successes, failures):
         assert successes or failures
 
-        skip = self.skip_list.get('%s/%s' % (self.spec_format, name), '')
+        skip_name = '%s/%s' % (self.spec_format, name)
+        skip = self.skip_list.get(skip_name.lower(), '')
         if skip == 'decode':
             print 'Skipping test.'
             return
