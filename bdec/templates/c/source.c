@@ -12,7 +12,7 @@
   from bdec.sequenceof import SequenceOf
  %>
 
-/*  Portions Copyright (C) 2008-2009 Henry Ludemann
+/*  Portions Copyright (C) 2008-2010 Henry Ludemann
 
     This file is part of the bdec decoder library.
 

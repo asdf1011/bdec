@@ -1,5 +1,5 @@
 
-/*  Copyright (C) 2009 Henry Ludemann
+/*  Copyright (C) 2010 Henry Ludemann
 
     This file is part of the bdec decoder library.
 

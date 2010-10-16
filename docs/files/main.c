@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008 Henry Ludemann
+ * Copyright (C) 2010 Henry Ludemann
  *
  * License: GNU Lesser General Public License.
  */
