@@ -7,6 +7,7 @@
  %>
 
 /*  Portions Copyright (C) 2010 Henry Ludemann
+    Portions Copyright (c) 2010, PRESENSE Technologies GmbH
 
     This file is part of the bdec decoder library.
 
