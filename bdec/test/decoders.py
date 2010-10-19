@@ -57,10 +57,13 @@ def _is_xml_text_equal(a, b):
     b = b.text or ""
     return a.strip() == b.strip()
 
-def _get_elem_text(a):
+def _get_elem_text(a, event):
     attribs = ' '.join('%s="%s"' % (name, value) for name, value in a.attrib.items())
     text = a.text or ""
-    return "<%s %s>%s</%s>" % (a.tag, attribs, text.strip(), a.tag)
+    prefix = ''
+    if event == 'start':
+        prefix = '<%s %s>' % (a.tag, attribs)
+    return "%s%s</%s>" % (prefix, text.strip(), a.tag)
 
 def assert_xml_equivalent(expected, actual):
     a = xml.etree.ElementTree.iterparse(StringIO.StringIO(expected), ['start', 'end'])
@@ -69,7 +72,7 @@ def assert_xml_equivalent(expected, actual):
         if a_event != b_event or a_elem.tag != b_elem.tag or \
                 a_elem.attrib != b_elem.attrib or \
                 (a_event == 'end' and not _is_xml_text_equal(a_elem, b_elem)):
-            raise Exception("expected '%s', got '%s'" % (_get_elem_text(a_elem), _get_elem_text(b_elem)))
+            raise Exception("expected '%s', got '%s'" % (_get_elem_text(a_elem, a_event), _get_elem_text(b_elem, b_event)))
 
 def _find_executable(name):
     for path in os.environ['PATH'].split(os.pathsep):
