@@ -442,7 +442,7 @@ class Data(object):
             # We don't have enough data for reading this byte... determine how
             # much data we really do have.
             num_bytes = len(self._buffer)
-            available_bits = num_bytes - self._start
+            available_bits = num_bytes * 8 - self._start
             raise NotEnoughDataError(length, available_bits)
         
     def __int__(self):
