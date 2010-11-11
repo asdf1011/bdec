@@ -39,7 +39,7 @@ def get_best_guess(entry, data):
     except ConstraintError, ex:
         pass
     assert ex is not None
-    return ex.entry
+    return ex.entry, results
 
 class TestChoice(unittest.TestCase):
     def test_first_successful(self):
@@ -79,7 +79,8 @@ class TestChoice(unittest.TestCase):
         data = dt.Data.from_hex("01020304")
 
         ex = None
-        self.assertEqual(cat, get_best_guess(choice, data))
+        self.assertEqual(cat, get_best_guess(choice, data.copy())[0])
+        results = get_best_guess(choice, data.copy())[1]
 
         # The 'cat', 'chicken', and 'blah' entries should have
         # started decoding, and the 'bob' entry should have
@@ -192,6 +193,6 @@ class TestChoice(unittest.TestCase):
                     fld.Field('d2', length=8, constraints=[Equals(dt.Data('d'))])])
                 ])])
 
-        self.assertEqual('c2', get_best_guess(a, dt.Data('\x00\x00')).name)
-        self.assertEqual('d2', get_best_guess(a, dt.Data('\x01\x00')).name)
+        self.assertEqual('c2', get_best_guess(a, dt.Data('\x00\x00'))[0].name)
+        self.assertEqual('d2', get_best_guess(a, dt.Data('\x01\x00'))[0].name)
 
