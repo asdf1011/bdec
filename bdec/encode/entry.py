@@ -22,6 +22,7 @@ import bdec
 from bdec.data import Data
 from bdec.choice import Choice
 from bdec.entry import UndecodedReferenceError, is_hidden
+from bdec.expression import Constant
 from bdec.field import Field
 from bdec.sequence import Sequence
 from bdec.sequenceof import SequenceOf
@@ -35,7 +36,9 @@ class DataLengthError(bdec.DecodeError):
         self.actual = actual
 
     def __str__(self):
-        return "%s expected length %s, got length %i" % (self.entry, self.expected, self.actual)
+        # We report the error using Constant to get the nicer 'whole byte'
+        # reporting.
+        return "%s expected length %s, got length %s" % (self.entry, self.expected, Constant(self.actual))
 
 class MissingInstanceError(bdec.DecodeError):
     """
