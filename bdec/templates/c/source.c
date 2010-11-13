@@ -4,6 +4,7 @@
   from bdec.choice import Choice
   from bdec.constraints import Equals
   from bdec.data import Data
+  from bdec.encode.field import encode_value
   from bdec.expression import Constant, ValueResult, UndecodedReferenceError
   from bdec.field import Field
   from bdec.inspect.solver import solve_expression
@@ -75,7 +76,7 @@
     ${compare_binary_expected(value, entry, constraint.limit)}
       %elif settings.ctype(entry) in ['Buffer', 'Text']:
       <% assert isinstance(constraint.limit, Constant) %>
-      <% expected = entry.encode_value(constraint.limit.value) %>
+      <% expected = encode_value(entry, constraint.limit.value) %>
     if (${value}.length != ${len(expected) / 8} ||
             memcmp(${value}.buffer, ${settings.c_string(expected.bytes())}, ${len(expected) / 8}) != 0)
       %else:

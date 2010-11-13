@@ -62,8 +62,8 @@ class TestField(unittest.TestCase):
         calls = list(field.decode(data))
         return calls[1][4]
 
-    def _get_encode_value(self, length, format, value, encoding=""):
-        field = fld.Field("bob", length, format, encoding)
+    def _get_encode_value(self, length, format, value, encoding="", constraints=[]):
+        field = fld.Field("bob", length, format, encoding, constraints)
         result = field.encode(query, value)
         return reduce(operator.__add__, result)
 
@@ -111,9 +111,7 @@ class TestField(unittest.TestCase):
         self.assertEqual(0x3f, int(result.next()))
 
     def test_encoded_size_matches_expected_size(self):
-        """
-        When we specify a size for a field, what we actually encode should match it.
-        """
+        # When we specify a size for a field, what we actually encode should match it.
         text = fld.Field("bob", 48, format=fld.Field.TEXT)
         self.assertEqual("rabbit", text.encode(query, "rabbit").next().bytes())
         self.assertRaises(DataLengthError, list, text.encode(query, "boxfish"))
@@ -133,11 +131,11 @@ class TestField(unittest.TestCase):
 
     def test_bad_format_error(self):
         field = fld.Field("bob", 8, format=fld.Field.INTEGER)
-        self.assertRaises(fld.BadFormatError, field.encode(lambda data, context, i, name: "rabbit", None).next)
+        self.assertRaises(fld.BadFormatError, field.encode, lambda data, context, i, name: "rabbit", None)
 
     def test_encode_of_field_with_expected_value_fails_when_given_bad_data(self):
         field = fld.Field("bob", 8, constraints=[Equals(dt.Data('c'))])
-        self.assertRaises(ConstraintError, field.encode(query, "d").next)
+        self.assertRaises(ConstraintError, field.encode(query, dt.Data("d")).next)
 
     def test_encode_of_field_with_expected_value_succeeds_with_missing_data(self):
         """
@@ -209,6 +207,8 @@ class TestField(unittest.TestCase):
         a = fld.Field('a', length=8)
         self.assertRaises(fld.FieldDataError, list, a.decode(dt.Data()))
 
-    def test_encode_value_without_length(self):
-        a = fld.Field('a', length=ValueResult('unknown'))
-        self.assertEqual(dt.Data('\x01'), a.encode_value('00000001'))
+    def test_encode_binary_with_constraints(self):
+        a = fld.Field('a', length=8, constraints=[Equals(5)])
+        self.assertEqual(dt.Data('\x05'), reduce(operator.add, a.encode(query, '00000101')))
+        self.assertRaises(ConstraintError, reduce, operator.add, a.encode(query, '00000111'))
+

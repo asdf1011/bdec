@@ -99,7 +99,7 @@ class Equals:
             length_diff = len(value) - len(expected)
             if length_diff > 0:
                 # The expected value is shorter than the actual, so grow it.
-                expected = Data('\x00' * (length_diff / 8), 0, length_diff) + expected
+                expected = Data('\x00' * (length_diff / 8 + 1), 0, length_diff) + expected
             elif length_diff < 0:
                 # The expected value is longer than the actual, so shrink it.
                 shorter = expected.copy()

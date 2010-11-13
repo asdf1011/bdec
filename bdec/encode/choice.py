@@ -30,10 +30,15 @@ class ChoiceEncoder(EntryEncoder):
 
     def _encode(self, query, value, context):
         # We attempt to encode all of the embedded items, until we find
-        # an encoder capable of doing it.
+        # an encoder capable of doing it. We try the visible items first, as
+        # the hidden entries will usually succeed regardless.
+        visible = [c for c in self.children if not c.is_hidden]
+        hidden = [c for c in self.children if c.is_hidden]
+        children = sorted(self.children, key=lambda c:c.is_hidden)
+
         best_guess = None
         best_guess_bits = 0
-        for child in self.children:
+        for child in children:
             try:
                 bits_encoded = 0
                 for data in self._encode_child(child, query, value, 0, context):

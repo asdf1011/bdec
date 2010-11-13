@@ -39,7 +39,9 @@ import bdec
 from bdec.constraints import Equals
 from bdec.choice import Choice
 import bdec.data as dt
+from bdec.encode.field import convert_value
 from bdec.entry import is_hidden
+from bdec.expression import UndecodedReferenceError
 import bdec.field as fld
 import bdec.output.xmlout as xmlout
 import bdec.compiler as comp
@@ -162,10 +164,17 @@ def compile_and_run(data, details, encode_filename=None):
 class _NoExpectedError(Exception):
     pass
 
+class _ComplexExpectedError(Exception):
+    pass
+
 def _get_expected(entry):
     for constraint in entry.constraints:
         if isinstance(constraint, Equals):
-            return constraint.limit.evaluate({})
+            try:
+                return constraint.limit.evaluate({})
+            except UndecodedReferenceError:
+                # We have an expected value, but it's a complex expression.
+                raise _ComplexExpectedError()
     raise _NoExpectedError()
 
 def _decode_visible(spec, data):
@@ -225,15 +234,20 @@ def _validate_xml(spec, data, xmltext):
                 try:
                     text = _get_expected(entry)
                 except _NoExpectedError:
-                    # We don't have an expected value; stick with the existing text.
+                    # We don't have an expected value; stick with the existing
+                    # text.
                     pass
+                except _ComplexExpectedError:
+                    # We have an expected value that is difficult to evaluate.
+                    # Just use the existing expected... this effectively short
+                    # circuits the test.
+                    text = expected
             if text is None:
                 text = ''
 
             if expected is not None:
                 if isinstance(entry, fld.Field):
-                    actual_data = entry.encode_value(text, len(data))
-                    actual = entry.decode_value(actual_data)
+                    actual = convert_value(entry, text, len(data))
                 else:
                     actual = int(text)
                 if expected != actual:
@@ -242,8 +256,7 @@ def _validate_xml(spec, data, xmltext):
                     # character). Encode and decode the expected value to see if
                     # matches now (being escaped itself...)
                     expected_text = xmlout.xml_strip(unicode(expected))
-                    expected_data = entry.encode_value(expected_text, len(data))
-                    escaped_expected = entry.decode_value(expected_data)
+                    escaped_expected = convert_value(entry, expected_text, len(data))
                     constraint = Equals(escaped_expected)
                     constraint.check(entry, actual, {})
             elif a_elem.text is not None and a_elem.text.strip():

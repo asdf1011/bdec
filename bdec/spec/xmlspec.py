@@ -17,6 +17,7 @@
 #   License along with this library; if not, see
 #   <http://www.gnu.org/licenses/>.
 
+import operator
 import StringIO
 import xml.sax
 from xml.sax import saxutils
@@ -24,6 +25,7 @@ from xml.sax import saxutils
 import bdec.choice as chc
 from bdec.constraints import Minimum, Maximum, Equals, NotEquals
 import bdec.data as dt
+from bdec.encode.field import convert_value_context
 import bdec.entry as ent
 import bdec.expression as exp
 import bdec.field as fld
@@ -291,22 +293,24 @@ class _Handler(xml.sax.handler.ContentHandler):
                 except exp.UndecodedReferenceError:
                     # We don't know the length of the object; assume it'll be
                     # the length of the hex.
-                    expected_length = 8 * (len(expected_text) - 2)
+                    expected_length = 4 * (len(expected_text) - 2)
+                    if expected_length % 8:
+                        # We'll align it to whole bytes, just in case.
+                        expected_length += 4
+                        assert expected_length % 8 == 0
                 data = dt.Data('\x00' * (expected_length / 8 + 8))
                 data += dt.Data.from_hex(expected_text[2:])
                 unused = data.pop(len(data) - expected_length)
                 if len(unused) and int(unused) != 0:
                     raise self._error('Field is %i bits long, but expected data is longer (%i bits)!' % (expected_length, len(unused) + len(data)))
+                value = result.decode_value(data)
             else:
                 # The expected data is the string representation of the field's
-                # native format. To get the value, we will convert the string
-                # to data, then back again.
+                # native format.
                 try:
-                    data = result.encode_value(expected_text)
+                    value = convert_value_context(result, expected_text, {})
                 except fld.FieldDataError, ex:
                     raise self._error(ex)
-
-            value = result.decode_value(data)
             result.constraints.append(Equals(value))
         return result
 
