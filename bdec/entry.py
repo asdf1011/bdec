@@ -134,7 +134,7 @@ class Entry(object):
                 items.append(Child(child.name, child))
             if isinstance(items[-1].entry, ReferencedEntry):
                 items[-1].entry.add_parent(items[-1])
-        self._children = tuple(items)
+        self._children = list(items)
     children = property(_get_children, _set_children)
 
     def _validate(self):

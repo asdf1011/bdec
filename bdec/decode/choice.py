@@ -65,20 +65,26 @@ class ChoiceDecoder(EntryDecoder):
             # indicates that the specification could be better written).
             best_guess = None
             best_guess_bits = 0
+            best_guess_entries = 0
             for child in possibles:
                 try:
                     bits_decoded = 0
+                    entries_decoded = 0
                     for is_starting, child_name, entry, entry_data, value in self._decode_child(child, data.copy(), context.copy()):
                         if not is_starting:
                             bits_decoded += len(entry_data)
+                            entries_decoded += 1
 
                     # We successfully decoded the entry!
                     best_guess = child
                     break
                 except bdec.DecodeError:
-                    if best_guess is None or bits_decoded > best_guess_bits:
+                    if best_guess is None or \
+                        bits_decoded > best_guess_bits or \
+                        (bits_decoded == best_guess_bits and entries_decoded > best_guess_entries):
                         best_guess = child
                         best_guess_bits = bits_decoded
+                        best_guess_entries = entries_decoded
 
         # Decode the best option.
         for is_starting, child_name, entry, data, value in self._decode_child(best_guess, data, context):

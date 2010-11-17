@@ -199,11 +199,11 @@ def option_output_temporaries(entry, child_index, params):
     # them to the 'real' output at the end.
     assert isinstance(entry, chc.Choice)
     result = {}
-    param_names = [param.name for param in params.get_params(entry)]
-    param_names.extend(local.name for local in params.get_locals(entry))
+    params_and_locals = list(params.get_params(entry)) + list(params.get_locals(entry))
+    names_and_types = set((p.name, ctype(p.type)) for p in params_and_locals)
 
     for param in params.get_passed_variables(entry, entry.children[child_index]):
-        if param.direction == param.OUT and param.name in param_names:
+        if param.direction == param.OUT and param.name != MAGIC_UNKNOWN_NAME and (param.name, ctype(param.type)) not in names_and_types:
             # We found a parameter that is output from the entry; to
             # avoid the possibility that this is a different type to
             # the parent output, we stash it in a temporary location.
