@@ -17,7 +17,7 @@
 #   <http://www.gnu.org/licenses/>.
 
 import unittest
-from bdec.inspect.range import Range
+from bdec.inspect.range import Range, Ranges
 
 class TestRange(unittest.TestCase):
 
@@ -126,3 +126,70 @@ class TestRange(unittest.TestCase):
         a = Range(0, 999999999)
         b = Range(100, 100)
         self.assertEqual(Range(0, 99999999900), a * b)
+
+
+class TestRanges(unittest.TestCase):
+    def test_initialise(self):
+        r = Ranges([Range(0, 10), Range(5, 15)])
+        self.assertEqual([Range(0, 15)], r.get_ranges())
+
+    def test_add_at_end(self):
+        r = Ranges([Range(0, 10)])
+        r.add(Range(15, 20))
+        self.assertEqual([Range(0, 10), Range(15, 20)], r.get_ranges())
+
+    def test_add_at_start(self):
+        r = Ranges([Range(15, 20)])
+        r.add(Range(5, 10))
+        self.assertEqual([Range(5, 10), Range(15, 20)], r.get_ranges())
+
+    def test_add_overlapping_in_middle(self):
+        r = Ranges([Range(0, 10), Range(15, 20)])
+        r.add(Range(10, 15))
+        self.assertEqual([Range(0, 20)], r.get_ranges())
+
+    def test_add_middle_no_overlap(self):
+        r = Ranges([Range(0, 10), Range(15, 20)])
+        r.add(Range(12, 13))
+        self.assertEqual([Range(0, 10), Range(12, 13), Range(15, 20)], r.get_ranges())
+
+    def test_add_infinite_right(self):
+        r = Ranges([Range(0, 10), Range(15, 20)])
+        r.add(Range(5, None))
+        self.assertEqual([Range(0, None)], r.get_ranges())
+
+    def test_add_infinite_left(self):
+        r = Ranges([Range(0, 10), Range(15, 20)])
+        r.add(Range(None, 16))
+        self.assertEqual([Range(None, 20)], r.get_ranges())
+
+    def test_remove_from_left(self):
+        r = Ranges([Range(10, 20)])
+        r.remove(Range(5, 15))
+        self.assertEqual([Range(16, 20)], r.get_ranges())
+
+    def test_remove_from_right(self):
+        r = Ranges([Range(10, 20)])
+        r.remove(Range(15, 25))
+        self.assertEqual([Range(10, 14)], r.get_ranges())
+
+    def test_remove_past_max(self):
+        r = Ranges([Range(10, 20)])
+        r.remove(Range(25, 30))
+        self.assertEqual([Range(10, 20)], r.get_ranges())
+
+    def test_remove_before_min(self):
+        r = Ranges([Range(10, 20)])
+        r.remove(Range(0, 8))
+        self.assertEqual([Range(10, 20)], r.get_ranges())
+
+    def test_remove_from_middle(self):
+        r = Ranges([Range(10, 20)])
+        r.remove(Range(15, 15))
+        self.assertEqual([Range(10, 14), Range(16, 20)], r.get_ranges())
+
+    def test_remove_all(self):
+        r = Ranges([Range(5, 10), Range(20, 25)])
+        r.remove(Range(None, None))
+        self.assertEqual([], r.get_ranges())
+

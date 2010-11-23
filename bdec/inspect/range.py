@@ -70,7 +70,8 @@ class Range:
     """A range of possible values.
 
     The range is inclusive. eg: min <= value <= max. If min or max is None, it
-    means there is no bound in that direction.
+    means there is no bound in that direction. The object acts like a number;
+    the result of an addition, subtraction, etc is a new range.
     """
     def __init__(self, min=None, max=None):
         self.min = min
@@ -128,6 +129,9 @@ class Range:
         return Range(min, max)
 
     def __mul__(self, other):
+        """Multiple self by another range.
+
+        Returns the possible range of the multiplication."""
         minx = self.min if self.min is not None else _MinusInfinite()
         maxx = self.max if self.max is not None else _Infinite()
         miny = other.min if other.min is not None else _MinusInfinite()
@@ -201,4 +205,69 @@ class Range:
         else:
             maximum = max(self.max, other.max)
         return Range(minimum, maximum)
+
+    def __nonzero__(self):
+        if self.min is not None and self.max is not None:
+            if self.min > self.max:
+                # This is an empty span...
+                return False
+        return True
+
+
+class Ranges:
+    """A class to keep track of a set of Range instances.
+
+    Overlapping ranges will be collapsed, and ranges can be removed."""
+    def __init__(self, ranges=[]):
+        self._ranges = []
+        for r in ranges:
+            self.add(r)
+
+    def add(self, range):
+        for i, r in enumerate(self._ranges):
+            if range.min is None or r.max is None or range.min <= r.max:
+                # We need to insert before the current entry
+                self._ranges.insert(i, range)
+                break
+        else:
+            # This entry can be appended at the end of the array
+            i = len(self._ranges)
+            self._ranges.append(range)
+
+        # Walk through the remainder elements to see if this range is
+        # intersecting.
+        subsequent_ranges = self._ranges[i + 1:]
+        del self._ranges[i + 1:]
+        for j, r in enumerate(subsequent_ranges):
+            if r.intersect(self._ranges[i]):
+                # These ranges overlap
+                self._ranges[i] = self._ranges[i].union(r)
+            else:
+                # This range doesn't overlap; just append it and all
+                # subsequent ranges.
+                self._ranges.extend(subsequent_ranges[j:])
+                break
+
+    def remove(self, range):
+        # Find the first entry this range intersects with.
+        for i, r in enumerate(self._ranges):
+            if range.intersect(r):
+                # Walk through the rest of the ranges, removing as necessary
+                subsequent_ranges = self._ranges[i:]
+                del self._ranges[i:]
+                for j, r in enumerate(subsequent_ranges):
+                    if r.min < range.min:
+                        # This range starts before the range we are removing,
+                        # so add the start non-overlapping section.
+                        self._ranges.append(Range(r.min, range.min - 1))
+                    if range.max is not None and (r.max is None or r.max > range.max):
+                        # This range ends after the range we are removing. Add
+                        # the non-overlapping sections at the end.
+                        self._ranges.append(Range(range.max + 1, r.max))
+                        self._ranges.extend(subsequent_ranges[j+1:])
+                        break
+                break
+
+    def get_ranges(self):
+        return self._ranges
 
