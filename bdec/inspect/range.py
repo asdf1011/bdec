@@ -268,6 +268,22 @@ class Ranges:
                         break
                 break
 
+    def intersect(self, range):
+        result = Ranges()
+        for r in self:
+            overlap = range.intersect(r)
+            if overlap:
+                result.add(overlap)
+        return result
+
+    def __iter__(self):
+        return iter(self._ranges)
+
+    def __getitem__(self, i):
+        return self._ranges[i]
+
     def get_ranges(self):
         return self._ranges
 
+    def __str__(self):
+        return ',  '.join(str(r) for r in self.get_ranges())
