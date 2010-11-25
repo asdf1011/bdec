@@ -53,7 +53,7 @@ def convert_value(entry, value, length):
         try:
             if isinstance(value, Data):
                 value = value.copy()
-            elif isinstance(value, int):
+            elif isinstance(value, int) or isinstance(value, long):
                 value = Data.from_int_big_endian(value, int(length))
             else:
                 value = Data.from_binary_text(_convert_type(entry, value, str))
