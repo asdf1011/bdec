@@ -27,14 +27,14 @@ from bdec.sequence import Sequence
 from bdec.inspect.range import Range, Ranges
 from bdec.inspect.solver import solve_expression, SolverError
 
-def _get_unpopulated_outputs(choice, child):
+def _get_unpopulated_outputs(choice, child, expression_params):
     """Find all outputs of other children that aren't outputs of child.
 
     Returns a {name : params}."""
-    known = [p.name for p in child.params]
+    known = [p.name for p in expression_params.get_passed_variables(choice, child)]
     result = {}
     for c in choice.children:
-        for p in c.params:
+        for p in expression_params.get_passed_variables(choice, c):
             if p.direction == p.OUT and p.name not in known:
                 result.setdefault(p.name, []).append(p)
     return result
@@ -47,7 +47,7 @@ def _is_using_param(expr, param_name):
     return False
 
 def _solve(result_expr, sequence, param_name, expression_params):
-    constant, components = solve_expression(result_expr, sequence.value, sequence, expression_params, [])
+    constant, components = solve_expression(result_expr, sequence.value, sequence, expression_params.expression_params, [])
     if len(components) == 1:
         reference, expression, inverted = components[0]
         if reference.name == param_name:
@@ -91,13 +91,13 @@ def get_default_option_params(choice, child, expression_params):
 
     Returns a {param_name: value} dictionary."""
     result = {}
-    outputs = _get_unpopulated_outputs(choice, child)
+    outputs = _get_unpopulated_outputs(choice, child, expression_params)
     for name, params in outputs.items():
         # Find the possible range of source values, and intersect it with
         # the constraints placed on it by other earlier children.
         possible = Ranges(p.type.range(expression_params) for p in params)
         for c in choice.children[:choice.children.index(child)]:
-            for r in _get_ranges(c.encoder.entry, name, expression_params):
+            for r in _get_ranges(c.entry, name, expression_params):
                 possible.remove(r)
 
         # Use the possible value closest to zero.
@@ -147,5 +147,5 @@ class ChoiceEncoder(EntryEncoder):
                     best_guess_bits = bits_encoded
 
         result = self._encode_child(best_guess, query, value, 0, context)
-        context.update(get_default_option_params(self, best_guess, self._params))
+        context.update(get_default_option_params(self.entry, best_guess.child, self._encode_expression_params))
         return result

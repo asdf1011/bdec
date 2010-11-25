@@ -5,6 +5,7 @@
   from bdec.constraints import Equals
   from bdec.data import Data
   from bdec.encode.field import encode_value
+  from bdec.encode.choice import get_default_option_params
   from bdec.expression import Constant, ValueResult, UndecodedReferenceError
   from bdec.field import Field
   from bdec.inspect.solver import solve_expression
@@ -279,6 +280,16 @@
 
 </%def>
 
+<%def name="populateChoiceOutputs(entry, i, params)", buffered="True">
+  %for name, temp in settings.option_output_temporaries(entry, i, params).items():
+    %if name not in [local.name for local in params.get_locals(entry)]:
+    *${name} = ${temp};
+    %else:
+    ${name} = ${temp};
+    %endif
+  %endfor
+</%def>
+
 <%def name="decodeChoice(entry)">
     %if contains_data(entry):
     memset(result, 0, sizeof(${settings.ctype(entry)}));
@@ -299,13 +310,7 @@
     <% if_ = "if" if i == 0 else 'else if' %>
     ${if_} (temp = *buffer, ${settings.decode_name(child.entry)}(&temp${settings.decode_passed_params(entry, i, "&%s" % temp_name)}))
     {
-      %for name, temp in settings.option_output_temporaries(entry, i, decode_params).items():
-        %if name not in [local.name for local in local_vars(entry)]:
-        *${name} = ${temp};
-        %else:
-        ${name} = ${temp};
-        %endif
-      %endfor
+      ${populateChoiceOutputs(entry, i, decode_params)}
       %if contains_data(entry):
           %if settings.children_contain_data(entry):
         result->option = ${settings.enum_value(entry, i)};
@@ -775,6 +780,15 @@ ${recursivePrint(entry, False)}
     %endif
 </%def>
 
+<%def name="populateUnusedOptionOutputs(choice, i)", buffered="True">
+  ## Now populate any outputs that weren't explicitly set by this option.
+  <% names = dict(zip((p.name for p in raw_encode_params.get_params(choice)),
+             (p.name for p in  encode_params.get_params(choice)))) %>
+  %for name, value in get_default_option_params(choice, choice.children[i], raw_encode_expression_params).items():
+      *${names[name]} = ${value};
+  %endfor
+</%def>
+
 <%def name="encodeChoice(entry)" buffered="True">
   %if contains_data(entry):
     <% option = 'value->option' if settings.children_contain_data(entry) else '*value' %>
@@ -792,6 +806,8 @@ ${recursivePrint(entry, False)}
       {
           return 0;
       }
+      ${populateChoiceOutputs(entry, i, encode_params)}
+      ${populateUnusedOptionOutputs(entry, i)}
       break;
       %endfor
     default:
@@ -804,6 +820,8 @@ ${recursivePrint(entry, False)}
       %for i, child in enumerate(entry.children):
     ${ifChildEncode(entry, i, '')}
     {
+        ${populateChoiceOutputs(entry, i, encode_params)}
+        ${populateUnusedOptionOutputs(entry, i)}
         goto encode_successful;
     }
     result->num_bits = numActualBits;
