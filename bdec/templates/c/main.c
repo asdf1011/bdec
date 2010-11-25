@@ -103,9 +103,11 @@ int main(int argc, char* argv[])
 
     /* Load the data file into memory */
     unsigned char* data = (unsigned char*)malloc(length);
-    if (fread(data, length, 1, datafile) == 0)
+    if (fread(data, length, 1, datafile) != 1 && length != 0)
     {
         fprintf(stderr, "Failed to read from file '%s'!\n", filename);
+        free(data);
+        fclose(datafile);
         return 2;
     }
     fclose(datafile);
