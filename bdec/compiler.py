@@ -416,6 +416,8 @@ def generate_code(spec, templates, output_dir, common_entries=[], options={}):
     lookup['raw_decode_params'] = params
     lookup['raw_encode_expression_params'] = prm.EncodeExpressionParameters(entries)
     lookup['stupid_ugly_expression_encode_params'] = _EscapedParameters(utils, [lookup['raw_encode_expression_params']])
+    # No need for the 'should end' when encoding, as we already know how long
+    # the array is.
     lookup['raw_encode_params'] = prm.CompoundParameters([
         prm.EncodeResultParameters(entries),
         lookup['raw_encode_expression_params']])

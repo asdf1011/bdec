@@ -1,0 +1,6 @@
+<protocol>
+    <sequence name="a">
+        <sequence name="b" value="18" />
+        <field name="c" length="8" expected="${b}" type="integer" />
+    </sequence>
+</protocol>

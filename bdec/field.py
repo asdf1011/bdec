@@ -121,66 +121,6 @@ class Field(bdec.entry.Entry):
         self.format = format
         self.encoding = encoding
 
-    def _convert_type(self, data, expected_type):
-        try:
-            return expected_type(data)
-        except: 
-            raise BadFormatError(self, data, expected_type)
-
-    def _encode_data(self, data, length):
-        if isinstance(data, dt.Data):
-            result = data.copy()
-        elif self.format == self.BINARY:
-            if isinstance(data, int):
-                result = dt.Data.from_int_big_endian(data, length)
-            else:
-                result = dt.Data.from_binary_text(self._convert_type(data, str))
-        elif self.format == self.HEX:
-            result = dt.Data.from_hex(self._convert_type(data, str))
-        elif self.format == self.TEXT:
-            text = self._convert_type(data, str)
-            try:
-                result = dt.Data(text.encode(self.encoding))
-            except UnicodeDecodeError:
-                raise BadEncodingError(self, data)
-        elif self.format == self.INTEGER:
-            if length is None:
-                raise FieldDataError(self, 'Unable to encode integer field '
-                        'without explicit length')
-            assert self.encoding in [self.BIG_ENDIAN, self.LITTLE_ENDIAN]
-            if self.encoding == self.BIG_ENDIAN:
-                result = dt.Data.from_int_big_endian(self._convert_type(data, int), length)
-            else:
-                result = dt.Data.from_int_little_endian(self._convert_type(data, int), length)
-        elif self.format == self.FLOAT:
-            assert self.encoding in [self.BIG_ENDIAN, self.LITTLE_ENDIAN]
-            if self.encoding == self.BIG_ENDIAN:
-                result = dt.Data.from_float_big_endian(self._convert_type(data, float), length)
-            else:
-                result = dt.Data.from_float_little_endian(self._convert_type(data, float), length)
-        else:
-            raise Exception("Unknown field format of '%s'!" % self.format)
-
-        return result
-
-    def encode_value(self, value, length=None):
-        """
-        Convert an object to a dt.Data object.
-
-        Can raise dt.DataError errors.
-        """
-        if length is None:
-            try:
-                length = self.length.evaluate({})
-            except bdec.expression.UndecodedReferenceError:
-                # The length isn't available...
-                pass
-
-        try:
-            return self._encode_data(value, length)
-        except dt.DataError, ex:
-            raise FieldDataError(self, ex)
-
     def _get_context(self, query, context):
         try:
             result = query(context, self)

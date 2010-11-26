@@ -22,6 +22,7 @@ import bdec
 from bdec.data import Data
 from bdec.choice import Choice
 from bdec.entry import UndecodedReferenceError, is_hidden
+from bdec.expression import Constant
 from bdec.field import Field
 from bdec.sequence import Sequence
 from bdec.sequenceof import SequenceOf
@@ -35,7 +36,9 @@ class DataLengthError(bdec.DecodeError):
         self.actual = actual
 
     def __str__(self):
-        return "%s expected length %s, got length %i" % (self.entry, self.expected, self.actual)
+        # We report the error using Constant to get the nicer 'whole byte'
+        # reporting.
+        return "%s expected length %s, got length %s" % (self.entry, self.expected, Constant(self.actual))
 
 class MissingInstanceError(bdec.DecodeError):
     """
@@ -114,7 +117,7 @@ def _mock_query(parent, entry, offset, name):
         raise NotImplementedError('Unknown entry %s to mock data for...' % entry)
 
 class EntryEncoder:
-    def __init__(self, entry, expression_params, params, is_hidden):
+    def __init__(self, entry, encode_expression_params, params, is_hidden):
         self.entry = entry
         self.children = []
         self.is_hidden = is_hidden
@@ -122,9 +125,10 @@ class EntryEncoder:
         # When encoding, the direction of the parameters is inverted. What
         # would usually be an output, is now an input.
         self.params = params
-        self._params = expression_params
-        self._is_length_referenced = expression_params.is_length_referenced(entry)
-        self._is_value_referenced = expression_params.is_value_referenced(entry)
+        self._encode_expression_params = encode_expression_params
+        self._params = encode_expression_params.expression_params
+        self._is_length_referenced = self._params.is_length_referenced(entry)
+        self._is_value_referenced = self._params.is_value_referenced(entry)
 
     def _solve(self, expression, value, context):
         '''Solve an expression given the result and context.
