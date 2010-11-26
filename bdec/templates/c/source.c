@@ -570,7 +570,7 @@ ${static}void ${settings.print_name(entry)}(unsigned int offset, const char* nam
     offset += 2;
     ${print_whitespace()}
     <% format = settings.printf_format(settings.ctype(EntryValueType(entry))) %>
-    printf("%${format[1]}\n", data->value);
+    printf("${format}\n", data->value);
     offset -= 2;
       %endif
     ${print_whitespace()}
