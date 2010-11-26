@@ -306,8 +306,8 @@ class _CompiledDecoder:
 
 class _CDecoder(_CompiledDecoder):
     # We compile using g++ because it is stricter than gcc
-    COMPILER = "gcc"
-    COMPILER_FLAGS = ["-Wall", "-Werror", '-g', '-o']
+    COMPILER = os.getenv('CC', 'gcc')
+    COMPILER_FLAGS = os.getenv('CFLAGS', '-Wall -Werror -g').split() + ['-o']
     FILE_TYPE = "c"
     LANGUAGE = "c"
 
