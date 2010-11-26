@@ -58,7 +58,10 @@ def main():
     try:
         binary = xmlout.encode(protocol, xml).bytes()
     except bdec.DecodeError, ex:
-        (filename, line_number, column_number) = lookup[ex.entry]
+        try:
+            (filename, line_number, column_number) = lookup[ex.entry]
+        except KeyError:
+            (filename, line_number, column_number) = ('unknown', 0, 0)
         sys.exit("%s[%i]: %s" % (filename, line_number, str(ex)))
     sys.stdout.write(binary)
 

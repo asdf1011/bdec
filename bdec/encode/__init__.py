@@ -64,7 +64,7 @@ def get_encoder(entry, params, entries=None):
         encoder = entries[entry]
     except KeyError:
         # We haven't created an encoder for this entry yet.
-        encoder = _encoders[type(entry)](entry, params.expression_params, params.get_params(entry), params.is_hidden(entry))
+        encoder = _encoders[type(entry)](entry, params, params.get_params(entry), params.is_hidden(entry))
         entries[entry] = encoder
 
         for child in entry.children:

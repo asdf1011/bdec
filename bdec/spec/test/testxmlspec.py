@@ -19,6 +19,7 @@
 
 #!/usr/bin/env python
 
+import operator
 import unittest
 
 import bdec
@@ -26,6 +27,7 @@ import bdec.choice as chc
 from bdec.constraints import ConstraintError, Equals, NotEquals
 import bdec.data as dt
 import bdec.entry as ent
+from bdec.encode.entry import MissingInstanceError
 import bdec.expression as expr
 import bdec.field as fld
 import bdec.output.instance as inst
@@ -1076,6 +1078,24 @@ class TestXml(unittest.TestCase):
             loads(text)
         except LoadError, ex:
             self.assertEqual("<string>[6]: Duplicate common entry 'a'", str(ex))
+
+    def test_variable_length_with_expected_value(self):
+        # This is a fairly standard variable integer construct. There are many
+        # possible solutions to this representation...
+        text = '''
+            <protocol>
+              <sequence name="a">
+                <field name="length:" length="8" />
+                <field name="value:" length="${length:}" value="0x03" />
+              </sequence>
+            </protocol>'''
+        spec = loads(text)[0]
+        def query(parent, entry, offset, name):
+            if entry.name == 'a':
+                return None
+            raise MissingInstanceError(parent, entry)
+        self.assertEqual(dt.Data('\x08\x03'), reduce(operator.add, spec.encode(query, None)))
+
 
 class TestSave(unittest.TestCase):
     """Test decoding of the xml save functionality.

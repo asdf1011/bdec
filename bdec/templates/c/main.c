@@ -94,7 +94,7 @@ int main(int argc, char* argv[])
     if (datafile == 0)
     {
         /* Failed to open file */
-        fprintf(stderr, "Failed to open file!\n");
+        fprintf(stderr, "Failed to open file '%s'!\n", filename);
         return 2;
     }
     fseek(datafile, 0, SEEK_END);
@@ -103,7 +103,13 @@ int main(int argc, char* argv[])
 
     /* Load the data file into memory */
     unsigned char* data = (unsigned char*)malloc(length);
-    fread(data, length, 1, datafile);
+    if (fread(data, length, 1, datafile) != 1 && length != 0)
+    {
+        fprintf(stderr, "Failed to read from file '%s'!\n", filename);
+        free(data);
+        fclose(datafile);
+        return 2;
+    }
     fclose(datafile);
 
     /* Attempt to decode the file */

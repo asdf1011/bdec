@@ -18,6 +18,7 @@
 #   <http://www.gnu.org/licenses/>.
 
 #!/usr/bin/env python
+import operator
 import unittest
 
 from bdec.encode.entry import MissingInstanceError
@@ -30,6 +31,7 @@ import bdec.field as fld
 import bdec.sequence as seq
 import bdec.expression as expr
 
+
 def get_best_guess(entry, data):
     ex = None
     results = []
@@ -40,6 +42,11 @@ def get_best_guess(entry, data):
         pass
     assert ex is not None
     return ex.entry, results
+
+def query(context, child, i, name):
+    if not context or child.name not in context:
+        raise MissingInstanceError(context, child)
+    return context[child.name]
 
 class TestChoice(unittest.TestCase):
     def test_first_successful(self):
@@ -120,10 +127,6 @@ class TestChoice(unittest.TestCase):
 
         # First try encoding a number that will only fit in the 16 bit storage
         struct = {"bob" : {"dog" : 10023}}
-        def query(context, child, i, name):
-            if child.name not in context:
-                raise MissingInstanceError(context, child)
-            return context[child.name]
         data = reduce(lambda a,b:a+b, choice.encode(query, struct))
         self.assertEqual(17, len(data))
 
@@ -196,3 +199,16 @@ class TestChoice(unittest.TestCase):
         self.assertEqual('c2', get_best_guess(a, dt.Data('\x00\x00'))[0].name)
         self.assertEqual('d2', get_best_guess(a, dt.Data('\x01\x00'))[0].name)
 
+    def test_encoding_hidden_referenced_entry(self):
+        # Test that we correctly encode a referenced instance that is only
+        # used in one option of a choice.
+        a = seq.Sequence('a', [
+            fld.Field('is present:', length=8),
+            chc.Choice('conditional', [
+                seq.Sequence('not present:', [
+                    seq.Sequence('check:', [],
+                        value=ValueResult('is present:'), constraints=[Equals(0)])]),
+                fld.Field('footer', length=32, format=fld.Field.TEXT)])])
+
+        self.assertEqual(dt.Data('\x00'), reduce(operator.add, a.encode(query, {'a':{}})))
+        self.assertEqual(dt.Data('\x01asdf'), reduce(operator.add, a.encode(query, {'a':{'footer':'asdf'}})))

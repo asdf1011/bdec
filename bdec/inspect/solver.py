@@ -187,8 +187,20 @@ def _invert(result_expr, entry, expression, params, input_params, remainder_rang
     return left
 
 def solve_expression(result_expr, expression, entry, params, input_params):
-    """Get a list of expression for solving the given expression.
-    
+    """Get a list of expression for solving the given expression. For example,
+    for
+       y = 2 * x + 5
+    'y' is the result expression, '2 * x + 5' is the expression, it would
+    solve to a constant of 5, and x = y / 2.
+
+    result_expr -- An expression for the result.
+    expression -- The expression we want to solve.
+    entry -- The entry where this expression is used. This is used to resolve
+        references to entries.
+    params -- A bdec.inspect.param.ExpressionParameters instance, used to
+        determine ranges of references.
+    input_params -- A list of parameters that are 'known'. Any references to
+        these parameters will be treated as constant.
     return -- A (constant, [(reference, expression, inverted)]), where constant is
         a constant expression, and the reference / expression / inverted  tuple is
         the reference to an unknown parameter, the portion of the expression that
