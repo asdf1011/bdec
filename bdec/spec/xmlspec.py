@@ -160,7 +160,7 @@ class _Handler(xml.sax.handler.ContentHandler):
         if attrs.has_key('expected'):
             expected = self._parse_expression(attrs['expected'])
             constraints.append(Equals(expected))
-        if not isinstance(entry, fld.Field) and attrs.has_key('value'):
+        if name == 'field' and not isinstance(entry, fld.Field) and attrs.has_key('value'):
             # Fields that are long integers can be internally converted to
             # references to Sequences; we need to handle the expected values.
             expected = self._parse_expression(attrs['value'])
