@@ -1,0 +1,19 @@
+<!-- Test encoding a protocol where the length and value of a common entry is
+     referenced in one place, and then also used in a choice.
+
+     This tests that the 'default option output' works correctly when option
+     output parameters are unuesd. -->
+<protocol>
+    <sequence name="a">
+        <reference name="some common entry" />
+        <field name="c" length="${some common entry}" />
+        <sequence name="d" value="len{some common entry}" />
+        <choice name="e">
+            <reference name="some common entry" />
+            <sequence name="f" />
+        </choice>
+    </sequence>
+    <common>
+        <sequence name="some common entry" value="8" />
+    </common>
+</protocol>

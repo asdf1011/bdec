@@ -22,7 +22,7 @@ import logging
 from bdec import DecodeError
 from bdec.constraints import Equals, Minimum, Maximum
 from bdec.encode.entry import EntryEncoder, MissingInstanceError
-from bdec.expression import ReferenceExpression
+from bdec.expression import ReferenceExpression, ArithmeticExpression
 from bdec.sequence import Sequence
 from bdec.inspect.range import Range, Ranges
 from bdec.inspect.solver import solve_expression, SolverError
@@ -31,11 +31,12 @@ def _get_unpopulated_outputs(choice, child, expression_params):
     """Find all outputs of other children that aren't outputs of child.
 
     Returns a {name : params}."""
+    outputs = [p.name for p in expression_params.get_params(choice)]
     known = [p.name for p in expression_params.get_passed_variables(choice, child)]
     result = {}
     for c in choice.children:
         for p in expression_params.get_passed_variables(choice, c):
-            if p.direction == p.OUT and p.name not in known:
+            if p.direction == p.OUT and p.name not in known and p.name in outputs:
                 result.setdefault(p.name, []).append(p)
     return result
 
