@@ -27,12 +27,14 @@ import unittest
 
 from bdec.choice import Choice
 from bdec.constraints import Minimum, Maximum, Equals
+from bdec.data import Data
 from bdec.entry import Child
 from bdec.encode.entry import MissingInstanceError
 from bdec.encode.sequence import CyclicEncodingError
-from bdec.expression import parse
+from bdec.expression import parse, ValueResult
 from bdec.field import Field
 from bdec.sequence import Sequence
+from bdec.sequenceof import SequenceOf
 
 from bdec.output.instance import encode
 
@@ -264,3 +266,29 @@ class TestSequence(unittest.TestCase):
             Field('unused:', length=parse('${length:} * 8 - len{b}'))
             ])
         self.assertEqual('\x05\x04abcd', encode(a, {'b':{'b1':'abcd'}}).bytes())
+
+    def test_length_reference_cycle(self):
+        # This caused problems with the cyclic encoding, as the 'payload' has
+        # an output 'num values:' that is used by 'optional extension', but
+        # 'optional extension' uses the length of the payload.
+        #
+        # At first glance this is a cyclic dependancy, but in reality shouldn't
+        # be as the 'num values:' unknown is fulfilled by the 'values' entry.
+        header = Sequence('header:', [Field('message length:', length=8, format=Field.INTEGER)])
+        payload = Sequence('payload', [
+            Field('num values:', length=8),
+            SequenceOf('values',
+                Field('value', length=8, format=Field.INTEGER),
+                count=ValueResult('num values:'))])
+        extension = Choice('optional extension', [
+            Sequence('not present:', [], value=parse('${header:.message length:} - len{payload}'), constraints=[Equals(0)]),
+            Sequence('extension', [
+                SequenceOf('more values',
+                    Field('value', length=8, format=Field.INTEGER),
+                    count=ValueResult('payload.num values:'))])
+            ])
+        packet = Sequence('packet', [header, payload, extension])
+
+        self.assertEqual('\x06\x02xyst', encode(packet, {'payload':{'values':[ord('a'), ord('b')]}, 'extension': {'more values': [ord('s'), ord('t')]}}).bytes())
+        self.assertEqual('\x04\x02xyst', encode(packet, {'payload':{'values':[ord('a'), ord('b')]}, 'extension': {'more values': []}}).bytes())
+
