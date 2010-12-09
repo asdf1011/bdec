@@ -779,7 +779,14 @@ class EncodeExpressionParameters(_Parameters):
         return self.expression_params.is_length_referenced(entry)
 
     def is_value_referenced(self, entry):
-        return self.expression_params.is_value_referenced(entry)
+        if not self.expression_params.is_value_referenced(entry):
+            return False
+        # Our value is referenced if we haven't swapped an output. Lets to a
+        # brain dead (but easy) check...
+        for p in self.get_params(entry):
+            if isinstance(p.type, EntryValueType) and p.name == entry.name:
+                return p.direction == p.OUT
+        return False
 
     def get_params(self, entry):
         # Change the order of the parameters such that they are suitable for encoding.

@@ -719,7 +719,7 @@ ${recursivePrint(entry, False)}
     %if should_free_buffer:
     free(${value_name}.buffer);
     %endif
-    %if is_value_referenced(entry) and contains_data(entry):
+    %if encode_params.is_value_referenced(entry):
     *${entry.name |variable} = ${value_name};
     %endif
 </%def>
