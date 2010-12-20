@@ -3,7 +3,7 @@ from ConfigParser import ConfigParser
 import glob
 import os.path
 
-from bdec.test.decoders import create_test_classes
+from bdec.test.decoders import create_classes
 
 def _find_regression_tests(spec_format, regression_dir):
     specs = glob.glob('%s/*.%s' % (regression_dir, spec_format))
@@ -40,7 +40,7 @@ def _create_test_cases():
     for name in os.listdir(regression_dir):
         path = os.path.join(regression_dir, name)
         if os.path.isdir(path):
-            result.update(create_test_classes(name, _find_regression_tests(name, path), config))
+            result.update(create_classes(name, _find_regression_tests(name, path), config))
     return result
 
 globals().update(_create_test_cases())

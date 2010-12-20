@@ -369,7 +369,12 @@ class _BaseRegressionTest:
         datafile.close()
 
     def _test_success(self, spec, common, spec_filename, data_filename, expected_xml, should_encode, require_exact_encoding):
-        datafile = open(data_filename, 'rb')
+        if os.path.splitext(data_filename)[1] == ".gz":
+            # As gzip'ed files seek extremely poorly, we'll read the file completely into memory.
+            import gzip
+            datafile = StringIO.StringIO(gzip.GzipFile(data_filename, 'rb').read())
+        else:
+            datafile = open(data_filename, 'rb')
         xml = self._decode_file(spec, common, datafile, should_encode, require_exact_encoding)
         datafile.close()
         if expected_xml:
@@ -422,7 +427,7 @@ class _BaseRegressionTest:
         method.__name__ = 'test_%s' % name
         setattr(cls, method.__name__, method)
 
-def create_test_classes(name, tests, config):
+def create_classes(name, tests, config):
     """Return a dictionary of classes derived from unittest.TestCase.
 
     Each test case is named after both the name and the decoder type that
