@@ -390,8 +390,6 @@ class _BaseRegressionTest:
         assert successes or failures
         skip = self._get(config, self.language, test_path.lower()) or \
                 self._get(config, 'default', test_path.lower())
-        #skip_name = '%s/%s' % (self.spec_format, name)
-        #skip = self.skip_list.get(test_path.lower(), '')
 
         if skip == 'decode':
             print 'Skipping test.'
