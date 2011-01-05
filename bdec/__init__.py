@@ -34,6 +34,13 @@ It can:
  * Decode and encode data at runtime (bdec.output)
  * Be compiled to a static decoder (bdec.tools.compiler)
  * Be defined in a textual format (bdec.spec)
+
+Package Organization
+====================
+bdec contains the following subpackages and modules:
+
+.. packagetree:: bdec regression specs tools
+   :style: UML
 """
 
 __version__ = "0.6.2"
