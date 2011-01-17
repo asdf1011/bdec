@@ -433,6 +433,8 @@ def free_name(entry):
 
 _PRINTABLE = string.ascii_letters + string.digits
 def _c_repr(char):
+    if char == '\\':
+        return '\\\\'
     if char in _PRINTABLE:
         return char
     return '\\%03o' % ord(char)
@@ -495,7 +497,7 @@ def get_expected(entry):
         if settings.is_numeric(settings.ctype(entry)):
             return value(entry, expected)
         elif entry.format == fld.Field.TEXT:
-            return '{"%s", %i}' % (expected.value, len(expected.value))
+            return '{%s, %i}' % (c_string(expected.value), len(expected.value))
         elif entry.format == fld.Field.BINARY:
             # This is a bitbuffer type; add leading null bytes so we can
             # represent it in bytes.
