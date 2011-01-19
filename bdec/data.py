@@ -111,7 +111,7 @@ class BadTextEncodingError(DataError):
         self.encoding = encoding
 
     def __str__(self):
-        return "'%s' can't convert '%s'" % (self.encoding, self.data)
+        return "'%s' can't convert %s" % (self.encoding, self.data)
 
 class _OutOfDataError(Exception):
     """Not derived from DataError as this is an internal error."""

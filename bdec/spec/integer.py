@@ -24,6 +24,8 @@ Classes for defining higher level integer encodings in a low level representatio
 import operator
 
 from bdec.choice import Choice
+from bdec.constraints import Equals
+from bdec.entry import Child
 from bdec.expression import compile, Constant, ArithmeticExpression, UndecodedReferenceError
 from bdec.field import Field
 from bdec.sequence import Sequence
@@ -61,17 +63,17 @@ class Integers:
         try:
             result = self.common[name]
         except KeyError:
-            options = [
-                    self.signed_litte_endian(Constant(32)),
-                    self.signed_litte_endian(Constant(24)),
-                    self.signed_litte_endian(Constant(16)),
-                    self.signed_litte_endian(Constant(8)),
-                    ]
+            options = []
+            for length in (8, 16, 24, 32, 64):
+                option = self.signed_litte_endian(Constant(length))
+                options.append(Sequence('variable %s' % option.name,
+                        [Child('value', option)],
+                        value=length_expr, constraints=[Equals(length)]))
             # We wrap the choice inside a sequence, as choices don't currently
             # 'compile' to integers (and sequences do).
             var_name = 'variable integer types:'
             result = Sequence(name, [Choice(var_name, options)],
-                    value=compile('${%s}' % var_name))
+                    value=compile('${%s.value}' % var_name))
             self.common[name] = result
         return result
 

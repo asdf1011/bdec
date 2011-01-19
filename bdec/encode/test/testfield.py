@@ -65,3 +65,11 @@ class TestField(unittest.TestCase):
                 ])
         self.assertEqual('\x02ab', encode(a, {'c':'ab'}).bytes())
         self.assertEqual('\x00', encode(a, {'c':''}).bytes())
+
+    def test_encode_zero_length_hex_field(self):
+        a = Sequence('a', [
+                Field('b:', length=8),
+                Field('c', format=Field.HEX, length=parse('${b:} * 8'))
+                ])
+        self.assertEqual('\x02ab', encode(a, {'c':'6162'}).bytes())
+        self.assertEqual('\x00', encode(a, {'c':''}).bytes())

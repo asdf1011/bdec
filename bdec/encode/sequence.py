@@ -62,18 +62,19 @@ def _detect_dependencies(children, is_hidden):
         for output in child.params:
             if output.direction == output.OUT:
                 name = output.name.split('.')[0]
-                if name != child.name:
-                    # We have an output for another child; find out who it
-                    # is, and add a dependancy on it.
-                    for other in children:
-                        if other.name == name:
-                            dependencies[other].append(child)
-                        else:
-                            # Find all other parameters using this child
-                            for input in other.params:
-                                if input.direction == input.IN:
-                                    if output.name == input.name:
-                                        dependencies[other].append(child)
+                # We have an output used by another child; find out who it
+                # is, and make it dependant upon us.
+                for other in children:
+                    if other is child:
+                        continue
+                    if other.name == name:
+                        dependencies[other].append(child)
+                    else:
+                        # Find all other parameters using this child
+                        for input in other.params:
+                            if input.direction == input.IN:
+                                if output.name == input.name:
+                                    dependencies[other].append(child)
     return dependencies
 
 def _populate_dependencies(entry, child, dependencies, visited=None, chain=None):

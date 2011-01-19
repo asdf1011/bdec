@@ -264,3 +264,17 @@ class TestSequence(unittest.TestCase):
             Field('unused:', length=parse('${length:} * 8 - len{b}'))
             ])
         self.assertEqual('\x05\x04abcd', encode(a, {'b':{'b1':'abcd'}}).bytes())
+
+    def test_secondary_dependency(self):
+        # Test that when A depends on C, and B depends on A, we don't attempt
+        # to encode B before A.
+        blah = Sequence('blah', [
+            Sequence('a', [
+                Field('a1', 8, format=Field.INTEGER),
+                Field('a2:', 8, format=Field.INTEGER)]),
+            Field('b', parse('${a.a1} * 8'), format=Field.TEXT),
+            Field('c', parse('${a.a2:} * 8'), format=Field.TEXT)])
+        self.assertEqual('\x03\x02xyzst', encode(blah, {
+            'a' : {'a1' : 3},
+            'b' : 'xyz',
+            'c' : 'st'}).bytes())

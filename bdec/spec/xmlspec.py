@@ -194,7 +194,8 @@ class _Handler(xml.sax.handler.ContentHandler):
             self.lookup[not_present] = (self._filename, lineno, colno)
             self.lookup[entry] = (self._filename, lineno, colno)
 
-            optional = chc.Choice('optional %s' % entry_name, [not_present, entry])
+            name = 'optional %s' % entry_name if entry_name else 'optional:'
+            optional = chc.Choice(name, [not_present, entry])
             entry = optional
 
         if entry is not None:
