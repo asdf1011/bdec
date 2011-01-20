@@ -433,6 +433,8 @@ def free_name(entry):
 
 _PRINTABLE = string.ascii_letters + string.digits
 def _c_repr(char):
+    if char == '\\':
+        return '\\\\'
     if char in _PRINTABLE:
         return char
     return '\\%03o' % ord(char)
@@ -492,23 +494,23 @@ def get_sequence_value(entry):
 def get_expected(entry):
     expected = _get_equals(entry)
     if expected is not None:
-        if entry.format == fld.Field.INTEGER:
+        if settings.is_numeric(settings.ctype(entry)):
             return value(entry, expected)
         elif entry.format == fld.Field.TEXT:
-            return '{"%s", %i}' % (expected.value, len(expected.value))
+            return '{%s, %i}' % (c_string(expected.value), len(expected.value))
         elif entry.format == fld.Field.BINARY:
-            if settings.is_numeric(settings.ctype(entry)):
-                # This is an integer type
-                return value(entry, expected)
-            else:
-                # This is a bitbuffer type; add leading null bytes so we can
-                # represent it in bytes.
-                null = Data('\x00', 0, 8 - (len(expected.value) % 8))
-                data = null + expected.value
-                result = '{(unsigned char*)%s, %i, %i}' % (
-                        c_string(data.bytes()), len(null),
-                        len(data) - len(null))
-                return result
+            # This is a bitbuffer type; add leading null bytes so we can
+            # represent it in bytes.
+            null = Data('\x00', 0, 8 - (len(expected.value) % 8))
+            data = null + expected.value
+            result = '{(unsigned char*)%s, %i, %i}' % (
+                    c_string(data.bytes()), len(null),
+                    len(data) - len(null))
+            return result
+        elif entry.format == fld.Field.HEX:
+            result = '{(unsigned char*)%s, %i}' % (
+                    c_string(expected.value.bytes()), len(expected.value) / 8)
+            return result
         else:
             raise Exception("Don't know how to define a constant for %s!" % entry)
 

@@ -24,6 +24,7 @@ Generate test classes for each type of decoder.
 See the create_decoder_classes function.
 """
 
+from ConfigParser import NoOptionError, NoSectionError
 import glob
 import itertools
 import os
@@ -38,13 +39,14 @@ import xml.etree.ElementTree
 import bdec
 from bdec.constraints import Equals
 from bdec.choice import Choice
+import bdec.compiler as comp
 import bdec.data as dt
 from bdec.encode.field import convert_value
 from bdec.entry import is_hidden
 from bdec.expression import UndecodedReferenceError
 import bdec.field as fld
 import bdec.output.xmlout as xmlout
-import bdec.compiler as comp
+from bdec.spec import load_specs
 
 class ExecuteError(Exception):
     def __init__(self, exit_code, stderr):
@@ -351,3 +353,95 @@ def create_decoder_classes(base_classes, module):
             result[test_name] = type(test_name, (unittest.TestCase, decoder, base), {'language':name})
             result[test_name].__module__ = module
     return result
+
+class _BaseRegressionTest:
+    """A base test case for running regression tests on specfications."""
+
+    def _test_failure(self, spec, common, spec_filename, data_filename, should_encode):
+        datafile = open(data_filename, 'rb')
+        try:
+            xml = self._decode_file(spec, common, datafile, should_encode)
+            raise Exception("'%s' should have failed to decode '%s', but succeeded with output:\n%s" % (spec_filename, data_filename, xml))
+        except ExecuteError, ex:
+            if ex.exit_code != 3:
+                # It should have been a decode error...
+                raise
+        datafile.close()
+
+    def _test_success(self, spec, common, spec_filename, data_filename, expected_xml, should_encode, require_exact_encoding):
+        if os.path.splitext(data_filename)[1] == ".gz":
+            # As gzip'ed files seek extremely poorly, we'll read the file completely into memory.
+            import gzip
+            datafile = StringIO.StringIO(gzip.GzipFile(data_filename, 'rb').read())
+        else:
+            datafile = open(data_filename, 'rb')
+        xml = self._decode_file(spec, common, datafile, should_encode, require_exact_encoding)
+        datafile.close()
+        if expected_xml:
+            assert_xml_equivalent(expected_xml, xml)
+
+    def _get(self, config, section, option):
+        try:
+            return config.get(section, option)
+        except NoOptionError:
+            return None
+
+    def _test_spec(self, test_path, spec_filename, successes, failures, config):
+        assert successes or failures
+        skip = self._get(config, self.language, test_path.lower()) or \
+                self._get(config, 'default', test_path.lower())
+
+        if skip == 'decode':
+            print 'Skipping test.'
+            return
+        elif skip == 'encode':
+            should_encode = False
+            require_exact_encoding = True
+        elif skip == 'encoding-equivalent':
+            should_encode = True
+            require_exact_encoding = False
+        else:
+            assert not skip, "Unknown test fixme status '%s'" % skip
+            should_encode = True
+            require_exact_encoding = True
+
+        spec, common, lookup = load_specs([(spec_filename, None, None)])
+        for data_filename in successes:
+            expected_xml = None
+            expected_filename = '%s.expected.xml' % os.path.splitext(data_filename)[0]
+            if os.path.exists(expected_filename):
+                xml_file = file(expected_filename, 'r')
+                expected_xml = xml_file.read()
+                xml_file.close()
+            self._test_success(spec, common, spec_filename, data_filename,
+                    expected_xml, should_encode, require_exact_encoding)
+
+        for data_filename in failures:
+            self._test_failure(spec, common, spec_filename, data_filename, should_encode)
+
+    @classmethod
+    def add_method(cls, name, test_path, spec_filename, successes, failures, config):
+        method = lambda self: self._test_spec(test_path, spec_filename, successes, failures, config)
+        method.__name__ = 'test_%s' % name
+        setattr(cls, method.__name__, method)
+
+def create_classes(name, tests, config):
+    """Return a dictionary of classes derived from unittest.TestCase.
+
+    Each test case is named after both the name and the decoder type that
+    is under test (eg: if name is 'xml', test cases will include TestXmlC,
+    TestXmlPython, ...).
+
+    name -- The name of the test.
+    tests -- An array of (name, spec_filename, successes, failures) tuples,
+        where name is the test name, spec_filename is the path to the
+        specification to load, and successes and failures are paths to binary
+        files that should either decode or not.
+    config_filename -- The path to the fixme config file.
+    """
+    clsname = name[0].upper() + name[1:]
+    cls = type(clsname, (object, _BaseRegressionTest,), {})
+    for test_name, spec_filename, successes, failures in tests:
+        cls.add_method(test_name, '%s/%s' % (name, test_name), spec_filename, successes, failures, config)
+    return create_decoder_classes([(cls, clsname)], __name__)
+

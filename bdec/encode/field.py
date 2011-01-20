@@ -214,8 +214,9 @@ class FieldEncoder(EntryEncoder):
             try:
                 value = self._get_default(context)
             except MissingFieldException:
-                # If we have an empty string for a text field, it's not missing.
-                if value is None or self.entry.format != Field.TEXT:
+                # If we have an empty string for a variable length field (that
+                # may be zero length), it's not missing.
+                if value is None or self.entry.format not in [Field.HEX, Field.BINARY, Field.TEXT]:
                     raise
         return convert_value_context(self.entry, value, context)
 
