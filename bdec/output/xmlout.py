@@ -45,6 +45,13 @@ class _XMLGenerator(xml.sax.saxutils.XMLGenerator):
     def comment(self, text):
         self._out.write('<!-- %s -->' % text)
 
+class UnknownIntegerError(Exception):
+    def __str__(self):
+        return 'Sequence has unknown integer value'
+
+def _unknown_integer_error():
+    raise UnknownIntegerError()
+
 def _escape_char(character):
     # The list of 'safe' xml characters is from http://www.w3.org/TR/REC-xml/#NT-Char
     ordinal = ord(character)
@@ -170,8 +177,11 @@ def _get_element_value(element, entry):
         elif child.nodeType == xml.dom.Node.TEXT_NODE:
             text += child.data
 
-    if isinstance(entry, Sequence) and entry.value and text.strip():
-        element.__int__ = lambda: int(text)
+    if isinstance(entry, Sequence) and entry.value:
+        if text.strip():
+            element.__int__ = lambda: int(text)
+        else:
+            element.__int__ = _unknown_integer_error
 
     if has_children:
         # This element has sub-elements, so return the high-level element
