@@ -1,0 +1,8 @@
+<protocol>
+    <sequenceof name="a">
+        <choice name="char">
+            <field name="null:" length="8" value="0x0" />
+            <field name="char" length="8" type="text" />
+        </choice>
+    </sequenceof>
+</protocol>
