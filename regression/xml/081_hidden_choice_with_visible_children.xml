@@ -1,6 +1,8 @@
 <protocol>
-    <choice>
-        <field name="a" length="8" type="integer" />
-    </choice>
+    <sequence name="a">
+        <choice>
+            <field name="a" length="8" type="integer" />
+        </choice>
+    </sequence>
 </protocol>
 

@@ -41,7 +41,7 @@ class _Item(object):
         return unicode(self.children)
 
     def __int__(self):
-        if not self.value:
+        if self.value is None:
             raise TypeError
         return int(self.value)
 
