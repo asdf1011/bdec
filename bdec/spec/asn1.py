@@ -29,7 +29,9 @@ from bdec.spec.ebnf import parse
 import os.path
 from pyparsing import Word, nums, alphanums, StringEnd, \
     ParseException, Optional, Combine, oneOf, alphas,\
-    QuotedString, empty, lineno, SkipTo
+    QuotedString, empty, lineno, SkipTo, ParserElement
+
+ParserElement.enablePackrat()
 
 class Asn1Error(LoadError):
     def __init__(self, filename, lineno):
