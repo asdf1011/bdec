@@ -1,5 +1,22 @@
-Devel
------
+0.7.0 (2011-02-16)
+------------------
+
+Major feature:
+
+* Encoding data structures to binary is now supported. It includes encoding
+  from python instances, xml, and C structures.
+* When encoding, the values of hidden fields is correctly deduced from
+  visible uses of that field. For example, if a 'count' field is hidden but
+  used in a sequenceof, it will look at the length of the sequenceof when
+  encoding the field.
+
+Features:
+* Specifications can now be split into multiple files. Simply pass all of the
+  specification files to the decode / encode / compile programs.
+* Allow the user to specify the main protocol entry, overriding the default.
+
+Bugfixes:
+* Too many to mention!
 
 Backwards incompatible changes:
 
