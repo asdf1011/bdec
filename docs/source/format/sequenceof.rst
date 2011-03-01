@@ -25,13 +25,15 @@ Bdec sequenceof entries can have 3 attributes;
   * A length_ (optional)
   * An :ref:`if <boolean-expression>` (optional)
 
+A SequenceOf entry contains entries that are to be repeated (ie: a
+:ref:`field <format-field>`, a :ref:`sequence <format-sequence>`, a sequenceof,
+a :ref:`choice <format-choice>`, or a :ref:`references <format-reference>`). If
+more than one entry is found, an intermediate :ref:`sequence <format-sequence>`
+will be created to contain all of the child entries.
+
 A sequenceof should have either a count, a length, or have an embedded 
 `end-sequenceof`_ to indicate when to stop repeating the element. If none of
 these are present, it is a greedy_ sequenceof.
-
-SequenceOf entries must contain one entry that is to be repeated (ie: a
-:ref:`field <format-field>`, a :ref:`sequence <format-sequence>`, a sequenceof,
-a :ref:`choice <format-choice>`, or a :ref:`references <format-reference>`).
 
 .. _count: `Count loops`_
 .. _length: `Length loops`_
