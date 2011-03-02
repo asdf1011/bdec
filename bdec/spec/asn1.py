@@ -31,8 +31,6 @@ from pyparsing import Word, nums, alphanums, StringEnd, \
     ParseException, Optional, Combine, oneOf, alphas,\
     QuotedString, empty, lineno, SkipTo, ParserElement
 
-ParserElement.enablePackrat()
-
 class Asn1Error(LoadError):
     def __init__(self, filename, lineno):
         self.filename = filename

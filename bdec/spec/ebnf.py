@@ -10,7 +10,6 @@
 from pyparsing import *
 from bdec.spec import LoadError
 
-ParserElement.enablePackrat()
 
 class EbnfError(LoadError):
     pass
