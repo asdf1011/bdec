@@ -51,6 +51,16 @@ class TestParsing(unittest.TestCase):
             // ignore me too
             run''')))
 
+    def test_ignore_cpp_comments(self):
+        comment = '/*' + SkipTo('*/')
+        words = ZeroOrMore(Word(alphas)) + StringEnd()
+        words.ignore(comment)
+        self.assertEqual(['good', 'bad', 'ugly'], list(words.parseString('''
+            good
+            /* this should be ignored */
+            bad /* this too */
+            ugly /* and finally... */''')))
+
     def test_or(self):
         a = Word(alphas) | Word(nums)
         self.assertEqual(['1234'], list(a.parseString('1234')))

@@ -51,6 +51,7 @@ class ParserElement:
         self._parser = None
         self._decoder = None
         self._ignore = None
+        self._name = None
 
     def _is_important(self):
         return self._actions or self._internal_actions or self._ignore
@@ -80,6 +81,8 @@ class ParserElement:
         self._am_resolving = True
         self._references = []
         self._decoder = self._createEntry(separator)
+        if self._name is not None:
+            self._decoder.name = self._name
         for reference in self._references:
             reference.resolve(self._decoder)
 
@@ -138,10 +141,10 @@ class ParserElement:
 
     def _decode(self, text, filename):
         if self._parser is None:
-            whitespace = ZeroOrMore(Literal(' ') | '\n')('whitespace')
+            whitespace = (Literal(' ') | '\n')('whitespace')
             if self._ignore is not None:
                 whitespace = whitespace | self._ignore
-            whitespace = Suppress(whitespace)
+            whitespace = Suppress(ZeroOrMore(whitespace))
 
             # Whitespace is decoded at the end of the Literal (and Word) entries,
             # so we have to decode any leading whitespace. The alternative,
@@ -176,6 +179,13 @@ class ParserElement:
         if not isinstance(other, ParserElement):
             other = Literal(other)
         return MatchFirst([other, self])
+
+    def __call__(self, name):
+        return self.setName(name)
+
+    def setName(self, name):
+        self._name = name
+        return self
 
 
 class ZeroOrMore(ParserElement):
@@ -341,6 +351,19 @@ class Forward(ParserElement):
     def _createEntry(self, separator):
         assert self.element is not None
         return self.element.createDecoder(separator)
+
+
+class SkipTo(ParserElement):
+    def __init__(self, expr):
+        ParserElement.__init__(self)
+
+        if not isinstance(expr, ParserElement):
+            expr = Literal(expr)
+        self.expr = expr
+
+    def _createEntry(self, separator):
+        end = self.expr.createDecoder(separator)
+        return SequenceOf('skip to', Choice('item', [end, Field('skipped', 8)]), end_entries=[end])
 
 
 class Combine(ParserElement):
