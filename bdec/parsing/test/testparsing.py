@@ -113,3 +113,12 @@ class TestParsing(unittest.TestCase):
     def test_action_returns_object(self):
         a = Word('abcd').addParseAction(lambda t:t[0].upper())
         self.assertEqual(['BAD'], list(a.parseString('bad')))
+
+    def test_word_body_chars(self):
+        a = Word(alphas, alphas + nums) + StringEnd()
+        self.assertEquals(['Dab0c'], a.parseString(' Dab0c '))
+        self.assertEquals(['Aabc123'], a.parseString(' Aabc123 '))
+        self.assertRaises(ParseException, a.parseString, '0abcd')
+        self.assertRaises(ParseException, a.parseString, '/AbCd')
+        self.assertRaises(ParseException, a.parseString, 'AbCd/')
+

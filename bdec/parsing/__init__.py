@@ -223,8 +223,14 @@ class Literal(ParserElement):
         return '"%s"' % repr(self.text)[1:-1]
 
 
-def Word(chars):
-    return Combine(OneOrMore(MatchFirst([Literal(c) for c in chars])))
+def Word(init_chars, body_chars=None):
+    init = MatchFirst([Literal(c) for c in init_chars])
+    if body_chars:
+        body = MatchFirst([Literal(c) for c in body_chars])
+        result = init + ZeroOrMore(body)
+    else:
+        result = OneOrMore(init)
+    return Combine(result)('word')
 
 
 def _check_literals(exprs):
