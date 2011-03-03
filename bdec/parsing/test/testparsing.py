@@ -122,3 +122,12 @@ class TestParsing(unittest.TestCase):
         self.assertRaises(ParseException, a.parseString, '/AbCd')
         self.assertRaises(ParseException, a.parseString, 'AbCd/')
 
+    def test_not_any(self):
+        name = Word(alphas)
+        keywords = MatchFirst([Literal(n) for n in ('if', 'then')])
+        variable = NotAny(keywords) + name
+        self.assertEqual(['abcd'], list(variable.parseString(' abcd')))
+        self.assertEqual(['aif'], list(variable.parseString('aif')))
+        self.assertRaises(ParseException, variable.parseString, 'if')
+        self.assertRaises(ParseException, variable.parseString, 'then')
+

@@ -180,6 +180,9 @@ class ParserElement:
             other = Literal(other)
         return MatchFirst([other, self])
 
+    def __invert__(self):
+        return NotAny(self)
+
     def __call__(self, name):
         return self.setName(name)
 
@@ -357,6 +360,23 @@ class Forward(ParserElement):
     def _createEntry(self, separator):
         assert self.element is not None
         return self.element.createDecoder(separator)
+
+
+class NotAny(ParserElement):
+    def __init__(self, expr):
+        ParserElement.__init__(self)
+
+        if not isinstance(expr, ParserElement):
+            expr = Literal(expr)
+        self.expr = expr
+
+    def _createEntry(self, separator):
+        # This entry should _not_ decode if self.expr is present
+        entry = self.expr.createDecoder(separator)
+        null = Sequence('null', [])
+        is_present = Choice('is present', [entry, null])
+        check = Sequence('check:', [], value=LengthResult('is present'), constraints=[Equals(0)])
+        return Sequence('not any:', [is_present, check])
 
 
 class SkipTo(ParserElement):
