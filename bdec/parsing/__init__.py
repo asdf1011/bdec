@@ -380,16 +380,16 @@ def Suppress(expr):
 class Forward(ParserElement):
     def __init__(self):
         ParserElement.__init__(self)
-        self.element = None
+        self.expr = None
 
     def __lshift__(self, expr):
         if not isinstance(expr, ParserElement):
             expr = Literal(expr)
-        self.element = expr
+        self.expr = expr
 
     def _createEntry(self, separator):
-        assert self.element is not None
-        return self.element.createDecoder(separator)
+        assert self.expr is not None
+        return self.expr.createDecoder(separator)
 
 
 class NotAny(ParserElement):
