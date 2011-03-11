@@ -116,8 +116,8 @@ class TestParsing(unittest.TestCase):
 
     def test_word_body_chars(self):
         a = Word(alphas, alphas + nums) + StringEnd()
-        self.assertEquals(['Dab0c'], a.parseString(' Dab0c '))
-        self.assertEquals(['Aabc123'], a.parseString(' Aabc123 '))
+        self.assertEquals(['Dab0c'], list(a.parseString(' Dab0c ')))
+        self.assertEquals(['Aabc123'], list(a.parseString(' Aabc123 ')))
         self.assertRaises(ParseException, a.parseString, '0abcd')
         self.assertRaises(ParseException, a.parseString, '/AbCd')
         self.assertRaises(ParseException, a.parseString, 'AbCd/')
@@ -131,3 +131,8 @@ class TestParsing(unittest.TestCase):
         self.assertRaises(ParseException, variable.parseString, 'if')
         self.assertRaises(ParseException, variable.parseString, 'then')
 
+    def test_one_of(self):
+        a = oneOf(['if', 'then', 'switch']) + StringEnd()
+        self.assertEqual(['then'], list(a.parseString(' then ')))
+        self.assertEqual(['if'], list(a.parseString('if')))
+        self.assertRaises(ParseException, a.parseString, 'bad')

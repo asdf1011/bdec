@@ -4,7 +4,7 @@ from string import ascii_letters as alphas, digits as nums, hexdigits as hexnums
 
 from bdec import DecodeError
 from bdec.choice import Choice
-from bdec.constraints import Equals, NotEquals
+from bdec.constraints import Equals, NotEquals, Minimum, Maximum
 from bdec.data import Data
 from bdec.entry import is_hidden
 from bdec.expression import LengthResult, ValueResult
@@ -315,11 +315,41 @@ class CharsNotIn(ParserElement):
         ParserElement.__init__(self)
         self.notChars = notChars
 
+    def _char_ranges(self):
+        """Return a list of [a..z] lists."""
+        remaining = list(ord(c) for c in self.notChars)
+        remaining.sort()
+        current = []
+        while remaining:
+            char = remaining.pop(0)
+            if not current or char == current[-1] + 1:
+                current.append(char)
+            else:
+                yield current
+                current = [char]
+        if current:
+            yield current
+
     def _createEntry(self, separator):
         checks = []
-        for c in self.notChars:
-            checks.append(Sequence(None, [], value=ValueResult('char not in'),
-                    constraints=[NotEquals(ord(c))]))
+        for range in self._char_ranges():
+            min = range[0]
+            max = range[-1]
+            if len(range) == 1:
+                # There is a single character; use a 'not equals'.
+                checks.append(Sequence('not %s:' % repr(chr(min))[1:-1], [],
+                    value=ValueResult('char not in'),
+                    constraints=[NotEquals(min)]))
+            else:
+                # There are multiple characters; use two ranges.
+                checks.append(Choice(None, [
+                    Sequence('less than %s:' % repr(chr(min))[1:-1], [],
+                        value=ValueResult('char not in'),
+                        constraints=[Maximum(min - 1)]),
+                    Sequence('greater than %s:' % repr(chr(max))[1:-1], [],
+                        value=ValueResult('char not in'),
+                        constraints=[Minimum(max + 1)]),
+                    ]))
         good_char = Sequence('good char', [Field('char not in', length=8, format=Field.INTEGER)] + checks)
         end = Sequence(None, [])
         char = Choice('test char', [good_char, end])
@@ -456,4 +486,7 @@ def Group(expr):
 
 def CaselessKeyword(text):
     return Combine(And(list(Or([c.lower(), c.upper()]) for c in text)))
+
+def oneOf(exprs):
+    return Combine(Or(exprs))
 
