@@ -12,23 +12,27 @@ Overview
 ========
 
 Writing decoders for binary formats is typically tedious and error prone.
-Binary formats are usually specified in text documents that developers have
-to read if they are to create decoders, a time consuming, frustrating, and
-costly process.
+After reading specification documents, developers have to manually write
+code capable of decoding that particularly format. This is usually a time
+consuming, frustrating, and costly process; it can be the source of many bugs
+when the manually written decoders fail to handle edge cases.
 
-While there are high level markup languages such as ASN.1 for specifying
-formats, few specifications make use of these languages, and such markup
-languages cannot be retro-fitted to existing binary formats. 'bdec' is an
-attempt to specify arbitrary binary formats in a markup language, and create
-decoders automatically for that binary format given the high level
-specification.
+Bdec allows developers to write specifications for binary formats using
+several simple low-level constructs, which combine in powerful ways to allow
+many binary formats to be partially (if not fully) specified. From this
+specification, source code for C decoders and encoders can be generated.
+
+While there are other high level markup languages (such as ASN.1, or google
+protocol buffers) for specifying formats, few existing specifications make use
+of these languages, and such markup languages cannot usually be retro-fitted
+to existing binary formats.
 
 Bdec can;
 
- * Allow specifications to be easily written, updated, and maintained.
- * Decode binary files directly from the specification.
- * Generate portable, readable, and efficient C decoders.
- * Run under Windows & Unix operating systems
+ * Allow specifications to be easily written and maintained.
+ * Decode binary and structured text files.
+ * Generate portable, readable, and efficient C decoders and encoders.
+ * Run under Windows & Unix operating systems.
 
 The bdec xml specification uses constructs based loosely on those found in
 ASN.1.
@@ -52,11 +56,11 @@ If you're just getting started, the tutorial_ takes you step by step through
 the different concepts used in bdec. Once you've got started, refer to the
 rest of the documentation_ as required.
 
-For convenience, `downloadable pdf documentation`_ is also available.
+For convenience, `pdf documentation`_ is also available.
 
 .. _documentation: docs/
 .. _tutorial: docs/tutorial.html
-.. _downloadable pdf documentation: files/bdec-VERSION.pdf
+.. _pdf documentation: files/bdec-VERSION.pdf
 
 
 Support
@@ -72,16 +76,16 @@ patient if your question doesn't show up immediately.
 Features
 ========
 
-* It is easy to quickly write (and read) a specification
+* It is easy to write (and read) bdec specifications.
 * No need to write a custom decoder (all error conditions are handled 
   internally; decoding either passes or fails).
 * The command line application allows visual inspection of problematic files.
-* Unicode aware, little-endian / big-endian aware
+* Unicode aware, little-endian / big-endian aware.
 * Decode to xml for rapid development (eg: `xml representation of a fat
-  bootsector`_)
-* Specify fields down to the bit (eg: single bit flags)
-* Generated decoders are human readable, easy to use, and compile without
-  warnings.
+  bootsector`_).
+* Specify fields down to the bit (eg: single bit flags).
+* Generated decoders are human readable, easy to use, compile without
+  warnings, and have no dependencies.
 
 .. _xml representation of a FAT bootsector: docs/files/fatbootsector.xml
 
@@ -140,10 +144,7 @@ Some projects that perform 'generic' binary decoding include;
   Can create C, C++, and Java decoders and encoders.
 * Encodix_ - Commercial product focussed towards decoders for the
   telecommunications industry.
-* Hachoir_ - Very powerful decoding library, where binary formats are specified
-  in python code (using generators). Quite high level decoding, with complex
-  binary files being decoded. Lots of file formats are specified (at least
-  partially).
+* Hachoir_ - Tool for inspecting many binary formats.
 
 Projects that generate decoders from high level specifications;
 
