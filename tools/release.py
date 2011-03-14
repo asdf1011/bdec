@@ -141,10 +141,13 @@ def _create_changelog_html():
     for version, date, notes in get_changelog():
         doc_path = 'files/bdec-%s.pdf' % version
         doc = ''
-        if os.path.exists(os.path.join(project_dir, doc_path)):
-            doc = ', `documentation <%s>`_' % doc_path
+        has_pdf = os.path.exists(os.path.join(project_dir, doc_path))
+        if has_pdf:
+            doc = ', documentation__'
         contents += '\n* `Version %s`_ (%s%s)\n\n' % (version, date, doc)
         contents += '\n'.join('  %s' % line for line in notes.splitlines())
+        if has_pdf:
+            contents += '\n\n__ %s\n' % doc_path
         contents += '\n'
         links += '.. _Version %s: files/bdec-%s.tar.gz\n' % (version, version)
     contents += '\n\n%s' % links
