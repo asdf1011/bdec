@@ -14,6 +14,7 @@ Contents:
    overview
    tutorial
    format/index
+   tips
    compiling
    instancedecoder
 

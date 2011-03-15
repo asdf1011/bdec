@@ -58,7 +58,7 @@ there might be a lot of 32 bit little endian integers. Insted of writing::
 
    <common>
      <sequence name="header">
-       <field length="32" value="0x1234" />
+       <field length="32" value="0x12345678" />
        <field name="year" length="32" type="integer" encoding="little endian" />
        <field name="month" length="32" type="integer" encoding="little endian" />
        <field name="day" length="32" type="integer" encoding="little endian" />
@@ -83,8 +83,8 @@ use a common entry that defines types that are used regularly, such as::
    </common>
 
 
-Optional entry flags
-====================
+Optional entries
+================
 
 Often the header of a format has a flag which indicates whether an optional
 block of data is present. While it is possible to create a choice with the two
@@ -118,3 +118,47 @@ entry depends on a previous flag, use a conditional. If one of several
 possibilites can be used (eg: differing payloads in a message, etc), use a
 choice.
 
+
+Avoid duplication within choice options
+=======================================
+
+Often specifications have a field representing the type of a payload that is
+followed by several common entries before the different options diverge. eg:: 
+
+  <choice name="packet">
+    <sequence name="type a">
+      <field name="data length:" length="8" />
+      <field name="type:" length="8" value="0x0" />
+      <reference name="header" />
+      ... 'type a' specific entries
+    </sequence>
+    <sequence name="type b">
+      <field name="data length:" length="8" />
+      <field name="type:" length="8" value="0x1" />
+      <reference name="header" />
+      ... 'type b' specific entries
+    </sequence>
+  </choice>
+
+While it is possible to put the common entries into every choice option, this
+involves significant repetition, and often makes the compiled decoders awkward
+to use (as the common fields are duplicated in different structures). It's much
+better to decode the 'type:' field without an expected value, and reference it
+within the payload. eg::
+
+  <sequence name="packet">
+    <field name="data length:" length="8" />
+    <field name="type:" length="8" />
+    <reference name="header" />
+    <choice name="payload">
+      <sequence name="type a">
+        <sequence value="${type:}" expected="0" />
+        ... 'type a' specific entries
+      </sequence>
+      <sequence name="type b">
+        <sequence value="${type:}" expected="1" />
+        ... 'type b' specific entries
+      </sequence>
+    </choice>
+  </sequence>
+  
