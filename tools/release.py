@@ -141,10 +141,13 @@ def _create_changelog_html():
     for version, date, notes in get_changelog():
         doc_path = 'files/bdec-%s.pdf' % version
         doc = ''
-        if os.path.exists(os.path.join(project_dir, doc_path)):
-            doc = ', `documentation <%s>`_' % doc_path
+        has_pdf = os.path.exists(os.path.join(project_dir, doc_path))
+        if has_pdf:
+            doc = ', documentation__'
         contents += '\n* `Version %s`_ (%s%s)\n\n' % (version, date, doc)
         contents += '\n'.join('  %s' % line for line in notes.splitlines())
+        if has_pdf:
+            contents += '\n\n__ %s\n' % doc_path
         contents += '\n'
         links += '.. _Version %s: files/bdec-%s.tar.gz\n' % (version, version)
     contents += '\n\n%s' % links
@@ -188,7 +191,6 @@ release='%s' ''' % (version, version))
 
 def update_website(version):
     print 'Updating project index...'
-    os.chdir(project_dir)
 
     pdf_file = os.path.join(project_dir, 'files', 'bdec-%s.pdf' % version)
     if not os.path.exists(pdf_file) or raw_input("Pdf documentation '%s' exists! Regenerate? [y]" % pdf_file) in ('', 'Y', 'y'):
@@ -196,6 +198,7 @@ def update_website(version):
     else:
         print 'Not regenerating pdf...'
 
+    os.chdir(project_dir)
     _create_changelog_html()
     _create_index_file(version)
 
@@ -229,7 +232,7 @@ def update_release_tarball(version):
     if os.system(command) != 0:
         sys.exit('Failed to export new tar.gz!')
     os.chdir(project_dir)
-    if os.system('bzr add %s' % destination) != 0:
+    if os.system('git add %s' % destination) != 0:
         sys.exit('Failed to add new tar.gz!')
 
 def tag_changes(version):
@@ -427,7 +430,15 @@ def upload():
         if text.strip() and text != 'y':
             sys.exit('Not uploaded.')
 
-if __name__ == '__main__':
+def has_modifications():
+    process = subprocess.Popen(['git', 'status', '--porcelain'],
+            stdout=subprocess.PIPE)
+    output = process.stdout.read()
+    print output
+    assert process.wait() == 0, 'Failed to query git status.'
+    return len(output.strip()) != 0
+
+def main():
     if len(sys.argv) != 1:
         usage()
         sys.exit(1)
@@ -447,13 +458,15 @@ if __name__ == '__main__':
     update_release_tarball(version)
 
     os.chdir(root_path)
+    if has_modifications() and raw_input('Source tree has changes! Stop? [y]') != 'n':
+        sys.exit('Stopping due to changes in the source tree.')
+
+    os.chdir(root_path)
     if commit_website(version):
         upload()
-
-    if os.system('git status') == 0:
-        # Git returns non-zero if 'git commit' would do nothing.
-        sys.exit('Source tree has changes! Stopping.')
 
     tag_changes(version)
     notify(version, changelog)
 
+if __name__ == '__main__':
+    main()
