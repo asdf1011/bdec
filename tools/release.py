@@ -430,6 +430,12 @@ def upload():
         if text.strip() and text != 'y':
             sys.exit('Not uploaded.')
 
+def has_modifications():
+    process = subprocess.Popen(['git', 'status'], stdout=subprocess.PIPE)
+    output = process.stdout.read()
+    assert process.wait() == 0, 'Failed to query git status.'
+    return len(output.strip())
+
 def main():
     if len(sys.argv) != 1:
         usage()
@@ -450,13 +456,13 @@ def main():
     update_release_tarball(version)
 
     os.chdir(root_path)
+    if has_modifications() and raw_input('Source tree has changes! Stop? [y]') != 'n':
+        sys.exit('Stopping due to changes in the source tree.')
+
+    os.chdir(root_path)
     if commit_website(version):
         upload()
 
-    os.chdir(root_path)
-    if os.system('git status') == 0:
-        # Git returns non-zero if 'git commit' would do nothing.
-        sys.exit('Source tree has changes! Stopping.')
 
     tag_changes(version)
     notify(version, changelog)
