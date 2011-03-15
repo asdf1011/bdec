@@ -13,29 +13,29 @@ Overview
 
 Writing decoders for binary formats is typically tedious and error prone.
 After reading specification documents, developers have to manually write
-code capable of decoding that particularly format. This is usually a time
+code capable of decoding that particular format. This is usually a time
 consuming, frustrating, and costly process; it can be the source of many bugs
 when the manually written decoders fail to handle edge cases.
 
 Bdec allows developers to write specifications for binary formats using
 several simple low-level constructs, which combine in powerful ways to allow
 many binary formats to be partially (if not fully) specified. From this
-specification, source code for C decoders and encoders can be generated.
+specification, developers can automatically generate source code for C
+decoders and encoders.
 
-While there are other high level markup languages (such as ASN.1, or google
-protocol buffers) for specifying formats, few existing specifications make use
-of these languages, and such markup languages cannot usually be retro-fitted
-to existing binary formats.
+While there are other high level specification languages (such as ASN.1, or
+google protocol buffers), few existing formats make use of these languages,
+and such markup languages cannot usually be retro-fitted to existing binary
+formats.
 
 Bdec can;
 
  * Allow specifications to be easily written and maintained.
- * Decode binary and structured text files.
+ * Decode both binary and structured text files.
  * Generate portable, readable, and efficient C decoders and encoders.
  * Run under Windows & Unix operating systems.
 
-The bdec xml specification uses constructs based loosely on those found in
-ASN.1.
+The bdec specification uses constructs based loosely on those found in ASN.1.
 
 
 Getting started
@@ -45,7 +45,7 @@ Getting started
 2. Go through the tutorial_.
 3. Try writing a specification for your own file formats (referring to the
    documentation_ where necessary).
-4. Save lots of time and pain by *not* writing and maintaining hand written 
+4. Save lots of time and pain by *not* writing and maintaining hand-written 
    buggy decoders.
 
 
@@ -53,8 +53,8 @@ Documentation
 =============
 
 If you're just getting started, the tutorial_ takes you step by step through
-the different concepts used in bdec. Once you've got started, refer to the
-rest of the documentation_ as required.
+the different concepts used in bdec. Once you're writing your own
+specifications, refer to the rest of the documentation_ as required.
 
 For convenience, `pdf documentation`_ is also available.
 
@@ -115,30 +115,31 @@ Run::
 
   easy_install bdec
 
-to install the latest version of the bdec decoder and compiler. The source
-code links below can be also be used if you install the dependencies manually
-(currently pyparsing_ and mako_).
-
+to install the latest version of the bdec decoder and compiler.
 See the CHANGELOG_ for past releases.
 
 .. _CHANGELOG: changelog.html
 .. _easy_install: http://pypi.python.org/pypi/setuptools#installation-instructions
-.. _pyparsing: http://pyparsing.wikispaces.com/
-.. _mako: http://www.makotemplates.org/
 
 
 Source
 ======
 
-The source control tree is available on github at http://github.com/asdf1011/bdec.
+The source control tree is available on github at
+http://github.com/asdf1011/bdec.
 
   git clone http://github.com/asdf1011/bdec.git
+
+Dependencies that must be installed are pyparsing_ and mako_.
+
+.. _pyparsing: http://pyparsing.wikispaces.com/
+.. _mako: http://www.makotemplates.org/
 
 
 Similar projects
 ================
 
-Some projects that perform 'generic' binary decoding include;
+Some other tools that perform 'generic' binary decoding include;
 
 * TSN.1_ - Commercial product with very similar decoding functionality to bdec.
   Can create C, C++, and Java decoders and encoders.
