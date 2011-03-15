@@ -453,6 +453,7 @@ if __name__ == '__main__':
     if commit_website(version):
         upload()
 
+    os.chdir(root_path)
     if os.system('git status') == 0:
         # Git returns non-zero if 'git commit' would do nothing.
         sys.exit('Source tree has changes! Stopping.')
