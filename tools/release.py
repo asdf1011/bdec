@@ -232,7 +232,7 @@ def update_release_tarball(version):
     if os.system(command) != 0:
         sys.exit('Failed to export new tar.gz!')
     os.chdir(project_dir)
-    if os.system('bzr add %s' % destination) != 0:
+    if os.system('git add %s' % destination) != 0:
         sys.exit('Failed to add new tar.gz!')
 
 def tag_changes(version):
