@@ -2,18 +2,16 @@
 Tutorial
 ========
 
-If you haven't read the :ref:`format documents <bdec-specification>` yet, now
-is a good time to do so. This document will discuss writing a bdec 
-specification for a format you have documention of, and sample data files to
-test with.
+This tutorial will discuss writing a rudimentary specification for the png_
+image file format.
 
 
 Preparation
 -----------
 
-First we need to find a specification for the file type we want to decode. Try
-searching on google (eg: 'jpeg specification', 'png file format'), or on a site
-like wotsit_.
+When decoding a format, first we need to find a specification for the file
+type we want to decode. Try searching for 'jpeg specification' or 'png file
+format') on google or wotsit_.
 
 These documents can be very large and difficult to understand; they include 
 information on not only the file format, but also how the data should be
@@ -22,9 +20,6 @@ data is represented on disk, so search through the document until you find the
 section about the on disk format. Finding the section on the header (the first 
 part of the file) is an excellent place to start.
 
-In this tutorial we will write a rudimentary `png`_ file format specification
-(a common image file format).
-
 .. _png: http://www.libpng.org/pub/png/spec/1.1/PNG-Contents.html
 .. _wotsit: http://www.wotsit.org
 
@@ -32,10 +27,10 @@ In this tutorial we will write a rudimentary `png`_ file format specification
 Getting started
 ---------------
 
-To start, it is an excellent idea to attempt decoding of a small and simple
-file in the target format. If you have access to an editor capable of creating
-files in the format, create (and save) an empty document. For this tutorial, I
-created a small 5x5 white png image.
+To start, it is a good idea to attempt to decode a small and simple file in
+the target format. If you have access to an editor capable of creating files
+in the format, create (and save) an empty document. For this tutorial, I
+created a small `5x5 white png image`_.
 
 We start by creating a new xml document, named png.xml::
 
@@ -44,8 +39,10 @@ We start by creating a new xml document, named png.xml::
      </sequence>
   </protocol>
 
-Now we can try running 'decode', giving the specification and the file to 
-decode. ::
+All specifications have the outer 'protocol' element, and the
+:ref:`sequence <format-sequence>` is like a C struct (it contains other
+entries). Now we can try running 'bdecode', giving the specification and the
+file to decode. ::
 
   bdecode -f white.png png.xml
 
@@ -59,6 +56,8 @@ Which gives the results::
 
 We have now started to decode the file, which is the first step in writing a
 working specification!
+
+.. _5x5 white png image: files/white.png
 
 
 Writing the specification
@@ -74,9 +73,10 @@ byte signature. ::
      </sequence>
   </protocol>
 
-Note that the length is 64, not 8! This is because all lengths in a 
-specification are in bits, not bytes (so we need to multiply by eight). This 
-decodes to::
+The :ref:`field <format-field>` element is used to represent all data on disk;
+in this case we say it is an 8 byte data field with an expected value. Note
+that the length is 64, not 8! This is because all lengths in a specification
+are in bits, not bytes (so we need to multiply by eight). This decodes to::
 
   <png>
     <signature />
@@ -86,7 +86,10 @@ decodes to::
   592 bytes undecoded!
 
 We have now started to decode the file! Files that aren't png will no longer
-decode, as they won't start with the required signature.
+decode, as they won't start with the required signature. Note that the value
+of the signature field isn't displayed in the output xml; this is because as
+the value of the field is implied in the specification; if it wasn't that
+data, decoding would have failed.
 
 
 Updating the specification
@@ -122,25 +125,28 @@ crc. ::
 
 A few things to note:
 
-  * We've put the 'unknown chunk' in the common section; it is a good
-    idea to separate logical constructs in different parts of the
-    specification.
-  * The entry 'data' is a variable length field
+  * The :ref:`sequenceof <format-sequenceof>` means the referenced
+    'unknown chunk' is repeated.
+  * We've put the 'unknown chunk' in the common section, and
+    :ref:`reference <format-reference>` it from where it is to be used. It is
+    a good idea to separate logical constructs.
+  * The 'data' entry is a variable length :ref:`field <format-field>`.
   * The name of the 'data length:' field has a trailing ':'. This acts as a
     hint to hide the output of 'data length:' field, so it will not be
     displayed.
 
-Running the decode, we successfully get four chunks decoding, before we run
-out of data with the error::
+Re-running the decode, we successfully decode four chunks before we run out of
+data with the error::
 
    ...
         </unknown-chunk>
         <unknown-chunk>
    png.xml[11]: integer 'data length:' (big endian) - Asked for 32 bits, but only have 0 bits available!
 
-This is because the sequenceof entry doesn't know when to stop decoding; ie: 
-there isn't a count, a length, or an end-entry. From reading the specification,
-we find that a png file is supposed to end with an 'IEND' chunk. Lets add it! ::
+This is because the :ref:`sequenceof <format-sequenceof>` entry doesn't know
+when to stop decoding; ie: there isn't a count, a length, or an end-entry.
+From reading the specification, we find that a png file is supposed to end
+with an 'IEND' chunk. Lets add it! ::
 
   <protocol>
      <sequence name="png">
@@ -176,8 +182,8 @@ we find that a png file is supposed to end with an 'IEND' chunk. Lets add it! ::
 Things to note:
    
  * We've added an 'end chunk' common entry
- * We've added a choice chunk, allowing a chunk to be either an 'unknown chunk'
-   or an 'end chunk'.
+ * We've added a :ref:`choice <format-choice>` entry, allowing a chunk to be
+   either an 'unknown chunk' or an 'end chunk'.
 
 Attempting to decode still has the out of data error! Wait; look at the choice;
 the 'unknown chunk' is before the 'end chunk'! The 'unknown chunk' will always
@@ -192,15 +198,15 @@ need to swap them around, like so::
               <reference name="unknown chunk" />
            </choice>
 
-This causes the file to successfully decode!
+Running the decode again, the sample file to successfully decodes!
 
 
 Simplifying the specification using named references
 ----------------------------------------------------
 
-In the specification so far, we have had to re-type the integer type several
-times. While this isn't too difficult, having more text can make it harder to
-read. We can use :ref:`references <format-reference>` to only specify these once::
+In the specification we have had to re-type the integer field several times.
+While this isn't too difficult, having more text can make it harder to read.
+We can use :ref:`references <format-reference>` to only specify these once::
 
   <protocol>
      ...skipping...
@@ -345,8 +351,8 @@ and a variable length text string to read the value. eg::
      <field name="crc" length="32" type="hex" />
   </sequence>
 
-Note that we use the 'len{...}' entry to reference the length of another field
-that has been decoded.
+Note that we use the 'len{...}' :ref:`expression <bdec-expressions>` to
+reference the length of another entry that has already been decoded.
 
 
 Using the specification
