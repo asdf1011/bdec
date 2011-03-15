@@ -431,10 +431,12 @@ def upload():
             sys.exit('Not uploaded.')
 
 def has_modifications():
-    process = subprocess.Popen(['git', 'status'], stdout=subprocess.PIPE)
+    process = subprocess.Popen(['git', 'status', '--porcelain'],
+            stdout=subprocess.PIPE)
     output = process.stdout.read()
+    print output
     assert process.wait() == 0, 'Failed to query git status.'
-    return len(output.strip())
+    return len(output.strip()) != 0
 
 def main():
     if len(sys.argv) != 1:
@@ -462,7 +464,6 @@ def main():
     os.chdir(root_path)
     if commit_website(version):
         upload()
-
 
     tag_changes(version)
     notify(version, changelog)
