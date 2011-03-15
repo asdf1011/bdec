@@ -191,7 +191,6 @@ release='%s' ''' % (version, version))
 
 def update_website(version):
     print 'Updating project index...'
-    os.chdir(project_dir)
 
     pdf_file = os.path.join(project_dir, 'files', 'bdec-%s.pdf' % version)
     if not os.path.exists(pdf_file) or raw_input("Pdf documentation '%s' exists! Regenerate? [y]" % pdf_file) in ('', 'Y', 'y'):
@@ -199,6 +198,7 @@ def update_website(version):
     else:
         print 'Not regenerating pdf...'
 
+    os.chdir(project_dir)
     _create_changelog_html()
     _create_index_file(version)
 
@@ -430,7 +430,7 @@ def upload():
         if text.strip() and text != 'y':
             sys.exit('Not uploaded.')
 
-if __name__ == '__main__':
+def main():
     if len(sys.argv) != 1:
         usage()
         sys.exit(1)
@@ -461,3 +461,5 @@ if __name__ == '__main__':
     tag_changes(version)
     notify(version, changelog)
 
+if __name__ == '__main__':
+    main()
