@@ -25,6 +25,7 @@ setup(name='bdec',
       entry_points={'console_scripts': [
           'bcompile = bdec.tools.compile:main',
           'bdecode = bdec.tools.decode:main',
+          'bencode = bdec.tools.encode:main',
           ]},
       install_requires=['pyparsing', 'nose', 'mako'],
       zip_safe=True,

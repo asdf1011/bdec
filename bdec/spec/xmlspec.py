@@ -1,4 +1,5 @@
-#   Copyright (C) 2008-2009 Henry Ludemann
+#   Copyright (C) 2008-2010 Henry Ludemann
+#   Copyright (C) 2010 PRESENSE Technologies GmbH
 #
 #   This file is part of the bdec decoder library.
 #
@@ -16,6 +17,7 @@
 #   License along with this library; if not, see
 #   <http://www.gnu.org/licenses/>.
 
+import operator
 import StringIO
 import xml.sax
 from xml.sax import saxutils
@@ -23,24 +25,19 @@ from xml.sax import saxutils
 import bdec.choice as chc
 from bdec.constraints import Minimum, Maximum, Equals, NotEquals
 import bdec.data as dt
+from bdec.encode.field import convert_value_context
 import bdec.entry as ent
 import bdec.expression as exp
 import bdec.field as fld
 import bdec.inspect.param as prm
-from bdec.spec import LoadError
-from bdec.spec.references import ReferencedEntry, References, MissingReferenceError
+from bdec.spec import LoadErrorWithLocation
+from bdec.spec.references import ReferencedEntry, DuplicateCommonError
 from bdec.spec.integer import Integers, IntegerError
 import bdec.sequence as seq
 import bdec.sequenceof as sof
 
-class XmlSpecError(LoadError):
-    def __init__(self, filename, locator):
-        self.filename = filename
-        self.line = locator.getLineNumber()
-        self.column = locator.getColumnNumber()
-
-    def _src(self):
-        return "%s[%s]: " % (self.filename, self.line)
+class XmlSpecError(LoadErrorWithLocation):
+    pass
 
 class XmlError(XmlSpecError):
     """
@@ -85,14 +82,14 @@ class XmlExpressionError(XmlSpecError):
         self.ex = ex
 
     def __str__(self):
-        return self._src() + "Expression error - " + str(self.ex)
+        return self._src() + str(self.ex)
 
 
 class _Handler(xml.sax.handler.ContentHandler):
     """
     A sax style xml handler for building a decoder from an xml specification
     """
-    def __init__(self, filename):
+    def __init__(self, filename, references):
         self._filename = filename
         self._stack = []
         self._children = []
@@ -108,15 +105,13 @@ class _Handler(xml.sax.handler.ContentHandler):
             "sequenceof" : self._sequenceof,
             }
         self.decoder = None
-        self.common_entries = {}
 
         self.lookup = {}
         self.locator = None
         self._end_sequenceof = False
         self._unresolved_references = []
         self._integers = Integers()
-        self._references = References()
-        self._common = []
+        self._references = references
 
     def setDocumentLocator(self, locator):
         self.locator = locator
@@ -165,6 +160,11 @@ class _Handler(xml.sax.handler.ContentHandler):
         if attrs.has_key('expected'):
             expected = self._parse_expression(attrs['expected'])
             constraints.append(Equals(expected))
+        if name == 'field' and not isinstance(entry, fld.Field) and attrs.has_key('value'):
+            # Fields that are long integers can be internally converted to
+            # references to Sequences; we need to handle the expected values.
+            expected = self._parse_expression(attrs['value'])
+            constraints.append(Equals(expected))
 
         if constraints:
             if isinstance(entry, ReferencedEntry):
@@ -190,7 +190,12 @@ class _Handler(xml.sax.handler.ContentHandler):
             except exp.ExpressionError, ex:
                 raise XmlExpressionError(ex, self._filename, self.locator)
             assert isinstance(not_present, ent.Entry)
-            optional = chc.Choice('optional %s' % entry_name, [not_present, entry])
+
+            self.lookup[not_present] = (self._filename, lineno, colno)
+            self.lookup[entry] = (self._filename, lineno, colno)
+
+            name = 'optional %s' % entry_name if entry_name else 'optional:'
+            optional = chc.Choice(name, [not_present, entry])
             entry = optional
 
         if entry is not None:
@@ -211,22 +216,20 @@ class _Handler(xml.sax.handler.ContentHandler):
             self.lookup[entry] = (self._filename, lineno, colno)
 
     def _common(self, attributes, children, name, length, breaks):
-        self._common = children
+        for entry in children:
+            try:
+                self._references.add_common(entry)
+            except DuplicateCommonError, ex:
+                raise self._error(ex)
 
     def _protocol(self, attributes, children, name, length, breaks):
-        if len(children) != 1:
-            raise self._error("Protocol should have a single entry to be decoded!")
-
-        # Resolve all references
-        assert len(children) == 1
-        common = self._integers.common.values() + self._common + [children[0]]
-        try:
-            common = self._references.resolve(common)
-        except MissingReferenceError, ex:
-            raise self._error("Referenced element '%s' is not found!" % ex.name)
-
-        self.decoder = common[-1]
-        self.common_entries = dict((c.name, c) for c in common[:-1])
+        # Add the used integer entries to the specification
+        if children:
+            self.decoder = children[0]
+        else:
+            self.decoder = None
+        for entry in self._integers.common.values():
+            self._references.add_common(entry)
 
     def _parse_expression(self, text):
         try:
@@ -254,6 +257,7 @@ class _Handler(xml.sax.handler.ContentHandler):
                 "binary" : fld.Field.BINARY,
                 "hex" : fld.Field.HEX,
                 "integer" : fld.Field.INTEGER,
+                "unsigned integer" : fld.Field.INTEGER,
                 "signed integer" : fld.Field.INTEGER,
                 "text" : fld.Field.TEXT,
                 "float" : fld.Field.FLOAT,
@@ -295,19 +299,24 @@ class _Handler(xml.sax.handler.ContentHandler):
                 except exp.UndecodedReferenceError:
                     # We don't know the length of the object; assume it'll be
                     # the length of the hex.
-                    expected_length = 8 * (len(expected_text) - 2)
+                    expected_length = 4 * (len(expected_text) - 2)
+                    if expected_length % 8:
+                        # We'll align it to whole bytes, just in case.
+                        expected_length += 4
+                        assert expected_length % 8 == 0
                 data = dt.Data('\x00' * (expected_length / 8 + 8))
                 data += dt.Data.from_hex(expected_text[2:])
                 unused = data.pop(len(data) - expected_length)
                 if len(unused) and int(unused) != 0:
                     raise self._error('Field is %i bits long, but expected data is longer (%i bits)!' % (expected_length, len(unused) + len(data)))
+                value = result.decode_value(data)
             else:
                 # The expected data is the string representation of the field's
-                # native format. To get the value, we will convert the string
-                # to data, then back again.
-                data = result.encode_value(expected_text)
-
-            value = result.decode_value(data)
+                # native format.
+                try:
+                    value = convert_value_context(result, expected_text, {})
+                except fld.FieldDataError, ex:
+                    raise self._error(ex)
             result.constraints.append(Equals(value))
         return result
 
@@ -324,10 +333,8 @@ class _Handler(xml.sax.handler.ContentHandler):
         return chc.Choice(name, children, length)
 
     def _sequenceof(self, attributes, children, name, length, breaks):
-        if len(children) == 0:
-            raise self._error("SequenceOf '%s' must have a single child! Should this be a 'reference' entry?" % attributes['name'])
         if len(children) != 1:
-            raise self._error("Sequence of entries can only have a single child! (got %i)" % len(children))
+            children = [seq.Sequence('%s item' % name, children)]
 
         # Default to being a greedy sequenceof, unless we have a length specified
         count = None
@@ -336,54 +343,26 @@ class _Handler(xml.sax.handler.ContentHandler):
         result = sof.SequenceOf(name, children[0], count, length, breaks)
         return result
 
-def _load_from_file(file, filename):
-    """
-    Read a string from open file and interpret it as an
-    xml data stream identifying a protocol entity.
 
-    @return Returns a tuple containing the decoder entry, a dictionary
-        of decoder entries to (filename, line number, column number), and
-        a list of common entries.
+def load(filename, specfile, references):
+    """
+    Load an xml specification from a filename or file object.
+
+    xml -- A file object.
+    references -- A bdec.spec.references.References instance.
+
+    @return Returns a tuple containing the decoder entry and a dictionary
+        of decoder entries to (filename, line number, column number).
     """
     parser = xml.sax.make_parser()
-    handler = _Handler(filename)
+    handler = _Handler(filename, references)
     parser.setContentHandler(handler)
     try:
-        parser.parse(file)
+        parser.parse(specfile)
     except xml.sax.SAXParseException, ex:
         # The sax parse exception object can operate as a locator
         raise XmlError(ex.args[0], filename, ex)
-    try:
-        # Validate all of the parameters in use
-        entries = [handler.decoder] + handler.common_entries.values()
-        prm.CompoundParameters([prm.EndEntryParameters(entries),
-            prm.ExpressionParameters(entries)])
-    except (ent.MissingExpressionReferenceError, prm.BadReferenceError), ex:
-        class Locator:
-            def getLineNumber(self):
-                return handler.lookup[ex.entry][1]
-            def getColumnNumber(self):
-                return handler.lookup[ex.entry][2]
-        raise XmlExpressionError(ex, filename, Locator())
-    return (handler.decoder, handler.common_entries, handler.lookup)
-
-def loads(xml):
-    """
-    Parse an xml string, interpreting it as a protocol specification.
-    """
-    return _load_from_file(StringIO.StringIO(xml), "<string>")
-
-def load(xml):
-    """
-    Load an xml specification from a filename or file object.
-    """
-    if isinstance(xml, basestring):
-        xmlfile = open(xml, "r")
-        result = _load_from_file(xmlfile, xml)
-        xmlfile.close()
-    else:
-        result = _load_from_file(xml, "<stream>")
-    return result
+    return (handler.decoder, handler.lookup)
 
 def _save_field(entry, attributes):
     if entry.format is not fld.Field.BINARY:
@@ -393,8 +372,6 @@ def _save_field(entry, attributes):
     return 'field'
 
 def _save_sequence(entry, attributes):
-    if entry.length is not None:
-        attributes += [('length', str(entry.length))]
     if entry.value is not None:
             attributes += [('value', entry.value)]
     return 'sequence'
@@ -402,13 +379,9 @@ def _save_sequence(entry, attributes):
 def _save_sequenceof(entry, attributes):
     if entry.count is not None:
         attributes += [('count', str(entry.count))]
-    if entry.length is not None:
-        attributes += [('length', str(entry.length))]
     return 'sequenceof'
 
 def _save_choice(entry, attributes):
-    if entry.length is not None:
-        attributes += [('length', str(entry.length))]
     return 'choice'
 
 _handlers = {fld.Field: _save_field,
@@ -491,7 +464,6 @@ def _write_entry(gen, entry, common, end_entry):
             else:
                 attributes.append(('expected', value))
         elif isinstance(constraint, NotEquals):
-            # HACK: Print 'not equal' entries...
             attributes.append(('not_equal', str(constraint.limit)))
         else:
             raise NotImplementedError("Don't know how to save contraint '%s'!" % constraint)
@@ -509,6 +481,7 @@ def _write_entry(gen, entry, common, end_entry):
     gen.end(name)
 
 def dump(spec, common, output):
+    """Save a specification in the xml format."""
     if spec not in common:
         common = common + [spec]
     end_entry = prm.EndEntryParameters(common)
@@ -531,5 +504,4 @@ def dumps(spec, common=[]):
     output = StringIO.StringIO()
     dump(spec, common, output)
     return output.getvalue()
-
 save = dumps

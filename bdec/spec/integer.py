@@ -1,4 +1,5 @@
-#   Copyright (C) 2009 Henry Ludemann
+#   Copyright (C) 2010 Henry Ludemann
+#   Copyright (C) 2010 PRESENSE Technologies GmbH
 #
 #   This file is part of the bdec decoder library.
 #
@@ -23,7 +24,9 @@ Classes for defining higher level integer encodings in a low level representatio
 import operator
 
 from bdec.choice import Choice
-from bdec.expression import compile, Constant, Delayed, UndecodedReferenceError
+from bdec.constraints import Equals
+from bdec.entry import Child
+from bdec.expression import compile, Constant, ArithmeticExpression, UndecodedReferenceError
 from bdec.field import Field
 from bdec.sequence import Sequence
 
@@ -38,13 +41,19 @@ class Integers:
         self.common = {}
 
     def signed_big_endian(self, length_expr):
-        name = 'big endian integer'
+        try:
+            # We try to choose the name based on the length value. If we
+            # cannot evaluate the length, we'll use the length name.
+            name = 'big endian integer %s' % length_expr.evaluate({})
+        except UndecodedReferenceError:
+            name = 'big endian integer %s' % length_expr
+
         try:
             result = self.common[name]
         except KeyError:
             is_signed = Field('signed:', 1)
-            value = Field('value:', Delayed(operator.sub, length_expr, Constant(1)))
-            expression = compile('${signed:} * ((0 - 1) << (%s - 1)) + ${value:}' % (length_expr))
+            value = Field('integer value:', ArithmeticExpression(operator.sub, length_expr, Constant(1)))
+            expression = compile('${signed:} * ((0 - 1) << (%s - 1)) + ${integer value:}' % (length_expr))
             result = Sequence(name, [is_signed, value], value=expression)
             self.common[name] = result
         return result
@@ -54,17 +63,17 @@ class Integers:
         try:
             result = self.common[name]
         except KeyError:
-            options = [
-                    self.signed_litte_endian(Constant(32)),
-                    self.signed_litte_endian(Constant(24)),
-                    self.signed_litte_endian(Constant(16)),
-                    self.signed_litte_endian(Constant(8)),
-                    ]
+            options = []
+            for length in (8, 16, 24, 32, 64):
+                option = self.signed_litte_endian(Constant(length))
+                options.append(Sequence('variable %s' % option.name,
+                        [Child('value', option)],
+                        value=length_expr, constraints=[Equals(length)]))
             # We wrap the choice inside a sequence, as choices don't currently
             # 'compile' to integers (and sequences do).
             var_name = 'variable integer types:'
             result = Sequence(name, [Choice(var_name, options)],
-                    value=compile('${%s}' % var_name))
+                    value=compile('${%s.value}' % var_name))
             self.common[name] = result
         return result
 

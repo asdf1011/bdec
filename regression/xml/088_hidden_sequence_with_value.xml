@@ -1,0 +1,11 @@
+<protocol>
+    <sequence name="c">
+        <field name="constant" length="8" />
+        <reference name="a:" type="a" />
+    </sequence>
+    <common>
+        <sequence name="a">
+            <sequence name="b" value="${constant}" />
+        </sequence>
+    </common>
+</protocol>

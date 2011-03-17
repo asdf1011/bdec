@@ -109,8 +109,12 @@ entry conditional upon an :ref:`expression <boolean-expression>`::
      <field name="footer present:" length="8" />
      ...
      <sequence name="footer" if="${footer present:}">
-        <sequence name="is_present:" value="${footer present:}" expected="1" />
         ...
      </sequence>
   </sequence>
+
+As a rule of thumb, if an entry can be present zero or one times, and the
+entry depends on a previous flag, use a conditional. If one of several
+possibilites can be used (eg: differing payloads in a message, etc), use a
+choice.
 

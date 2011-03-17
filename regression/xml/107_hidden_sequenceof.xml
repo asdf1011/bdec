@@ -1,0 +1,11 @@
+<protocol>
+    <sequence name="a">
+        <sequenceof name="optional whitespace:">
+            <choice>
+                <field name="space" length="8" type="text" value=" " />
+                <sequence><end-sequenceof /></sequence>
+            </choice>
+        </sequenceof>
+        <field name="b" length="8" value="0x01" />
+    </sequence>
+</protocol>

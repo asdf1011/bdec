@@ -1,4 +1,5 @@
-#   Copyright (C) 2008 Henry Ludemann
+#   Copyright (C) 2010 Henry Ludemann
+#   Copyright (C) 2010 PRESENSE Technologies GmbH
 #
 #   This file is part of the bdec decoder library.
 #
@@ -19,17 +20,6 @@
 import bdec.data as dt
 import bdec.entry
 from bdec.expression import Constant, Expression
-
-class InvalidSequenceOfCount(bdec.DecodeError):
-    """Raised during encoding when an invalid length is found."""
-    def __init__(self, seq, expected, actual):
-        bdec.DecodeError.__init__(self, seq)
-        self.sequenceof = seq
-        self.expected = expected
-        self.actual = actual
-
-    def __str__(self):
-        return "%s expected count of %i, got %i" % (self.sequenceof, self.expected, self.actual)
 
 class NegativeSequenceofLoop(bdec.DecodeError):
     """Error when a sequenceof is asked to loop a negative amount."""
@@ -84,18 +74,9 @@ class SequenceOf(bdec.entry.Entry):
         self.count = count
         self.end_entries = end_entries
 
-    def validate(self):
-        bdec.entry.Entry.validate(self)
+    def _validate(self):
+        bdec.entry.Entry._validate(self)
         for entry in self.end_entries:
             assert isinstance(entry, bdec.entry.Entry), "%s isn't an entry instance!" % str(entry)
 
-    def _encode(self, query, value):
-        count = 0
-        for child in value:
-            count += 1
-            for data in self.children[0].entry.encode(query, child):
-                yield data
-
-        if self.count is not None and self.count.evaluate({}) != count:
-            raise InvalidSequenceOfCount(self, self.count.evaluate({}), count)
 

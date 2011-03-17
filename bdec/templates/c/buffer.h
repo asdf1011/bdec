@@ -1,4 +1,4 @@
-/*  Copyright (C) 2008 Henry Ludemann
+/*  Copyright (C) 2010 Henry Ludemann
 
     This file is part of the bdec decoder library.
 
@@ -52,6 +52,24 @@ enum Encoding
     BDEC_LITTLE_ENDIAN
 };
 
+struct EncodedData
+{
+    char* buffer;
+    int num_bits;
+    int allocated_length_bytes;
+};
+/**
+ * Ensure there is appropriate space in the encode buffer.
+ */
+void ensureEncodeSpace(struct EncodedData* buffer, int numBits);
+/**
+ * Append a BitBuffer to an EncodedData.
+ */
+void appendBitBuffer(struct EncodedData* result, BitBuffer* data);
+void appendText(struct EncodedData* result, Text* value);
+void appendBuffer(struct EncodedData* result, Buffer* value);
+void appendEncodedBuffer(struct EncodedData* result, struct EncodedData* value);
+
 /**
  * Decode a data buffer to a float.
  *
@@ -59,6 +77,7 @@ enum Encoding
  *   or the code will assert.
  */
 double decodeFloat(BitBuffer* data, enum Encoding encoding);
+void appendFloat(float value, enum Encoding encoding, struct EncodedData* output);
 
 /**
  * Decode a data buffer to a float.
@@ -67,6 +86,7 @@ double decodeFloat(BitBuffer* data, enum Encoding encoding);
  *   or the code will assert.
  */
 double decodeDouble(BitBuffer* data, enum Encoding encoding);
+void appendDouble(double value, enum Encoding encoding, struct EncodedData* output);
 
 #ifdef __cplusplus
 }

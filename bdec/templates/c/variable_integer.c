@@ -1,4 +1,5 @@
-/*  Copyright (C) 2008 Henry Ludemann
+/*  Copyright (C) 2010 Henry Ludemann
+    Copyright (c) 2010 PRESENSE Technologies GmbH
 
     This file is part of the bdec decoder library.
 
@@ -97,6 +98,22 @@ unsigned int decode_little_endian_integer(BitBuffer* buffer, int num_bits)
     return result;
 }
 
+unsigned long long decode_long_little_endian_integer(BitBuffer* buffer, int num_bits)
+{
+    // Little endian conversion only works for fields that are a multiple
+    // of 8 bits.
+    assert(num_bits % 8  == 0);
+
+    int i;
+    unsigned long long result = 0;
+    for (i = 0; i < num_bits / 8; ++i)
+    {
+        unsigned long long value = decode_integer(buffer, 8);
+        result |= value << (i * 8);
+    }
+    return result;
+}
+
 void print_escaped_string(Text* text)
 {
     char c;
@@ -124,5 +141,95 @@ void print_escaped_string(Text* text)
             putc('?', stdout);
         }
     }
+}
+
+void encode_big_endian_integer(unsigned int value, int num_bits, struct EncodedData* result)
+{
+    ensureEncodeSpace(result, num_bits);
+    char* buffer = &result->buffer[result->num_bits / 8];
+    int shiftDistance = num_bits - (8 - result->num_bits % 8);
+    int isFirstByteOverlapping = (result->num_bits % 8 != 0);
+    if (shiftDistance >= 0)
+    {
+        if (isFirstByteOverlapping)
+        {
+            isFirstByteOverlapping = 0;
+            // We need to OR the first byte (to fill the first byte)
+            *(buffer++) |= (value >> shiftDistance) & 0xFF;
+            shiftDistance -= 8;
+        }
+        // We can now proceed to write whole bytes to the output
+        while (shiftDistance >= 0)
+        {
+            *(buffer++) = (value >> shiftDistance) & 0xFF;
+            shiftDistance -= 8;
+        }
+    }
+    // If we still have data left, it needs to be shifted to the left
+    if (shiftDistance > -8)
+    {
+        if (!isFirstByteOverlapping)
+        {
+            *(buffer++) = (value << (-shiftDistance)) & 0xFF;
+        }
+        else
+        {
+            *(buffer++) |= (value << (-shiftDistance)) & 0xFF;
+        }
+    }
+    result->num_bits += num_bits;
+}
+
+void encode_little_endian_integer(unsigned int value, int num_bits, struct EncodedData* result)
+{
+    int i;
+    for (i = 0; i < num_bits / 8; ++i)
+    {
+        encode_big_endian_integer(value & 0xFF, 8, result);
+        value >>= 8;
+    }
+}
+
+void encode_long_big_endian_integer(unsigned long long value, int num_bits, struct EncodedData* result)
+{
+    if (num_bits > 32)
+    {
+        // Encode the highest four bytes
+        num_bits -= 32;
+        unsigned int upper = value >> num_bits;
+        encode_big_endian_integer(upper, 32, result);
+        value -= ((unsigned long long)upper) << num_bits;
+    }
+    encode_big_endian_integer(value, num_bits, result);
+}
+
+void encode_long_little_endian_integer(unsigned long long value, int num_bits, struct EncodedData* result)
+{
+    int i;
+    for (i = 0; i < num_bits / 8; ++i)
+    {
+        encode_big_endian_integer(value & 0xFF, 8, result);
+        value >>= 8;
+    }
+}
+
+long long ${'divide with rounding' | function}(long long numerator, long long denominator, int should_round_up)
+{
+    long long result = numerator / denominator;
+    long long remainder = numerator % denominator;
+    if (remainder != 0)
+    {
+        if ((numerator < 0 && denominator > 0) || (numerator > 0 && denominator < 0))
+        {
+            // C division is round towards zero, but this function implements round
+            // towards negative infinity...
+            --result;
+        }
+    }
+    if (should_round_up && remainder != 0)
+    {
+        ++result;
+    }
+    return result;
 }
 

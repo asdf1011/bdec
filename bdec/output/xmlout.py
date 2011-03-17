@@ -1,4 +1,5 @@
-#   Copyright (C) 2008 Henry Ludemann
+#   Copyright (C) 2010 Henry Ludemann
+#   Copyright (C) 2010 PRESENSE Technologies GmbH
 #
 #   This file is part of the bdec decoder library.
 #
@@ -17,6 +18,7 @@
 #   <http://www.gnu.org/licenses/>.
 
 import logging
+import operator
 import string
 import StringIO
 import xml.dom.minidom
@@ -24,9 +26,12 @@ import xml.sax.saxutils
 import xml.sax.xmlreader
 
 from bdec.constraints import Equals
+from bdec.encode.entry import MissingInstanceError
 import bdec.entry as ent
 import bdec.choice as chc
+from bdec.data import Data
 import bdec.field as fld
+from bdec.sequence import Sequence
 import bdec.sequenceof as sof
 
 def escape_name(name):
@@ -39,6 +44,13 @@ def escape_name(name):
 class _XMLGenerator(xml.sax.saxutils.XMLGenerator):
     def comment(self, text):
         self._out.write('<!-- %s -->' % text)
+
+class UnknownIntegerError(Exception):
+    def __str__(self):
+        return 'Sequence has unknown integer value'
+
+def _unknown_integer_error():
+    raise UnknownIntegerError()
 
 def _escape_char(character):
     # The list of 'safe' xml characters is from http://www.w3.org/TR/REC-xml/#NT-Char
@@ -119,18 +131,16 @@ def to_string(decoder, binary, verbose=False):
     to_file(decoder, binary, buffer, verbose=verbose)
     return buffer.getvalue()
 
-class _SequenceOfIter:
+class _SequenceOfEntry:
     """A class to iterate over xml children entries from a sequenceof. """
-    def __init__(self, child_nodes, child):
-        self._child_nodes = child_nodes
-        self._child = child
+    def __init__(self, node):
+        self.childNodes = [node]
 
-    def __iter__(self):
-        for node in self._child_nodes:
-            if node.nodeType == xml.dom.Node.ELEMENT_NODE:
-                yield _get_element_value(node, self._child)
+    def __repr__(self):
+        return 'Sequenceof node %s' % self.childNodes[0]
 
-def _query_element(obj, child):
+
+def _query_element(obj, child, offset, name):
     """
     Get a named child-element of a node.
 
@@ -139,14 +149,14 @@ def _query_element(obj, child):
     try:
         childNodes = obj.childNodes
     except AttributeError:
-        raise ent.MissingInstanceError(obj, child)
+        raise MissingInstanceError(obj, child)
 
-    name = escape_name(child.name)
+    name = escape_name(name)
     for child_node in childNodes:
         if child_node.nodeType == xml.dom.Node.ELEMENT_NODE and child_node.tagName == name:
             return _get_element_value(child_node, child)
 
-    raise ent.MissingInstanceError(obj, child)
+    raise MissingInstanceError(obj, child)
 
 def _get_element_value(element, entry):
     """Get an instance that can be encoded for a given xml element node.
@@ -157,16 +167,27 @@ def _get_element_value(element, entry):
     if isinstance(entry, sof.SequenceOf):
         # This element represents a sequence of, so we'll return an
         # object to iterate over the children.
-        return _SequenceOfIter(element.childNodes, entry.children[0].entry)
+        return list(_SequenceOfEntry(n) for n in element.childNodes if n.nodeType == xml.dom.Node.ELEMENT_NODE)
 
     text = ""
+    has_children = False
     for child in element.childNodes:
         if child.nodeType == xml.dom.Node.ELEMENT_NODE:
-            # This element has sub-elements, so return the high-level element
-            # itself.
-            return element
+            has_children = True
         elif child.nodeType == xml.dom.Node.TEXT_NODE:
             text += child.data
+
+    if isinstance(entry, Sequence) and entry.value:
+        if text.strip():
+            element.__int__ = lambda: int(text)
+        else:
+            element.__int__ = _unknown_integer_error
+
+    if has_children:
+        # This element has sub-elements, so return the high-level element
+        # itself.
+        return element
+
     # No sub-elements; this element is a 'value' type.
     return text
 
@@ -179,6 +200,5 @@ def encode(protocol, xmldata):
     if isinstance(xmldata, basestring):
         xmldata = StringIO.StringIO(xmldata)
     document = xml.dom.minidom.parse(xmldata)
-    value = protocol.get_context(_query_element, document)
-    return protocol.encode(_query_element, value)
+    return reduce(operator.add, protocol.encode(_query_element, document), Data())
 

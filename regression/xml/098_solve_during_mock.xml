@@ -1,0 +1,15 @@
+<protocol>
+    <!-- There was a bug where a visible common entry, when hidden, wouldn't
+         populate the derived values (eg: in this case, the 'c' wouldn't be
+         set, although 'b' would be). -->
+    <sequence name="a">
+        <reference name="b1" type="b" expected="8" />
+        <reference name="b2" type="b" expected="12" />
+    </sequence>
+
+    <common>
+        <sequence name="b" value="${c field}">
+            <field name="c field" length="8" type="integer" />
+        </sequence>
+    </common>
+</protocol>

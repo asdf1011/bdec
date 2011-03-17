@@ -49,11 +49,14 @@ Documentation
 =============
 
 If you're just getting started, the tutorial_ takes you step by step through
-the different concepts used in bdec. Once you've got started, refere to the
+the different concepts used in bdec. Once you've got started, refer to the
 rest of the documentation_ as required.
+
+For convenience, `downloadable pdf documentation`_ is also available.
 
 .. _documentation: docs/
 .. _tutorial: docs/tutorial.html
+.. _downloadable pdf documentation: files/bdec-VERSION.pdf
 
 
 Support
@@ -118,6 +121,14 @@ See the CHANGELOG_ for past releases.
 .. _easy_install: http://pypi.python.org/pypi/setuptools#installation-instructions
 .. _pyparsing: http://pyparsing.wikispaces.com/
 .. _mako: http://www.makotemplates.org/
+
+
+Source
+======
+
+The source control tree is available on github at http://github.com/asdf1011/bdec.
+
+  git clone http://github.com/asdf1011/bdec.git
 
 
 Similar projects

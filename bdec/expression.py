@@ -1,4 +1,5 @@
-#   Copyright (C) 2008 Henry Ludemann
+#   Copyright (C) 2010 Henry Ludemann
+#   Copyright (C) 2010 PRESENSE Technologies GmbH
 #
 #   This file is part of the bdec decoder library.
 #
@@ -43,6 +44,17 @@ class UndecodedReferenceError(Exception):
 
     We don't derive this from DecodeError, as it is an internal program error.
     """
+    def __init__(self, name, context):
+        self.name = name
+        self.context = context
+
+    def __str__(self):
+        return "Missing context '%s' (have %s)" % (self.name,
+                ', '.join("'%s'" % k for k in self.context.keys()))
+
+class NullReferenceError(UndecodedReferenceError):
+    def __str__(self):
+        return "Context '%s' present, but is None!" % self.name
 
 class ExpressionError(Exception):
     def __init__(self, ex):
@@ -59,8 +71,29 @@ class Expression(object):
     def evaluate(self, context):
         raise NotImplementedError
 
+    def __mul__(self, other):
+        return ArithmeticExpression(operator.mul, self, other)
 
-class Delayed(Expression):
+    def __div__(self, other):
+        return ArithmeticExpression(operator.div, self, other)
+
+    def __mod__(self, other):
+        return ArithmeticExpression(operator.mod, self, other)
+
+    def __add__(self, other):
+        return ArithmeticExpression(operator.add, self, other)
+
+    def __sub__(self, other):
+        return ArithmeticExpression(operator.sub, self, other)
+
+    def __lshift__(self, other):
+        return ArithmeticExpression(operator.lshift, self, other)
+
+    def __rshift__(self, other):
+        return ArithmeticExpression(operator.rshift, self, other)
+
+
+class ArithmeticExpression(Expression):
     """
     Class to delay the operation of an integer operation.
 
@@ -78,11 +111,33 @@ class Delayed(Expression):
     def evaluate(self, context):
         return self.op(self.left.evaluate(context), self.right.evaluate(context))
 
-    def __str__(self):
+    def __repr__(self):
         lookup = {}
         for ops in _operators:
             lookup.update((op, name) for name, op in ops)
         return '(%s %s %s)' % (self.left, lookup[self.op], self.right)
+
+
+class RoundUpDivisionExpression(Expression):
+    """Class to implement division with an optional rounding up.
+
+    The division is round to minus infinity.
+    """
+    def __init__(self, numerator, denominator, should_round_up):
+        self.numerator = numerator
+        self.denominator = denominator
+        self.should_round_up = should_round_up
+
+    def evaluate(self, context):
+        numerator = self.numerator.evaluate(context)
+        denominator = self.denominator.evaluate(context)
+
+        # In python -ve / +ve will round towards minus infinity, so we only
+        # need to handle the round up case.
+        result = numerator / denominator
+        if numerator % denominator and self.should_round_up:
+            result += 1
+        return result
 
 
 class Constant(Expression):
@@ -92,7 +147,7 @@ class Constant(Expression):
     def evaluate(self, context):
         return self.value
 
-    def __str__(self):
+    def __repr__(self):
         if isinstance(self.value, dt.Data):
             value = self.value
             if len(value) % 8:
@@ -108,40 +163,52 @@ class Constant(Expression):
         return str(self.value)
 
 
-class ValueResult(Expression):
+class ReferenceExpression(Expression):
+    """A reference to a value or length of another entry."""
+    def __init__(self, name):
+        assert isinstance(name, basestring)
+        self.name = name
+
+    def param_name(self):
+        raise NotImplementedError()
+
+    def evaluate(self, context):
+        try:
+            result = context[self.param_name()]
+        except KeyError:
+            raise UndecodedReferenceError(self.param_name(), context)
+        if result is None:
+            raise NullReferenceError(self.param_name(), context)
+        return result
+
+    def __eq__(self, other):
+        if type(self) != type(other):
+            return NotImplemented
+        return self.name == other.name
+
+    def __hash__(self):
+        return hash(self.name)
+
+
+class ValueResult(ReferenceExpression):
     """
     Object returning the result of a entry when cast to an integer.
     """
-    def __init__(self, name):
-        assert isinstance(name, basestring)
-        self.name = name
+    def param_name(self):
+        return self.name
 
-    def evaluate(self, context):
-        try:
-            return context[self.name]
-        except KeyError:
-            raise UndecodedReferenceError(self.name, context)
-
-    def __str__(self):
+    def __repr__(self):
         return '${%s}' % self.name
 
 
-class LengthResult(Expression):
+class LengthResult(ReferenceExpression):
     """
     Object returning the length of a decoded entry.
     """
-    def __init__(self, name):
-        assert isinstance(name, basestring)
-        self.name = name
+    def param_name(self):
+        return self.name + ' length'
 
-    def evaluate(self, context):
-        name = self.name + ' length'
-        try:
-            return context[name]
-        except KeyError:
-            raise UndecodedReferenceError(name, context)
-
-    def __str__(self):
+    def __repr__(self):
         return "len{%s}" % self.name
 
 
@@ -153,7 +220,7 @@ def _half(op):
     of the binary expression.
     """
     def handler(s,l,t):
-        return lambda left: Delayed(op, left, t[1])
+        return lambda left: ArithmeticExpression(op, left, t[1])
     return handler
 
 def _collapse(s,l,t):
@@ -168,7 +235,7 @@ def _collapse(s,l,t):
     return result
 
 def _int_expression():
-    from pyparsing import Word, alphanums, nums, Forward, ZeroOrMore, Combine, CaselessLiteral, srange
+    from pyparsing import Word, alphanums, nums, Forward, ZeroOrMore, Combine, CaselessLiteral, srange, ParserElement
     entry_name = Word(alphanums + ' _+:.-')
     integer = Word(nums).addParseAction(lambda s,l,t: [Constant(int(t[0]))])
     hex = Combine(CaselessLiteral("0x") + Word(srange("[0-9a-fA-F]"))).addParseAction(lambda s,l,t:[Constant(int(t[0][2:], 16))])
@@ -220,9 +287,9 @@ def parse_conditional_inverse(text):
 
     bool_int_operators = [
             ('>', Maximum),
-            ('>=', lambda limit: Maximum(Delayed(operator.sub, limit, Constant(1)))),
+            ('>=', lambda limit: Maximum(ArithmeticExpression(operator.sub, limit, Constant(1)))),
             ('<', Minimum),
-            ('<=', lambda limit: Minimum(Delayed(operator.add, limit, Constant(1)))),
+            ('<=', lambda limit: Minimum(ArithmeticExpression(operator.add, limit, Constant(1)))),
             ('==', NotEquals),
             ('!=', Equals),
             ]

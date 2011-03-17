@@ -1,4 +1,5 @@
-#   Copyright (C) 2008 Henry Ludemann
+#   Copyright (C) 2010 Henry Ludemann
+#   Copyright (C) 2010 PRESENSE Technologies GmbH
 #
 #   This file is part of the bdec decoder library.
 #
@@ -16,6 +17,9 @@
 #   License along with this library; if not, see
 #   <http://www.gnu.org/licenses/>.
 
+import operator
+
+from bdec.encode.entry import MissingInstanceError
 import bdec.entry as ent
 import bdec.field as fld
 import bdec.output
@@ -37,7 +41,7 @@ class _Item(object):
         return unicode(self.children)
 
     def __int__(self):
-        if not self.value:
+        if self.value is None:
             raise TypeError
         return int(self.value)
 
@@ -98,22 +102,30 @@ def decode(decoder, binary):
     assert len(stack) == 1
     return stack[0].get_value(None)
 
-def _get_data(obj,child):
-    name = child.name
+def _get_data(obj, child, i, name):
     if name.endswith(':'):
-        raise ent.MissingInstanceError(obj, child)
-
-    name = escape(name)
+        raise MissingInstanceError(obj, child)
 
     try: 
-        return getattr(obj, name)
+        return getattr(obj, escape(name))
     except (AttributeError, KeyError):
-        raise ent.MissingInstanceError(obj, child)
+        pass
+
+    try:
+        return obj[name]
+    except (AttributeError, KeyError, TypeError):
+        raise MissingInstanceError(obj, child)
+
+def _get_value(obj, child, i, name):
+    result = _get_data(obj, child, i, name)
+    if isinstance(child, sof.SequenceOf):
+        result = [{child.children[0].name: v} for v in result]
+    return result
 
 def encode(protocol, value):
     """
     Encode a python instance to binary data.
 
-    Returns an iterator to data objects representing the encoded structure.
+    Returns a bdec.data.Data instance.
     """
-    return protocol.encode(_get_data, value)
+    return reduce(operator.add, protocol.encode(_get_value, {protocol.name: value}))

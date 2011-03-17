@@ -1,4 +1,5 @@
-#   Copyright (C) 2008 Henry Ludemann
+#   Copyright (C) 2010 Henry Ludemann
+#   Copyright (C) 2010 PRESENSE Technologies GmbH
 #
 #   This file is part of the bdec decoder library.
 #
@@ -73,14 +74,12 @@ class TestInstance(unittest.TestCase):
         Also validates that we can decode the encoded data, and get the
         same data back again.
         """
-        def encode(struct):
-            return reduce(lambda a,b:a+b, inst.encode(protocol, struct), dt.Data("")).bytes()
-        data = encode(value)
+        data = inst.encode(protocol, value)
 
         # Now validate that we can decode that data...
-        re_decoded = inst.decode(protocol, dt.Data(data))
-        self.assertEqual(data, encode(re_decoded))
-        return data
+        re_decoded = inst.decode(protocol, data.copy())
+        self.assertEqual(data, inst.encode(protocol, re_decoded))
+        return data.bytes()
 
     def test_field_encode(self):
         field = fld.Field("bob", 8, fld.Field.INTEGER)

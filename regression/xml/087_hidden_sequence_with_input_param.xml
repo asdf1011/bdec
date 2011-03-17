@@ -1,0 +1,11 @@
+<protocol>
+    <sequence name="a">
+        <reference name="b:" type="b" />
+        <sequence name="d" value="${b:.c}" />
+    </sequence>
+    <common>
+        <sequence name="b">
+            <field name="c" length="8" />
+        </sequence>
+    </common>
+</protocol>

@@ -3,8 +3,8 @@
         <reference name="b" type="digit" min="3" max="5" />
     </sequence>
     <common>
-        <sequence name="digit" value="${value:} - 48">
-            <field name="value:" length="8" min="48" max="57" />
+        <sequence name="digit" value="${text digit:} - 48">
+            <field name="text digit:" length="8" min="48" max="57" />
         </sequence>
     </common>
 </protocol>

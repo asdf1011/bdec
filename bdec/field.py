@@ -1,4 +1,5 @@
-#   Copyright (C) 2008-2009 Henry Ludemann
+#   Copyright (C) 2008-2010 Henry Ludemann
+#   Copyright (C) 2010 PRESENSE Technologies GmbH
 #
 #   This file is part of the bdec decoder library.
 #
@@ -120,68 +121,6 @@ class Field(bdec.entry.Entry):
         self.format = format
         self.encoding = encoding
 
-    def _get_expected(self):
-        for constraint in self.constraints:
-            if isinstance(constraint, Equals):
-                return constraint.limit.evaluate({})
-        return None
-    expected = property(_get_expected)
-
-    def _convert_type(self, data, expected_type):
-        try:
-            return expected_type(data)
-        except: 
-            raise BadFormatError(self, data, expected_type)
-
-    def _encode_data(self, data, length):
-        if isinstance(data, dt.Data):
-            result = data.copy()
-        elif self.format == self.BINARY:
-            result = dt.Data.from_binary_text(self._convert_type(data, str))
-        elif self.format == self.HEX:
-            result = dt.Data.from_hex(self._convert_type(data, str))
-        elif self.format == self.TEXT:
-            text = self._convert_type(data, str)
-            try:
-                result = dt.Data(text.encode(self.encoding))
-            except UnicodeDecodeError:
-                raise BadEncodingError(self, data)
-        elif self.format == self.INTEGER:
-            
-            assert self.encoding in [self.BIG_ENDIAN, self.LITTLE_ENDIAN]
-            if self.encoding == self.BIG_ENDIAN:
-                result = dt.Data.from_int_big_endian(self._convert_type(data, int), length)
-            else:
-                result = dt.Data.from_int_little_endian(self._convert_type(data, int), length)
-        elif self.format == self.FLOAT:
-            assert self.encoding in [self.BIG_ENDIAN, self.LITTLE_ENDIAN]
-            if self.encoding == self.BIG_ENDIAN:
-                result = dt.Data.from_float_big_endian(self._convert_type(data, float), length)
-            else:
-                result = dt.Data.from_float_little_endian(self._convert_type(data, float), length)
-        else:
-            raise Exception("Unknown field format of '%s'!" % self.format)
-
-        return result
-
-    def encode_value(self, value, length=None):
-        """
-        Convert an object to a dt.Data object.
-
-        Can raise dt.DataError errors.
-        """
-        if length is None:
-            try:
-                length = self.length.evaluate({})
-            except exp.UndecodedReferenceError:
-                # The length isn't available...
-                pass
-
-        try:
-            return self._encode_data(value, length)
-        except dt.DataError, ex:
-            raise FieldDataError(self, ex)
-
     def _get_context(self, query, context):
         try:
             result = query(context, self)
@@ -194,21 +133,11 @@ class Field(bdec.entry.Entry):
             result = self.decode_value(expected)
         return result
 
-    def _fixup_value(self, value):
-        expected = self._get_expected()
-        if expected is not None and value in [None, '']:
-            # We handle strings as a prompt to use the expected value. This is
-            # because the named item may be in the output, but not necessarily
-            # the value (eg: in the xml representation, it is clearer to not
-            # display the expected value).
-            value = self.decode_value(expected)
-        return value
-
-    def _encode(self, query, value):
-        yield self.encode_value(value)
-
     def __str__(self):
-        return "%s '%s' (%s)" % (self.format, self.name, self.encoding)
+        result = "%s '%s'" % (self.format, self.name)
+        if self.format not in [self.HEX, self.BINARY]:
+            result += ' (%s)' % self.encoding
+        return result
 
     def _decode_int(self, data):
         if self.encoding == self.LITTLE_ENDIAN:

@@ -1,4 +1,5 @@
-#   Copyright (C) 2008-2009 Henry Ludemann
+#   Copyright (C) 2008-2010 Henry Ludemann
+#   Copyright (C) 2010 PRESENSE Technologies GmbH
 #
 #   This file is part of the bdec decoder library.
 #
@@ -24,6 +25,7 @@ import bdec.data as dt
 import bdec.entry as ent
 import bdec.expression as expr
 import bdec.field as fld
+from bdec.inspect.param import UnknownReferenceError
 import bdec.sequence as seq
 import bdec.sequenceof as sof
 
@@ -75,8 +77,8 @@ class _ProtocolStream:
             # possible values. This allows early outs...
             options = []
             for i in range(min, max + 1):
-                value = dt.Data.from_int_big_endian(i, entry.length.evaluate({}))
-                options.append(fld.Field(entry.name, entry.length, format=fld.Field.INTEGER, constraints=[Equals(value)]))
+                options.append(fld.Field(entry.name, entry.length,
+                    format=fld.Field.INTEGER, constraints=[Equals(i)]))
             self.entry = chc.Choice('mock %s' % entry.name, options)
         else:
             self.entry = entry
@@ -124,11 +126,11 @@ class _ProtocolStream:
             value = _get_constraint(self.entry, Equals)
             try:
                 if value is not None:
-                    def query(context, entry):
-                        raise bdec.entry.MissingInstanceError()
-                    data = reduce(operator.add, self.entry.encode(query, value))
+                    def query(context, entry, i, name):
+                        return value
+                    data = reduce(operator.add, self.entry.encode(query, None))
                     return data
-            except ent.NotEnoughContextError:
+            except UnknownReferenceError:
                 # We can't encode this entry; see if we know how long it is.
                 pass
 

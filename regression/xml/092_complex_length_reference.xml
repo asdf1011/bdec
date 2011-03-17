@@ -1,0 +1,8 @@
+<protocol>
+    <sequence name="a">
+        <field name="packet length:" type="integer" length="8" />
+        <field name="hdr length:" type="integer" length="8" />
+        <field name="header" type="text" length="(${hdr length:} * 8)" />
+        <field name="packet" type="text" length="((${packet length:} * 8) - len{header})" />
+    </sequence>
+</protocol>

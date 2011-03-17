@@ -1,4 +1,5 @@
-#   Copyright (C) 2008 Henry Ludemann
+#   Copyright (C) 2010 Henry Ludemann
+#   Copyright (C) 2010 PRESENSE Technologies GmbH
 #
 #   This file is part of the bdec decoder library.
 #
@@ -20,7 +21,7 @@ import os.path
 import shutil
 import unittest
 
-from bdec.spec.xmlspec import load
+from bdec.spec import load_specs
 from bdec.test.decoders import generate, compile_and_run, _CDecoder
 
 class TestPngSample(unittest.TestCase):
@@ -32,10 +33,9 @@ class TestPngSample(unittest.TestCase):
         main_filename = os.path.join(test_dir, '..', '..', 'docs', 'files', 'main.c')
         png_filename = os.path.join(test_dir, 'png', 'white.png')
 
-        (spec, common, lookup) = load(spec_filename)
-        generate(spec, common.itervalues(), _CDecoder)
+        (spec, common, lookup) = load_specs([(spec_filename, None, None)])
+        generate(spec, common, _CDecoder, False)
         shutil.copy(main_filename, _CDecoder.TEST_DIR)
-        exit_code, output = compile_and_run(open(png_filename, 'rb'), _CDecoder)
-        self.assertEqual(0, exit_code)
+        output = compile_and_run(open(png_filename, 'rb'), _CDecoder)
         self.assertEqual("Image width = 5\nImage height = 5\nComment = I'm an image comment!\n", output)
 

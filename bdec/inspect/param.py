@@ -1,4 +1,5 @@
-#   Copyright (C) 2008-2009 Henry Ludemann
+#   Copyright (C) 2008-2010 Henry Ludemann
+#   Copyright (C) 2010 PRESENSE Technologies GmbH
 #
 #   This file is part of the bdec decoder library.
 #
@@ -36,10 +37,14 @@ import bdec.expression as expr
 from bdec.inspect.type import VariableType, IntegerType, MultiSourceType, \
         EntryType, EntryValueType, EntryLengthType, ShouldEndType
 
+MAGIC_UNKNOWN_NAME = 'magic unknown param'
 
 class BadReferenceError(bdec.DecodeError):
-    def __init__(self, entry):
+    def __init__(self, entry, context=[]):
         bdec.DecodeError.__init__(self, entry)
+        for e in context:
+            assert isinstance(e, ent.Entry)
+        self.context = context
 
     def __str__(self):
         return "Can't reference %s" % (self.entry)
@@ -52,12 +57,22 @@ class BadReferenceTypeError(bdec.DecodeError):
         return "Cannot reference non integer field '%s'" % self.entry
 
 class UnknownReferenceError(BadReferenceError):
-    def __init__(self, entry, name):
-        bdec.DecodeError.__init__(self, entry)
+    def __init__(self, entry, name, entries=[]):
+        BadReferenceError.__init__(self, entry, entries)
         self.name = name
 
     def __str__(self):
         return "%s references unknown entry '%s'!" % (self.entry, self.name)
+
+class MissingExpressionReferenceError(BadReferenceError):
+    """An expression references an unknown entry."""
+    def __init__(self, entry, missing):
+        BadReferenceError.__init__(self, entry)
+        self.missing_context = missing
+
+    def __str__(self):
+        return "%s needs '%s' to decode" % (self.entry, self.missing_context)
+
 
 class _FailedToResolveError(Exception):
     def __init__(self, name):
@@ -185,16 +200,9 @@ class EndEntryParameters(_Parameters):
         return entry in self._end_sequenceof_entries
 
 
-def _get_reference_name(reference):
-    if isinstance(reference, expr.ValueResult):
-        return reference.name
-    elif isinstance(reference, expr.LengthResult):
-        return reference.name + ' length'
-    raise Exception("Unknown reference type '%s'" % reference)
-
-
 class _VariableParam:
     def __init__(self, reference, direction, type):
+        # The reference is an expression reference
         assert isinstance(reference, expr.ValueResult) or isinstance(reference, expr.LengthResult)
         self.reference = reference
         self.direction = direction
@@ -222,7 +230,7 @@ class _VariableParam:
 
     def get_param(self):
         """Construct a parameter from this internal parameter type."""
-        return Param(_get_reference_name(self.reference), self.direction, self.get_type())
+        return Param(self.reference.param_name(), self.direction, self.get_type())
 
 
 class ExpressionParameters(_Parameters):
@@ -243,13 +251,36 @@ class ExpressionParameters(_Parameters):
         self._referenced_values = set()
         self._referenced_lengths = set()
         unreferenced_entries = {}
+        entries_used = set()
         for entry in entries:
-            self._populate_references(entry, unreferenced_entries)
+            self._populate_references(entry, unreferenced_entries, entries_used)
 
+        should_have_failed = False
         for entry, references in unreferenced_entries.iteritems():
             for param in self._params[entry]:
                 if not param.types:
-                    raise UnknownReferenceError(entry, iter(references).next().name)
+                    should_have_failed = True
+                    if entry not in entries_used:
+                        # We found a top-level entry with an unknown parameter.
+                        # We only want top-level entries as this provides the
+                        # most context to the user (and if a child entry is
+                        # failing, so to will the top level entry).
+                        name = iter(references).next().name
+                        stack = self._find_child_using_param(entry, name)
+                        raise UnknownReferenceError(stack[0], name, stack[1:])
+        assert not should_have_failed, 'Found a parameter with an unknown type, ' \
+            "but didn't fail on a parent entry! Something went wrong."
+
+    def _find_child_using_param(self, entry, name):
+        """Find the child entry using the given parameter name.
+
+        Returns a list of entries from entry down to the child."""
+        for child in entry.children:
+            for param in self._params[child.entry]:
+                if param.reference.name == name:
+                    return self._find_child_using_param(child.entry, name) + [entry]
+        # None of the child entries use the parameter; it must be us.
+        return [entry]
 
     def _collect_references(self, expression):
         """
@@ -264,14 +295,14 @@ class ExpressionParameters(_Parameters):
             result.append(expression)
         elif isinstance(expression, expr.LengthResult):
             result.append(expression)
-        elif isinstance(expression, expr.Delayed):
+        elif isinstance(expression, expr.ArithmeticExpression):
             result = self._collect_references(expression.left) + \
                      self._collect_references(expression.right)
         else:
             raise Exception("Unable to collect references from unhandled expression type '%s'!" % expression)
         return result
 
-    def _populate_references(self, entry, unreferenced_entries):
+    def _populate_references(self, entry, unreferenced_entries, entries_used):
         """
         Walk down the tree, populating the '_params', '_referenced_XXX' sets.
 
@@ -283,7 +314,8 @@ class ExpressionParameters(_Parameters):
         unreferenced_entries[entry] = set()
 
         for child in entry.children:
-            self._populate_references(child.entry, unreferenced_entries)
+            entries_used.add(child.entry)
+            self._populate_references(child.entry, unreferenced_entries, entries_used)
 
         # An entries unknown references are those referenced in any 
         # expressions, and those that are unknown in all of its children.
@@ -296,7 +328,10 @@ class ExpressionParameters(_Parameters):
         # resolved for this entry to decode)
         child_unknowns = set()
         for child in entry.children:
-            child_unknowns.update(unreferenced_entries[child.entry])
+            unknowns = unreferenced_entries[child.entry]
+            self._local_child_param_name.setdefault(entry, {}).setdefault(child, {}).update(
+                    (ref.name, ref.name) for ref in unknowns)
+            child_unknowns.update(unknowns)
 
         if isinstance(entry, seq.Sequence) and entry.value is not None:
             child_unknowns.update(self._collect_references(entry.value))
@@ -329,6 +364,15 @@ class ExpressionParameters(_Parameters):
                     param.types.add(param_type)
                     self._populate_child_input_parameter_type(child.entry, name, param_type)
 
+    def is_output_param_used(self, entry, child, param):
+        """Check to see if an parameter is used."""
+        assert param.direction == Param.OUT
+        try:
+            return param.name in self._local_child_param_name[entry][child].values()
+        except KeyError:
+            # The parameter doesn't have a local name; it must be unused.
+            return False
+
     def _get_local_reference(self, entry, child, param):
         """Get the local of a parameter used by a child entry.
 
@@ -338,10 +382,10 @@ class ExpressionParameters(_Parameters):
         try:
             name = self._local_child_param_name[entry][child][param.reference.name]
         except KeyError:
-            # TODO: This _may_ be an output from a child that we don't use.
-            # It may also be coming from one of our input parameters?? If it's
-            # an unused, we should name it 'unused XXX'.
-            name = param.reference.name
+            # If an output parameter isn't in the lookup, it it's because
+            # the child is a common entry that has been referenced
+            # elsewhere (but isn't used in this context).
+            name = 'unused %s' % param.reference.name
 
         # Create a new instance of the expression reference, using the new name
         return type(param.reference)(name)
@@ -391,6 +435,12 @@ class ExpressionParameters(_Parameters):
                 child_type = self._add_out_params(child.entry, reference)
                 self._params[child.entry].add(_VariableParam(reference, Param.OUT, child_type))
                 option_types.append(child_type)
+
+                sub_name = '.'.join(reference.name.split('.')[1:])
+                name = child.name
+                if sub_name:
+                    name = '%s.%s' % (name, sub_name)
+                self._local_child_param_name.setdefault(entry, {}).setdefault(child, {})[reference.name] = reference.name
             result =  MultiSourceType(option_types)
         elif isinstance(entry, seq.Sequence):
             child_params = self._local_child_param_name.setdefault(entry, {})
@@ -424,7 +474,8 @@ class ExpressionParameters(_Parameters):
                     self._params[child.entry].add(_VariableParam(child_reference, Param.OUT, result))
                     break
             else:
-                raise ent.MissingExpressionReferenceError(entry, reference.name)
+                # None of the children implement this name.
+                raise MissingExpressionReferenceError(entry, reference.name)
         else:
             # We don't know how to resolve a reference to this type of entry!
             raise BadReferenceError(entry)
@@ -444,27 +495,45 @@ class ExpressionParameters(_Parameters):
                 if child_param.direction == Param.OUT:
                     local = self._get_local_reference(entry, child, child_param)
                     if _VariableParam(local, child_param.direction, None) not in params:
-                        name = _get_reference_name(local)
-                        locals.setdefault(name, []).append(child_param.get_type())
+                        locals.setdefault(local.param_name(), set()).add(child_param.get_type())
         result = []
         for name, types in locals.items():
             if len(types) == 1:
-                type = types[0]
+                type = types.pop()
             else:
                 type = MultiSourceType(types)
             result.append(Local(name, type))
         result.sort(key=lambda a:a.name)
         return result
 
+    def _get_params(self, entry):
+        assert isinstance(entry, bdec.entry.Entry)
+        params = list(self._params[entry])
+
+        def compare_references(left, right):
+            # It doesn't really matter what order we use for parameters, but it
+            # has to be consistent. As such we order by name, and put value types
+            # before length types.
+            result = cmp(left.reference.name, right.reference.name)
+            if result:
+                return result
+            if isinstance(left.reference, expr.ValueResult) and \
+                    not isinstance(right.reference, expr.ValueResult):
+                return -1
+            if not isinstance(left.reference, expr.ValueResult) and \
+                    isinstance(right.reference, expr.ValueResult):
+                return 1
+            return 0
+
+        params.sort(cmp=compare_references)
+        return params
+
     def get_params(self, entry):
         """
         Get an iterator to all parameters passed to an entry due to value references.
         """
-        assert isinstance(entry, bdec.entry.Entry)
-        params = list(self._params[entry])
-        params.sort(key=lambda a:a.reference.name)
         try:
-            return [param.get_param() for param in params]
+            return [param.get_param() for param in self._get_params(entry)]
         except _FailedToResolveError, ex:
             raise UnknownReferenceError(entry, ex.name)
 
@@ -479,11 +548,9 @@ class ExpressionParameters(_Parameters):
         """
         assert isinstance(entry, bdec.entry.Entry)
         assert isinstance(child, bdec.entry.Child)
-        child_params = list(self._params[child.entry])
-        child_params.sort(key=lambda a:a.reference.name)
-        for param in child_params:
+        for param in self._get_params(child.entry):
             local = self._get_local_reference(entry, child, param)
-            yield Param(_get_reference_name(local), param.direction, param.get_type())
+            yield Param(local.param_name(), param.direction, param.get_type())
 
     def is_value_referenced(self, entry):
         """ Is the decoded value of an entry used elsewhere. """
@@ -501,6 +568,7 @@ class DataChecker:
         All other entries reachable by these entries can also be checked."""
         self._common = entries[:]
         self._has_data = {}
+        self._parents = {}
         entries = set(entries)
         while entries:
             entry = entries.pop()
@@ -532,6 +600,10 @@ class DataChecker:
         self._has_data[entry] = not entry.is_hidden()
         stack.append(entry)
         for child in entry.children:
+             assert child not in self._parents, \
+                     "Found child '%s' in parents '%s' and '%s'!" % (child,
+                             entry, self._parents[child])
+             self._parents[child] = entry
              self._populate(child.entry, stack, intermediates)
         stack.remove(entry)
 
@@ -584,7 +656,9 @@ class DataChecker:
 
         This is different from contains_data when a referenced entry has been
         hidden."""
-        return not ent.is_hidden(child.name) and self._has_data[child.entry]
+        entry = self._parents[child]
+        return self.contains_data(entry) and not ent.is_hidden(child.name) \
+                and self._has_data[child.entry]
 
 
 class ResultParameters(_Parameters):
@@ -615,7 +689,7 @@ class ResultParameters(_Parameters):
         if not self._checker.child_has_data(child):
             # A visible common entry has been hidden locally.
             return [Param('unused %s' % child.name, Param.OUT, EntryType(child.entry))]
-        return [Param('unknown', Param.OUT, EntryType(child.entry))]
+        return [Param(MAGIC_UNKNOWN_NAME, Param.OUT, EntryType(child.entry))]
 
 
 class CompoundParameters(_Parameters):
@@ -658,4 +732,126 @@ class CompoundParameters(_Parameters):
             if query.is_length_referenced(entry):
                 return True
         return False
+
+
+class EncodeResultParameters(_Parameters):
+    """Parameters passed around to represent the values being encoded.
+
+    Only visible entries will be passed in this fashion."""
+    def __init__(self, entries):
+        self._result_params = ResultParameters(entries)
+
+    def get_locals(self, entry):
+        """Return an iterable of Local instances. """
+        return self._result_params.get_locals(entry)
+
+    def _invert(self, params):
+        for p in params:
+            name = p.name
+            if name == 'result':
+                name = 'value'
+            yield Param(name, Param.IN, p.type)
+
+    def get_params(self, entry):
+        """Return an iterable of Param instances."""
+        return self._invert(self._result_params.get_params(entry))
+
+    def get_passed_variables(self, entry, child):
+        """Return an iterable of Param instances."""
+        return self._invert(self._result_params.get_passed_variables(entry, child))
+
+
+class EncodeExpressionParameters(_Parameters):
+    """The parameters passed around to handle encoding due to expression references."""
+    def __init__(self, entries):
+        self._hidden_map = {}
+        for entry in entries:
+            self._populate_visible(entry, entries, self._hidden_map)
+        self.expression_params = ExpressionParameters(entries)
+
+    def is_output_param_used(self, entry, child, param):
+        return self.expression_params.is_output_param_used(entry, child, param)
+
+    def is_hidden(self, entry):
+        return self._hidden_map[entry]
+
+    def is_length_referenced(self, entry):
+        return self.expression_params.is_length_referenced(entry)
+
+    def is_value_referenced(self, entry):
+        return self.expression_params.is_value_referenced(entry)
+
+    def get_params(self, entry):
+        # Change the order of the parameters such that they are suitable for encoding.
+        params = list(self.expression_params.get_params(entry))
+        is_entry_hidden = self._hidden_map[entry]
+        result = []
+        for p in params:
+            is_value_hidden = ':' in p.name or (p.direction == p.OUT and is_entry_hidden)
+            if self._is_source_entry_independant(p.type, is_value_hidden):
+                # The source entry is indepent of the user of it; no need to swap
+                # the parameters.
+                result.append(p)
+            else:
+                if p.direction == p.IN:
+                    p.direction = p.OUT
+                else:
+                    p.direction = p.IN
+                result.append(p)
+        return result
+
+    def get_passed_variables(self, entry, child):
+        our_params = self.expression_params.get_passed_variables(entry, child)
+        child_params = self.get_params(child.entry)
+        result = []
+        for our_param, child_param in zip(our_params, child_params):
+            result.append(Param(our_param.name, child_param.direction, our_param.type))
+        return result
+
+    def _populate_visible(self, entry, common, entries, visible=True):
+        if entry in entries:
+            return
+
+        if entry in common:
+            # Common entries are visible if their name is public, regardless of
+            # what their parents do.
+            visible = not ent.is_hidden(entry.name)
+        else:
+            # Entries that aren't common are visible if both they and their parents
+            # are visible.
+            visible &= not ent.is_hidden(entry.name)
+
+        entries[entry] = not visible
+        for child in entry.children:
+            self._populate_visible(child.entry, common, entries, visible)
+
+    def _is_source_entry_independant(self, param_type, is_value_hidden):
+        """Test if the source entry can be encoded without knowledge of how it is referenced.
+
+        For example, if the source entry is visible, or has an expected value, it
+        can be encoded without knowledge of how the reference is used. If the
+        source entry is hidden, and its value used in a visible entry (for example,
+        in the count of a sequence-of), the source entry must be encoded after the
+        user of its reference so the value can be detected."""
+        if param_type.has_expected_value() or isinstance(param_type, EntryLengthType):
+            result = True
+        elif isinstance(param_type, EntryValueType):
+            # If we reference an entry value, the source is independant if it is
+            # visible.
+            if is_value_hidden:
+                return False
+            result = not self._hidden_map[param_type.entry]
+        elif isinstance(param_type, MultiSourceType):
+            for source in param_type.sources:
+                if not self._is_source_entry_independant(source, is_value_hidden):
+                    result = False
+                    break
+            else:
+                result = True
+        else:
+            raise NotImplementedError('Unknown param type when testing for independance')
+        return result
+
+    def get_locals(self, entry):
+        return self.expression_params.get_locals(entry)
 

@@ -6,7 +6,8 @@
   from bdec.sequenceof import SequenceOf
  %>
 
-/*  Portions Copyright (C) 2008 Henry Ludemann
+/*  Portions Copyright (C) 2010 Henry Ludemann
+    Portions Copyright (c) 2010, PRESENSE Technologies GmbH
 
     This file is part of the bdec decoder library.
 
@@ -117,6 +118,16 @@ int ${settings.decode_name(entry)}( BitBuffer* buffer${settings.define_params(en
  *     will not be freed.
  */
 void ${settings.free_name(entry)}(${settings.ctype(entry)}* value);
+%endif
+
+%if generate_encoder:
+/**
+ * Encode a ${entry.name} instance.
+ *
+ * value -- The entry to be encoded.
+ * result -- The encoded data will be appended to this instance.
+ */
+int ${settings.encode_name(entry)}(struct EncodedData* result${settings.encode_params(entry)});
 %endif
 
 /**

@@ -1,4 +1,5 @@
-#   Copyright (C) 2008 Henry Ludemann
+#   Copyright (C) 2010 Henry Ludemann
+#   Copyright (C) 2010 PRESENSE Technologies GmbH
 #
 #   This file is part of the bdec decoder library.
 #
@@ -28,7 +29,7 @@ from bdec.spec.ebnf import parse
 import os.path
 from pyparsing import Word, nums, alphanums, StringEnd, \
     ParseException, Optional, Combine, oneOf, alphas,\
-    QuotedString, empty, lineno, SkipTo
+    QuotedString, empty, lineno, SkipTo, ParserElement
 
 class Asn1Error(LoadError):
     def __init__(self, filename, lineno):
@@ -82,8 +83,9 @@ def _parse_number(s, l, t):
 class _Loader:
     """A class for loading asn1 specifications."""
 
-    def __init__(self, filename):
-        self._parser, parsers = self._load_ebnf()
+    def __init__(self, filename, references):
+        self._references = references
+        self._parser, parsers, self._source_lookup = self._load_ebnf()
 
         # Default for all handlers will be to fail on 'not implemented'. We
         # then have to manually go through and enable all handlers explicitly.
@@ -159,7 +161,7 @@ class _Loader:
     def _load_ebnf(self):
         # Load the xml spec that we will use for doing the decoding.
         asn1_filename = os.path.join(os.path.dirname(__file__), '..', '..', 'specs', 'asn1.ber.xml')
-        generic_spec, self._spec, lookup = xmlspec.load(asn1_filename)
+        generic_spec, lookup = xmlspec.load(asn1_filename, file(asn1_filename, 'r'), self._references)
 
         table = {
                 'bstring' : Combine("'" + Word('01') + "'B"),
@@ -183,7 +185,7 @@ class _Loader:
         parser = parsers['ModuleDefinition'] + StringEnd()
         parser.ignore('--' + SkipTo('\n'))
 
-        return parser, dict((name, entry) for name, entry in parsers.items() if name not in table)
+        return parser, dict((name, entry) for name, entry in parsers.items() if name not in table), lookup
 
     def _create_named_numeric_list(self, s, l, t):
         value = 0
@@ -226,24 +228,9 @@ class _Loader:
         if tokens:
             raise NotImplementedError('empty', tokens, self.filename, lineno(l, t))
 
-    def _add_common(self, entry):
-        """Add all specification common entries to 'our' common list."""
-        if entry.name not in self._common_entries:
-            if entry.name in self._spec:
-                self._common_entries[entry.name] = entry
-            for child in entry.children:
-                self._add_common(child.entry)
-
     def _common(self, name):
-        """Get a common entry from the specification.
-
-        Stores it in this decoder's 'common' dictionary."""
-        try:
-            return self._common_entries[name]
-        except KeyError:
-            entry = self._spec[name]
-            self._add_common(entry)
-            return entry
+        """Get a common entry from the specification."""
+        return self._references.get_common(name)
 
     def load(self, text):
         """Load a bdec specification from an asn.1 document."""
@@ -254,32 +241,26 @@ class _Loader:
         common = dict((entry.name, entry) for entry in modules)
         common.update(self._common_entries)
         for module in common.values():
-            module.validate()
-        return modules[0], common, {}
+            self._references.add_common(module)
+        return modules[0], self._source_lookup
 
     def _create_constructed(self, name, tag, children):
         """Create a constructed entry.
 
         Handles entries with both definite and indefinite lengths. """
-        # FIXME: Handle extra entries after the expected ones...
-        # FIXME: Combine the indefinite & definite sections, and use a
-        # conditional after the children to eat the rest of the data,
-        # depending on whether they are expected or not. This would mean we
-        # don't need to add the children to the common entries...
-        self._common_entries[tag.name] = tag
-        for child in children:
-            if isinstance(child, ent.Child):
-                child = child.entry
-            if child not in self._common_entries:
-                self._common_entries[child.name] = child
+        # Constructed entries can be either indefinite (no specified length,
+        # but terminated with a null), or definite (with a specified length).
+        header = chc.Choice('header:', [
+            seq.Sequence('indefinite', [_field('', 8, 0x80)], value=expr.Constant(1)),
+            seq.Sequence('definite', [self._common('definite length:')], value=expr.Constant(0))])
 
-        indefinite = seq.Sequence('indefinite',
-                [tag, _field('', 8, 0x80)] +
-                children +
-                [_field('', 16, 0x00)])
-        definite = seq.Sequence('definite',
-                [tag, self._common('definite length:')] + children)
-        return chc.Choice(name, [indefinite, definite])
+        # FIXME: Handle extra entries after the expected ones...
+        footer = chc.Choice('footer:', [
+                    seq.Sequence('indefinite', [_field('', 16, 0x00)],
+                        value=expr.ValueResult('header:'),
+                        constraints=[Equals(expr.Constant(1))]),
+                    seq.Sequence('definite', [])])
+        return seq.Sequence(name, [tag, header] + children + [footer])
 
     def _set_entry_name(self, s, loc, toks):
         toks[1].name = toks[0]
@@ -287,6 +268,7 @@ class _Loader:
 
     def _set_type_name(self, s, loc, toks):
         toks[2].name = toks[0]
+        self._common_entries[toks[2].name] = toks[2]
         return toks[2]
 
     def _create_integer(self, s, loc, toks):
@@ -310,12 +292,10 @@ class _Loader:
         return toks[0], toks[4:-1]
 
 
-def loads(text, filename=None):
-    return _Loader(filename).load(text)
+def loads(text, filename, references):
+    return _Loader(filename, references).load(text)
 
-def load(filename):
-    data = open(filename, 'r')
-    text = data.read()
-    data.close()
-    return loads(text, filename)
+def load(filename, specfile, references):
+    text = specfile.read()
+    return loads(text, filename, references)
 

@@ -1,4 +1,5 @@
-/*  Copyright (C) 2008 Henry Ludemann
+/*  Copyright (C) 2010 Henry Ludemann
+    Copyright (c) 2010 PRESENSE Technologies GmbH
 
     This file is part of the bdec decoder library.
 
@@ -30,8 +31,19 @@ unsigned long long get_long_integer(BitBuffer* buffer);
 unsigned int decode_integer(BitBuffer* buffer, int num_bits);
 unsigned long long decode_long_integer(BitBuffer* buffer, int num_bits);
 unsigned int decode_little_endian_integer(BitBuffer* buffer, int num_bits);
+unsigned long long decode_long_little_endian_integer(BitBuffer* buffer, int num_bits);
+
+// Encode a big endian integer
+void encode_big_endian_integer(unsigned int value, int num_bits, struct EncodedData* result);
+void encode_little_endian_integer(unsigned int value, int num_bits, struct EncodedData* result);
+void encode_long_big_endian_integer(unsigned long long value, int num_bits, struct EncodedData* result);
+void encode_long_little_endian_integer(unsigned long long value, int num_bits, struct EncodedData* result);
 
 // Helper function to print an xml escaped string
 void print_escaped_string(Text* text);
+
+// Divide with round towards either negative infinity or postive infinity.
+long long ${'divide with rounding' | function}(long long numerator, long long denominator, int should_round_up);
+// TODO: Add a normal width integer version of this function...
 
 #endif

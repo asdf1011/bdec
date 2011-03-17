@@ -1,0 +1,18 @@
+<protocol>
+    <!-- Test when we have to solve recursively when creating mock objects.
+         In this case we have a value for 'b', but we also need to populate
+         the values for c and d, then for c1 (from c). -->
+    <sequence name="a">
+        <reference name="b" expected="151" />
+    </sequence>
+
+    <common>
+        <sequence name="b" value="${c} * 100 + ${d}">
+            <sequence name="c" value="${c1} * 16 + ${c2}">
+                <field name="c1" length="4" type="integer" />
+                <field name="c2" length="4" type="integer" />
+            </sequence>
+            <field name="d" length="8" type="integer" />
+        </sequence>
+    </common>
+</protocol>

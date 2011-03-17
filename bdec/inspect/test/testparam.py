@@ -1,4 +1,5 @@
-#   Copyright (C) 2008-2009 Henry Ludemann
+#   Copyright (C) 2008-2010 Henry Ludemann
+#   Copyright (C) 2010 PRESENSE Technologies GmbH
 #
 #   This file is part of the bdec decoder library.
 #
@@ -97,7 +98,7 @@ class TestExpressionParameters(unittest.TestCase):
         ignored = fld.Field('ignored', 8)
         upper = fld.Field('upper byte', 8)
         upper_value = expr.ValueResult('upper byte')
-        value = expr.Delayed(operator.__add__, expr.Delayed(operator.__mul__, upper_value, expr.Constant(256)), lower_value)
+        value = expr.ArithmeticExpression(operator.__add__, expr.ArithmeticExpression(operator.__mul__, upper_value, expr.Constant(256)), lower_value)
         length = seq.Sequence('length', [lower, ignored, upper], value)
         header = seq.Sequence('header', [length])
 
@@ -204,8 +205,8 @@ class TestExpressionParameters(unittest.TestCase):
 
         # Now test the passing out (and ignoring) of the length value within 'b'
         self.assertEqual([], vars.get_params(b))
-        self.assertEqual([prm.Local('length', _Integer())], vars.get_locals(b))
-        self.assertEqual([prm.Param('length', prm.Param.OUT, _Integer())], list(vars.get_passed_variables(b, b.children[0])))
+        self.assertEqual([prm.Local('unused length', _Integer())], vars.get_locals(b))
+        self.assertEqual([prm.Param('unused length', prm.Param.OUT, _Integer())], list(vars.get_passed_variables(b, b.children[0])))
         self.assertEqual([], list(vars.get_passed_variables(spec, spec.children[0])))
 
     def test_referencing_sequence_without_value(self):
@@ -394,9 +395,9 @@ class TestExpressionParameters(unittest.TestCase):
         d2 = seq.Sequence('d2', [a2, fld.Field('e2', length=expr.compile('${a}'))])
 
         lookup = prm.ExpressionParameters([a1, a2, c, d1, d2])
-        self.assertEqual([prm.Param('a', prm.Param.OUT, _Integer())], list(lookup.get_passed_variables(c, c.children[0])))
-        self.assertEqual([prm.Param('a', prm.Param.OUT, _Integer())], list(lookup.get_passed_variables(c, c.children[1])))
-        self.assertEqual([prm.Local('a', _Integer())], lookup.get_locals(c))
+        self.assertEqual([prm.Param('unused a', prm.Param.OUT, _Integer())], list(lookup.get_passed_variables(c, c.children[0])))
+        self.assertEqual([prm.Param('unused a', prm.Param.OUT, _Integer())], list(lookup.get_passed_variables(c, c.children[1])))
+        self.assertEqual([prm.Local('unused a', _Integer())], lookup.get_locals(c))
 
     def test_sequence_with_referenced_value(self):
         a = fld.Field('a', length=8)
@@ -434,7 +435,7 @@ class TestResultParameters(unittest.TestCase):
         b = seq.Sequence('b', [a])
         lookup = prm.ResultParameters([b])
         self.assertEqual([prm.Param('result', prm.Param.OUT, EntryType(a))], lookup.get_params(a))
-        self.assertEqual([prm.Param('unknown', prm.Param.OUT, EntryType(a))], lookup.get_passed_variables(b, b.children[0]))
+        self.assertEqual([prm.Param('magic unknown param', prm.Param.OUT, EntryType(a))], lookup.get_passed_variables(b, b.children[0]))
         self.assertEqual([prm.Param('result', prm.Param.OUT, EntryType(b))], lookup.get_params(b))
 
     def test_hidden_field(self):
@@ -498,6 +499,17 @@ class TestResultParameters(unittest.TestCase):
         self.assertEqual([], lookup.get_locals(b))
         self.assertEqual([], lookup.get_passed_variables(b, b.children[0]))
 
+    def test_visible_common_in_hidden_context(self):
+        a = fld.Field('a', 8)
+        b = seq.Sequence('b:', [a])
+        lookup = prm.ResultParameters([a, b])
+        self.assertEqual([prm.Param('result', prm.Param.OUT, EntryType(a))],
+                lookup.get_params(a))
+        self.assertEqual([], lookup.get_params(b))
+        self.assertEqual([prm.Local('unused a', EntryType(a))], lookup.get_locals(b))
+        self.assertEqual([prm.Param('unused a', prm.Param.OUT, EntryType(a))],
+            lookup.get_passed_variables(b, b.children[0]))
+
 
 class TestDataChecker(unittest.TestCase):
     def test_hidden_entry_visible_child(self):
@@ -519,3 +531,18 @@ class TestDataChecker(unittest.TestCase):
         self.assertTrue(checker.contains_data(a))
         self.assertFalse(checker.contains_data(b))
 
+
+class TestEncodeParameters(unittest.TestCase):
+    def test_referenced_renamed_child(self):
+        # Here 'a' is a common entry (as it has been renamed). The visible
+        # 'a' entry should have an output parameter 'a', but 'c' should also
+        # have it as an output; 'b' will be responsible for mocking the
+        # parameter to pass into 'a:' during encoding.
+        a = fld.Field('a', 8)
+        b = seq.Sequence('b', [
+            ent.Child('a:', a),
+            seq.Sequence('c', [], value=expr.parse('${a:}'))])
+        params = prm.EncodeExpressionParameters([a, b])
+        self.assertEqual([prm.Param('a', prm.Param.OUT, _Integer())], params.get_params(a))
+        self.assertEqual([prm.Param('a:', prm.Param.OUT, _Integer())], params.get_passed_variables(b, b.children[0]))
+        self.assertEqual([prm.Param('a:', prm.Param.OUT, _Integer())], params.get_params(b.children[1].entry))
