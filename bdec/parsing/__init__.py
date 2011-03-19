@@ -52,12 +52,15 @@ class ParseResults:
         return len(self._tokens)
 
     def __getitem__(self, i):
-        if isinstance(i, int):
+        if isinstance(i, (int, slice)):
             return self._tokens[i]
         return getattr(self, i)
 
-    def __getslice__(self, i, j):
-        return self._tokens[i:j]
+    def pop(self, i):
+        if isinstance(i, int):
+            return self._tokens.pop(i)
+        else:
+            return self._names.pop(i)
 
     def __getattr__(self, name):
         try:
@@ -90,6 +93,9 @@ class ParserElement:
         self._ignore = None
         self._name = None
 
+    def copy(self):
+        return And([self])
+
     def _is_important(self):
         return self._actions or self._internal_actions or self._ignore or self._name is not None
 
@@ -100,7 +106,6 @@ class ParserElement:
         raise NotImplementedError()
 
     def createDecoder(self, separator):
-
         if self._decoder is not None:
             return self._decoder
 
@@ -219,6 +224,9 @@ class ParserElement:
     def __or__(self, other):
         return MatchFirst([self, other])
 
+    def __xor__(self, other):
+        return MatchFirst([self, other])
+
     def __ror__(self, other):
         if not isinstance(other, ParserElement):
             other = Literal(other)
@@ -231,6 +239,9 @@ class ParserElement:
         result = And([self])
         result.setName(name)
         return result
+
+    def streamline(self):
+        return self
 
     def setName(self, name):
         self._name = name
@@ -347,7 +358,7 @@ Or = MatchFirst
 class StringEnd(ParserElement):
     def _createEntry(self, separator):
         data = Choice('data:', [Field(None, length=8), Sequence(None, [])])
-        length_check = Sequence(None, [], value=LengthResult('data:'), constraints=[Equals(0)])
+        length_check = Sequence('end of string', [], value=LengthResult('data:'), constraints=[Equals(0)])
         return Sequence(None, [data, length_check])
 
 
@@ -535,4 +546,12 @@ def CaselessKeyword(text):
 
 def oneOf(exprs):
     return Combine(Or(exprs))
+
+empty = And([])
+
+def lineno():
+    return 0
+
+def delimitedList(expr, delim=','):
+    return expr + ZeroOrMore(delim + expr)
 
