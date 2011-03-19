@@ -150,3 +150,8 @@ class TestParsing(unittest.TestCase):
         self.assertEqual([253], expr.parseString('253 617')[:1])
         self.assertEqual([253, 617], expr.parseString('253 617').asList())
 
+    def test_optional(self):
+        number = Word(srange('[0-9]'))
+        expr = Optional(number) + StringEnd()
+        self.assertEqual(['253'], expr.parseString('253').asList())
+        self.assertEqual([], expr.parseString('').asList())

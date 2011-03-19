@@ -271,6 +271,7 @@ class Literal(ParserElement):
     def __init__(self, text):
         ParserElement.__init__(self)
         assert isinstance(text, basestring), 'Literal must be a string! Is %s' % (repr(text))
+        assert text, "Literal text entries shouldn't be empty!"
         self.text = text
 
     def _createEntry(self, separator):
@@ -523,8 +524,8 @@ def CaselessLiteral(text):
 
 restOfLine = CharsNotIn('\n') + '\n'
 
-def Optional(expr, null=''):
-    return expr | Literal(null)
+def Optional(expr):
+    return expr | empty
 
 def QuotedString(quoteChar, multiline=True, escChar=''):
     return nestedExpr(quoteChar, quoteChar)
