@@ -358,7 +358,7 @@ Or = MatchFirst
 class StringEnd(ParserElement):
     def _createEntry(self, separator):
         data = Choice('data:', [Field(None, length=8), Sequence(None, [])])
-        length_check = Sequence('end of string', [], value=LengthResult('data:'), constraints=[Equals(0)])
+        length_check = Sequence('end of string:', [], value=LengthResult('data:'), constraints=[Equals(0)])
         return Sequence(None, [data, length_check])
 
 
