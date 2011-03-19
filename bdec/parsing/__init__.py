@@ -56,6 +56,9 @@ class ParseResults:
             return self._tokens[i]
         return getattr(self, i)
 
+    def __getslice__(self, i, j):
+        return self._tokens[i:j]
+
     def __getattr__(self, name):
         try:
             result = self._names[name]
