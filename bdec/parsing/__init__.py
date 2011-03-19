@@ -554,5 +554,5 @@ def lineno():
     return 0
 
 def delimitedList(expr, delim=','):
-    return expr + ZeroOrMore(delim + expr)
+    return expr + ZeroOrMore(Suppress(delim) + expr)
 

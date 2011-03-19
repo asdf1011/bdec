@@ -155,3 +155,9 @@ class TestParsing(unittest.TestCase):
         expr = Optional(number) + StringEnd()
         self.assertEqual(['253'], expr.parseString('253').asList())
         self.assertEqual([], expr.parseString('').asList())
+
+    def test_delimited_list(self):
+        number = Word(srange('[0-9]'))
+        number_list = delimitedList(number, ',')
+        expr = number_list + StringEnd()
+        self.assertEqual(['232', '777', '899'], expr.parseString('232, 777,899 ').asList())
