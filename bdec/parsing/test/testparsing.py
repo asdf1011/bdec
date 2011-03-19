@@ -136,3 +136,15 @@ class TestParsing(unittest.TestCase):
         self.assertEqual(['then'], list(a.parseString(' then ')))
         self.assertEqual(['if'], list(a.parseString('if')))
         self.assertRaises(ParseException, a.parseString, 'bad')
+
+    def test_parse_results(self):
+        def to_int(tokens):
+            self.assertEquals(ParseResults, tokens.__class__)
+            return int(tokens[0])
+        number = Word(srange('[0-9]')).setParseAction(to_int)('number')
+        expr = (number('a') + number('b'))('c') + StringEnd()
+        self.assertEqual(253, expr.parseString('253 617').a)
+        self.assertEqual(617, expr.parseString('253 617')['b'])
+        self.assertEqual(253, expr.parseString('253 617').c['a'])
+        self.assertEqual(617, expr.parseString('253 617').c.b)
+
