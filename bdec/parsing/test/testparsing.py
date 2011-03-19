@@ -148,4 +148,5 @@ class TestParsing(unittest.TestCase):
         self.assertEqual(253, expr.parseString('253 617').c['a'])
         self.assertEqual(617, expr.parseString('253 617').c.b)
         self.assertEqual([253], expr.parseString('253 617')[:1])
+        self.assertEqual([253, 617], expr.parseString('253 617').asList())
 

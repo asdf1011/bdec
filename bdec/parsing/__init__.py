@@ -73,6 +73,9 @@ class ParseResults:
     def __repr__(self):
         return '%s' % (self._tokens)
 
+    def asList(self):
+        return list(self._tokens)
+
 
 class ParserElement:
     """Base class for all parser elements."""
