@@ -1,4 +1,4 @@
-/*  Copyright (C) 2010 Henry Ludemann
+/*  Copyright (C) 2010-2011 Henry Ludemann
     Copyright (c) 2010 PRESENSE Technologies GmbH
 
     This file is part of the bdec decoder library.
