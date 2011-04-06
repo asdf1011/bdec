@@ -43,7 +43,7 @@ bdec contains the following subpackages and modules:
    :style: UML
 """
 
-__version__ = "0.7.0"
+__version__ = "0.7.1"
 
 class DecodeError(Exception):
     """ An error raise when decoding fails """
