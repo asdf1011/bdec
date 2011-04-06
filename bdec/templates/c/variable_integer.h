@@ -22,6 +22,10 @@
 
 #include "buffer.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // Convert a buffer to a big endian integer
 unsigned int get_integer(BitBuffer* buffer);
 unsigned long long get_long_integer(BitBuffer* buffer);
@@ -45,5 +49,9 @@ void print_escaped_string(Text* text);
 // Divide with round towards either negative infinity or postive infinity.
 long long ${'divide with rounding' | function}(long long numerator, long long denominator, int should_round_up);
 // TODO: Add a normal width integer version of this function...
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
