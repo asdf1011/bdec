@@ -63,7 +63,7 @@ static void convertEndian(enum Encoding encoding, unsigned char output[], BitBuf
     }
 }
 
-static void appendFloatBuffer(unsigned char source[], int numBytes, enum Encoding encoding, struct EncodedData* output)
+static void appendFloatBuffer(const unsigned char source[], int numBytes, enum Encoding encoding, struct EncodedData* output)
 {
     if (encoding == getMachineEncoding())
     {
@@ -147,7 +147,7 @@ void ensureEncodeSpace(struct EncodedData* buffer, int numBits)
     }
 }
 
-void appendBitBuffer(struct EncodedData* result, BitBuffer* data)
+void appendBitBuffer(struct EncodedData* result, const BitBuffer* data)
 {
     BitBuffer copy = *data;
     while (copy.num_bits >= sizeof(unsigned int) * 8)
@@ -162,19 +162,19 @@ void appendBitBuffer(struct EncodedData* result, BitBuffer* data)
     }
 }
 
-void appendText(struct EncodedData* result, Text* value)
+void appendText(struct EncodedData* result, const Text* value)
 {
     BitBuffer copy = {(unsigned char*)value->buffer, 0, value->length * 8};
     appendBitBuffer(result, &copy);
 }
 
-void appendBuffer(struct EncodedData* result, Buffer* value)
+void appendBuffer(struct EncodedData* result, const Buffer* value)
 {
     BitBuffer copy = {value->buffer, 0, value->length * 8};
     appendBitBuffer(result, &copy);
 }
 
-void appendEncodedBuffer(struct EncodedData* result, struct EncodedData* value)
+void appendEncodedBuffer(struct EncodedData* result, const struct EncodedData* value)
 {
     BitBuffer temp = {(unsigned char*)value->buffer, 0, value->num_bits};
     appendBitBuffer(result, &temp);

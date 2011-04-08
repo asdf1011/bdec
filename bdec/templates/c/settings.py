@@ -196,8 +196,8 @@ def _get_param_string(params):
     for param in params:
         if param.direction is param.IN:
             type = ctype(param.type)
-            pointer = '*' if not is_numeric(type) else ''
-            result += ", %s%s %s" % (type, pointer, param.name)
+            full_type = 'const %s*' % type if not is_numeric(type) else type
+            result += ", %s %s" % (full_type, param.name)
         else:
             result += ", %s* %s" % (ctype(param.type), param.name)
     return result
