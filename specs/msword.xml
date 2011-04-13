@@ -1,0 +1,9 @@
+<protocol>
+    <sequence name="msword document">
+        <reference name="ole magic:" />
+    </sequence>
+
+    <common>
+        <field name="ole magic:" length="8 * 8" value="0xd0cf11e0a1b11ae1" />
+    </common>
+</protocol>
