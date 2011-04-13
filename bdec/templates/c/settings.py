@@ -288,7 +288,7 @@ def _value_ref(name, entry, params):
     return name
 
 def local_reference_name(entry, ref, params):
-    return False, _value_ref(local_name(entry, ref.param_name()), entry, params)
+    return False, _value_ref(params.get_local_name(entry, ref.param_name()), entry, params)
 
 def get_reference_stack(entries, names):
     """Get the new stack pointing to a given referenced.
