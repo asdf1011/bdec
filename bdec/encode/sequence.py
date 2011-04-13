@@ -162,6 +162,11 @@ class SequenceEncoder(EntryEncoder):
         except Exception:
             return True
 
+    def _fixup_expression_value(self, value):
+        # A sequence is always an integer; when we're encoding from xml the raw
+        # value is a string, which means something else in constraints.
+        return int(value)
+
     def _fixup_value(self, value, context):
         """
         Allow entries to modify the value to be encoded.
