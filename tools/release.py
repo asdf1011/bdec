@@ -40,7 +40,7 @@ def usage():
     print "    f) Prompt if user wants freshmeat & pypi to be notified. If so,"
     print "       README changlog will be used."
 
-_README = os.path.join(root_path, 'README')
+_README = os.path.join(root_path, 'README.rst')
 _CHANGELOG = os.path.join(root_path, 'CHANGELOG')
 
 website_dir = os.path.join(root_path, '..', 'website', 'website.integ')
