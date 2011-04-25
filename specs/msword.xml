@@ -1,7 +1,11 @@
 <protocol>
-    <sequence name="msword document">
+    <sequence name="document">
         <reference name="ole magic:" />
         <reference name="header" />
+
+        <sequenceof name="sectors" count="${header.difat sect count} + 1">
+            <reference name="sector" />
+        </sequenceof>
     </sequence>
 
     <common>
@@ -36,6 +40,14 @@
             <reference name="difat start" type="sect" />
             <reference name="difat sect count" type="uint32" />
 
+            <sequence name="sector size:" value="8 &lt;&lt; ${bb_shift}" />
+        </sequence>
+
+        <sequence name="sector">
+            <sequenceof name="double indirection fat" count="109">
+                <reference name="sect" />
+            </sequenceof>
+            <field name="sector" type="hex" length="${header.sector size:} * 8" />
         </sequence>
     </common>
 </protocol>
