@@ -156,6 +156,10 @@ void print_escaped_string(const Text* text)
         {
             printf("&gt;");
         }
+        else if (c == '&')
+        {
+            printf("&amp;");
+        }
         else if (c >= 0x20 || c == 0x9 || c == 0xa || c == 0xd)
         {
             putc(c, stdout);
