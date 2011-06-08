@@ -129,7 +129,7 @@ def decode(decoder, binary):
     """
     Create a python instance representing the decoded data.
     """
-    return decode_items(decode.decode(binary))
+    return get_instance(decoder.decode(binary))
 
 def _get_data(obj, child, i, name):
     if name.endswith(':'):
