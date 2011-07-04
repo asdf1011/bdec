@@ -684,3 +684,9 @@ def breakup_expression(expression, entry):
        pass
    return constant, components
 
+def should_free(entry):
+   return contains_data(entry) or (isinstance(entry, fld.Field) and entry.format != fld.Field.INTEGER)
+
+def is_value_used(entry):
+   return should_free(entry) or is_value_referenced(entry) or entry.constraints
+

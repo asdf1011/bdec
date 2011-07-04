@@ -120,7 +120,7 @@
       %endif
     %endif
     {
-      %if result is not None and (contains_data(entry) or (isinstance(entry, Field) and entry.format != Field.INTEGER)):
+      %if result is not None and should_free(entry):
         ${settings.free_name(entry)}(${result});
       %endif
         return 0;
@@ -130,11 +130,14 @@
 
 <%def name="decodeField(entry)">
     <% value = variable(entry.name + ' value') %>
+  %if is_value_used(entry):
     ${settings.ctype(entry)} ${value};
+  %endif
   %if settings.is_numeric(settings.ctype(entry)):
       <% prefix = 'little_endian_' if entry.encoding == Field.LITTLE_ENDIAN else '' %>
       <% prefix = 'long_%s' % prefix if EntryValueType(entry).range(raw_params).max > 0xffffffff else prefix %>
-    ${value} = decode_${prefix}integer(buffer, ${settings.value(entry, entry.length)});
+    <% assignment = '%s = ' % value if is_value_used(entry) else '' %>
+    ${assignment}decode_${prefix}integer(buffer, ${settings.value(entry, entry.length)});
     %if is_value_referenced(entry):
     *${entry.name |variable} = ${value};
     %endif
@@ -192,7 +195,7 @@
     %if contains_data(entry):
     (*result) = ${value};
     %else:
-      %if entry.format != Field.INTEGER:
+      %if should_free(entry):
     ${settings.free_name(entry)}(&${value});
       %endif
     %endif
@@ -366,7 +369,7 @@ ${recursiveDecode(child.entry)}
 %endfor
 
 <% static = "static " if is_static else "" %>
-%if contains_data(entry) or (isinstance(entry, Field) and entry.format != Field.INTEGER):
+%if should_free(entry):
 ${static}void ${settings.free_name(entry)}(${settings.ctype(entry)}* value)
 {
   %if isinstance(entry, Field):
