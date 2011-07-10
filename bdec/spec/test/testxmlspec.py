@@ -1121,6 +1121,26 @@ class TestXml(unittest.TestCase):
             raise MissingInstanceError(parent, entry)
         self.assertEqual(dt.Data('\x08\x03'), reduce(operator.add, spec.encode(query, None)))
 
+    def test_multiple_children_in_sequenceof(self):
+        text = '''
+            <protocol>
+                <sequenceof name="a" count="2">
+                    <field name="b" length="8" type="integer" />
+                    <field name="c" length="8" type="integer" />
+                </sequenceof>
+            </protocol>'''
+        spec = loads(text)[0]
+        self.assertTrue(isinstance(spec, sof.SequenceOf))
+        self.assertEqual(1, len(spec.children))
+        self.assertEqual('a item', spec.children[0].entry.name)
+
+        items = list(spec.decode(dt.Data("abcd")))
+        self.assertEqual(14, len(items))
+        self.assertEqual(ord('a'), items[3][4])
+        self.assertEqual(ord('b'), items[5][4])
+        self.assertEqual(ord('c'), items[9][4])
+        self.assertEqual(ord('d'), items[11][4])
+
 
 class TestSave(unittest.TestCase):
     """Test decoding of the xml save functionality.
@@ -1225,4 +1245,3 @@ class TestSave(unittest.TestCase):
             <field name="a" length="3" value="0x02" />
           </protocol>"""
         assert_xml_equivalent(expected, xml.save(a))
-

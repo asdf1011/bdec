@@ -10,6 +10,7 @@
 from pyparsing import *
 from bdec.spec import LoadError
 
+
 class EbnfError(LoadError):
     pass
 
