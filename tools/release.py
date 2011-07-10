@@ -211,8 +211,8 @@ def update_website(version):
     if os.system(command) != 0:
         sys.exit('Failed to update project html documentation!')
     shutil.copytree("files", "tempdir/files")
-    shutil.copy("README", "tempdir/files")
-    shutil.copy("COPYRIGHT", "tempdir/files")
+    shutil.copy(os.path.join(root_path, "README.rst"), "tempdir/files/README")
+    shutil.copy(os.path.join(root_path, "COPYRIGHT"), "tempdir/files")
     if os.path.exists(html_doc_dir):
         shutil.rmtree(html_doc_dir)
     os.rename('tempdir', html_doc_dir)
