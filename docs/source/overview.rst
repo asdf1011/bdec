@@ -55,7 +55,7 @@ There are existing specifications for binary formats, such as `ASN.1`_ and
 `CSN.1`_. These specifications have the problem that they cannot be retrofitted
 to existing binary formats.
 
-.. _ASN.1: www.asn1.org
-.. _CSN.1: www.csn1.info
+.. _ASN.1: http://www.asn1.org
+.. _CSN.1: http://www.csn1.info
 
 
