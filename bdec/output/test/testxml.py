@@ -59,14 +59,14 @@ import bdec.expression as expr
 class TestXml(unittest.TestCase):
     def test_field(self):
         field = fld.Field("bob", 8)
-        text = xml.to_string(field, dt.Data.from_hex('8e'))
+        text = xml.to_string(field.decode(dt.Data.from_hex('8e')))
         self.assertEqual("<bob>10001110</bob>\n", text)
 
     def test_hidden_entry(self):
         sequence = seq.Sequence("bob", [
             fld.Field("cat:", 8, fld.Field.INTEGER),
             fld.Field("dog", 24, fld.Field.TEXT)])
-        text = xml.to_string(sequence, dt.Data.from_hex('6e7a6970'))
+        text = xml.to_string(sequence.decode(dt.Data.from_hex('6e7a6970')))
         self.assertEqual("<bob>\n    <dog>zip</dog>\n</bob>\n", text)
 
     def test_xml_encode(self):
@@ -88,7 +88,7 @@ class TestXml(unittest.TestCase):
         sequence = seq.Sequence("bob", [
             fld.Field("cat:", 8, fld.Field.INTEGER),
             fld.Field("dog", 24, fld.Field.TEXT)])
-        text = xml.to_string(sequence, dt.Data.from_hex('6d7a6970'), verbose=True)
+        text = xml.to_string(sequence.decode(dt.Data.from_hex('6d7a6970')), verbose=True)
         expected = """<bob>
     <cat_>109<!-- hex (1 bytes): 6d --></cat_>
     <dog>zip<!-- hex (3 bytes): 7a6970 --></dog>
@@ -108,33 +108,33 @@ class TestXml(unittest.TestCase):
 
     def test_re_encoding_of_whitespace(self):
         spec = fld.Field('blah', 64, fld.Field.TEXT)
-        text = xml.to_string(spec, dt.Data('  bob   '))
+        text = xml.to_string(spec.decode(dt.Data('  bob   ')))
         data = xml.encode(spec, text)
         self.assertEqual("  bob   ", data.bytes())
 
     def test_nameless_entry(self):
         hidden = fld.Field('', 8, fld.Field.INTEGER, constraints=[Equals(0)])
         spec = seq.Sequence('blah', [hidden])
-        text = xml.to_string(spec, dt.Data('\x00'))
+        text = xml.to_string(spec.decode(dt.Data('\x00')))
         self.assertEqual('<blah></blah>\n', text)
 
     def test_verbose_nameless_entry(self):
         hidden = fld.Field('', 8, fld.Field.INTEGER, constraints=[Equals(0)])
         spec = seq.Sequence('blah', [hidden])
-        text = xml.to_string(spec, dt.Data('\x00'), verbose=True)
+        text = xml.to_string(spec.decode(dt.Data('\x00')), verbose=True)
         self.assertEqual('<blah>\n    <_hidden><!-- hex (1 bytes): 00 --></_hidden>\n</blah>\n', text)
 
     def test_field_with_expected_value(self):
         a = fld.Field('a', 8, fld.Field.INTEGER, constraints=[Equals(0)])
         spec = seq.Sequence('blah', [a])
-        text = xml.to_string(spec, dt.Data('\x00'))
+        text = xml.to_string(spec.decode(dt.Data('\x00')))
         self.assertEqual('<blah>\n    <a></a>\n</blah>\n', text)
 
     def test_different_child_name(self):
         digit = fld.Field('digit:', length=8)
         number = seq.Sequence('number', [digit], value=expr.compile("${digit:} - 48") )
         header = seq.Sequence('header', [ent.Child('length', number), fld.Field('data', length=expr.compile('${length} * 8'), format=fld.Field.TEXT)])
-        text = xml.to_string(header, dt.Data('5abcde'))
+        text = xml.to_string(header.decode(dt.Data('5abcde')))
         self.assertEqual('<header>\n    <length>5</length>\n    <data>abcde</data>\n</header>\n', text)
 
     def test_sequence_with_children_and_value(self):

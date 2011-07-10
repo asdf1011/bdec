@@ -111,12 +111,10 @@ class _DecodedItem:
                     result.children[escape(name)] = value
         return result
 
-def decode(decoder, binary):
-    """
-    Create a python instance representing the decoded data.
-    """
+def get_instance(items):
+    """Convert an iterable list of decode items to a python instance."""
     stack = [_DecodedItem(None)]
-    for is_starting, name, entry, data, value in decoder.decode(binary):
+    for is_starting, name, entry, data, value in items:
         if is_starting:
             stack.append(_DecodedItem(entry))
         else:
@@ -126,6 +124,12 @@ def decode(decoder, binary):
 
     assert len(stack) == 1
     return stack[0].get_value(None)
+
+def decode(decoder, binary):
+    """
+    Create a python instance representing the decoded data.
+    """
+    return get_instance(decoder.decode(binary))
 
 def _get_data(obj, child, i, name):
     if name.endswith(':'):

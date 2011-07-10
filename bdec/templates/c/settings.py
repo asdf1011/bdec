@@ -382,11 +382,14 @@ def value(entry, expr, params=None, magic_expression=None, magic_name=None, ref_
   elif isinstance(expr, int):
       return str(expr)
   elif isinstance(expr, Constant):
+      if expr.value >= (1 << 61):
+          return "%iUL" % expr.value
       if expr.value >= (1 << 32):
-          return "%iLL" % expr.value
-      elif expr.value > (1 << 31):
           return "%iL" % expr.value
-      return int(expr.value)
+      elif expr.value > (1 << 31):
+          return "%iU" % expr.value
+      else:
+          return int(expr.value)
   elif isinstance(expr, ReferenceExpression):
       return ref_name(entry, expr, params)[1]
   elif isinstance(expr, ArithmeticExpression):
@@ -683,4 +686,10 @@ def breakup_expression(expression, entry):
    except UndecodedReferenceError:
        pass
    return constant, components
+
+def should_free(entry):
+   return contains_data(entry) or (isinstance(entry, fld.Field) and entry.format != fld.Field.INTEGER)
+
+def is_value_used(entry):
+   return should_free(entry) or is_value_referenced(entry) or entry.constraints
 

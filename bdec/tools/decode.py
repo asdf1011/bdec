@@ -122,7 +122,7 @@ def main():
             for item in decoder.decode(data):
                 pass
         else:
-            xmlout.to_file(decoder, data, sys.stdout, verbose=(verbose==2))
+            xmlout.to_file(decoder.decode(data), sys.stdout, verbose=(verbose==2))
     except bdec.DecodeError, ex:
         try:
             (filename, line_number, column_number) = lookup[ex.entry]

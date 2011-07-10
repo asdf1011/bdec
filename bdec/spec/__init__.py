@@ -164,6 +164,7 @@ def load_specs(specs, main_name=None, should_remove_unused=False):
 
     specs -- A list of specifications to load. Each item in the listen is a
       tuple containing;
+        * A filename
         * A tuple containing (filename, contents, format)
       Where 'contents' is a string or file object containing the contents
       of the specification (if None, the file is opened from disk), and
@@ -181,7 +182,13 @@ def load_specs(specs, main_name=None, should_remove_unused=False):
     references = References()
     decoders = []
     lookup = {}
-    for filename, contents, format in specs:
+    for spec in specs:
+        if isinstance(spec, tuple):
+            filename, contents, format = spec
+        else:
+            filename = spec
+            contents = format = None
+
         if contents is None:
             contents = open(filename, 'r')
         elif isinstance(contents, basestring):
