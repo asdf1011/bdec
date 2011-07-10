@@ -372,7 +372,7 @@ def _get_tags(connection, freshmeat_auth):
 
 def notify(version, changelog, freshmeat_auth=_get_freshmeat_auth_code,
         connection=httplib.HTTPConnection, system=os.system, confirm=raw_input,
-        should_send_email=True, tag_list=_get_tags):
+        tag_list=_get_tags):
     # This is a fresmeat limit
     MAX_CHARS = 600
     short_message = shorten_changelog(changelog)
@@ -418,7 +418,7 @@ def notify(version, changelog, freshmeat_auth=_get_freshmeat_auth_code,
     else:
         print 'Not notifying pypi.'
 
-    if should_send_email:
+    if confirm('Send an email to the bdec mailing list? [y]') in ['', 'y', 'Y']:
         send_email(version, changelog)
 
 def upload():
