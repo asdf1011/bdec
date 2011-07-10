@@ -46,14 +46,14 @@
 #include <stdio.h>
 #include "variable_integer.h"
 
-unsigned int get_integer(BitBuffer* buffer)
+unsigned int get_integer(const BitBuffer* buffer)
 {
     // We'll just create a copy of the buffer, and decode it's value.
     BitBuffer temp = *buffer;
     return decode_integer(&temp, temp.num_bits);
 }
 
-unsigned long long get_long_integer(BitBuffer* buffer)
+unsigned long long get_long_integer(const BitBuffer* buffer)
 {
     // We'll just create a copy of the buffer, and decode it's value.
     BitBuffer temp = *buffer;
@@ -139,7 +139,7 @@ unsigned long long decode_long_little_endian_integer(BitBuffer* buffer, int num_
     return result;
 }
 
-void print_escaped_string(Text* text)
+void print_escaped_string(const Text* text)
 {
     char c;
     unsigned int i;
@@ -155,6 +155,10 @@ void print_escaped_string(Text* text)
         else if (c == '>')
         {
             printf("&gt;");
+        }
+        else if (c == '&')
+        {
+            printf("&amp;");
         }
         else if (c >= 0x20 || c == 0x9 || c == 0xa || c == 0xd)
         {

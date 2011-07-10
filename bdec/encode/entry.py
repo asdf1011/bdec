@@ -234,6 +234,10 @@ class EntryEncoder:
                 raise
             value = None
         return self._fixup_value(value, context)
+   
+    def _fixup_expression_value(self, value):
+        """ Get the value to be used in expressions / constraints. """
+        return value
 
     def encode(self, query, value, offset, context, name):
         """Return an iterator of bdec.data.Data instances.
@@ -247,7 +251,7 @@ class EntryEncoder:
         encode_length = 0
 
         for constraint in self.entry.constraints:
-            constraint.check(self.entry, value, context)
+            constraint.check(self.entry, self._fixup_expression_value(value), context)
 
         for data in self._encode(query, value, context):
             encode_length += len(data)

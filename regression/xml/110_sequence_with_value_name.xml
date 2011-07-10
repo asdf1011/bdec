@@ -1,0 +1,6 @@
+<protocol>
+    <!-- Convert a text digit into a number. -->
+    <sequence name="group" value="${value:} - 48" min="0" max="9">
+        <field name="value:" length="8" />
+    </sequence>
+</protocol>

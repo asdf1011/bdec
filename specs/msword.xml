@@ -1,0 +1,53 @@
+<protocol>
+    <reference name="document" />
+
+    <common>
+        <sequence name="document">
+            <field name="ole magic:" length="8 * 8" value="0xd0cf11e0a1b11ae1" />
+            <reference name="header" />
+
+            <sequenceof name="sectors" count="${header.difat sect count} + 1">
+                <reference name="sector" />
+            </sequenceof>
+        </sequence>
+
+        <field name="uint16" type="integer" length="16" encoding="little endian" />
+        <field name="uint32" type="integer" length="32" encoding="little endian" />
+
+        <choice name="sect">
+            <reference name="unused" type="uint32" expected="0xffffffff" />
+            <reference name="end_of_chain" type="uint32" expected="0xfffffffe" />
+            <reference name="bfat_sector" type="uint32" expected="0xfffffffd" />
+            <reference name="difat_sector" type="uint32" expected="0xfffffffc" />
+            <reference name="offset" type="uint32" />
+        </choice>
+
+        <sequence name="header">
+            <field name="guid:" length="16*8" value="0x0" />
+            <reference name="version minor" type="uint16" />
+            <reference name="version major" type="uint16" />
+            <field name="endian:" length="16" value="0xfeff" />
+            <reference name="bb_shift" type="uint16" />
+            <reference name="sb_shift" type="uint16" />
+            <field name="reserved:" length="6 * 8" value="0x0" />
+            <reference name="SECTS direcory chain count" type="uint32" />
+            <reference name="big block depot block count" type="uint32" />
+            <reference name="root start block" type="sect" />
+            <field name="transaction:" length="4 * 8" value="0x0" />
+            <reference name="mini stream maximum size" type="uint32" />
+            <reference name="small block depot start block" type="sect" />
+            <reference name="small block count" type="uint32" />
+            <reference name="difat start" type="sect" />
+            <reference name="difat sect count" type="uint32" />
+
+            <sequence name="sector size:" value="8 &lt;&lt; ${bb_shift}" />
+        </sequence>
+
+        <sequence name="sector">
+            <sequenceof name="double indirection fat" count="109">
+                <reference name="sect" />
+            </sequenceof>
+            <field name="sector" type="hex" length="${header.sector size:} * 8" />
+        </sequence>
+    </common>
+</protocol>

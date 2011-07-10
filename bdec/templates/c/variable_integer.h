@@ -51,8 +51,8 @@ extern "C" {
 #endif
 
 // Convert a buffer to a big endian integer
-unsigned int get_integer(BitBuffer* buffer);
-unsigned long long get_long_integer(BitBuffer* buffer);
+unsigned int get_integer(const BitBuffer* buffer);
+unsigned long long get_long_integer(const BitBuffer* buffer);
 
 // Both functions decode an integer from the buffer. There
 // must be enough data available.
@@ -68,7 +68,7 @@ void encode_long_big_endian_integer(unsigned long long value, int num_bits, stru
 void encode_long_little_endian_integer(unsigned long long value, int num_bits, struct EncodedData* result);
 
 // Helper function to print an xml escaped string
-void print_escaped_string(Text* text);
+void print_escaped_string(const Text* text);
 
 // Divide with round towards either negative infinity or postive infinity.
 long long ${'divide with rounding' | function}(long long numerator, long long denominator, int should_round_up);

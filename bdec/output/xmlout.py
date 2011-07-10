@@ -100,13 +100,13 @@ def _has_expected_value(entry):
             return True
     return False
 
-def to_file(decoder, binary, output, encoding="utf-8", verbose=False):
+def to_file(items, output, encoding="utf-8", verbose=False):
     handler = _XMLGenerator(output, encoding)
     offset = 0
     is_first = True
     hidden_count = 0
     has_children = False
-    for is_starting, name, entry, data, value in decoder.decode(binary):
+    for is_starting, name, entry, data, value in items:
         # If we have an entry that is hidden, all entries under that should
         # also be hidden.
         if is_starting:
@@ -151,9 +151,9 @@ def to_file(decoder, binary, output, encoding="utf-8", verbose=False):
             has_children = True
     handler.ignorableWhitespace('\n')
 
-def to_string(decoder, binary, verbose=False):
+def to_string(items, verbose=False):
     buffer  = StringIO.StringIO()
-    to_file(decoder, binary, buffer, verbose=verbose)
+    to_file(items, buffer, verbose=verbose)
     return buffer.getvalue()
 
 class _SequenceOfEntry:

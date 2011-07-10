@@ -301,7 +301,7 @@ def _check_encoded_data(spec, sourcefile, actual, actual_xml, require_exact_enco
         # to be encoded in multiple ways. Try re-decoding the data to compare
         # against the original xml.
         try:
-            regenerated_xml = xmlout.to_string(spec, dt.Data(actual))
+            regenerated_xml = xmlout.to_string(spec.decode(dt.Data(actual)))
             assert_xml_equivalent(actual_xml, regenerated_xml)
         except Exception, ex:
             raise Exception('Re-decoding of encoded data failed: %s' % str(ex))
@@ -344,7 +344,7 @@ class _PythonDecoder:
     def _decode_file(self, spec, common, sourcefile, should_check_encoding=True, require_exact_encoding=False):
         data = dt.Data(sourcefile)
         try:
-	    xml = xmlout.to_string(spec, data)
+	    xml = xmlout.to_string(spec.decode(data))
         except bdec.DecodeError, ex:
             raise ExecuteError(3, ex)
 
