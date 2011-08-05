@@ -44,6 +44,7 @@
 
 import operator
 
+from bdec.data import Data
 from bdec.encode.entry import MissingInstanceError
 import bdec.entry as ent
 import bdec.field as fld
@@ -157,4 +158,4 @@ def encode(protocol, value):
 
     Returns a bdec.data.Data instance.
     """
-    return reduce(operator.add, protocol.encode(_get_value, {protocol.name: value}))
+    return reduce(operator.add, protocol.encode(_get_value, {protocol.name: value}), Data())

@@ -32,7 +32,7 @@ setup(name='bdec',
       license="GNU LGPL",
       test_suite='nose.collector',
       classifiers=[
-          'Development Status :: 3 - Alpha',
+          'Development Status :: 4 - Beta',
           'Environment :: Console',
           'Intended Audience :: Developers',
           'License :: OSI Approved :: GNU Library or Lesser General Public License (LGPL)',

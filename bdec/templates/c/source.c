@@ -690,10 +690,12 @@ ${recursivePrint(entry, False)}
            value_name = 'value'
        else:
            value_name = '*value'
+       source_name = value_name
     %>
     %else:
         <% expected = settings.get_expected(entry) %>
         <% value_name = variable(entry.name + ' value') %>
+        <% source_name = value_name %>
         %if expected is not None:
             ## This any has an expected value; use it when encoding.
     ${settings.ctype(entry)} ${value_name} = ${expected};
@@ -701,6 +703,7 @@ ${recursivePrint(entry, False)}
             ## This entry is used in an expression. Use the value that is passed
             ## when encoding.
             <% name = variable(entry.name) %>
+            <% source_name = name %>
             %if settings.is_numeric(settings.ctype(entry)):
     ${settings.ctype(entry)} ${value_name} = ${name};
             %else:
@@ -718,6 +721,7 @@ ${recursivePrint(entry, False)}
     ${settings.ctype(entry)} ${value_name} = ${mock_value};
         %endif
     %endif
+    ${checkConstraints(entry, source_name, None)}
     %if entry.format == Field.INTEGER:
       <% long_name = 'long_' if EntryValueType(entry).range(raw_params).max > 0xffffffff else '' %>
       <% length = settings.value(entry, entry.length) %>
