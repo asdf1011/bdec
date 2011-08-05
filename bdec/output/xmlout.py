@@ -64,7 +64,8 @@ def escape_name(name):
         return "_hidden"
     if '0' <= name[0] <= '9':
         name = '_' + name
-    return name.replace(' ', '-').replace('(', '_').replace(')', '_').replace(':', '_').replace('/', '_')
+    result = ''.join((c if c not in '():/' else '_') for c in name )
+    return result.replace(' ', '-')
 
 class _XMLGenerator(xml.sax.saxutils.XMLGenerator):
     def comment(self, text):
