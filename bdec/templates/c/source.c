@@ -145,6 +145,10 @@
     unsigned int i;
     ${value}.length = ${settings.value(entry, entry.length)} / 8;
     ${value}.buffer = (char*)malloc(${value}.length + 1);
+    if (${value}.buffer == 0)
+    {
+        return 0;
+    }
     ${value}.buffer[${value}.length] = 0;
     for (i = 0; i < ${value}.length; ++i)
     {
@@ -155,6 +159,10 @@
     assert((${settings.value(entry, entry.length)}) % 8 == 0);
     ${value}.length = ${settings.value(entry, entry.length)} / 8;
     ${value}.buffer = (unsigned char*)malloc(${value}.length);
+    if (${value}.buffer == 0)
+    {
+        return 0;
+    }
     for (i = 0; i < ${value}.length; ++i)
     {
         ${value}.buffer[i] = decode_integer(buffer, 8);
@@ -164,6 +172,10 @@
     ${value}.num_bits = ${settings.value(entry, entry.length)};
     unsigned int numBytes = (buffer->start_bit + buffer->num_bits + 7) / 8;
     ${value}.buffer = (unsigned char*)malloc(numBytes);
+    if (${value}.buffer == 0)
+    {
+        return 0;
+    }
     memcpy(${value}.buffer, buffer->buffer, numBytes);
     buffer->start_bit += ${value}.num_bits;
     buffer->buffer += buffer->start_bit / 8;
@@ -245,6 +257,10 @@
     result->count = num_items;
         %if child_contains_data(entry.children[0]):
     result->items = (${child_type}*)malloc(sizeof(${child_type}) * result->count);
+    if (result->items == 0)
+    {
+        return 0;
+    }
         %endif
       %endif
     for (i = 0; i < num_items; ++i)
@@ -349,6 +365,10 @@
       %if child_contains_data(child) and is_recursive(entry, child.entry):
         <% child_type = settings.ctype(child.entry) %>
         result->value.${settings.var_name(entry, i)} = (${child_type}*)malloc(sizeof(${child_type}));
+    if (result->value.${settings.var_name(entry, i)} == 0)
+    {
+        return 0;
+    }
         *result->value.${settings.var_name(entry, i)} = ${temp_name};
       %endif
     }
