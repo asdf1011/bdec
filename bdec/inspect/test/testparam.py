@@ -57,7 +57,7 @@ import bdec.sequence as seq
 import bdec.sequenceof as sof
 import bdec.expression as expr
 
-class _Integer(IntegerType):
+class _Integer(IntegerType, object):
     """Test class that identifies an integer parameter."""
     def __eq__(self, other):
         return isinstance(other, IntegerType)
