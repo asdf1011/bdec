@@ -6,17 +6,17 @@
 <protocol>
     <common>
         <choice name="end of line:">
+            <field name="lf:" length="8" value="0xa" />
             <sequence name="lf cr:">
                 <field name="cr:" length="8" value="0xd" />
                 <field name="lf:" length="8" value="0xa" />
             </sequence>
             <field name="cr:" length="8" value="0xd" />
-            <field name="lf:" length="8" value="0xa" />
         </choice>
 
         <choice name="non breaking whitespace:">
-            <field name="tab:" length="8" value="0x09" />
             <field name="space:" length="8" value="0x20" />
+            <field name="tab:" length="8" value="0x09" />
         </choice>
 
         <choice name="other whitespace:">
@@ -25,8 +25,8 @@
         </choice>
 
         <choice name="whitespace entry:">
-            <reference name="end of line:" />
             <reference name="non breaking whitespace:" />
+            <reference name="end of line:" />
             <reference name="other whitespace:" />
         </choice>
 

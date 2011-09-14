@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008 Henry Ludemann
+ * Copyright (C) 2010 Henry Ludemann
  *
  * License: GNU Lesser General Public License.
  */
@@ -62,9 +62,9 @@ int main(int argc, char* argv[])
                 }
             }
             printf(" = ");
-            for (j = 0; j < text->value_.length; ++j)
+            for (j = 0; j < text->value.length; ++j)
             {
-                printf("%c", text->value_.buffer[j]);
+                printf("%c", text->value.buffer[j]);
             }
             printf("\n");
         }

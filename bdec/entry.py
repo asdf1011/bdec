@@ -1,4 +1,4 @@
-#   Copyright (C) 2008-2009 Henry Ludemann
+#   Copyright (C) 2008-2010 Henry Ludemann
 #
 #   This file is part of the bdec decoder library.
 #
@@ -15,6 +15,32 @@
 #   You should have received a copy of the GNU Lesser General Public
 #   License along with this library; if not, see
 #   <http://www.gnu.org/licenses/>.
+#  
+# This file incorporates work covered by the following copyright and  
+# permission notice:  
+#  
+#   Copyright (c) 2010, PRESENSE Technologies GmbH
+#   All rights reserved.
+#   Redistribution and use in source and binary forms, with or without
+#   modification, are permitted provided that the following conditions are met:
+#       * Redistributions of source code must retain the above copyright
+#         notice, this list of conditions and the following disclaimer.
+#       * Redistributions in binary form must reproduce the above copyright
+#         notice, this list of conditions and the following disclaimer in the
+#         documentation and/or other materials provided with the distribution.
+#       * Neither the name of the PRESENSE Technologies GmbH nor the
+#         names of its contributors may be used to endorse or promote products
+#         derived from this software without specific prior written permission.
+#   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+#   ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+#   WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+#   DISCLAIMED. IN NO EVENT SHALL PRESENSE Technologies GmbH BE LIABLE FOR ANY
+#   DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+#   (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+#   LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+#   ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+#   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+#   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 """
 The bdec.entry module defines the core entry class (bdec.entry.Entry) and 
@@ -26,18 +52,6 @@ import operator
 import bdec
 import bdec.data as dt
 from bdec.expression import Expression, Constant, UndecodedReferenceError
-
-class MissingInstanceError(bdec.DecodeError):
-    """
-    Error raised during encoding when a parent object doesn't have a named child object.
-    """
-    def __init__(self, parent, child):
-        bdec.DecodeError.__init__(self, child)
-        self.parent = parent
-        self.child = child
-
-    def __str__(self):
-        return "object '%s' doesn't have child object '%s'" % (self.parent, self.child.name)
 
 class EntryDataError(bdec.DecodeError):
     """Error raised when an error was found with the entries data.
@@ -59,32 +73,8 @@ class DecodeLengthError(bdec.DecodeError):
     def __str__(self):
         return "'%s' left %i bits of data undecoded (%s)" % (self.entry, len(self.unused), self.unused.get_binary_text())
 
-class DataLengthError(bdec.DecodeError):
-    """Encoded data has the wrong length."""
-    def __init__(self, entry, expected, actual):
-        bdec.DecodeError.__init__(self, entry)
-        self.expected = expected
-        self.actual = actual
-
-    def __str__(self):
-        return "%s expected length %i, got length %i" % (self.entry, self.expected, self.actual)
-
-class MissingExpressionReferenceError(bdec.DecodeError):
-    """An expression references an unknown entry."""
-    def __init__(self, entry, missing):
-        bdec.DecodeError.__init__(self, entry)
-        self.missing_context = missing
-
-    def __str__(self):
-        return "%s needs '%s' to decode" % (self.entry, self.missing_context)
-
 class EncodeError(bdec.DecodeError):
     pass
-
-class NotEnoughContextError(EncodeError):
-    def __str__(self):
-        return "%s needs context to encode" % self.entry
-
 
 def is_hidden(name):
     """Is a name a 'hidden' name.
@@ -149,6 +139,7 @@ class Entry(object):
         self._children = ()
         self.children = children
         self._decoder = None
+        self._encoder = None
 
         self.constraints = list(constraints)
         for constraint in self.constraints:
@@ -157,95 +148,41 @@ class Entry(object):
     def _get_children(self):
         return self._children
     def _set_children(self, children):
+        from bdec.spec.references import ReferencedEntry
         items = []
         for child in children:
             if isinstance(child, Child):
                 items.append(child)
             else:
-                # For convenience in the tests, we allow the children to be
-                # assigned an array of Entry instances.
-                from bdec.spec.references import ReferencedEntry
-                if isinstance(child, ReferencedEntry):
-                    child.set_parent(self)
-
                 items.append(Child(child.name, child))
-        self._children = tuple(items)
+            if isinstance(items[-1].entry, ReferencedEntry):
+                items[-1].entry.add_parent(items[-1])
+        self._children = list(items)
     children = property(_get_children, _set_children)
 
-    def validate(self):
+    def _validate(self):
         if self._decoder is None:
             from bdec.decode import Decoder
             self._decoder = Decoder(self)
 
     def decode(self, data, context={}, name=None):
         """ Shortcut to bdec.decode.Decoder(self) """
-        self.validate()
+        self._validate()
         return self._decoder.decode(data, context, name)
 
-    def _get_context(self, query, parent):
-        # This interface isn't too good; it requires us to load the _entire_ document
-        # into memory. This is because it supports 'searching backwards', plus the
-        # reference to the root element is kept. Maybe a push system would be better?
-        #
-        # Problem is, push doesn't work particularly well for bdec.output.instance, nor
-        # for choice entries (where we need to re-wind...)
-        try:
-            return query(parent, self)
-        except MissingInstanceError:
-            if self.is_hidden():
-                return None
-            raise
-
-    def get_context(self, query, parent):
-        return self._get_context(query, parent)
-
-    def _encode(self, query, value):
-        """
-        Encode a data source, with the context being the data to encode.
-        """
-        raise NotImplementedError()
-
-    def _fixup_value(self, value):
-        """
-        Allow entries to modify the value to be encoded.
-        """
-        return value
-
     def encode(self, query, value):
-        """Return an iterator of bdec.data.Data instances.
-
-        query -- Function to return a value to be encoded when given an entry
-          instance and the parent entry's value. If the parent doesn't contain
-          the expected instance, MissingInstanceError should be raised.
-        value -- This entry's value that is to be encoded.
-        """
-        encode_length = 0
-        value = self._fixup_value(value)
-        context = {}
-
-        length = None
-        if self.length is not None:
-            try:
-                length = self.length.evaluate(context)
-            except UndecodedReferenceError:
-                raise NotEnoughContextError(self)
-
-        for constraint in self.constraints:
-            constraint.check(self, value, context)
-
-        for data in self._encode(query, value):
-            encode_length += len(data)
-            yield data
-
-        if length is not None and encode_length != length:
-            raise DataLengthError(self, length, encode_length)
+        if self._encoder is None:
+            from bdec.encode import create_encoder
+            self._encoder = create_encoder(self)
+        value = self._encoder.get_value(query, value, 0, self.name, {})
+        return self._encoder.encode(query, value, 0, {}, self.name)
 
     def is_hidden(self):
         """Is this a 'hidden' entry."""
         return is_hidden(self.name)
 
     def __str__(self):
-        return "%s '%s'" % (self.__class__, self.name)
+        return "%s '%s'" % (self.__class__.__name__.lower(), self.name)
 
     def __repr__(self):
         return "%s '%s'" % (self.__class__, self.name)

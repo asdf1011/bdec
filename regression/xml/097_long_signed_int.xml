@@ -1,0 +1,6 @@
+<protocol>
+    <sequence name="blah">
+        <field name="int32" length="32" type="signed integer" />
+        <field name="int64" length="64" type="signed integer" />
+    </sequence>
+</protocol>

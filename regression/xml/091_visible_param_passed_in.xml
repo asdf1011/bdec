@@ -1,0 +1,8 @@
+<protocol>
+    <sequence name="a">
+        <field name="b" type="integer" length="8" />
+        <sequence name="c:">
+            <field name="d:" length="(${b} * 8)" />
+        </sequence>
+    </sequence>
+</protocol>

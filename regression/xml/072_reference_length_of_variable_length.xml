@@ -7,5 +7,6 @@
            <field name="e" length="${field length:} * 8" type="text" />
         </sequence>
         <field name="footer" length="16" type="text" if="len{c} &lt; ${length:} * 8" />
+        <field name="padding" length="${length:} * 8 - len{optional footer} - len{c}" />
     </sequence>
 </protocol>

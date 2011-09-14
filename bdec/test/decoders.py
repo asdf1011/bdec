@@ -1,4 +1,4 @@
-#   Copyright (C) 2008 Henry Ludemann
+#   Copyright (C) 2010 Henry Ludemann
 #
 #   This file is part of the bdec decoder library.
 #
@@ -15,6 +15,32 @@
 #   You should have received a copy of the GNU Lesser General Public
 #   License along with this library; if not, see
 #   <http://www.gnu.org/licenses/>.
+#  
+# This file incorporates work covered by the following copyright and  
+# permission notice:  
+#  
+#   Copyright (c) 2010, PRESENSE Technologies GmbH
+#   All rights reserved.
+#   Redistribution and use in source and binary forms, with or without
+#   modification, are permitted provided that the following conditions are met:
+#       * Redistributions of source code must retain the above copyright
+#         notice, this list of conditions and the following disclaimer.
+#       * Redistributions in binary form must reproduce the above copyright
+#         notice, this list of conditions and the following disclaimer in the
+#         documentation and/or other materials provided with the distribution.
+#       * Neither the name of the PRESENSE Technologies GmbH nor the
+#         names of its contributors may be used to endorse or promote products
+#         derived from this software without specific prior written permission.
+#   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+#   ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+#   WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+#   DISCLAIMED. IN NO EVENT SHALL PRESENSE Technologies GmbH BE LIABLE FOR ANY
+#   DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+#   (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+#   LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+#   ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+#   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+#   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 """
@@ -23,6 +49,7 @@ Generate test classes for each type of decoder.
 See the create_decoder_classes function.
 """
 
+from ConfigParser import NoOptionError, NoSectionError
 import glob
 import itertools
 import os
@@ -37,21 +64,35 @@ import xml.etree.ElementTree
 import bdec
 from bdec.constraints import Equals
 from bdec.choice import Choice
+import bdec.compiler as comp
 import bdec.data as dt
+from bdec.encode.field import convert_value
 from bdec.entry import is_hidden
+from bdec.expression import UndecodedReferenceError
 import bdec.field as fld
 import bdec.output.xmlout as xmlout
-import bdec.compiler as comp
+from bdec.spec import load_specs
+
+class ExecuteError(Exception):
+    def __init__(self, exit_code, stderr):
+        self.exit_code = exit_code
+        self.stderr = stderr
+
+    def __str__(self):
+        return 'Execute failed with exit code %i; %s' % (self.exit_code, self.stderr)
 
 def _is_xml_text_equal(a, b):
     a = a.text or ""
     b = b.text or ""
     return a.strip() == b.strip()
 
-def _get_elem_text(a):
+def _get_elem_text(a, event):
     attribs = ' '.join('%s="%s"' % (name, value) for name, value in a.attrib.items())
     text = a.text or ""
-    return "<%s %s>%s</%s>" % (a.tag, attribs, text.strip(), a.tag)
+    prefix = ''
+    if event == 'start':
+        prefix = '<%s %s>' % (a.tag, attribs)
+    return "%s%s</%s>" % (prefix, text.strip(), a.tag)
 
 def assert_xml_equivalent(expected, actual):
     a = xml.etree.ElementTree.iterparse(StringIO.StringIO(expected), ['start', 'end'])
@@ -60,7 +101,7 @@ def assert_xml_equivalent(expected, actual):
         if a_event != b_event or a_elem.tag != b_elem.tag or \
                 a_elem.attrib != b_elem.attrib or \
                 (a_event == 'end' and not _is_xml_text_equal(a_elem, b_elem)):
-            raise Exception("expected '%s', got '%s'" % (_get_elem_text(a_elem), _get_elem_text(b_elem)))
+            raise Exception("expected '%s', got '%s'" % (_get_elem_text(a_elem, a_event), _get_elem_text(b_elem, b_event)))
 
 def _find_executable(name):
     for path in os.environ['PATH'].split(os.pathsep):
@@ -79,7 +120,17 @@ def _get_valgrind():
         print 'Failed to find valgrind! Code will not be tested with valgrind.'
     return path
 
-def generate(spec, common, details):
+_template_cache = {}
+def _load_templates_from_cache(language):
+    # We cache the results, as it sped up the tests by about 3x.
+    try:
+        return _template_cache[language]
+    except KeyError:
+        template_dir = comp.BuiltinTemplate(language)
+        _template_cache[language] = comp.load_templates(template_dir)
+        return _template_cache[language]
+
+def generate(spec, common, details, should_check_encoding):
     """Create a compiled decoder for a specification in the test directory.
 
     Doesn't attempt to compile the specification.
@@ -92,9 +143,13 @@ def generate(spec, common, details):
         shutil.rmtree(details.TEST_DIR)
     os.mkdir(details.TEST_DIR)
 
-    comp.generate_code(spec, details.LANGUAGE, details.TEST_DIR, common)
+    options = {
+            'generate_encoder':should_check_encoding,
+            }
+    comp.generate_code(spec, _load_templates_from_cache(details.LANGUAGE),
+            details.TEST_DIR, common, options)
 
-def compile_and_run(data, details):
+def compile_and_run(data, details, encode_filename=None):
     """Compile a previously generated decoder, and use it to decode a data file.
 
     data -- The data to be decoded.
@@ -114,7 +169,10 @@ def compile_and_run(data, details):
     datafile.write(data)
     datafile.close()
 
-    command = [details.EXECUTABLE, filename]
+    command = [details.EXECUTABLE, '-e', encode_filename, filename]
+    if not encode_filename:
+        # We don't want to encode; strip out those parameters.
+        command = command[0:1] + command[3:4]
     if details.VALGRIND is not None:
         command = [details.VALGRIND, '--tool=memcheck', '--leak-check=full'] + command
     decode = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -125,15 +183,25 @@ def compile_and_run(data, details):
         assert match is not None, stderr
         assert match.group(1) == '0', stderr
 
-    return decode.wait(), xml
+    exit_status = decode.wait()
+    if exit_status != 0:
+        raise ExecuteError(exit_status, stderr)
+    return xml
 
 class _NoExpectedError(Exception):
+    pass
+
+class _ComplexExpectedError(Exception):
     pass
 
 def _get_expected(entry):
     for constraint in entry.constraints:
         if isinstance(constraint, Equals):
-            return constraint.limit.evaluate({})
+            try:
+                return constraint.limit.evaluate({})
+            except UndecodedReferenceError:
+                # We have an expected value, but it's a complex expression.
+                raise _ComplexExpectedError()
     raise _NoExpectedError()
 
 def _decode_visible(spec, data):
@@ -193,15 +261,20 @@ def _validate_xml(spec, data, xmltext):
                 try:
                     text = _get_expected(entry)
                 except _NoExpectedError:
-                    # We don't have an expected value; stick with the existing text.
+                    # We don't have an expected value; stick with the existing
+                    # text.
                     pass
+                except _ComplexExpectedError:
+                    # We have an expected value that is difficult to evaluate.
+                    # Just use the existing expected... this effectively short
+                    # circuits the test.
+                    text = expected
             if text is None:
                 text = ''
 
             if expected is not None:
                 if isinstance(entry, fld.Field):
-                    actual_data = entry.encode_value(text, len(data))
-                    actual = entry.decode_value(actual_data)
+                    actual = convert_value(entry, text, len(data))
                 else:
                     actual = int(text)
                 if expected != actual:
@@ -210,11 +283,9 @@ def _validate_xml(spec, data, xmltext):
                     # character). Encode and decode the expected value to see if
                     # matches now (being escaped itself...)
                     expected_text = xmlout.xml_strip(unicode(expected))
-                    expected_data = entry.encode_value(expected_text, len(data))
-                    escaped_expected = entry.decode_value(expected_data)
-                    if escaped_expected != actual:
-                        raise Exception("'%s' expected value of '%s', got '%s'" %
-                                (entry, repr(expected), repr(actual)))
+                    escaped_expected = convert_value(entry, expected_text, len(data))
+                    constraint = Equals(escaped_expected)
+                    constraint.check(entry, actual, {})
             elif a_elem.text is not None and a_elem.text.strip():
                 raise Exception("Expected empty text in entry '%s', got '%s'!" %
                         (a_elem.tag, a_elem.text))
@@ -222,42 +293,65 @@ def _validate_xml(spec, data, xmltext):
         else:
             child_tail=None
 
+def _check_encoded_data(spec, sourcefile, actual, actual_xml, require_exact_encoding):
+    sourcefile.seek(0)
+    expected = sourcefile.read()
+    if actual != expected:
+        # The data is different, but it is possibly due to the data being able
+        # to be encoded in multiple ways. Try re-decoding the data to compare
+        # against the original xml.
+        try:
+            regenerated_xml = xmlout.to_string(spec.decode(dt.Data(actual)))
+            assert_xml_equivalent(actual_xml, regenerated_xml)
+        except Exception, ex:
+            raise Exception('Re-decoding of encoded data failed: %s' % str(ex))
+
+        if require_exact_encoding:
+            raise Exception("Encoded data doesn't match, but we require exact encoding!")
+
+
 class _CompiledDecoder:
     """Base class for testing decoders that are compiled."""
     TEST_DIR = os.path.join(os.path.dirname(__file__), 'temp')
     EXECUTABLE = os.path.join(TEST_DIR, 'decode')
     VALGRIND = _get_valgrind()
 
-    def _decode_file(self, spec, common, data):
+    def _decode_file(self, spec, common, data, should_check_encoding=True, require_exact_encoding=False):
         """Return a tuple containing the exit code and the decoded xml."""
-        generate(spec, common, self)
-        (exitstatus, xml) = compile_and_run(data, self)
+        generate(spec, common, self, should_check_encoding)
+        encode_filename = os.path.join(self.TEST_DIR, 'encoded.bin') if should_check_encoding else None
+        xml = compile_and_run(data, self, encode_filename)
 
-        if exitstatus == 0:
-            try:
-                _validate_xml(spec, dt.Data(data), xml)
-            except bdec.DecodeError, ex:
-                raise Exception("Compiled decoder succeeded, but should have failed with: %s" % str(ex))
-        return exitstatus, xml
+        try:
+            _validate_xml(spec, dt.Data(data), xml)
+        except bdec.DecodeError, ex:
+            raise Exception("Compiled decoder succeeded, but should have failed with: %s" % str(ex))
+	if should_check_encoding:
+            _check_encoded_data(spec, data, open(encode_filename, 'rb').read(), xml, require_exact_encoding)
+        return xml
 
 
 class _CDecoder(_CompiledDecoder):
     # We compile using g++ because it is stricter than gcc
-    COMPILER = "gcc"
-    COMPILER_FLAGS = ["-Wall", "-Werror", '-g', '-o']
+    COMPILER = os.getenv('CC', 'gcc')
+    COMPILER_FLAGS = os.getenv('CFLAGS', '-Wall -Werror -g').split() + ['-o']
     FILE_TYPE = "c"
     LANGUAGE = "c"
 
 
 class _PythonDecoder:
     """Use the builtin python decoder for the tests."""
-    def _decode_file(self, spec, common, sourcefile):
+    def _decode_file(self, spec, common, sourcefile, should_check_encoding=True, require_exact_encoding=False):
         data = dt.Data(sourcefile)
-        xml = StringIO.StringIO()
         try:
-            return 0, xmlout.to_string(spec, data)
-        except bdec.DecodeError:
-            return 3, ""
+	    xml = xmlout.to_string(spec.decode(data))
+        except bdec.DecodeError, ex:
+            raise ExecuteError(3, ex)
+
+	if should_check_encoding:
+	    generated_data = xmlout.encode(spec, xml)
+            _check_encoded_data(spec, sourcefile, generated_data.bytes(), xml, require_exact_encoding)
+	return xml
 
 def create_decoder_classes(base_classes, module):
     """
@@ -281,6 +375,98 @@ def create_decoder_classes(base_classes, module):
     for base, prefix in base_classes:
         for decoder, name in decoders:
             test_name = "Test%s%s" % (prefix, name)
-            result[test_name] = type(test_name, (unittest.TestCase, decoder, base), {})
+            result[test_name] = type(test_name, (unittest.TestCase, decoder, base), {'language':name})
             result[test_name].__module__ = module
     return result
+
+class _BaseRegressionTest:
+    """A base test case for running regression tests on specfications."""
+
+    def _test_failure(self, spec, common, spec_filename, data_filename, should_encode):
+        datafile = open(data_filename, 'rb')
+        try:
+            xml = self._decode_file(spec, common, datafile, should_encode)
+            raise Exception("'%s' should have failed to decode '%s', but succeeded with output:\n%s" % (spec_filename, data_filename, xml))
+        except ExecuteError, ex:
+            if ex.exit_code != 3:
+                # It should have been a decode error...
+                raise
+        datafile.close()
+
+    def _test_success(self, spec, common, spec_filename, data_filename, expected_xml, should_encode, require_exact_encoding):
+        if os.path.splitext(data_filename)[1] == ".gz":
+            # As gzip'ed files seek extremely poorly, we'll read the file completely into memory.
+            import gzip
+            datafile = StringIO.StringIO(gzip.GzipFile(data_filename, 'rb').read())
+        else:
+            datafile = open(data_filename, 'rb')
+        xml = self._decode_file(spec, common, datafile, should_encode, require_exact_encoding)
+        datafile.close()
+        if expected_xml:
+            assert_xml_equivalent(expected_xml, xml)
+
+    def _get(self, config, section, option):
+        try:
+            return config.get(section, option)
+        except NoOptionError:
+            return None
+
+    def _test_spec(self, test_path, spec_filename, successes, failures, config):
+        assert successes or failures
+        skip = self._get(config, self.language, test_path.lower()) or \
+                self._get(config, 'default', test_path.lower())
+
+        if skip == 'decode':
+            print 'Skipping test.'
+            return
+        elif skip == 'encode':
+            should_encode = False
+            require_exact_encoding = True
+        elif skip == 'encoding-equivalent':
+            should_encode = True
+            require_exact_encoding = False
+        else:
+            assert not skip, "Unknown test fixme status '%s'" % skip
+            should_encode = True
+            require_exact_encoding = True
+
+        spec, common, lookup = load_specs([(spec_filename, None, None)])
+        for data_filename in successes:
+            expected_xml = None
+            expected_filename = '%s.expected.xml' % os.path.splitext(data_filename)[0]
+            if os.path.exists(expected_filename):
+                xml_file = file(expected_filename, 'r')
+                expected_xml = xml_file.read()
+                xml_file.close()
+            self._test_success(spec, common, spec_filename, data_filename,
+                    expected_xml, should_encode, require_exact_encoding)
+
+        for data_filename in failures:
+            self._test_failure(spec, common, spec_filename, data_filename, should_encode)
+
+    @classmethod
+    def add_method(cls, name, test_path, spec_filename, successes, failures, config):
+        method = lambda self: self._test_spec(test_path, spec_filename, successes, failures, config)
+        method.__name__ = 'test_%s' % name
+        setattr(cls, method.__name__, method)
+
+def create_classes(name, tests, config):
+    """Return a dictionary of classes derived from unittest.TestCase.
+
+    Each test case is named after both the name and the decoder type that
+    is under test (eg: if name is 'xml', test cases will include TestXmlC,
+    TestXmlPython, ...).
+
+    name -- The name of the test.
+    tests -- An array of (name, spec_filename, successes, failures) tuples,
+        where name is the test name, spec_filename is the path to the
+        specification to load, and successes and failures are paths to binary
+        files that should either decode or not.
+    config_filename -- The path to the fixme config file.
+    """
+    clsname = name[0].upper() + name[1:]
+    cls = type(clsname, (object, _BaseRegressionTest,), {})
+    for test_name, spec_filename, successes, failures in tests:
+        cls.add_method(test_name, '%s/%s' % (name, test_name), spec_filename, successes, failures, config)
+    return create_decoder_classes([(cls, clsname)], __name__)
+

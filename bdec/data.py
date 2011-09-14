@@ -1,4 +1,4 @@
-#   Copyright (C) 2008-2009 Henry Ludemann
+#   Copyright (C) 2008-2010 Henry Ludemann
 #
 #   This file is part of the bdec decoder library.
 #
@@ -15,6 +15,32 @@
 #   You should have received a copy of the GNU Lesser General Public
 #   License along with this library; if not, see
 #   <http://www.gnu.org/licenses/>.
+#  
+# This file incorporates work covered by the following copyright and  
+# permission notice:  
+#  
+#   Copyright (c) 2010, PRESENSE Technologies GmbH
+#   All rights reserved.
+#   Redistribution and use in source and binary forms, with or without
+#   modification, are permitted provided that the following conditions are met:
+#       * Redistributions of source code must retain the above copyright
+#         notice, this list of conditions and the following disclaimer.
+#       * Redistributions in binary form must reproduce the above copyright
+#         notice, this list of conditions and the following disclaimer in the
+#         documentation and/or other materials provided with the distribution.
+#       * Neither the name of the PRESENSE Technologies GmbH nor the
+#         names of its contributors may be used to endorse or promote products
+#         derived from this software without specific prior written permission.
+#   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+#   ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+#   WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+#   DISCLAIMED. IN NO EVENT SHALL PRESENSE Technologies GmbH BE LIABLE FOR ANY
+#   DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+#   (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+#   LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+#   ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+#   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+#   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import itertools
 import os
@@ -90,10 +116,10 @@ class FloatLengthError(DataLengthError):
 class InvalidBinaryTextError(DataError):
     """A binary text to data conversion failed."""
     def __init__(self, text):
-        self.text = test
+        self.text = text
 
     def __str__(self):
-        return "Invalid binary text! '%s'" % text
+        return "Invalid binary text '%s'" % self.text
 
 class InvalidHexTextError(DataError):
     """A hex text to data conversion failed."""
@@ -110,7 +136,7 @@ class BadTextEncodingError(DataError):
         self.encoding = encoding
 
     def __str__(self):
-        return "'%s' can't convert '%s'" % (self.encoding, self.data)
+        return "'%s' can't convert %s" % (self.encoding, self.data)
 
 class _OutOfDataError(Exception):
     """Not derived from DataError as this is an internal error."""
@@ -124,6 +150,36 @@ class _ByteBuffer(object):
 
     def __len__(self):
         raise NotImplementedError()
+
+    def _byte_iter(self):
+        for i in range(len(self)):
+            yield self.read_byte(i)
+
+    def _bytes(self):
+        return ''.join(chr(c) for c in self._byte_iter())
+
+    def __add__(self, other):
+        return _MemoryBuffer(self._bytes() + other._bytes())
+
+    def _shift_chars(self, num_bits):
+        byte = 0
+        for char in self._bytes():
+            value = byte << (8 - num_bits)
+            byte = ord(char)
+            value |= byte >> num_bits
+            yield chr(value & 0xFF)
+        yield chr((byte << (8 - num_bits)) & 0xff)
+
+    def __rshift__(self, num_bits):
+        if num_bits == 0:
+            return self
+        elif num_bits % 8  == 0:
+            return _MemoryBuffer('\x00' * (num_bits / 8) + self._bytes())
+        return _MemoryBuffer(''.join(self._shift_chars(num_bits)))
+
+    def __getslice__(self, start, end):
+        result = _MemoryBuffer(self._bytes()[start:end])
+        return result
 
 
 class _FileBuffer(_ByteBuffer):
@@ -148,6 +204,7 @@ class _FileBuffer(_ByteBuffer):
         self._file.seek(pos)
         return result
 
+
 class _NonSeekingFileBuffer(_ByteBuffer):
     """Byte buffer that reads from a non-seekable file.
 
@@ -171,9 +228,11 @@ class _NonSeekingFileBuffer(_ByteBuffer):
         except _OutOfDataError:
             return offset
 
+
 class _MemoryBuffer(_ByteBuffer):
     """Byte buffer that reads directly from in memory data."""
     def __init__(self, buffer):
+        assert isinstance(buffer, str), "Expected a string; got %s!" % repr(buffer)
         self._buffer = buffer
 
     def read_byte(self, offset):
@@ -184,6 +243,9 @@ class _MemoryBuffer(_ByteBuffer):
 
     def __len__(self):
         return len(self._buffer)
+
+    def _bytes(self):
+        return self._buffer
 
 
 class Data(object):
@@ -338,10 +400,12 @@ class Data(object):
         return not self == other
 
     def __len__(self):
-        if self._end is not None:
-            return self._end - self._start
-
-        return len(self._buffer) * 8 - self._start
+        if self._end is None:
+            end = len(self._buffer) * 8
+            if end < self._start:
+                raise NotEnoughDataError(0, end - self._start)
+            self._end = end
+        return self._end - self._start
 
     def __nonzero__(self):
         return not self.empty()
@@ -390,6 +454,9 @@ class Data(object):
         if not self._end:
             return
         length = len(self)
+        if length == 0:
+            return
+
         try:
             # We don't want to ask for the length of the backing store
             # initially, as that may cause it to be loaded into memory (ie:
@@ -400,7 +467,7 @@ class Data(object):
             # We don't have enough data for reading this byte... determine how
             # much data we really do have.
             num_bytes = len(self._buffer)
-            available_bits = num_bytes - self._start
+            available_bits = num_bytes * 8 - self._start
             raise NotEnoughDataError(length, available_bits)
         
     def __int__(self):
@@ -422,9 +489,59 @@ class Data(object):
 
     def __add__(self, other):
         if not isinstance(other, Data):
-            return NotImplemented
-        # Incredibly inefficient...
-        return Data.from_binary_text(self.get_binary_text() + other.get_binary_text())
+            raise NotImplementedError()
+
+        if not self._end:
+            self._end = self._start + len(self)
+        if not other._end:
+            other._end = other._start + len(other)
+        self.validate()
+        other.validate()
+
+        # Check for early outs
+        if not self:
+            return other
+        if not other:
+            return self
+
+        left = self._buffer[self._start / 8:(self._end - 1) / 8 + 1]
+        right = other._buffer[other._start / 8:(other._end - 1) / 8 + 1]
+
+        # Shift the shorter data object (as the shift is relatively intensive)
+        if len(self) < len(other):
+            # The left hand buffer is shorter than the right, so shift it so it
+            # aligns with the right
+            distance = (other._start - self._end) % 8
+            left_start = self._start % 8 + distance
+            left >>= distance
+
+            # It's possible we have to truncate the buffer here, as we may
+            # have create an extra byte on the right that contains data we
+            # don't care about.
+            left = left[:(left_start + len(self) - 1) / 8 + 1]
+        else:
+            # The right hand buffer is shorter than the left, so shift it so it
+            # aligns with the left
+            distance = (self._end - other._start) % 8
+            left_start = (self._start + distance) % 8
+            left_start = self._start % 8
+            right >>= distance
+            right_start = other._start % 8 + distance
+            right = right[right_start / 8:(right_start + len(other) - 1) / 8 + 1]
+
+        if (left_start + len(self)) % 8 and len(self) and len(other):
+            # The left doesn't end on a whole byte; create a joining byte to
+            # connect the left & right
+            merge_byte = (left_start + len(self) - 1) / 8
+
+            overlapping_bits = (left_start + len(self)) % 8
+            overlap =  left.read_byte(merge_byte) & (0xff << (8 - overlapping_bits))
+            overlap |= right.read_byte(0) & (0xff >> overlapping_bits)
+
+            left = left[:merge_byte] + _MemoryBuffer(chr(overlap))
+            right = right[1:]
+
+        return Data(left + right, left_start, left_start + len(self) + len(other))
 
     def _get_bytes(self):
         """
@@ -615,7 +732,7 @@ class Data(object):
         for char in text:
             if char not in string.whitespace:
                 if char not in ['0', '1']:
-                    raise InvalidBinaryTextError("Invalid binary text!", text)
+                    raise InvalidBinaryTextError(text)
                 value <<= 1
                 value |= int(char)
                 length += 1

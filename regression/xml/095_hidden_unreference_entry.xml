@@ -1,0 +1,14 @@
+<protocol>
+    <!-- There was a bug where a common entry that was referenced in some
+         locations would not correctly use a null entry when used in a
+         hidden location. -->
+    <sequence name="a">
+        <reference name="b:" type="blah" />
+        <sequence name="c" value="${b:}" />
+        <reference name="d:" type="blah" />
+    </sequence>
+
+    <common>
+        <field name="blah" type="integer" length="8" />
+    </common>
+</protocol>

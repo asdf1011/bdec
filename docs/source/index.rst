@@ -12,8 +12,9 @@ Contents:
    :maxdepth: 2
 
    overview
-   format/index
    tutorial
+   format/index
+   tips
    compiling
    instancedecoder
 

@@ -1,5 +1,4 @@
-/*  Copyright (C) 2008 Henry Ludemann
-
+/*  Copyright (C) 2010-2011 Henry Ludemann
     This file is part of the bdec decoder library.
 
     The bdec decoder library is free software; you can redistribute it
@@ -14,24 +13,69 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, see
-    <http://www.gnu.org/licenses/>. */
+    <http://www.gnu.org/licenses/>.
+ 
+ This file incorporates work covered by the following copyright and  
+ permission notice:  
+  
+    Copyright (c) 2010, PRESENSE Technologies GmbH
+    All rights reserved.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions are met:
+        * Redistributions of source code must retain the above copyright
+          notice, this list of conditions and the following disclaimer.
+        * Redistributions in binary form must reproduce the above copyright
+          notice, this list of conditions and the following disclaimer in the
+          documentation and/or other materials provided with the distribution.
+        * Neither the name of the PRESENSE Technologies GmbH nor the
+          names of its contributors may be used to endorse or promote products
+          derived from this software without specific prior written permission.
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+    ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+    WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+    DISCLAIMED. IN NO EVENT SHALL PRESENSE Technologies GmbH BE LIABLE FOR ANY
+    DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+    (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+    ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 #ifndef VARIABLE_INTEGER_HEADER_FILE
 #define VARIABLE_INTEGER_HEADER_FILE
 
 #include "buffer.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // Convert a buffer to a big endian integer
-unsigned int get_integer(BitBuffer* buffer);
-unsigned long long get_long_integer(BitBuffer* buffer);
+unsigned int get_integer(const BitBuffer* buffer);
+unsigned long long get_long_integer(const BitBuffer* buffer);
 
 // Both functions decode an integer from the buffer. There
 // must be enough data available.
 unsigned int decode_integer(BitBuffer* buffer, int num_bits);
 unsigned long long decode_long_integer(BitBuffer* buffer, int num_bits);
 unsigned int decode_little_endian_integer(BitBuffer* buffer, int num_bits);
+unsigned long long decode_long_little_endian_integer(BitBuffer* buffer, int num_bits);
+
+// Encode a big endian integer
+void encode_big_endian_integer(unsigned int value, int num_bits, struct EncodedData* result);
+void encode_little_endian_integer(unsigned int value, int num_bits, struct EncodedData* result);
+void encode_long_big_endian_integer(unsigned long long value, int num_bits, struct EncodedData* result);
+void encode_long_little_endian_integer(unsigned long long value, int num_bits, struct EncodedData* result);
 
 // Helper function to print an xml escaped string
-void print_escaped_string(Text* text);
+void print_escaped_string(const Text* text);
+
+// Divide with round towards either negative infinity or postive infinity.
+long long ${'divide with rounding' | function}(long long numerator, long long denominator, int should_round_up);
+// TODO: Add a normal width integer version of this function...
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

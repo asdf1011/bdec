@@ -1,0 +1,6 @@
+<protocol>
+    <sequenceof name="data">
+        <field name="data:" type="hex" length="8"/>
+    </sequenceof>
+</protocol>
+

@@ -60,7 +60,7 @@ This is the current version
                 pass
 
         message = 'I am a change\n\nwith several lines'
-        notify('9.9.9', message, lambda:'xxx',MockConnection, mock_system, lambda msg:'y', should_send_email=False, tag_list=lambda a,b:'')
+        notify('9.9.9', message, lambda:'xxx',MockConnection, mock_system, lambda msg:'Y' if 'email' not in msg else 'N', tag_list=lambda a,b:'')
         self.assertEqual(1,  len(connections))
         self.assertEqual('{"release": {"tag_list": "", "version": "9.9.9", ' +
             '"changelog": "I am a change with several lines"}, ' +

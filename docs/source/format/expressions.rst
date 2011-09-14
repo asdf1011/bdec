@@ -45,7 +45,8 @@ stored in bytes::
     length="${data length} * 8"
 
 Supported numerical operations include the use of brackets, addition, 
-subtraction, multiplication, and division.
+subtraction, multiplication, and division. The operator precedence matches that
+found in C.
 
 .. _previous example: `Value references`_
 

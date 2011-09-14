@@ -1,4 +1,4 @@
-#   Copyright (C) 2008 Henry Ludemann
+#   Copyright (C) 2010 Henry Ludemann
 #
 #   This file is part of the bdec decoder library.
 #
@@ -50,6 +50,9 @@ class TestExpression(unittest.TestCase):
 
     def test_sub(self):
         self.assertEqual(2, eval('8 - 6'))
+
+    def test_negative_number(self):
+        self.assertEqual(-4, eval('-4'))
 
     def test_compound(self):
         self.assertEqual(12, eval('6 + 7 - 1'))

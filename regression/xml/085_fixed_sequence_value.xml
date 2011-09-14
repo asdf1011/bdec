@@ -1,0 +1,23 @@
+<protocol>
+    <sequence name="b">
+        <sequence name="is big endian:" value="0" />
+        <reference name="value" type="optional_endian" />
+    </sequence>
+    <common>
+        <sequence name="optional_endian" value="${number:}">
+            <choice name="number:">
+                <sequence name="big endian:" value="${internal:}">
+                    <sequence name="big check:" value="${is big endian:}" expected="1" />
+                    <field name="internal:" length="2 * 8" />
+                </sequence>
+                <sequence name="little endian:" value="${internal:}">
+                    <sequence name="little check:" value="${is big endian:}" expected="0" />
+                    <sequence name="internal:" value="((${byte 2:} &lt;&lt; 8) + ${byte 1:})">
+                        <field name="byte 1:" length="8" />
+                        <field name="byte 2:" length="8" />
+                    </sequence>
+                </sequence>
+            </choice>
+        </sequence>
+    </common>
+</protocol>

@@ -1,0 +1,13 @@
+<protocol>
+    <sequence name="choice with unknown">
+        <choice name="choice">
+            <reference name="unknown" expected="0" type="uint8"/>
+            <reference name="known" expected="1" type="uint8"/>
+            <reference name="wellknown"  expected="2" type="uint8"/>
+        </choice>
+    </sequence>
+    <common>
+        <field name="uint8" type="integer" length="8"/>
+    </common>
+ </protocol>
+

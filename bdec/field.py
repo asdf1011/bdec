@@ -1,4 +1,4 @@
-#   Copyright (C) 2008-2009 Henry Ludemann
+#   Copyright (C) 2008-2010 Henry Ludemann
 #
 #   This file is part of the bdec decoder library.
 #
@@ -15,6 +15,32 @@
 #   You should have received a copy of the GNU Lesser General Public
 #   License along with this library; if not, see
 #   <http://www.gnu.org/licenses/>.
+#  
+# This file incorporates work covered by the following copyright and  
+# permission notice:  
+#  
+#   Copyright (c) 2010, PRESENSE Technologies GmbH
+#   All rights reserved.
+#   Redistribution and use in source and binary forms, with or without
+#   modification, are permitted provided that the following conditions are met:
+#       * Redistributions of source code must retain the above copyright
+#         notice, this list of conditions and the following disclaimer.
+#       * Redistributions in binary form must reproduce the above copyright
+#         notice, this list of conditions and the following disclaimer in the
+#         documentation and/or other materials provided with the distribution.
+#       * Neither the name of the PRESENSE Technologies GmbH nor the
+#         names of its contributors may be used to endorse or promote products
+#         derived from this software without specific prior written permission.
+#   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+#   ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+#   WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+#   DISCLAIMED. IN NO EVENT SHALL PRESENSE Technologies GmbH BE LIABLE FOR ANY
+#   DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+#   (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+#   LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+#   ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+#   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+#   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 """
 The bdec.field module contains the Field class, and all errors related to its
@@ -120,68 +146,6 @@ class Field(bdec.entry.Entry):
         self.format = format
         self.encoding = encoding
 
-    def _get_expected(self):
-        for constraint in self.constraints:
-            if isinstance(constraint, Equals):
-                return constraint.limit.evaluate({})
-        return None
-    expected = property(_get_expected)
-
-    def _convert_type(self, data, expected_type):
-        try:
-            return expected_type(data)
-        except: 
-            raise BadFormatError(self, data, expected_type)
-
-    def _encode_data(self, data, length):
-        if isinstance(data, dt.Data):
-            result = data.copy()
-        elif self.format == self.BINARY:
-            result = dt.Data.from_binary_text(self._convert_type(data, str))
-        elif self.format == self.HEX:
-            result = dt.Data.from_hex(self._convert_type(data, str))
-        elif self.format == self.TEXT:
-            text = self._convert_type(data, str)
-            try:
-                result = dt.Data(text.encode(self.encoding))
-            except UnicodeDecodeError:
-                raise BadEncodingError(self, data)
-        elif self.format == self.INTEGER:
-            
-            assert self.encoding in [self.BIG_ENDIAN, self.LITTLE_ENDIAN]
-            if self.encoding == self.BIG_ENDIAN:
-                result = dt.Data.from_int_big_endian(self._convert_type(data, int), length)
-            else:
-                result = dt.Data.from_int_little_endian(self._convert_type(data, int), length)
-        elif self.format == self.FLOAT:
-            assert self.encoding in [self.BIG_ENDIAN, self.LITTLE_ENDIAN]
-            if self.encoding == self.BIG_ENDIAN:
-                result = dt.Data.from_float_big_endian(self._convert_type(data, float), length)
-            else:
-                result = dt.Data.from_float_little_endian(self._convert_type(data, float), length)
-        else:
-            raise Exception("Unknown field format of '%s'!" % self.format)
-
-        return result
-
-    def encode_value(self, value, length=None):
-        """
-        Convert an object to a dt.Data object.
-
-        Can raise dt.DataError errors.
-        """
-        if length is None:
-            try:
-                length = self.length.evaluate({})
-            except exp.UndecodedReferenceError:
-                # The length isn't available...
-                pass
-
-        try:
-            return self._encode_data(value, length)
-        except dt.DataError, ex:
-            raise FieldDataError(self, ex)
-
     def _get_context(self, query, context):
         try:
             result = query(context, self)
@@ -194,21 +158,11 @@ class Field(bdec.entry.Entry):
             result = self.decode_value(expected)
         return result
 
-    def _fixup_value(self, value):
-        expected = self._get_expected()
-        if expected is not None and value in [None, '']:
-            # We handle strings as a prompt to use the expected value. This is
-            # because the named item may be in the output, but not necessarily
-            # the value (eg: in the xml representation, it is clearer to not
-            # display the expected value).
-            value = self.decode_value(expected)
-        return value
-
-    def _encode(self, query, value):
-        yield self.encode_value(value)
-
     def __str__(self):
-        return "%s '%s' (%s)" % (self.format, self.name, self.encoding)
+        result = "%s '%s'" % (self.format, self.name)
+        if self.format not in [self.HEX, self.BINARY]:
+            result += ' (%s)' % self.encoding
+        return result
 
     def _decode_int(self, data):
         if self.encoding == self.LITTLE_ENDIAN:

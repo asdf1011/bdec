@@ -1,0 +1,10 @@
+<protocol>
+    <sequence name="a">
+        <sequence name="length:" value="8" />
+        <reference name="b" />
+    </sequence>
+    <common>
+        <!-- There was a problem when referencing a fixed value entry. Test this. -->
+        <field name="b" length="${length:}" />
+    </common>
+</protocol>

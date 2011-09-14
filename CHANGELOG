@@ -1,3 +1,58 @@
+0.7.2 (2011-07-10)
+------------------
+
+Minor features:
+
+* Allow more than one child in a sequenceof.
+* Add const correctness to compiled C decoders.
+* Add the start of an Microsoft Word specification.
+
+Minor bugfixes:
+
+* Add more detailed copyright and license information.
+* Correctly escape the '&' character when printing xml.
+* Fix build warnings when compiling with gcc 4.6.
+
+
+0.7.1 (2011-04-06)
+------------------
+
+Bugfixes:
+
+* Fix linking against the variable integer files from c++.
+* Fix copyright & license information from the PRESENSE changes.
+
+
+0.7.0 (2011-02-16)
+------------------
+
+Major feature:
+
+* Encoding data structures to binary is now supported. It includes encoding
+  from python instances, xml, and C structures.
+* When encoding, the values of hidden fields is correctly deduced from
+  visible uses of that field. For example, if a 'count' field is hidden but
+  used in a sequenceof, it will look at the length of the sequenceof when
+  encoding the field.
+
+Features:
+
+* Specifications can now be split into multiple files. Simply pass all of the
+  specification files to the decode / encode / compile programs.
+* Allow the user to specify the main protocol entry, overriding the default.
+
+Bugfixes:
+
+* Too many to mention!
+
+Backwards incompatible changes:
+
+* The 'bdecode' command now takes the file to decode though the '-f'
+  option, not as the second argument.
+* The 'bcompile' command now takes the output directory through the '-d'
+  option, not as the second argument.
+
+
 0.6.2 (2010-02-02)
 ------------------
 

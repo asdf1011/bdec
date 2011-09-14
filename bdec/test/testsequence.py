@@ -1,4 +1,4 @@
-#   Copyright (C) 2008, 2009 Henry Ludemann
+#   Copyright (C) 2008, 2010 Henry Ludemann
 #
 #   This file is part of the bdec decoder library.
 #
@@ -15,6 +15,32 @@
 #   You should have received a copy of the GNU Lesser General Public
 #   License along with this library; if not, see
 #   <http://www.gnu.org/licenses/>.
+#  
+# This file incorporates work covered by the following copyright and  
+# permission notice:  
+#  
+#   Copyright (c) 2010, PRESENSE Technologies GmbH
+#   All rights reserved.
+#   Redistribution and use in source and binary forms, with or without
+#   modification, are permitted provided that the following conditions are met:
+#       * Redistributions of source code must retain the above copyright
+#         notice, this list of conditions and the following disclaimer.
+#       * Redistributions in binary form must reproduce the above copyright
+#         notice, this list of conditions and the following disclaimer in the
+#         documentation and/or other materials provided with the distribution.
+#       * Neither the name of the PRESENSE Technologies GmbH nor the
+#         names of its contributors may be used to endorse or promote products
+#         derived from this software without specific prior written permission.
+#   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+#   ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+#   WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+#   DISCLAIMED. IN NO EVENT SHALL PRESENSE Technologies GmbH BE LIABLE FOR ANY
+#   DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+#   (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+#   LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+#   ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+#   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+#   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #!/usr/bin/env python
 
@@ -47,8 +73,8 @@ class TestSequence(unittest.TestCase):
     def test_encode(self):
         embedded = [fld.Field("bob", 8, format=fld.Field.INTEGER), fld.Field("cat", 8, format=fld.Field.INTEGER)]
         sequence = seq.Sequence("blah", embedded)
-        struct = {"bob" : 0x01, "cat" : 0x7a}
-        query = lambda context, child: context[child.name]
+        struct = {'blah':{"bob" : 0x01, "cat" : 0x7a}}
+        query = lambda context, child, i, name: context[name]
         data = reduce(lambda a,b:a+b, sequence.encode(query, struct))
         self.assertEqual("\x01\x7a", data.bytes())
 
@@ -74,11 +100,7 @@ class TestSequence(unittest.TestCase):
         self.assertRaises(ConstraintError, list, a.decode(dt.Data('\x07\x01')))
 
     def test_multiple_validates(self):
-        # The 'validate' call is responsible for setting the parameters. We
-        # can't guarantee the order of the validate calls for top level entries,
-        # so make sure new parameters are correctly detected.
         a = fld.Field('a', 8)
-        a.validate()
 
         # Now embed 'a' in a sequence, but add a new reference to it; make
         # sure we can still decode.
@@ -95,13 +117,10 @@ class TestSequence(unittest.TestCase):
         c = seq.Sequence('c', [b], value=expr.ValueResult('b.a'))
         d = seq.Sequence('d', [b])
 
-        c.validate()
         list(c.decode(dt.Data('\x00')))
 
         # The bug in the second validate removed the parameter from the 'a'
         # field, causing the second decode to fail.
-        print '---------- validating D ---------'
-        d.validate()
         list(c.decode(dt.Data('\x00')))
         list(d.decode(dt.Data('\x00')))
 
@@ -115,12 +134,6 @@ class TestSequence(unittest.TestCase):
         # Create another object where 'a' is required, but not 'b.a'.
         d = seq.Sequence('d', [a, b], value=expr.ValueResult('a'))
 
-        # When we validate 'c', 'a' will have an output to 'b'. When we validate
-        # 'd', it will not (but as 'a' will still have an output, 'a' will still
-        # output to 'b'). Make sure we handle the case where 'a' passed to 'b'
-        # uses the correct name for 'a'.
-        c.validate()
-        d.validate()
-
         list(c.decode(dt.Data('\x00')))
         list(d.decode(dt.Data('\x00\x00')))
+

@@ -1,0 +1,14 @@
+<protocol>
+    <!-- Test that we correctly decode / encode a sequence that has a value
+         that has been hidden. -->
+    <sequence name="a">
+        <reference name="b" type="blah" expected="10" />
+        <reference name="c" type="blah" expected="11" />
+    </sequence>
+    <common>
+        <sequence name="blah" value="${blah data:}">
+            <field name="blah data:" type="integer" length="8" />
+            <field name="extra data" type="integer" length="8" />
+        </sequence>
+    </common>
+</protocol>

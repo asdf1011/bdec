@@ -1,0 +1,7 @@
+<protocol>
+    <!-- Test to see if we can solve when there is a subtraction in the equation... -->
+    <sequence name="a" value="${b:} * 10 - ${c:}">
+        <field name="b:" length="8" />
+        <field name="c:" length="8" />
+    </sequence>
+</protocol>

@@ -22,7 +22,6 @@ multiple existing binary formats.
 
     expressions
     constraints
-    tips
 
 
 .. _bdec-entries:

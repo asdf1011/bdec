@@ -1,4 +1,4 @@
-#   Copyright (C) 2008-2009 Henry Ludemann
+#   Copyright (C) 2008-2010 Henry Ludemann
 #
 #   This file is part of the bdec decoder library.
 #
@@ -15,6 +15,32 @@
 #   You should have received a copy of the GNU Lesser General Public
 #   License along with this library; if not, see
 #   <http://www.gnu.org/licenses/>.
+#  
+# This file incorporates work covered by the following copyright and  
+# permission notice:  
+#  
+#   Copyright (c) 2010, PRESENSE Technologies GmbH
+#   All rights reserved.
+#   Redistribution and use in source and binary forms, with or without
+#   modification, are permitted provided that the following conditions are met:
+#       * Redistributions of source code must retain the above copyright
+#         notice, this list of conditions and the following disclaimer.
+#       * Redistributions in binary form must reproduce the above copyright
+#         notice, this list of conditions and the following disclaimer in the
+#         documentation and/or other materials provided with the distribution.
+#       * Neither the name of the PRESENSE Technologies GmbH nor the
+#         names of its contributors may be used to endorse or promote products
+#         derived from this software without specific prior written permission.
+#   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+#   ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+#   WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+#   DISCLAIMED. IN NO EVENT SHALL PRESENSE Technologies GmbH BE LIABLE FOR ANY
+#   DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+#   (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+#   LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+#   ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+#   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+#   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import operator
 
@@ -24,6 +50,7 @@ import bdec.data as dt
 import bdec.entry as ent
 import bdec.expression as expr
 import bdec.field as fld
+from bdec.inspect.param import UnknownReferenceError
 import bdec.sequence as seq
 import bdec.sequenceof as sof
 
@@ -75,8 +102,8 @@ class _ProtocolStream:
             # possible values. This allows early outs...
             options = []
             for i in range(min, max + 1):
-                value = dt.Data.from_int_big_endian(i, entry.length.evaluate({}))
-                options.append(fld.Field(entry.name, entry.length, format=fld.Field.INTEGER, constraints=[Equals(value)]))
+                options.append(fld.Field(entry.name, entry.length,
+                    format=fld.Field.INTEGER, constraints=[Equals(i)]))
             self.entry = chc.Choice('mock %s' % entry.name, options)
         else:
             self.entry = entry
@@ -124,11 +151,11 @@ class _ProtocolStream:
             value = _get_constraint(self.entry, Equals)
             try:
                 if value is not None:
-                    def query(context, entry):
-                        raise bdec.entry.MissingInstanceError()
-                    data = reduce(operator.add, self.entry.encode(query, value))
+                    def query(context, entry, i, name):
+                        return value
+                    data = reduce(operator.add, self.entry.encode(query, None))
                     return data
-            except ent.NotEnoughContextError:
+            except UnknownReferenceError:
                 # We can't encode this entry; see if we know how long it is.
                 pass
 

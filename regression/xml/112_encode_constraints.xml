@@ -1,0 +1,15 @@
+<protocol>
+    <!-- Define a sequence of integers; all values greater than 40 are
+         offset to 48. ie: The range of 'offset value:' is from 0->40,
+         48->72. -->
+    <sequenceof name="payload">
+        <sequence name="value" value="${offset value:} + 48">
+            <choice name="offset value:">
+                <sequence value="${raw value:} + 8">
+                    <field name="raw value:" length="6" min="40" />
+                </sequence>
+                <field name="raw value:" length="6" />
+            </choice>
+        </sequence>
+    </sequenceof>
+</protocol>

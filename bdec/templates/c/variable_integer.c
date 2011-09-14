@@ -1,5 +1,4 @@
-/*  Copyright (C) 2008 Henry Ludemann
-
+/*  Copyright (C) 2010 Henry Ludemann
     This file is part of the bdec decoder library.
 
     The bdec decoder library is free software; you can redistribute it
@@ -14,20 +13,47 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, see
-    <http://www.gnu.org/licenses/>. */
+    <http://www.gnu.org/licenses/>.
+  
+ This file incorporates work covered by the following copyright and  
+ permission notice:  
+  
+    Copyright (c) 2010, PRESENSE Technologies GmbH
+    All rights reserved.
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions are met:
+        * Redistributions of source code must retain the above copyright
+          notice, this list of conditions and the following disclaimer.
+        * Redistributions in binary form must reproduce the above copyright
+          notice, this list of conditions and the following disclaimer in the
+          documentation and/or other materials provided with the distribution.
+        * Neither the name of the PRESENSE Technologies GmbH nor the
+          names of its contributors may be used to endorse or promote products
+          derived from this software without specific prior written permission.
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+    ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+    WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+    DISCLAIMED. IN NO EVENT SHALL PRESENSE Technologies GmbH BE LIABLE FOR ANY
+    DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+    (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+    ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+    */
 
 #include <assert.h>
 #include <stdio.h>
 #include "variable_integer.h"
 
-unsigned int get_integer(BitBuffer* buffer)
+unsigned int get_integer(const BitBuffer* buffer)
 {
     // We'll just create a copy of the buffer, and decode it's value.
     BitBuffer temp = *buffer;
     return decode_integer(&temp, temp.num_bits);
 }
 
-unsigned long long get_long_integer(BitBuffer* buffer)
+unsigned long long get_long_integer(const BitBuffer* buffer)
 {
     // We'll just create a copy of the buffer, and decode it's value.
     BitBuffer temp = *buffer;
@@ -97,7 +123,23 @@ unsigned int decode_little_endian_integer(BitBuffer* buffer, int num_bits)
     return result;
 }
 
-void print_escaped_string(Text* text)
+unsigned long long decode_long_little_endian_integer(BitBuffer* buffer, int num_bits)
+{
+    // Little endian conversion only works for fields that are a multiple
+    // of 8 bits.
+    assert(num_bits % 8  == 0);
+
+    int i;
+    unsigned long long result = 0;
+    for (i = 0; i < num_bits / 8; ++i)
+    {
+        unsigned long long value = decode_integer(buffer, 8);
+        result |= value << (i * 8);
+    }
+    return result;
+}
+
+void print_escaped_string(const Text* text)
 {
     char c;
     unsigned int i;
@@ -114,6 +156,10 @@ void print_escaped_string(Text* text)
         {
             printf("&gt;");
         }
+        else if (c == '&')
+        {
+            printf("&amp;");
+        }
         else if (c >= 0x20 || c == 0x9 || c == 0xa || c == 0xd)
         {
             putc(c, stdout);
@@ -124,5 +170,95 @@ void print_escaped_string(Text* text)
             putc('?', stdout);
         }
     }
+}
+
+void encode_big_endian_integer(unsigned int value, int num_bits, struct EncodedData* result)
+{
+    ensureEncodeSpace(result, num_bits);
+    char* buffer = &result->buffer[result->num_bits / 8];
+    int shiftDistance = num_bits - (8 - result->num_bits % 8);
+    int isFirstByteOverlapping = (result->num_bits % 8 != 0);
+    if (shiftDistance >= 0)
+    {
+        if (isFirstByteOverlapping)
+        {
+            isFirstByteOverlapping = 0;
+            // We need to OR the first byte (to fill the first byte)
+            *(buffer++) |= (value >> shiftDistance) & 0xFF;
+            shiftDistance -= 8;
+        }
+        // We can now proceed to write whole bytes to the output
+        while (shiftDistance >= 0)
+        {
+            *(buffer++) = (value >> shiftDistance) & 0xFF;
+            shiftDistance -= 8;
+        }
+    }
+    // If we still have data left, it needs to be shifted to the left
+    if (shiftDistance > -8)
+    {
+        if (!isFirstByteOverlapping)
+        {
+            *(buffer++) = (value << (-shiftDistance)) & 0xFF;
+        }
+        else
+        {
+            *(buffer++) |= (value << (-shiftDistance)) & 0xFF;
+        }
+    }
+    result->num_bits += num_bits;
+}
+
+void encode_little_endian_integer(unsigned int value, int num_bits, struct EncodedData* result)
+{
+    int i;
+    for (i = 0; i < num_bits / 8; ++i)
+    {
+        encode_big_endian_integer(value & 0xFF, 8, result);
+        value >>= 8;
+    }
+}
+
+void encode_long_big_endian_integer(unsigned long long value, int num_bits, struct EncodedData* result)
+{
+    if (num_bits > 32)
+    {
+        // Encode the highest four bytes
+        num_bits -= 32;
+        unsigned int upper = value >> num_bits;
+        encode_big_endian_integer(upper, 32, result);
+        value -= ((unsigned long long)upper) << num_bits;
+    }
+    encode_big_endian_integer(value, num_bits, result);
+}
+
+void encode_long_little_endian_integer(unsigned long long value, int num_bits, struct EncodedData* result)
+{
+    int i;
+    for (i = 0; i < num_bits / 8; ++i)
+    {
+        encode_big_endian_integer(value & 0xFF, 8, result);
+        value >>= 8;
+    }
+}
+
+long long ${'divide with rounding' | function}(long long numerator, long long denominator, int should_round_up)
+{
+    long long result = numerator / denominator;
+    long long remainder = numerator % denominator;
+    if (remainder != 0)
+    {
+        if ((numerator < 0 && denominator > 0) || (numerator > 0 && denominator < 0))
+        {
+            // C division is round towards zero, but this function implements round
+            // towards negative infinity...
+            --result;
+        }
+    }
+    if (should_round_up && remainder != 0)
+    {
+        ++result;
+    }
+    return result;
 }
 

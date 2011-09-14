@@ -40,7 +40,7 @@ def usage():
     print "    f) Prompt if user wants freshmeat & pypi to be notified. If so,"
     print "       README changlog will be used."
 
-_README = os.path.join(root_path, 'README')
+_README = os.path.join(root_path, 'README.rst')
 _CHANGELOG = os.path.join(root_path, 'CHANGELOG')
 
 website_dir = os.path.join(root_path, '..', 'website', 'website.integ')
@@ -48,6 +48,7 @@ project_dir = os.path.join(root_path, '..', 'protocollogic', 'protocollogic.com'
 freshmeat_pass = os.path.join(website_dir, 'freshmeat.txt')
 
 def _check_copyright_statements(subdirs):
+    print 'Checking for copyright notices in source files...'
     is_missing_copyright = False
     for subdir in subdirs:
         for dir, subdirs, filenames in os.walk(os.path.join(root_path, subdir)):
@@ -138,8 +139,15 @@ def _create_changelog_html():
     contents = ""
     links = ""
     for version, date, notes in get_changelog():
-        contents += '\n* `Version %s`_ (%s)\n\n' % (version, date)
+        doc_path = 'files/bdec-%s.pdf' % version
+        doc = ''
+        has_pdf = os.path.exists(os.path.join(project_dir, doc_path))
+        if has_pdf:
+            doc = ', documentation__'
+        contents += '\n* `Version %s`_ (%s%s)\n\n' % (version, date, doc)
         contents += '\n'.join('  %s' % line for line in notes.splitlines())
+        if has_pdf:
+            contents += '\n\n__ %s\n' % doc_path
         contents += '\n'
         links += '.. _Version %s: files/bdec-%s.tar.gz\n' % (version, version)
     contents += '\n\n%s' % links
@@ -147,11 +155,12 @@ def _create_changelog_html():
     _generate_html(contents)
     os.rename('index.html', 'changelog.html')
 
-def _create_index_file():
+def _create_index_file(version):
     # Create a temporary file that contains a modified readme
     version, date, notes = get_changelog()[0]
     notes = '\n  '.join(notes.splitlines())
     contents = open(_README, 'r').read()
+    contents = contents.replace('VERSION', version)
     match = re.search('(.*)(See the CHANGELOG.*)', contents)
     if not match:
         sys.exit('Failed to find changelog section of readme!')
@@ -163,37 +172,61 @@ def _create_index_file():
         contents[match.start(1):]
     _generate_html(contents)
 
-def update_website():
+def _create_pdf(version, target):
+    print 'Generating pdf documentation...'
+    os.chdir(os.path.join(root_path, 'docs'))
+    command = 'PYTHONPATH=%s sphinx-build -c tempdir -b latex -a source tempdir' % (root_path)
+    if not os.path.exists('tempdir'):
+        os.mkdir('tempdir')
+    conf = file('tempdir/conf.py', 'w')
+    conf.write('''latex_documents=[('index', 'bdec-%s.tex', 'Bdec binary specifications', 'Henry Ludemann', 'manual', True)]
+release='%s' ''' % (version, version))
+    conf.close()
+    if os.system(command) != 0:
+        sys.exit('Failed to create project latex documentation!')
+    if os.system('cd tempdir;make all-pdf') != 0:
+        sys.exit('Failed to make pdf from latex docs!')
+    os.rename('tempdir/bdec-%s.pdf' % version, target)
+    shutil.rmtree('tempdir')
+
+def update_website(version):
     print 'Updating project index...'
+
+    pdf_file = os.path.join(project_dir, 'files', 'bdec-%s.pdf' % version)
+    if not os.path.exists(pdf_file) or raw_input("Pdf documentation '%s' exists! Regenerate? [y]" % pdf_file) in ('', 'Y', 'y'):
+        _create_pdf(version, pdf_file)
+    else:
+        print 'Not regenerating pdf...'
+
     os.chdir(project_dir)
-
     _create_changelog_html()
-    _create_index_file()
-
-    # Update the CHANGELOG
+    _create_index_file(version)
 
     print 'Updating project documentation...'
-    html_doc_dir = os.path.join(project_dir, 'docs')
     os.chdir(os.path.join(root_path, 'docs'))
-    command = 'PYTHONPATH=%s sphinx-build -a source tempdir' % (root_path) 
+    html_doc_dir = os.path.join(project_dir, 'docs')
+    command = 'PYTHONPATH=%s sphinx-build -a source tempdir' % (root_path)
     if not os.path.exists('tempdir'):
         os.mkdir('tempdir')
     if os.system(command) != 0:
         sys.exit('Failed to update project html documentation!')
     shutil.copytree("files", "tempdir/files")
+    shutil.copy(os.path.join(root_path, "README.rst"), "tempdir/files/README")
+    shutil.copy(os.path.join(root_path, "COPYRIGHT"), "tempdir/files")
     if os.path.exists(html_doc_dir):
         shutil.rmtree(html_doc_dir)
     os.rename('tempdir', html_doc_dir)
 
-    if os.system('git add .;git add -u .') != 0:
+    if os.system('cd %s;git add .;git add -u .' % project_dir) != 0:
         sys.exit('Failed to add the updated html_doc_dir')
+
 
 def update_release_tarball(version):
     os.chdir(root_path)
     destination = os.path.join(project_dir, 'files', 'bdec-%s.tar.gz' % version)
     if os.path.exists(destination):
-        text = raw_input("Archive '%s' exists! Overwrite? [y]" % destination)
-        if text and text != 'y':
+        text = raw_input("Archive '%s' exists! Overwrite? [n]" % destination)
+        if text != 'y':
             print 'Not updated archiving...'
             return
 
@@ -201,7 +234,7 @@ def update_release_tarball(version):
     if os.system(command) != 0:
         sys.exit('Failed to export new tar.gz!')
     os.chdir(project_dir)
-    if os.system('bzr add %s' % destination) != 0:
+    if os.system('git add %s' % destination) != 0:
         sys.exit('Failed to add new tar.gz!')
 
 def tag_changes(version):
@@ -239,7 +272,7 @@ def _edit_message(message):
 
 def commit_website(version):
     os.chdir(project_dir)
-    if os.system('git diff') != 0:
+    if os.system('git diff HEAD') != 0:
         sys.exit('Stopped after reviewing changes.')
     text = raw_input('Commit website changes? [y]')
     if text and text != 'y':
@@ -247,11 +280,10 @@ def commit_website(version):
         return False
 
     # Commit the website changes
-    message = _edit_message('Updated bdec project to version %s' % version)
     data = file('.commitmsg', 'w')
-    data.write(message)
+    data.write('Updated bdec project to version %s' % version)
     data.close()
-    if os.system('git commit --template .commitmsg') != 0:
+    if os.system('git commit --file .commitmsg --edit') != 0:
         sys.exit('Failed to commit!')
     os.remove('.commitmsg')
     return True
@@ -340,7 +372,7 @@ def _get_tags(connection, freshmeat_auth):
 
 def notify(version, changelog, freshmeat_auth=_get_freshmeat_auth_code,
         connection=httplib.HTTPConnection, system=os.system, confirm=raw_input,
-        should_send_email=True, tag_list=_get_tags):
+        tag_list=_get_tags):
     # This is a fresmeat limit
     MAX_CHARS = 600
     short_message = shorten_changelog(changelog)
@@ -386,7 +418,7 @@ def notify(version, changelog, freshmeat_auth=_get_freshmeat_auth_code,
     else:
         print 'Not notifying pypi.'
 
-    if should_send_email:
+    if confirm('Send an email to the bdec mailing list? [y]') in ['', 'y', 'Y']:
         send_email(version, changelog)
 
 def upload():
@@ -400,7 +432,15 @@ def upload():
         if text.strip() and text != 'y':
             sys.exit('Not uploaded.')
 
-if __name__ == '__main__':
+def has_modifications():
+    process = subprocess.Popen(['git', 'status', '--porcelain'],
+            stdout=subprocess.PIPE)
+    output = process.stdout.read()
+    print output
+    assert process.wait() == 0, 'Failed to query git status.'
+    return len(output.strip()) != 0
+
+def main():
     if len(sys.argv) != 1:
         usage()
         sys.exit(1)
@@ -416,17 +456,19 @@ if __name__ == '__main__':
     print shorten_changelog(changelog)
     print
 
-    update_website()
+    update_website(version)
     update_release_tarball(version)
 
     os.chdir(root_path)
-    if os.system('git status') == 0:
-        # Git returns non-zero if 'git commit' would do nothing.
-        sys.exit('Source tree has changes! Stopping.')
+    if has_modifications() and raw_input('Source tree has changes! Stop? [y]') != 'n':
+        sys.exit('Stopping due to changes in the source tree.')
 
+    os.chdir(root_path)
     if commit_website(version):
         upload()
 
     tag_changes(version)
     notify(version, changelog)
 
+if __name__ == '__main__':
+    main()

@@ -1,4 +1,4 @@
-#   Copyright (C) 2008 Henry Ludemann
+#   Copyright (C) 2010 Henry Ludemann
 #
 #   This file is part of the bdec decoder library.
 #
@@ -15,7 +15,37 @@
 #   You should have received a copy of the GNU Lesser General Public
 #   License along with this library; if not, see
 #   <http://www.gnu.org/licenses/>.
+#  
+# This file incorporates work covered by the following copyright and  
+# permission notice:  
+#  
+#   Copyright (c) 2010, PRESENSE Technologies GmbH
+#   All rights reserved.
+#   Redistribution and use in source and binary forms, with or without
+#   modification, are permitted provided that the following conditions are met:
+#       * Redistributions of source code must retain the above copyright
+#         notice, this list of conditions and the following disclaimer.
+#       * Redistributions in binary form must reproduce the above copyright
+#         notice, this list of conditions and the following disclaimer in the
+#         documentation and/or other materials provided with the distribution.
+#       * Neither the name of the PRESENSE Technologies GmbH nor the
+#         names of its contributors may be used to endorse or promote products
+#         derived from this software without specific prior written permission.
+#   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+#   ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+#   WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+#   DISCLAIMED. IN NO EVENT SHALL PRESENSE Technologies GmbH BE LIABLE FOR ANY
+#   DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+#   (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+#   LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+#   ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+#   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+#   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+import operator
+
+from bdec.data import Data
+from bdec.encode.entry import MissingInstanceError
 import bdec.entry as ent
 import bdec.field as fld
 import bdec.output
@@ -31,13 +61,16 @@ class _Item(object):
         self.value = None
 
     def __getattr__(self, name):
-        return self.children[name]
+        try:
+            return self.children[name]
+        except KeyError:
+            raise AttributeError(name)
 
     def __repr__(self):
         return unicode(self.children)
 
     def __int__(self):
-        if not self.value:
+        if self.value is None:
             raise TypeError
         return int(self.value)
 
@@ -82,12 +115,10 @@ class _DecodedItem:
                     result.children[escape(name)] = value
         return result
 
-def decode(decoder, binary):
-    """
-    Create a python instance representing the decoded data.
-    """
+def get_instance(items):
+    """Convert an iterable list of decode items to a python instance."""
     stack = [_DecodedItem(None)]
-    for is_starting, name, entry, data, value in decoder.decode(binary):
+    for is_starting, name, entry, data, value in items:
         if is_starting:
             stack.append(_DecodedItem(entry))
         else:
@@ -98,22 +129,36 @@ def decode(decoder, binary):
     assert len(stack) == 1
     return stack[0].get_value(None)
 
-def _get_data(obj,child):
-    name = child.name
-    if name.endswith(':'):
-        raise ent.MissingInstanceError(obj, child)
+def decode(decoder, binary):
+    """
+    Create a python instance representing the decoded data.
+    """
+    return get_instance(decoder.decode(binary))
 
-    name = escape(name)
+def _get_data(obj, child, i, name):
+    if name.endswith(':'):
+        raise MissingInstanceError(obj, child)
 
     try: 
-        return getattr(obj, name)
+        return getattr(obj, escape(name))
     except (AttributeError, KeyError):
-        raise ent.MissingInstanceError(obj, child)
+        pass
+
+    try:
+        return obj[name]
+    except (AttributeError, KeyError, TypeError):
+        raise MissingInstanceError(obj, child)
+
+def _get_value(obj, child, i, name):
+    result = _get_data(obj, child, i, name)
+    if isinstance(child, sof.SequenceOf):
+        result = [{child.children[0].name: v} for v in result]
+    return result
 
 def encode(protocol, value):
     """
     Encode a python instance to binary data.
 
-    Returns an iterator to data objects representing the encoded structure.
+    Returns a bdec.data.Data instance.
     """
-    return protocol.encode(_get_data, value)
+    return reduce(operator.add, protocol.encode(_get_value, {protocol.name: value}), Data())

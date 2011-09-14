@@ -1,4 +1,4 @@
-#   Copyright (C) 2008 Henry Ludemann
+#   Copyright (C) 2010 Henry Ludemann
 #
 #   This file is part of the bdec decoder library.
 #
@@ -15,6 +15,32 @@
 #   You should have received a copy of the GNU Lesser General Public
 #   License along with this library; if not, see
 #   <http://www.gnu.org/licenses/>.
+#  
+# This file incorporates work covered by the following copyright and  
+# permission notice:  
+#  
+#   Copyright (c) 2010, PRESENSE Technologies GmbH
+#   All rights reserved.
+#   Redistribution and use in source and binary forms, with or without
+#   modification, are permitted provided that the following conditions are met:
+#       * Redistributions of source code must retain the above copyright
+#         notice, this list of conditions and the following disclaimer.
+#       * Redistributions in binary form must reproduce the above copyright
+#         notice, this list of conditions and the following disclaimer in the
+#         documentation and/or other materials provided with the distribution.
+#       * Neither the name of the PRESENSE Technologies GmbH nor the
+#         names of its contributors may be used to endorse or promote products
+#         derived from this software without specific prior written permission.
+#   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+#   ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+#   WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+#   DISCLAIMED. IN NO EVENT SHALL PRESENSE Technologies GmbH BE LIABLE FOR ANY
+#   DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+#   (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+#   LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+#   ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+#   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+#   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 """
 Library to generate source code in various languages for decoding specifications.
@@ -33,9 +59,50 @@ import bdec.entry as ent
 import bdec.inspect.param as prm
 import bdec.output.xmlout
 
+class TemplateDir:
+    """Class representing a template directory."""
+    def listdir(self, dir):
+        raise NotImplementedError()
+
+    def read(self, filename):
+        raise NotImplementedError()
+
+
+class BuiltinTemplate(TemplateDir):
+    """Class to read a builtin template using pkg_resources."""
+    def __init__(self, name):
+        self.directory = os.path.join('templates', name)
+
+    def listdir(self):
+        return pkg_resources.resource_listdir('bdec', self.directory)
+
+    def read(self, filename):
+        return pkg_resources.resource_string('bdec',
+                os.path.join(self.directory, filename))
+
+class FilesystemTemplate(TemplateDir):
+    def __init__(self, directory):
+        self.directory = directory
+
+    def listdir(self):
+        return os.listdir(self.directory)
+
+    def read(self, filename):
+        input = open(os.path.join(self.directory, filename), 'r')
+        contents = input.read()
+        input.close()
+        return contents
+
+
 class SettingsError(Exception):
     "An error raised when the settings file is incorrect."
     pass
+
+class Templates:
+    def __init__(self, common, entries, settings):
+        self.common = common
+        self.entries = entries
+        self.settings = settings
 
 _SETTINGS = "settings.py"
 
@@ -44,31 +111,26 @@ def is_template(filename):
     return not filename.startswith('.') and not filename.endswith('.pyc') \
         and filename != _SETTINGS
 
-_template_cache = {}
-def _load_templates(language):
+def load_templates(template_dir):
     """
     Load all file templates for a given specification.
 
     Returns a tuple containing (common file templates, entry specific templates),
     where every template is a tuple containing (name, mako template).
     """
-    # We cache the results, as it sped up the tests by about 3x.
-    if language in _template_cache:
-        return _template_cache[language]
-
     common_templates  = []
     entry_templates = []
-    template_dir = 'templates/' + language
-    for filename in pkg_resources.resource_listdir('bdec', template_dir):
+    for filename in template_dir.listdir():
         if is_template(filename):
-            text = pkg_resources.resource_string('bdec', '%s/%s' % (template_dir, filename))
+            text = template_dir.read(filename)
             template = mako.template.Template(text, uri=filename)
             if 'source' in filename:
                 entry_templates.append((filename, template))
             else:
                 common_templates.append((filename, template))
-    _template_cache[language] = (common_templates, entry_templates)
-    return (common_templates, entry_templates)
+
+    config_file = template_dir.read(_SETTINGS)
+    return Templates(common_templates, entry_templates, config_file)
 
 def _generate_template(output_dir, filename, lookup, template):
     output = file(os.path.join(output_dir, filename), 'w')
@@ -81,7 +143,7 @@ def _generate_template(output_dir, filename, lookup, template):
         output.close()
 
 
-class _EntryInfo(prm.CompoundParameters):
+class _EscapedParameters(prm.CompoundParameters):
     def __init__(self, utils, params):
         self._utils = utils
         prm.CompoundParameters.__init__(self, params)
@@ -95,7 +157,14 @@ class _EntryInfo(prm.CompoundParameters):
         param_escaped = self._utils.esc_names(param_names, self._utils.variable_name)
         local_escaped = self._utils.esc_names(local_names, self._utils.variable_name, param_escaped)
 
-        return dict(zip(param_names + local_names, param_escaped + local_escaped))
+        result = dict(zip(param_names + local_names, param_escaped + local_escaped))
+
+        if entry.name not in result:
+            # FIXME: This is a nasty hack. Add the name of the entry itself
+            # (for the solver expression). This is necessary if the sequence
+            # isn't explicitly referenced.
+            result[entry.name] = '*value'
+        return result
 
     def get_local_name(self, entry, name):
         """Map an unescaped name to the 'local' variable name.
@@ -120,7 +189,7 @@ class _EntryInfo(prm.CompoundParameters):
     def get_passed_variables(self, entry, child):
         names = self._get_name_map(entry)
         for param in prm.CompoundParameters.get_passed_variables(self, entry, child):
-            if param.name == 'unknown':
+            if param.name == prm.MAGIC_UNKNOWN_NAME:
                 name = param.name
             else:
                 name = names[param.name]
@@ -131,10 +200,8 @@ class _Settings:
     _REQUIRED_SETTINGS = ['keywords']
 
     @staticmethod
-    def load(language, globals):
-        path = 'templates/%s/settings.py' % language
-        config_file = pkg_resources.resource_stream('bdec', path).read()
-        code = compile(config_file, path, 'exec')
+    def load(config_file, globals):
+        code = compile(config_file, _SETTINGS, 'exec')
         eval(code, globals)
         settings = _Settings()
         for key in globals:
@@ -317,11 +384,10 @@ def _whitespace(offset):
         return result
     return filter
 
-def generate_code(spec, language, output_dir, common_entries=[]):
+def generate_code(spec, templates, output_dir, common_entries=[], options={}):
     """
     Generate code to decode the given specification.
     """
-    common_templates, entry_templates = _load_templates(language)
     entries = set(common_entries)
     entries.add(spec)
     
@@ -331,9 +397,9 @@ def generate_code(spec, language, output_dir, common_entries=[]):
     entries = list(entries)
     entries.sort(key=lambda a:a.name)
 
-    lookup = {}
+    lookup = options.copy()
     data_checker = prm.DataChecker(entries)
-    lookup['settings'] = _Settings.load(language, lookup)
+    lookup['settings'] = _Settings.load(templates.settings, lookup)
     utils = _Utils(entries, lookup['settings'])
 
     params = prm.CompoundParameters([
@@ -341,7 +407,7 @@ def generate_code(spec, language, output_dir, common_entries=[]):
         prm.ExpressionParameters(entries),
         prm.EndEntryParameters(entries),
         ])
-    info = _EntryInfo(utils, [params])
+    info = _EscapedParameters(utils, [params])
 
     lookup['protocol'] = spec
     lookup['common'] = entries
@@ -371,9 +437,20 @@ def generate_code(spec, language, output_dir, common_entries=[]):
     lookup['ws'] = _whitespace
     lookup['xmlname'] = bdec.output.xmlout.escape_name
 
-    for filename, template in common_templates:
+    lookup['decode_params'] = info
+    lookup['raw_decode_params'] = params
+    lookup['raw_encode_expression_params'] = prm.EncodeExpressionParameters(entries)
+    lookup['stupid_ugly_expression_encode_params'] = _EscapedParameters(utils, [lookup['raw_encode_expression_params']])
+    # No need for the 'should end' when encoding, as we already know how long
+    # the array is.
+    lookup['raw_encode_params'] = prm.CompoundParameters([
+        prm.EncodeResultParameters(entries),
+        lookup['raw_encode_expression_params']])
+    lookup['encode_params'] = _EscapedParameters(utils, [lookup['raw_encode_params']])
+
+    for filename, template in templates.common:
         _generate_template(output_dir, filename, lookup, template)
-    for filename, template in entry_templates:
+    for filename, template in templates.entries:
         for entry in entries:
             lookup['entry'] = entry
             extension = os.path.splitext(filename)[1]

@@ -1,4 +1,4 @@
-#   Copyright (C) 2008-2009 Henry Ludemann
+#   Copyright (C) 2008-2010 Henry Ludemann
 #
 #   This file is part of the bdec decoder library.
 #
@@ -15,15 +15,46 @@
 #   You should have received a copy of the GNU Lesser General Public
 #   License along with this library; if not, see
 #   <http://www.gnu.org/licenses/>.
+#  
+# This file incorporates work covered by the following copyright and  
+# permission notice:  
+#  
+#   Copyright (c) 2010, PRESENSE Technologies GmbH
+#   All rights reserved.
+#   Redistribution and use in source and binary forms, with or without
+#   modification, are permitted provided that the following conditions are met:
+#       * Redistributions of source code must retain the above copyright
+#         notice, this list of conditions and the following disclaimer.
+#       * Redistributions in binary form must reproduce the above copyright
+#         notice, this list of conditions and the following disclaimer in the
+#         documentation and/or other materials provided with the distribution.
+#       * Neither the name of the PRESENSE Technologies GmbH nor the
+#         names of its contributors may be used to endorse or promote products
+#         derived from this software without specific prior written permission.
+#   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+#   ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+#   WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+#   DISCLAIMED. IN NO EVENT SHALL PRESENSE Technologies GmbH BE LIABLE FOR ANY
+#   DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+#   (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+#   LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+#   ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+#   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+#   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #!/usr/bin/env python
 import operator
 import unittest
 
 from bdec.constraints import Equals, ConstraintError
+from bdec.encode.entry import DataLengthError
 import bdec.entry as ent
+from bdec.expression import ValueResult
 import bdec.data as dt
 import bdec.field as fld
+
+def query(context, entry, i, name):
+    return context
 
 class TestField(unittest.TestCase):
     def assertNearlyEqual(self, a, b):
@@ -56,9 +87,9 @@ class TestField(unittest.TestCase):
         calls = list(field.decode(data))
         return calls[1][4]
 
-    def _get_encode_value(self, length, format, value, encoding=""):
-        field = fld.Field("bob", length, format, encoding)
-        result = field.encode(None, value)
+    def _get_encode_value(self, length, format, value, encoding="", constraints=[]):
+        field = fld.Field("bob", length, format, encoding, constraints)
+        result = field.encode(query, value)
         return reduce(operator.__add__, result)
 
     def test_binary_type(self):
@@ -101,24 +132,22 @@ class TestField(unittest.TestCase):
 
     def test_encode(self):
         field = fld.Field("bob", 8, format=fld.Field.INTEGER)
-        result = field.encode(None, 0x3f)
+        result = field.encode(query, 0x3f)
         self.assertEqual(0x3f, int(result.next()))
 
     def test_encoded_size_matches_expected_size(self):
-        """
-        When we specify a size for a field, what we actually encode should match it.
-        """
+        # When we specify a size for a field, what we actually encode should match it.
         text = fld.Field("bob", 48, format=fld.Field.TEXT)
-        self.assertEqual("rabbit", text.encode(None, "rabbit").next().bytes())
-        self.assertRaises(ent.DataLengthError, list, text.encode(None, "boxfish"))
+        self.assertEqual("rabbit", text.encode(query, "rabbit").next().bytes())
+        self.assertRaises(DataLengthError, list, text.encode(query, "boxfish"))
 
         binary = fld.Field("bob", 8, format=fld.Field.BINARY)
-        self.assertEqual("\x39", binary.encode(None, "00111001").next().bytes())
-        self.assertRaises(ent.DataLengthError, list, binary.encode(None, "1011"))
+        self.assertEqual("\x39", binary.encode(query, "00111001").next().bytes())
+        self.assertRaises(DataLengthError, list, binary.encode(query, "1011"))
 
         hex = fld.Field("bob", 8, format=fld.Field.HEX)
-        self.assertEqual("\xe7", hex.encode(None, "e7").next().bytes())
-        self.assertRaises(ent.DataLengthError, list, hex.encode(None, "ecd"))
+        self.assertEqual("\xe7", hex.encode(query, "e7").next().bytes())
+        self.assertRaises(DataLengthError, list, hex.encode(query, "ecd"))
 
     def test_string_conversion(self):
         # Just test that we can convert fields to a string sanely... the actual format
@@ -127,11 +156,11 @@ class TestField(unittest.TestCase):
 
     def test_bad_format_error(self):
         field = fld.Field("bob", 8, format=fld.Field.INTEGER)
-        self.assertRaises(fld.BadFormatError, field.encode(lambda name, context: "rabbit", None).next)
+        self.assertRaises(fld.BadFormatError, field.encode, lambda data, context, i, name: "rabbit", None)
 
     def test_encode_of_field_with_expected_value_fails_when_given_bad_data(self):
         field = fld.Field("bob", 8, constraints=[Equals(dt.Data('c'))])
-        self.assertRaises(ConstraintError, field.encode(None, "d").next)
+        self.assertRaises(ConstraintError, field.encode(query, dt.Data("d")).next)
 
     def test_encode_of_field_with_expected_value_succeeds_with_missing_data(self):
         """
@@ -141,7 +170,7 @@ class TestField(unittest.TestCase):
         make for clearer output).
         """
         field = fld.Field("bob", 8, constraints=[Equals(dt.Data("c"))])
-        def no_data_query(obj, name):
+        def no_data_query(obj, entry, i, name):
             return ''
         self.assertEqual("c", field.encode(no_data_query, None).next().bytes())
 
@@ -202,3 +231,9 @@ class TestField(unittest.TestCase):
     def test_data_is_available(self):
         a = fld.Field('a', length=8)
         self.assertRaises(fld.FieldDataError, list, a.decode(dt.Data()))
+
+    def test_encode_binary_with_constraints(self):
+        a = fld.Field('a', length=8, constraints=[Equals(5)])
+        self.assertEqual(dt.Data('\x05'), reduce(operator.add, a.encode(query, '00000101')))
+        self.assertRaises(ConstraintError, reduce, operator.add, a.encode(query, '00000111'))
+

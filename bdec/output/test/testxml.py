@@ -1,4 +1,4 @@
-#   Copyright (C) 2008 Henry Ludemann
+#   Copyright (C) 2010 Henry Ludemann
 #
 #   This file is part of the bdec decoder library.
 #
@@ -15,6 +15,32 @@
 #   You should have received a copy of the GNU Lesser General Public
 #   License along with this library; if not, see
 #   <http://www.gnu.org/licenses/>.
+#  
+# This file incorporates work covered by the following copyright and  
+# permission notice:  
+#  
+#   Copyright (c) 2010, PRESENSE Technologies GmbH
+#   All rights reserved.
+#   Redistribution and use in source and binary forms, with or without
+#   modification, are permitted provided that the following conditions are met:
+#       * Redistributions of source code must retain the above copyright
+#         notice, this list of conditions and the following disclaimer.
+#       * Redistributions in binary form must reproduce the above copyright
+#         notice, this list of conditions and the following disclaimer in the
+#         documentation and/or other materials provided with the distribution.
+#       * Neither the name of the PRESENSE Technologies GmbH nor the
+#         names of its contributors may be used to endorse or promote products
+#         derived from this software without specific prior written permission.
+#   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+#   ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+#   WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+#   DISCLAIMED. IN NO EVENT SHALL PRESENSE Technologies GmbH BE LIABLE FOR ANY
+#   DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+#   (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+#   LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+#   ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+#   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+#   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #!/usr/bin/env python
 import unittest
@@ -23,6 +49,7 @@ import bdec.choice as chc
 from bdec.constraints import Equals
 import bdec.data as dt
 import bdec.entry as ent
+from bdec.expression import parse
 import bdec.field as fld
 import bdec.output.xmlout as xml
 import bdec.sequence as seq
@@ -32,14 +59,14 @@ import bdec.expression as expr
 class TestXml(unittest.TestCase):
     def test_field(self):
         field = fld.Field("bob", 8)
-        text = xml.to_string(field, dt.Data.from_hex('8e'))
+        text = xml.to_string(field.decode(dt.Data.from_hex('8e')))
         self.assertEqual("<bob>10001110</bob>\n", text)
 
     def test_hidden_entry(self):
         sequence = seq.Sequence("bob", [
             fld.Field("cat:", 8, fld.Field.INTEGER),
             fld.Field("dog", 24, fld.Field.TEXT)])
-        text = xml.to_string(sequence, dt.Data.from_hex('6e7a6970'))
+        text = xml.to_string(sequence.decode(dt.Data.from_hex('6e7a6970')))
         self.assertEqual("<bob>\n    <dog>zip</dog>\n</bob>\n", text)
 
     def test_xml_encode(self):
@@ -47,22 +74,21 @@ class TestXml(unittest.TestCase):
         sequence = seq.Sequence("blah", [
             fld.Field("cat", 8, fld.Field.INTEGER),
             fld.Field("dog", 8, fld.Field.INTEGER)])
-        data = reduce(lambda a,b:a+b, xml.encode(sequence, text))
-        self.assertEqual("\x05\x12", data.bytes())
+        self.assertEqual("\x05\x12", xml.encode(sequence, text).bytes())
 
     def test_choice_encode(self):
         a = fld.Field('a', 8, constraints=[Equals(dt.Data('a'))])
         b = fld.Field('b', 8, constraints=[Equals(dt.Data('b'))])
         choice = chc.Choice('blah', [a, b])
         text = "<b />"
-        data = reduce(lambda a,b:a+b, xml.encode(choice, text))
+        data = xml.encode(choice, text)
         self.assertEqual("b", data.bytes())
 
     def test_verbose(self):
         sequence = seq.Sequence("bob", [
             fld.Field("cat:", 8, fld.Field.INTEGER),
             fld.Field("dog", 24, fld.Field.TEXT)])
-        text = xml.to_string(sequence, dt.Data.from_hex('6d7a6970'), verbose=True)
+        text = xml.to_string(sequence.decode(dt.Data.from_hex('6d7a6970')), verbose=True)
         expected = """<bob>
     <cat_>109<!-- hex (1 bytes): 6d --></cat_>
     <dog>zip<!-- hex (3 bytes): 7a6970 --></dog>
@@ -71,44 +97,44 @@ class TestXml(unittest.TestCase):
         self.assertEqual(expected, text)
 
         # Now test that we can re-encode verbose generated xml...
-        data = reduce(lambda a,b:a+b, xml.encode(sequence, text))
+        data = xml.encode(sequence, text)
         self.assertEqual("mzip", data.bytes())
 
     def test_encode_sequenceof(self):
         spec = sof.SequenceOf('cat', fld.Field('dog', 8, fld.Field.TEXT), 4)
         text = "<cat> <dog>a</dog> <dog>b</dog> <dog>c</dog> <dog>d</dog> </cat>"
-        data = reduce(lambda a,b:a+b, xml.encode(spec, text))
+        data = xml.encode(spec, text)
         self.assertEqual("abcd", data.bytes())
 
     def test_re_encoding_of_whitespace(self):
         spec = fld.Field('blah', 64, fld.Field.TEXT)
-        text = xml.to_string(spec, dt.Data('  bob   '))
-        data = reduce(lambda a,b:a+b, xml.encode(spec, text))
+        text = xml.to_string(spec.decode(dt.Data('  bob   ')))
+        data = xml.encode(spec, text)
         self.assertEqual("  bob   ", data.bytes())
 
     def test_nameless_entry(self):
         hidden = fld.Field('', 8, fld.Field.INTEGER, constraints=[Equals(0)])
         spec = seq.Sequence('blah', [hidden])
-        text = xml.to_string(spec, dt.Data('\x00'))
+        text = xml.to_string(spec.decode(dt.Data('\x00')))
         self.assertEqual('<blah></blah>\n', text)
 
     def test_verbose_nameless_entry(self):
         hidden = fld.Field('', 8, fld.Field.INTEGER, constraints=[Equals(0)])
         spec = seq.Sequence('blah', [hidden])
-        text = xml.to_string(spec, dt.Data('\x00'), verbose=True)
+        text = xml.to_string(spec.decode(dt.Data('\x00')), verbose=True)
         self.assertEqual('<blah>\n    <_hidden><!-- hex (1 bytes): 00 --></_hidden>\n</blah>\n', text)
 
     def test_field_with_expected_value(self):
         a = fld.Field('a', 8, fld.Field.INTEGER, constraints=[Equals(0)])
         spec = seq.Sequence('blah', [a])
-        text = xml.to_string(spec, dt.Data('\x00'))
+        text = xml.to_string(spec.decode(dt.Data('\x00')))
         self.assertEqual('<blah>\n    <a></a>\n</blah>\n', text)
 
     def test_different_child_name(self):
         digit = fld.Field('digit:', length=8)
         number = seq.Sequence('number', [digit], value=expr.compile("${digit:} - 48") )
         header = seq.Sequence('header', [ent.Child('length', number), fld.Field('data', length=expr.compile('${length} * 8'), format=fld.Field.TEXT)])
-        text = xml.to_string(header, dt.Data('5abcde'))
+        text = xml.to_string(header.decode(dt.Data('5abcde')))
         self.assertEqual('<header>\n    <length>5</length>\n    <data>abcde</data>\n</header>\n', text)
 
     def test_sequence_with_children_and_value(self):
@@ -120,4 +146,34 @@ class TestXml(unittest.TestCase):
         a = seq.Sequence('a', [], value=expr.compile('1'), constraints=[Equals(1)])
         text = xml.to_string(a, dt.Data())
         self.assertEqual('<a></a>\n', text)
+
+    def test_sequence_with_expected_value(self):
+        text = '<a><c/></a>'
+        a = seq.Sequence('a', [
+            fld.Field('b:', 8),
+            seq.Sequence('c', [], value=parse('${b:}'), constraints=[Equals(5)])])
+        self.assertEqual('\x05', xml.encode(a, text).bytes())
+
+    def test_integer_field_with_expected_value(self):
+        a = fld.Field('a', length=16, format=fld.Field.INTEGER,
+                encoding=fld.Field.LITTLE_ENDIAN, constraints=[Equals(7)])
+        self.assertEqual('\x07\x00', xml.encode(a, '<a/>').bytes())
+
+    def test_text_field_with_expected_value(self):
+        a = fld.Field('a', length=32, format=fld.Field.TEXT, constraints=[Equals('abcd')])
+        self.assertEqual('abcd', xml.encode(a, '<a/>').bytes())
+
+    def test_sequence_with_children_and_value(self):
+        a = seq.Sequence('a',
+                [fld.Field('b', length=8, format=fld.Field.INTEGER)],
+                value=parse('${b}'))
+        self.assertEqual('\x05', xml.encode(a, '<a><b>5</b>5</a>').bytes())
+
+    def test_sequenceof_choice(self):
+        a = sof.SequenceOf('a', chc.Choice('b', [
+                fld.Field('b1', length=8, constraints=[Equals(3)]),
+                fld.Field('b2', length=8, constraints=[Equals(5)]),
+                fld.Field('b3', length=8, constraints=[Equals(7)]),
+                ]), count=3)
+        self.assertEqual('\x03\x05\x07', xml.encode(a, '<a><b1/><b2/><b3/></a>').bytes())
 
