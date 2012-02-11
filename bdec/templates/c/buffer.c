@@ -85,16 +85,16 @@ static void appendFloatBuffer(const unsigned char source[], int numBytes, enum E
 
 double decodeFloat(BitBuffer* data, enum Encoding encoding)
 {
-    assert(data->num_bits == 32);
     union FloatConversion conv;
+    assert(data->num_bits == 32);
     convertEndian(encoding, conv.buffer, data);
     return conv.floatValue;
 }
 
 double decodeDouble(BitBuffer* data, enum Encoding encoding)
 {
-    assert(data->num_bits == 64);
     union FloatConversion conv;
+    assert(data->num_bits == 64);
     convertEndian(encoding, conv.buffer, data);
     return conv.doubleValue;
 }

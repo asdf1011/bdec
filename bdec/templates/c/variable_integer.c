@@ -63,13 +63,16 @@ uint64_t get_long_integer(const BitBuffer* buffer)
 unsigned int decode_integer(BitBuffer* buffer, int num_bits)
 {
     unsigned int result = 0;
+    unsigned char mask;
+    int bits_used;
+    unsigned int unused_trailing_bits;
+    unsigned int data;
     while (num_bits > 0)
     {
         assert(buffer->num_bits > 0);
 
         /* We need to mask the higher and lower bits we don't care about */
-        unsigned char mask = 0xFF >> buffer->start_bit;
-        int bits_used;// = 8 - buffer->start_bit;
+        mask = 0xFF >> buffer->start_bit;
         if (buffer->start_bit + num_bits > 8)
         {
             bits_used = 8 - buffer->start_bit;
@@ -78,8 +81,8 @@ unsigned int decode_integer(BitBuffer* buffer, int num_bits)
         {
             bits_used = num_bits;
         }
-        unsigned int unused_trailing_bits = 8 - bits_used - buffer->start_bit;
-        unsigned int data = (buffer->buffer[0] & mask) >> unused_trailing_bits;
+        unused_trailing_bits = 8 - bits_used - buffer->start_bit;
+        data = (buffer->buffer[0] & mask) >> unused_trailing_bits;
 
         buffer->start_bit += bits_used;
         buffer->num_bits -= bits_used;
@@ -110,12 +113,12 @@ uint64_t decode_long_integer(BitBuffer* buffer, int num_bits)
 
 unsigned int decode_little_endian_integer(BitBuffer* buffer, int num_bits)
 {
+    int i;
+    unsigned int result = 0;
+
     /* Little endian conversion only works for fields that are a multiple
        of 8 bits. */
     assert(num_bits % 8  == 0);
-
-    int i;
-    unsigned int result = 0;
     for (i = 0; i < num_bits / 8; ++i)
     {
         result |= decode_integer(buffer, 8) << (i * 8);
@@ -125,15 +128,16 @@ unsigned int decode_little_endian_integer(BitBuffer* buffer, int num_bits)
 
 uint64_t decode_long_little_endian_integer(BitBuffer* buffer, int num_bits)
 {
+    int i;
+    uint64_t result = 0;
+    uint64_t value;
+
     /* Little endian conversion only works for fields that are a multiple
        of 8 bits. */
     assert(num_bits % 8  == 0);
-
-    int i;
-    uint64_t result = 0;
     for (i = 0; i < num_bits / 8; ++i)
     {
-        uint64_t value = decode_integer(buffer, 8);
+        value = decode_integer(buffer, 8);
         result |= value << (i * 8);
     }
     return result;
@@ -174,10 +178,14 @@ void print_escaped_string(const Text* text)
 
 void encode_big_endian_integer(unsigned int value, int num_bits, struct EncodedData* result)
 {
+    char* buffer;
+    int shiftDistance;
+    int isFirstByteOverlapping;
+
     ensureEncodeSpace(result, num_bits);
-    char* buffer = &result->buffer[result->num_bits / 8];
-    int shiftDistance = num_bits - (8 - result->num_bits % 8);
-    int isFirstByteOverlapping = (result->num_bits % 8 != 0);
+    buffer = &result->buffer[result->num_bits / 8];
+    shiftDistance = num_bits - (8 - result->num_bits % 8);
+    isFirstByteOverlapping = (result->num_bits % 8 != 0);
     if (shiftDistance >= 0)
     {
         if (isFirstByteOverlapping)
@@ -221,11 +229,12 @@ void encode_little_endian_integer(unsigned int value, int num_bits, struct Encod
 
 void encode_long_big_endian_integer(uint64_t value, int num_bits, struct EncodedData* result)
 {
+    unsigned int upper;
     if (num_bits > 32)
     {
         /* Encode the highest four bytes */
         num_bits -= 32;
-        unsigned int upper = value >> num_bits;
+        upper = value >> num_bits;
         encode_big_endian_integer(upper, 32, result);
         value -= ((uint64_t)upper) << num_bits;
     }

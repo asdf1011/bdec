@@ -41,8 +41,19 @@ int main(int argc, char* argv[])
     int i;
 %if generate_encoder:
     char* encodeFilename = 0;
+    struct EncodedData encodedData = {0};
+    FILE* output;
 %endif
     int should_print_xml = 1;
+    BitBuffer buffer;
+    char* filename;
+    FILE* datafile;
+    long int length;
+    unsigned char* data;
+  %if contains_data(protocol):
+    ${settings.ctype(protocol)} result;
+  %endif
+
     for (i = 1; i < argc; ++i)
     {
         if (argv[i][0] == '-')
@@ -89,8 +100,8 @@ int main(int argc, char* argv[])
         usage(argv[0]);
         return 1;
     }
-    char* filename = argv[i];
-    FILE* datafile = fopen(filename, "rb");
+    filename = argv[i];
+    datafile = fopen(filename, "rb");
     if (datafile == 0)
     {
         /* Failed to open file */
@@ -98,11 +109,11 @@ int main(int argc, char* argv[])
         return 2;
     }
     fseek(datafile, 0, SEEK_END);
-    long int length = ftell(datafile);
+    length = ftell(datafile);
     fseek(datafile, 0, SEEK_SET);
 
     /* Load the data file into memory */
-    unsigned char* data = (unsigned char*)malloc(length);
+    data = (unsigned char*)malloc(length);
     if (fread(data, length, 1, datafile) != 1 && length != 0)
     {
         fprintf(stderr, "Failed to read from file '%s'!\n", filename);
@@ -113,12 +124,10 @@ int main(int argc, char* argv[])
     fclose(datafile);
 
     /* Attempt to decode the file */
-    BitBuffer buffer;
     buffer.buffer = data;
     buffer.start_bit = 0;
     buffer.num_bits = length * 8;
   %if contains_data(protocol):
-    ${settings.ctype(protocol)} result;
     if (!${settings.decode_name(protocol)}(&buffer, &result))
   %else:
     if (!${settings.decode_name(protocol)}(&buffer))
@@ -144,7 +153,6 @@ int main(int argc, char* argv[])
   %if generate_encoder:
     if (encodeFilename != 0)
     {
-        struct EncodedData encodedData = {0};
       %if contains_data(protocol):
           %if not settings.is_numeric(settings.ctype(protocol)):
         if (!${settings.encode_name(protocol)}(&encodedData, &result))
@@ -163,7 +171,7 @@ int main(int argc, char* argv[])
             free(data);
             return 4;
         }
-        FILE* output = fopen(encodeFilename, "wb");
+        output = fopen(encodeFilename, "wb");
         if (!output)
         {
             fprintf(stderr, "Failed to open '%s'; %s\n", encodeFilename, strerror(errno));
