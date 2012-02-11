@@ -77,7 +77,10 @@
     <% assert isinstance(expected, Constant) %>
     <% padding_len = (8 - len(expected.value) % 8) if len(expected.value) % 8 <  8 else 0 %>
     <% data = expected.value + Data('\x00', 0, padding_len) %>
-    BitBuffer expected = {(unsigned char*)${settings.c_string(data.bytes())}, 0, ${len(expected.value)}};
+    BitBuffer expected;
+    expected.buffer = (unsigned char*)${settings.c_string(data.bytes())};
+    expected.start_bit = 0;
+    expected.num_bits = ${len(expected.value)};
     int isMatch = 1;
     BitBuffer actual = ${value};
     while (expected.num_bits > 0)
@@ -559,7 +562,10 @@ ${static}void ${settings.print_name(entry)}(unsigned int offset, const char* nam
         <% iter_name = variable(entry.name + ' whitespace counter') %>
         %if settings.is_numeric(settings.ctype(entry)):
           <% length = EntryLengthType(entry).range(raw_params).min %>
-    BitBuffer ${copy_name} = {data, 8 - ${length}, ${length}};
+    BitBuffer ${copy_name};
+    ${copy_name}.buffer = data;
+    ${copy_name}.start_bit = 8 - ${length};
+    ${copy_name}.num_bits = ${length};
         %else:
     BitBuffer ${copy_name} = *data;
         %endif
@@ -731,9 +737,15 @@ ${recursivePrint(entry, False)}
                 <% endian = 'big' if entry.encoding == Field.BIG_ENDIAN else 'little' %>
                 <% length = settings.value(entry, entry.length) %>
     char tempBuffer[(${length} + 7) / 8];
-    struct EncodedData binaryValue = {tempBuffer, 0, (${length} + 7) / 8};
+    struct EncodedData binaryValue;
+    binaryValue.buffer = tempBuffer;
+    binaryValue.start_bit = 0;
+    binaryValue.num_bits = (${length} + 7) / 8;
     encode_${long_name}${endian}_endian_integer(${name}, ${length}, &binaryValue);
-    BitBuffer ${value_name} = {(unsigned char*)binaryValue.buffer, 0, ${length}};
+    BitBuffer ${value_name};
+    ${value_name}.buffer= (unsigned char*)binaryValue.buffer;
+    ${value_name}.start_bit = 0;
+    ${value_name}.num_bits = ${length};
             %endif
         %else:
             ## This entry doesn't have a known value; mock it.
@@ -750,7 +762,10 @@ ${recursivePrint(entry, False)}
     %elif entry.format == Field.BINARY:
       %if settings.is_numeric(settings.ctype(entry)):
         <% length = EntryLengthType(entry).range(raw_params).min %>
-    BitBuffer copy = {&${value_name}, 8 - ${length}, ${length}};
+    BitBuffer copy;
+    copy.buffer = &${value_name};
+    copy.start_bit = 8 - ${length};
+    copy.num_bits = ${length};
       %else:
     BitBuffer copy = ${value_name};
       %endif

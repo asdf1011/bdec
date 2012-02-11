@@ -113,7 +113,10 @@ int main(int argc, char* argv[])
     fclose(datafile);
 
     /* Attempt to decode the file */
-    BitBuffer buffer = {data, 0, length * 8};
+    BitBuffer buffer;
+    buffer.buffer = data;
+    buffer.start_bit = 0;
+    buffer.num_bits = length * 8;
   %if contains_data(protocol):
     ${settings.ctype(protocol)} result;
     if (!${settings.decode_name(protocol)}(&buffer, &result))

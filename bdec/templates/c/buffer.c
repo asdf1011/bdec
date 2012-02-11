@@ -165,19 +165,28 @@ void appendBitBuffer(struct EncodedData* result, const BitBuffer* data)
 
 void appendText(struct EncodedData* result, const Text* value)
 {
-    BitBuffer copy = {(unsigned char*)value->buffer, 0, value->length * 8};
+    BitBuffer copy;
+    copy.buffer = (unsigned char*)value->buffer;
+    copy.start_bit = 0;
+    copy.num_bits = value->length * 8;
     appendBitBuffer(result, &copy);
 }
 
 void appendBuffer(struct EncodedData* result, const Buffer* value)
 {
-    BitBuffer copy = {value->buffer, 0, value->length * 8};
+    BitBuffer copy;
+    copy.buffer = value->buffer;
+    copy.start_bit = 0;
+    copy.num_bits = value->length * 8;
     appendBitBuffer(result, &copy);
 }
 
 void appendEncodedBuffer(struct EncodedData* result, const struct EncodedData* value)
 {
-    BitBuffer temp = {(unsigned char*)value->buffer, 0, value->num_bits};
+    BitBuffer temp;
+    temp.buffer = (unsigned char*)value->buffer;
+    temp.start_bit = 0;
+    temp.num_bits = value->num_bits;
     appendBitBuffer(result, &temp);
 }
 
