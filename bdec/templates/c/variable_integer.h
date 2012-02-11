@@ -52,26 +52,26 @@ extern "C" {
 
 /* Convert a buffer to a big endian integer */
 unsigned int get_integer(const BitBuffer* buffer);
-unsigned long long get_long_integer(const BitBuffer* buffer);
+uint64_t get_long_integer(const BitBuffer* buffer);
 
 /* Both functions decode an integer from the buffer. There
    must be enough data available. */
 unsigned int decode_integer(BitBuffer* buffer, int num_bits);
-unsigned long long decode_long_integer(BitBuffer* buffer, int num_bits);
+uint64_t decode_long_integer(BitBuffer* buffer, int num_bits);
 unsigned int decode_little_endian_integer(BitBuffer* buffer, int num_bits);
-unsigned long long decode_long_little_endian_integer(BitBuffer* buffer, int num_bits);
+uint64_t decode_long_little_endian_integer(BitBuffer* buffer, int num_bits);
 
 /* Encode a big endian integer */
 void encode_big_endian_integer(unsigned int value, int num_bits, struct EncodedData* result);
 void encode_little_endian_integer(unsigned int value, int num_bits, struct EncodedData* result);
-void encode_long_big_endian_integer(unsigned long long value, int num_bits, struct EncodedData* result);
-void encode_long_little_endian_integer(unsigned long long value, int num_bits, struct EncodedData* result);
+void encode_long_big_endian_integer(uint64_t value, int num_bits, struct EncodedData* result);
+void encode_long_little_endian_integer(uint64_t value, int num_bits, struct EncodedData* result);
 
 /* Helper function to print an xml escaped string */
 void print_escaped_string(const Text* text);
 
 /* Divide with round towards either negative infinity or postive infinity. */
-long long ${'divide with rounding' | function}(long long numerator, long long denominator, int should_round_up);
+int64_t ${'divide with rounding' | function}(int64_t numerator, int64_t denominator, int should_round_up);
 /* TODO: Add a normal width integer version of this function... */
 
 #ifdef __cplusplus

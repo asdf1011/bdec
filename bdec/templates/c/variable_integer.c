@@ -53,7 +53,7 @@ unsigned int get_integer(const BitBuffer* buffer)
     return decode_integer(&temp, temp.num_bits);
 }
 
-unsigned long long get_long_integer(const BitBuffer* buffer)
+uint64_t get_long_integer(const BitBuffer* buffer)
 {
     /* We'll just create a copy of the buffer, and decode it's value. */
     BitBuffer temp = *buffer;
@@ -95,9 +95,9 @@ unsigned int decode_integer(BitBuffer* buffer, int num_bits)
     return result;
 }
 
-unsigned long long decode_long_integer(BitBuffer* buffer, int num_bits)
+uint64_t decode_long_integer(BitBuffer* buffer, int num_bits)
 {
-    unsigned long long result = 0;
+    uint64_t result = 0;
     while (num_bits > 0)
     {
         int size = num_bits > 32 ? 32 : num_bits;
@@ -123,17 +123,17 @@ unsigned int decode_little_endian_integer(BitBuffer* buffer, int num_bits)
     return result;
 }
 
-unsigned long long decode_long_little_endian_integer(BitBuffer* buffer, int num_bits)
+uint64_t decode_long_little_endian_integer(BitBuffer* buffer, int num_bits)
 {
     /* Little endian conversion only works for fields that are a multiple
        of 8 bits. */
     assert(num_bits % 8  == 0);
 
     int i;
-    unsigned long long result = 0;
+    uint64_t result = 0;
     for (i = 0; i < num_bits / 8; ++i)
     {
-        unsigned long long value = decode_integer(buffer, 8);
+        uint64_t value = decode_integer(buffer, 8);
         result |= value << (i * 8);
     }
     return result;
@@ -219,7 +219,7 @@ void encode_little_endian_integer(unsigned int value, int num_bits, struct Encod
     }
 }
 
-void encode_long_big_endian_integer(unsigned long long value, int num_bits, struct EncodedData* result)
+void encode_long_big_endian_integer(uint64_t value, int num_bits, struct EncodedData* result)
 {
     if (num_bits > 32)
     {
@@ -227,12 +227,12 @@ void encode_long_big_endian_integer(unsigned long long value, int num_bits, stru
         num_bits -= 32;
         unsigned int upper = value >> num_bits;
         encode_big_endian_integer(upper, 32, result);
-        value -= ((unsigned long long)upper) << num_bits;
+        value -= ((uint64_t)upper) << num_bits;
     }
     encode_big_endian_integer(value, num_bits, result);
 }
 
-void encode_long_little_endian_integer(unsigned long long value, int num_bits, struct EncodedData* result)
+void encode_long_little_endian_integer(uint64_t value, int num_bits, struct EncodedData* result)
 {
     int i;
     for (i = 0; i < num_bits / 8; ++i)
@@ -242,10 +242,10 @@ void encode_long_little_endian_integer(unsigned long long value, int num_bits, s
     }
 }
 
-long long ${'divide with rounding' | function}(long long numerator, long long denominator, int should_round_up)
+int64_t ${'divide with rounding' | function}(int64_t numerator, int64_t denominator, int should_round_up)
 {
-    long long result = numerator / denominator;
-    long long remainder = numerator % denominator;
+    int64_t result = numerator / denominator;
+    int64_t remainder = numerator % denominator;
     if (remainder != 0)
     {
         if ((numerator < 0 && denominator > 0) || (numerator > 0 && denominator < 0))
