@@ -38,7 +38,7 @@ enum Encoding getMachineEncoding()
     } u;
     u.l = 1;
 
-    // Derived from http://stackoverflow.com/questions/280162/is-there-a-way-to-do-a-c-style-compile-time-assertion-to-determine-machines-en
+    /* Derived from http://stackoverflow.com/questions/280162/is-there-a-way-to-do-a-c-style-compile-time-assertion-to-determine-machines-en */
     return u.c[0] == 1 ? BDEC_LITTLE_ENDIAN : BDEC_BIG_ENDIAN;
 }
 
@@ -118,17 +118,18 @@ void ensureEncodeSpace(struct EncodedData* buffer, int numBits)
     int numBitsRequired = numBits + buffer->num_bits;
     if (numBitsRequired > buffer->allocated_length_bytes * 8)
     {
-        // We need to allocate more room for this data. This logic is an
-        // attempt to avoid too many large allocations, while at the same
-        // time avoiding a excessive amount of reallocations. It isn't based
-        // on measurements, just on purely subjective guesses.
-        //
-        // FIXME: Profile the allocation sizes for a series of protocols to
-        // improve the re-allocation logic... if we're allocating a lot of
-        // small buffers using a built-in buffer in the EncodedBuffer instance
-        // may be a good idea. Another option may be chaining multiple
-        // allocation buffers using some sort of reference counting scheme.
-        // Note that we don't need random access into the allocated buffer...
+        /* We need to allocate more room for this data. This logic is an
+         * attempt to avoid too many large allocations, while at the same
+         * time avoiding a excessive amount of reallocations. It isn't based
+         * on measurements, just on purely subjective guesses.
+         *
+         * FIXME: Profile the allocation sizes for a series of protocols to
+         * improve the re-allocation logic... if we're allocating a lot of
+         * small buffers using a built-in buffer in the EncodedBuffer instance
+         * may be a good idea. Another option may be chaining multiple
+         * allocation buffers using some sort of reference counting scheme.
+         * Note that we don't need random access into the allocated buffer...
+         */
         int numBytesRequired = numBitsRequired / 8 + 1;
         if (numBytesRequired > 100000)
         {

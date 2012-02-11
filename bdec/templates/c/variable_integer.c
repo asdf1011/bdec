@@ -48,14 +48,14 @@
 
 unsigned int get_integer(const BitBuffer* buffer)
 {
-    // We'll just create a copy of the buffer, and decode it's value.
+    /* We'll just create a copy of the buffer, and decode it's value. */
     BitBuffer temp = *buffer;
     return decode_integer(&temp, temp.num_bits);
 }
 
 unsigned long long get_long_integer(const BitBuffer* buffer)
 {
-    // We'll just create a copy of the buffer, and decode it's value.
+    /* We'll just create a copy of the buffer, and decode it's value. */
     BitBuffer temp = *buffer;
     return decode_long_integer(&temp, temp.num_bits);
 }
@@ -67,7 +67,7 @@ unsigned int decode_integer(BitBuffer* buffer, int num_bits)
     {
         assert(buffer->num_bits > 0);
 
-        // We need to mask the higher and lower bits we don't care about
+        /* We need to mask the higher and lower bits we don't care about */
         unsigned char mask = 0xFF >> buffer->start_bit;
         int bits_used;// = 8 - buffer->start_bit;
         if (buffer->start_bit + num_bits > 8)
@@ -110,8 +110,8 @@ unsigned long long decode_long_integer(BitBuffer* buffer, int num_bits)
 
 unsigned int decode_little_endian_integer(BitBuffer* buffer, int num_bits)
 {
-    // Little endian conversion only works for fields that are a multiple
-    // of 8 bits.
+    /* Little endian conversion only works for fields that are a multiple
+       of 8 bits. */
     assert(num_bits % 8  == 0);
 
     int i;
@@ -125,8 +125,8 @@ unsigned int decode_little_endian_integer(BitBuffer* buffer, int num_bits)
 
 unsigned long long decode_long_little_endian_integer(BitBuffer* buffer, int num_bits)
 {
-    // Little endian conversion only works for fields that are a multiple
-    // of 8 bits.
+    /* Little endian conversion only works for fields that are a multiple
+       of 8 bits. */
     assert(num_bits % 8  == 0);
 
     int i;
@@ -146,8 +146,8 @@ void print_escaped_string(const Text* text)
     for (i = 0; i < text->length; ++i)
     {
         c = text->buffer[i];
-        // The list of 'safe' xml characters is from
-        // http://www.w3.org/TR/REC-xml/#NT-Char
+        /* The list of 'safe' xml characters is from
+           http://www.w3.org/TR/REC-xml/#NT-Char */
         if (c == '<')
         {
             printf("&lt;");
@@ -166,7 +166,7 @@ void print_escaped_string(const Text* text)
         }
         else
         {
-            // This character cannot be safely represent in xml
+            /* This character cannot be represented in xml */
             putc('?', stdout);
         }
     }
@@ -183,18 +183,18 @@ void encode_big_endian_integer(unsigned int value, int num_bits, struct EncodedD
         if (isFirstByteOverlapping)
         {
             isFirstByteOverlapping = 0;
-            // We need to OR the first byte (to fill the first byte)
+            /* We need to OR the first byte (to fill the first byte) */
             *(buffer++) |= (value >> shiftDistance) & 0xFF;
             shiftDistance -= 8;
         }
-        // We can now proceed to write whole bytes to the output
+        /* We can now proceed to write whole bytes to the output */
         while (shiftDistance >= 0)
         {
             *(buffer++) = (value >> shiftDistance) & 0xFF;
             shiftDistance -= 8;
         }
     }
-    // If we still have data left, it needs to be shifted to the left
+    /* If we still have data left, it needs to be shifted to the left */
     if (shiftDistance > -8)
     {
         if (!isFirstByteOverlapping)
@@ -223,7 +223,7 @@ void encode_long_big_endian_integer(unsigned long long value, int num_bits, stru
 {
     if (num_bits > 32)
     {
-        // Encode the highest four bytes
+        /* Encode the highest four bytes */
         num_bits -= 32;
         unsigned int upper = value >> num_bits;
         encode_big_endian_integer(upper, 32, result);
@@ -250,8 +250,8 @@ long long ${'divide with rounding' | function}(long long numerator, long long de
     {
         if ((numerator < 0 && denominator > 0) || (numerator > 0 && denominator < 0))
         {
-            // C division is round towards zero, but this function implements round
-            // towards negative infinity...
+            /* C division is round towards zero, but this function implements round
+               towards negative infinity... */
             --result;
         }
     }

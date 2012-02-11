@@ -313,7 +313,7 @@
       %if entry.end_entries:
     if (!${'should end'|variable})
     {
-        // The data finished without receiving an 'end sequence'!
+        /* The data finished without receiving an 'end sequence'! */
         %if contains_data(entry):
         ${settings.free_name(entry)}(result);
         %endif
@@ -791,7 +791,7 @@ ${recursivePrint(entry, False)}
     %endfor
     if (${remainder} != 0)
     {
-        // We failed to solve this expression...
+        /* We failed to solve this expression... */
         return 0;
     }
 </%def>

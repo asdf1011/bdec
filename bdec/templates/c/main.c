@@ -77,7 +77,7 @@ int main(int argc, char* argv[])
         }
         else
         {
-            // We've found the first argument
+            /* We've found the first argument */
             break;
         }
     }
