@@ -471,7 +471,7 @@ def c_string(data):
     """Return a correctly quoted c-style string for an arbitrary binary string."""
     return '"%s"' % ''.join(_c_repr(char) for char in data)
 
-def _get_equals(entry):
+def get_equals(entry):
     for constraint in entry.constraints:
         if isinstance(constraint, Equals):
             return constraint.limit
@@ -507,9 +507,9 @@ def get_sequence_value(entry):
         # All of the components of this entrie's value are being passed in (ie:
         # we can determine its value)
         value_name = value(entry, entry.value)
-    elif _get_equals(entry) is not None:
+    elif get_equals(entry) is not None:
         # This entry has an expected value
-        value_name = value(entry, _get_equals(entry))
+        value_name = value(entry, get_equals(entry))
     else:
         # We cannot determine the value of this entry! It's probably being
         # derived from child values.
@@ -519,67 +519,10 @@ def get_sequence_value(entry):
         value_name = value(entry, entry.value)
     return value_name, should_solve
 
-def get_expected(entry):
-    expected = _get_equals(entry)
-    if expected is not None:
-        if settings.is_numeric(settings.ctype(entry)):
-            return value(entry, expected)
-        elif entry.format == fld.Field.TEXT:
-            return '{%s, %i}' % (c_string(expected.value), len(expected.value))
-        elif entry.format == fld.Field.BINARY:
-            # This is a bitbuffer type; add leading null bytes so we can
-            # represent it in bytes.
-            null = Data('\x00', 0, 8 - (len(expected.value) % 8))
-            data = null + expected.value
-            result = '{(unsigned char*)%s, %i, %i}' % (
-                    c_string(data.bytes()), len(null),
-                    len(data) - len(null))
-            return result
-        elif entry.format == fld.Field.HEX:
-            result = '{(unsigned char*)%s, %i}' % (
-                    c_string(expected.value.bytes()), len(expected.value) / 8)
-            return result
-        else:
-            raise Exception("Don't know how to define a constant for %s!" % entry)
-
 def _is_length_known(entry):
     inputs = [p.name for p in raw_encode_params.get_params(entry) if p.direction == p.IN]
     constant, components = solve_expression(entry.length, entry.length, entry, raw_decode_params, inputs)
     return len(components) == 0
-
-def get_null_mock_value(entry):
-    """Get a mock value for the given entry.
-
-    Returns a (mock string, should_free_buffer) tuple."""
-    should_free_buffer = False
-    if settings.is_numeric(settings.ctype(entry)):
-        return 0, should_free_buffer
-
-    try:
-        # If this entry has a fixed (known) length, just allocate a null
-        # buffer on the stack.
-        length = entry.length.evaluate({})
-        data = '"\\000"' * ((length + 7) / 8)
-    except UndecodedReferenceError:
-        if _is_length_known(entry):
-            # There is an explicit length for this entry.
-            length = value(entry, entry.length, encode_params)
-            data = "calloc((%s) / 8, 1)" % length
-            should_free_buffer = True
-        else:
-            # The length isn't known; just default it to zero.
-            length = 0
-            data = '""'
-    if entry.format == fld.Field.TEXT:
-        value_text = '{%s, (%s) / 8}' % (data, length)
-    elif entry.format == fld.Field.HEX:
-        value_text = '{(unsigned char*)%s, (%s) / 8}' % (data, length)
-    elif entry.format == fld.Field.BINARY:
-        value_text = '{(unsigned char*)%s, 0, %s}' % (data, length)
-    else:
-        raise Exception("Don't know how to define a constant for %s!" % entry)
-    return value_text, should_free_buffer
-
 
 def is_empty_sequenceof(entry):
     return isinstance(entry, SequenceOf) and not contains_data(entry)
