@@ -751,7 +751,7 @@ ${recursivePrint(entry, False)}
             %if settings.is_numeric(settings.ctype(entry)):
     ${value_name} = ${settings.value(entry, expected)};
             %elif entry.format == fld.Field.TEXT:
-    ${value_name}.buffer = ${settings.c_string(expected.value)};
+    ${value_name}.buffer = (char*)${settings.c_string(expected.value)};
     ${value_name}.length = ${len(expected.value)};
             %elif entry.format == fld.Field.BINARY:
                 <%
