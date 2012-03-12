@@ -50,6 +50,7 @@ from bdec.constraints import Equals
 from bdec.data import Data
 from bdec.encode import get_encoder
 from bdec.entry import Entry
+from bdec.inspect.range import Range
 from bdec.inspect.solver import solve_expression
 import bdec.field as fld
 import bdec.sequence as seq
@@ -190,6 +191,16 @@ def ctype(variable):
         return _integer_type(variable)
     else:
         raise Exception("Unknown parameter type '%s'!" % variable)
+
+def sequenceof_count_ctype(entry):
+    assert isinstance(entry, SequenceOf)
+    assert len(entry.children) == 1
+    if entry.count is not None:
+        return type_from_range(expression_range(entry.count, entry, raw_params))
+    if entry.length is not None:
+        return type_from_range(expression_range(entry.length / EntryLengthType(entry.children[0])))
+    # No count, no type, so use the longest possible.
+    return type_from_range(Range(0, None))
 
 def _get_param_string(params):
     result = ""

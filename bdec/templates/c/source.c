@@ -258,8 +258,8 @@
 
     %if entry.count is not None:
     ## There is a 'count' avaiable; use that to allocate the buffer up front.
-    <% local_vars.append(('unsigned int', 'i')) %>
-    <% local_vars.append(('unsigned int', 'num_items')) %>
+    <% local_vars.append((settings.sequenceof_count_ctype(entry), 'i')) %>
+    <% local_vars.append((settings.sequenceof_count_ctype(entry), 'num_items')) %>
     num_items = ${settings.value(entry, entry.count)};
       %if contains_data(entry):
     result->count = num_items;
@@ -276,7 +276,7 @@
     %else:
       ## There isn't a count, so keep decoding until we run out of data.
       %if contains_data(entry):
-    <% local_vars.append(('unsigned int', 'i')) %>
+    <% local_vars.append((settings.sequenceof_count_ctype(entry), 'i')) %>
         %if child_contains_data(entry.children[0]):
     result->items = 0;
         %endif
@@ -307,7 +307,7 @@
         if (${validate_end}!${settings.decode_name(entry.children[0].entry)}(buffer${settings.decode_passed_params(entry, 0, '&result->items[i]')}))
         {
       %if child_contains_data(entry.children[0]):
-            <% local_vars.append(('unsigned int', 'j')) %>
+            <% local_vars.append((settings.sequenceof_count_ctype(entry), 'j')) %>
             for (j=0; j< i; ++j)
             {
                 ${settings.free_name(entry.children[0].entry)}(&result->items[j]);
@@ -418,7 +418,7 @@ ${static}void ${settings.free_name(entry)}(${settings.ctype(entry)}* value)
     %endfor
   %elif isinstance(entry, SequenceOf):
     %if child_contains_data(entry.children[0]):
-    unsigned int i;
+    ${settings.sequenceof_count_ctype(entry)} i;
     for (i = 0; i < value->count; ++i)
     {
         ${settings.free_name(entry.children[0].entry)}(&value->items[i]);
@@ -634,7 +634,7 @@ ${settings.print_name(child.entry)}(offset + ${offset}, ${'"%s"' % xmlname(child
     printf(${'"<%s>\\n"'}, name);
       %if not is_hidden(entry.children[0].name):
         <% iter_name = variable(entry.name + ' counter') %>
-        <% local_vars.append(('unsigned int', iter_name)) %>
+        <% local_vars.append((settings.sequenceof_count_ctype(entry), iter_name)) %>
     for (${iter_name} = 0; ${iter_name} < data->count; ++${iter_name})
     {
         ${print_child(entry.children[0], '&data->items[%s]' % (iter_name))|ws(8)}
@@ -978,7 +978,7 @@ encode_successful:
 
 <%def name="encodeSequenceof(entry, local_vars)">
     %if contains_data(entry) or entry.count is not None:
-    <% local_vars.append(('int', 'i')) %>
+    <% local_vars.append((settings.sequenceof_count_ctype(entry), 'i')) %>
     i = 0;
     %endif
     %if contains_data(entry):

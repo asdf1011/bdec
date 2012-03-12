@@ -110,7 +110,7 @@ ${settings.ctype(entry)}
     %if child_contains_data(entry.children[0]):
     ${settings.ctype(entry.children[0].entry)}* items;
     %endif
-    unsigned int count;
+    ${settings.sequenceof_count_ctype(entry)} count;
 };
   %endif
 </%def>
