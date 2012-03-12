@@ -198,7 +198,9 @@ def sequenceof_count_ctype(entry):
     if entry.count is not None:
         return type_from_range(expression_range(entry.count, entry, raw_params))
     if entry.length is not None:
-        return type_from_range(expression_range(entry.length / EntryLengthType(entry.children[0])))
+        range = expression_range(entry.length, entry, raw_params) / \
+                EntryLengthType(entry.children[0].entry).range(raw_params)
+        return type_from_range(range)
     # No count, no type, so use the longest possible.
     return type_from_range(Range(0, None))
 
