@@ -127,6 +127,11 @@ class TestRange(unittest.TestCase):
         b = Range(100, 100)
         self.assertEqual(Range(0, 99999999900), a * b)
 
+    def test_divide_none(self):
+        a = Range(0, 10)
+        b = Range(0, None)
+        self.assertEqual(Range(None, None), a / b)
+
 
 class TestRanges(unittest.TestCase):
     def test_initialise(self):

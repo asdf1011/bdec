@@ -1,0 +1,10 @@
+<!-- Test a bug when encoding a sequenceof with a complex child with known length,
+     but without an easy child length. -->
+<protocol>
+    <sequenceof name="a" length="9 * 8">
+        <sequence name="b">
+            <field name="c length:" length="8" />
+            <field name="c" type="text" length="${c length:} * 8" />
+        </sequence>
+    </sequenceof>
+</protocol>

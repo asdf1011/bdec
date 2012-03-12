@@ -185,7 +185,7 @@ class Range:
 
         if other.max == 0:
             maxy = _Infinite()
-        elif other.min is None:
+        elif other.max is None:
             maxy = 0
         else:
             maxy = 1 / decimal.Decimal(other.max)
