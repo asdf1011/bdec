@@ -189,7 +189,7 @@ release='%s' ''' % (version, version))
     os.rename('tempdir/bdec-%s.pdf' % version, target)
     shutil.rmtree('tempdir')
 
-def update_website(version):
+def generate_website_files(version):
     print 'Updating project index...'
 
     pdf_file = os.path.join(project_dir, 'files', 'bdec-%s.pdf' % version)
@@ -221,7 +221,7 @@ def update_website(version):
         sys.exit('Failed to add the updated html_doc_dir')
 
 
-def update_release_tarball(version):
+def create_release_tarball(version):
     os.chdir(root_path)
     destination = os.path.join(project_dir, 'files', 'bdec-%s.tar.gz' % version)
     if os.path.exists(destination):
@@ -456,8 +456,8 @@ def main():
     print shorten_changelog(changelog)
     print
 
-    update_website(version)
-    update_release_tarball(version)
+    generate_website_files(version)
+    create_release_tarball(version)
 
     os.chdir(root_path)
     if has_modifications() and raw_input('Source tree has changes! Stop? [y]') != 'n':
