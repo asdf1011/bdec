@@ -21,7 +21,7 @@
 
         <sequence name="unknown primitive">
             <sequence name="type">
-                <reference name="class" />
+                <reference name="class_" />
                 <field name="primitive:" length="1" value="0x0" />
                 <reference name="tag number" />
             </sequence>
@@ -31,7 +31,7 @@
 
         <sequence name="unknown constructed">
             <sequence name="type">
-                <reference name="class" />
+                <reference name="class_" />
                 <field name="constructed:" length="1" value="0x1" />
                 <reference name="tag number" />
             </sequence>
@@ -198,7 +198,7 @@
             </choice>
         </sequence>
 
-        <choice name="class">
+        <choice name="class_">
             <field name="universal" length="2" value="0x0" />
             <field name="application" length="2" value="0x1" />
             <field name="context-specific" length="2" value="0x2" />

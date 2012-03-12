@@ -662,7 +662,7 @@ ${static}void ${settings.print_name(entry)}(unsigned int offset, const char* nam
       lookup = {Field: printField, Sequence: printSequence,
           Choice: printChoice, SequenceOf: printSequenceOf}
       local_vars = []
-      print_source_code = capture(lookup[entry.__class__], entry, local_vars)
+      print_source_code = capture(lookup[entry.__class__], entry, local_vars) if not is_hidden(entry.name) else ''
       %>
   %for type, name in local_vars:
     ${type} ${name};
