@@ -877,8 +877,11 @@ ${recursivePrint(entry, False)}
     %endif
     %for ref, expr, invert_expr in components:
     <% is_temp, solve_name = solved_name(entry, ref, encode_params) %>
-    <% solve_type = '' if not is_temp else '%s ' % settings.type_from_range(erange(expr, entry, raw_decode_params)) %>
-    ${solve_type}${solve_name} = ${settings.value(entry, invert_expr, encode_params, expression, remainder)};
+    <%
+        if is_temp:
+            local_vars.append((settings.type_from_range(erange(expr, entry, raw_decode_params)), solve_name))
+    %>
+    ${solve_name} = ${settings.value(entry, invert_expr, encode_params, expression, remainder)};
     ${remainder} -= ${settings.value(entry, expr, encode_params, ref_name=solved_name)};
     %endfor
     if (${remainder} != 0)
