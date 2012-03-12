@@ -143,7 +143,7 @@ void ensureEncodeSpace(struct EncodedData* buffer, int numBits)
         {
             numBytesRequired *= 2;
         }
-        buffer->buffer = realloc(buffer->buffer, numBytesRequired);
+        buffer->buffer = (char*)realloc(buffer->buffer, numBytesRequired);
         buffer->allocated_length_bytes = numBytesRequired;
     }
 }
