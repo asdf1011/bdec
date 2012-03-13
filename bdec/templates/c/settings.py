@@ -66,8 +66,8 @@ keywords=['char', 'int', 'short', 'long', 'float', 'if', 'then', 'else', 'struct
 # clash with our types.
 keywords += ['Buffer', 'Text', 'BitBuffer']
 
-unsigned_types = {'unsigned int':(32, '%u'), 'uint64_t':(64, '%llu')}
-signed_types = {'int':(32, '%i'), 'int64_t':(64, '%lli')}
+unsigned_types = {'unsigned int':(32, '%u'), 'uint64_t':(64, '%"PRIu64"')}
+signed_types = {'int':(32, '%i'), 'int64_t':(64, '%"PRIi64"')}
 
 def is_numeric(type):
     if type == 'unsigned char':
@@ -396,9 +396,9 @@ def value(entry, expr, params=None, magic_expression=None, magic_name=None, ref_
       return str(expr)
   elif isinstance(expr, Constant):
       if expr.value >= (1 << 61):
-          return "%iUL" % expr.value
+          return "%iULL" % expr.value
       if expr.value >= (1 << 32):
-          return "%iL" % expr.value
+          return "%iLL" % expr.value
       elif expr.value > (1 << 31):
           return "%iU" % expr.value
       else:

@@ -369,9 +369,9 @@ def create_decoder_classes(base_classes, module):
     module -- the module name the generated classes will part of
     """
     decoders = [
-            _decoder('C', 'c', 'gcc -Wall -Werror -g -o'),
-            _decoder('CPlusPlus', 'c', 'g++ -Wall -Werror -g -pedantic -o'),
-            _decoder('C89', 'c', 'gcc -Wall -Werror -g -std=c89 -pedantic -o'),
+            _decoder('C', 'c', 'gcc -Wall -Werror -g -Wno-long-long -pedantic -o'),
+            _decoder('CPlusPlus', 'c', 'g++ -Wall -Werror -g -Wno-long-long -pedantic -o'),
+            _decoder('C89', 'c', 'gcc -Wall -Werror -g -std=c89 -Wno-long-long -pedantic -o'),
             _PythonDecoder()]
     result = {}
     for base, prefix in base_classes:
