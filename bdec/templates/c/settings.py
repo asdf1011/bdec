@@ -395,11 +395,11 @@ def value(entry, expr, params=None, magic_expression=None, magic_name=None, ref_
   elif isinstance(expr, int):
       return str(expr)
   elif isinstance(expr, Constant):
-      if expr.value >= (1 << 61):
+      if int(expr.value) >= (1 << 61):
           return "%iULL" % expr.value
-      if expr.value >= (1 << 32):
+      if int(expr.value) >= (1 << 32):
           return "%iLL" % expr.value
-      elif expr.value > (1 << 31):
+      elif int(expr.value) > (1 << 31):
           return "%iU" % expr.value
       else:
           return int(expr.value)
