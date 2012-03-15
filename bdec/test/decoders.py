@@ -158,8 +158,11 @@ def compile_and_run(data, details, encode_filename=None):
     """
     files = glob.glob(os.path.join(details.TEST_DIR, '*.%s' % details.LANGUAGE))
     command = details.COMPILER + [details.EXECUTABLE] + files
-    if subprocess.call(command) != 0:
-        raise Exception('Failed to compile!')
+    p = subprocess.Popen(command, stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT)
+    output = p.stdout.read()
+    if p.wait() != 0:
+        raise Exception(output)
 
     if not isinstance(data, str):
         data = data.read()
