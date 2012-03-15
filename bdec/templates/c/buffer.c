@@ -30,7 +30,7 @@ union FloatConversion
     double doubleValue;
 };
 
-enum Encoding getMachineEncoding()
+enum Encoding getMachineEncoding(void)
 {
     union {
         long int l;
