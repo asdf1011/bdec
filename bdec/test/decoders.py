@@ -59,6 +59,7 @@ import shutil
 import subprocess
 import stat
 import StringIO
+import time
 import xml.etree.ElementTree
 
 import bdec
@@ -140,7 +141,22 @@ def generate(spec, common, details, should_check_encoding):
     details -- Object containing information on how and where to compile this
         specification. """
     if os.path.exists(details.TEST_DIR):
-        shutil.rmtree(details.TEST_DIR)
+        # For some reason on Windows it takes some time for the executable
+        # to be freed by the system; we keep on getting
+        #
+        #   WindowsError: [Error 145] The directory is not empty: '...'
+        #
+        # We just wait for a bit, and retry.
+        i = 0
+        while 1:
+            try:
+                shutil.rmtree(details.TEST_DIR)
+                break
+            except OSError:
+                if i > 10:
+                    raise
+                i += 1
+                time.sleep(0.01)
     os.mkdir(details.TEST_DIR)
 
     options = {
@@ -156,8 +172,8 @@ def compile_and_run(data, details, encode_filename=None):
     details -- Contains information on the generated decoder, and how to
         compile it.
     """
-    files = glob.glob(os.path.join(details.TEST_DIR, '*.%s' % details.LANGUAGE))
-    command = details.COMPILER + [details.EXECUTABLE] + files
+    files = glob.glob('*.%s' % details.LANGUAGE)
+    command = details.COMPILER + files
     p = subprocess.Popen(command, stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT)
     output = p.stdout.read()
@@ -167,12 +183,12 @@ def compile_and_run(data, details, encode_filename=None):
     if not isinstance(data, str):
         data = data.read()
 
-    filename = os.path.join(details.TEST_DIR, 'data.bin')
+    filename = 'data.bin'
     datafile = open(filename, 'wb')
     datafile.write(data)
     datafile.close()
 
-    command = [details.EXECUTABLE, '-e', encode_filename, filename]
+    command = ['./decode', '-e', encode_filename, filename]
     if not encode_filename:
         # We don't want to encode; strip out those parameters.
         command = command[0:1] + command[3:4]
@@ -316,14 +332,19 @@ def _check_encoded_data(spec, sourcefile, actual, actual_xml, require_exact_enco
 class _CompiledDecoder(object):
     """Base class for testing decoders that are compiled."""
     TEST_DIR = os.path.join(os.path.dirname(__file__), 'temp')
-    EXECUTABLE = os.path.join(TEST_DIR, 'decode')
     VALGRIND = _get_valgrind()
 
     def decode_file(self, spec, common, data, should_check_encoding=True, require_exact_encoding=False):
         """Return a tuple containing the exit code and the decoded xml."""
         generate(spec, common, self, should_check_encoding)
         encode_filename = os.path.join(self.TEST_DIR, 'encoded.bin') if should_check_encoding else None
-        xml = compile_and_run(data, self, encode_filename)
+
+        old_dir = os.getcwd()
+        os.chdir(self.TEST_DIR)
+        try:
+            xml = compile_and_run(data, self, encode_filename)
+        finally:
+            os.chdir(old_dir)
 
         try:
             _validate_xml(spec, dt.Data(data), xml)
@@ -372,9 +393,10 @@ def create_decoder_classes(base_classes, module):
     module -- the module name the generated classes will part of
     """
     decoders = [
-            _decoder('C', 'c', 'gcc -Wall -Werror -g -Wno-long-long -pedantic -o'),
-            _decoder('CPlusPlus', 'c', 'g++ -Wall -Werror -g -Wno-long-long -pedantic -o'),
-            _decoder('C89', 'c', 'gcc -Wall -Werror -g -std=c89 -Wno-long-long -pedantic -o'),
+            _decoder('C', 'c', 'gcc -Wall -Werror -g -Wno-long-long -pedantic -o decode'),
+            _decoder('CPlusPlus', 'c', 'g++ -Wall -Werror -g -Wno-long-long -pedantic -o decode'),
+            _decoder('C89', 'c', 'gcc -Wall -Werror -g -std=c89 -Wno-long-long -pedantic -o decode'),
+            _decoder('VisualC', 'c', 'cl.exe /TC /W2 /WX /Fedecode.exe'),
             _PythonDecoder()]
     result = {}
     for base, prefix in base_classes:
