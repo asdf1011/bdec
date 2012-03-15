@@ -19,7 +19,7 @@
 #ifndef BIT_BUFFER_HEADER_FILE
 #define BIT_BUFFER_HEADER_FILE
 
-#include <inttypes.h>
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {
