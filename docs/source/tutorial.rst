@@ -11,19 +11,21 @@ image file format.
 Preparation
 -----------
 
-When decoding a format, first we need to find a specification for the file
-type we want to decode. Try searching for 'jpeg specification' or 'png file
-format') on google or wotsit_.
+When decoding a format, first we need a specification for the file type we
+want to decode. Try searching for 'png file specification' or 'png file
+format') on google_ or wotsit_.
 
-These documents can be very large and difficult to understand; they include 
+These documents can be very long and difficult to understand; they include
 information on not only the file format, but also how the data should be
 interpretted. For the purpose of decoding the file, we only care about how the 
 data is represented on disk, so search through the document until you find the 
-section about the on disk format. Finding the section on the header (the first 
-part of the file) is an excellent place to start.
+section about the `on disk format`_.
 
 .. _png: http://www.libpng.org/pub/png/spec/1.1/PNG-Contents.html
-.. _wotsit: http://www.wotsit.org
+.. _google: http://www.google.com/search?q=png+file+specification
+.. _wotsit: http://www.wotsit.org/list.asp?search=png
+.. _on disk format: http://www.libpng.org/pub/png/spec/1.1/PNG-Structure.html
+.. _PNG file signature: http://www.libpng.org/pub/png/spec/1.1/PNG-Structure.html#PNG-file-signature
 
 
 Getting started
@@ -66,7 +68,7 @@ Writing the specification
 -------------------------
 
 We'll start by decoding the header; for example, the png specification has a 
-section 'File structure', where we find out that all png files start with an 8 
+section '`File signature`_', where we find out that all png files start with an 8
 byte signature. ::
 
   <protocol>
@@ -92,6 +94,8 @@ decode, as they won't start with the required signature. Note that the value
 of the signature field isn't displayed in the output xml; this is because as
 the value of the field is implied in the specification; if it wasn't that
 data, decoding would have failed.
+
+.. _File signature: http://www.libpng.org/pub/png/spec/1.1/PNG-Structure.html#PNG-file-signature
 
 
 Updating the specification
@@ -236,8 +240,7 @@ Refining the specification
 --------------------------
 
 Of course, while we are successfully decoding the file, there are still many
-sections in the file that have been left undecoded. Lets flesh some of them 
-out. 
+unknown chunks. Lets decode some of them.
 
 
 Header

@@ -3,39 +3,31 @@
 bdec
 ----
 
-'bdec', a set of tools for decoding binary files.
+'bdec', tools for decoding binary files.
 
 .. contents::
 
+Manually writing decoders for binary formats is a time consuming, frustrating,
+and costly process; it is also the source of many bugs.
 
-Overview
-========
+Using bdec, developers can write specifications for binary formats using
+simple low-level constructs that combine in powerful ways, allowing many binary
+formats to be partially (and often fully) specified. From this specification,
+bdec will generate source code for decoders and encoders.
 
-Writing decoders for binary formats is typically tedious and error prone.
-After reading specification documents, developers have to write code capable
-of decoding that particular format. This is a time consuming, frustrating, and
-costly process; it is also the source of many bugs when the manually written
-decoder fails to handle edge cases.
-
-Bdec allows developers to write specifications for binary formats using
-several simple low-level constructs, which combine in powerful ways to allow
-many binary formats to be partially (often fully) specified. From this
-specification, developers can automatically generate source code for
-decoders and encoders.
-
-While there are other high level specification languages (such as ASN.1, or
-google protocol buffers), few existing formats make use of these languages,
+While other high level specification languages exist (such as ASN.1_, or
+`Google protocol buffers`_), few existing formats make use of these languages,
 and such specification languages cannot usually be retro-fitted to existing
 binary formats.
 
-Bdec can;
+With bdec;
 
- * Allow specifications to be easily written and maintained.
- * Decode both binary and structured text files.
+ * Easily write and maintain specifications.
  * Generate portable, readable, and efficient C decoders and encoders.
- * Run under Windows & Unix operating systems.
+ * Run under Windows and Unix operating systems.
+ * Clear and extensive documentation_.
 
-The bdec specification uses constructs based loosely on those found in ASN.1.
+.. _ASN.1: http://en.wikipedia.org/wiki/Abstract_Syntax_Notation_One
 
 
 Getting started
@@ -43,24 +35,27 @@ Getting started
 
 1. Download_ the latest version.
 2. Go through the tutorial_.
-3. Try writing a specification for your own file formats (referring to the
-   documentation_ where necessary).
-4. Save lots of time and pain by *not* writing and maintaining hand-written 
-   decoders.
-
-
-Documentation
-=============
-
-If you're just getting started, the tutorial_ takes you step by step through
-the different concepts used in bdec. Once you're writing your own
-specifications, refer to the rest of the documentation_ as required.
-
-For convenience, `pdf documentation`_ is also available.
+3. Try writing a specification for your own file formats, referring to the
+   documentation_ where necessary (`pdf documentation`_ is also available).
 
 .. _documentation: docs/
 .. _tutorial: docs/tutorial.html
 .. _pdf documentation: files/bdec-VERSION.pdf
+
+
+Download
+========
+
+The easiest way to install bdec is to use python's easy_install_ application.
+Run::
+
+  easy_install bdec
+
+to install the latest version of the bdec decoder and compiler.
+See the CHANGELOG_ for past releases.
+
+.. _CHANGELOG: changelog.html
+.. _easy_install: http://pypi.python.org/pypi/setuptools#installation-instructions
 
 
 Support
@@ -76,18 +71,17 @@ patient if your question doesn't show up immediately.
 Features
 ========
 
+* Clear and extensive documentation_.
 * It is easy to write (and read) bdec specifications.
-* No need to write a custom decoder (all error conditions are handled 
-  internally; decoding either passes or fails).
-* The command line application allows visual inspection of problematic files.
-* Unicode aware, little-endian / big-endian aware.
-* Decode to xml for rapid development (eg: `xml representation of a fat
+* Generated source code is human readable, easy to use, has no dependencies,
+  and compiles without warnings using Gcc_ and `Microsoft Visual Studio`_.
+* The command line application allows iterative development and visual
+  inspection of problematic files (eg: `xml representation of a fat
   bootsector`_).
-* Specify fields down to the bit (eg: single bit flags).
-* Generated source code is human readable, easy to use, compiles without
-  warnings, and has no dependencies.
 
 .. _xml representation of a FAT bootsector: docs/files/fatbootsector.xml
+.. _gcc: http://gcc.gnu.org/
+.. _Microsoft Visual Studio: http://www.microsoft.com/visualstudio/
 
 
 License
@@ -112,21 +106,6 @@ See COPYRIGHT_ and LICENSE_ for detailed copyright information.
 .. _LICENSE: docs/files/LICENSE
 
 
-Download
-========
-
-The easiest way to install bdec is to use python's easy_install_ application.
-Run::
-
-  easy_install bdec
-
-to install the latest version of the bdec decoder and compiler.
-See the CHANGELOG_ for past releases.
-
-.. _CHANGELOG: changelog.html
-.. _easy_install: http://pypi.python.org/pypi/setuptools#installation-instructions
-
-
 Source
 ======
 
@@ -148,7 +127,7 @@ Some other tools that perform 'generic' binary decoding include;
 
 * TSN.1_ - Commercial product with very similar decoding functionality to bdec.
   Can create C, C++, and Java decoders and encoders.
-* Encodix_ - Commercial product focussed towards decoders for the
+* Encodix_ - Commercial product focussed on decoders for the
   telecommunications industry.
 * Hachoir_ - Tool for inspecting many binary formats.
 
