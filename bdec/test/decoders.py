@@ -394,7 +394,7 @@ def create_decoder_classes(base_classes, module):
     """
     decoders = [
             _decoder('C', 'c', 'gcc -Wall -Werror -g -Wno-long-long -pedantic -o decode'),
-            _decoder('CPlusPlus', 'c', 'g++ -Wall -Werror -g -Wno-long-long -pedantic -o decode'),
+            _decoder('Cpp', 'c', 'g++ -Wall -Werror -g -Wno-long-long -pedantic -o decode'),
             _decoder('C89', 'c', 'gcc -Wall -Werror -g -std=c89 -Wno-long-long -pedantic -o decode'),
             _decoder('VisualC', 'c', 'cl.exe /TC /W2 /WX /Fedecode.exe'),
             _PythonDecoder()]
