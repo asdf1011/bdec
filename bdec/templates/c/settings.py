@@ -66,8 +66,8 @@ keywords=['char', 'int', 'short', 'long', 'float', 'if', 'then', 'else', 'struct
 # clash with our types.
 keywords += ['Buffer', 'Text', 'BitBuffer']
 
-unsigned_types = {'unsigned int':(32, '%u'), 'uint64_t':(64, '%"PRIu64"')}
-signed_types = {'int':(32, '%i'), 'int64_t':(64, '%"PRIi64"')}
+unsigned_types = {'unsigned int':(32, '%u'), 'uint64_t':(64, '%llu')}
+signed_types = {'int':(32, '%i'), 'int64_t':(64, '%lli')}
 
 def is_numeric(type):
     if type == 'unsigned char':
