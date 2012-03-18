@@ -780,14 +780,13 @@ ${recursivePrint(entry, False)}
     ${value_name} = ${name};
             %else:
                 <% long_name = 'long_' if EntryValueType(entry).range(raw_params).max > 0xffffffff else '' %>
-                <% endian = 'big' if entry.encoding == Field.BIG_ENDIAN else 'little' %>
                 <% length = settings.value(entry, entry.length) %>
                 <% local_vars.append(('char', 'tempBuffer[(%s + 7) / 8]' % length)) %>
                 <% local_vars.append(('struct EncodedData', 'binaryValue')) %>
     binaryValue.buffer = tempBuffer;
     binaryValue.num_bits = 0;
     binaryValue.allocated_length_bytes = (${length} + 7) / 8;
-    encode_${long_name}${endian}_endian_integer(${name}, ${length}, &binaryValue);
+    encode_${long_name}big_endian_integer(${name}, ${length}, &binaryValue);
     <% local_vars.append(('BitBuffer', value_name)) %>
     ${value_name}.buffer= (unsigned char*)binaryValue.buffer;
     ${value_name}.start_bit = 0;
