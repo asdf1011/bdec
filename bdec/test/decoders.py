@@ -448,10 +448,10 @@ class _BaseRegressionTest:
         skip = self._get(config, self.decoder.NAME, test_path.lower()) or \
                 self._get(config, 'default', test_path.lower())
 
-        if skip == 'decode':
+        if skip == 'decoding-broken':
             print 'Skipping test.'
             return
-        elif skip == 'encode':
+        elif skip == 'encoding-broken':
             should_encode = False
             require_exact_encoding = True
         elif skip == 'encoding-equivalent':
