@@ -44,7 +44,7 @@
 
 from bdec import DecodeError
 from bdec.constraints import Equals
-from bdec.data import Data, DataError
+from bdec.data import Data, DataError, IntegerTooLongError
 from bdec.field import Field, FieldDataError, BadFormatError, BadEncodingError
 from bdec.encode.entry import EntryEncoder
 from bdec.expression import UndecodedReferenceError
@@ -68,7 +68,38 @@ def _convert_type(entry, data, expected_type):
     except:
         raise BadFormatError(entry, data, expected_type)
 
-def convert_value(entry, value, length):
+def _encode_unknown_variable_length_integer(entry, value, params):
+    # Integers require a specific length of encoding. If one is
+    # not specified, we'll try several lengths until we find one
+    # that fits.
+    #
+    # We only consider lengths that are in the range specified by
+    # the entry length to avoid choosing an out of bounds length.
+    assert params is not None, "Asked to encode a variable length field " \
+            "without parameters. This shouldn't happen."
+    length_range = erange(entry.length, entry, params)
+    def is_valid(length):
+        if length_range.min is not None and length_range.min > length:
+            return False
+        if length_range.max is not None and length_range.max < length:
+            return False
+        return True
+    possible_lengths = [8, 16, 32, 64]
+    for length in (l for l in possible_lengths if is_valid(l)):
+        try:
+            if entry.format != Field.INTEGER or entry.encoding == Field.BIG_ENDIAN:
+                result = Data.from_int_big_endian(value, length)
+                return result
+            else:
+                return Data.from_int_little_endian(value, length)
+        except IntegerTooLongError:
+            # The value didn't fit in this length... try the next
+            # one.
+            pass
+    else:
+        raise VariableIntegerTooLongError(entry, value)
+
+def convert_value(entry, value, length, params=None):
     """Convert a value to the correct type given the entry.
 
     For example, given an integer field, the string '43' would be converted to
@@ -79,7 +110,10 @@ def convert_value(entry, value, length):
             if isinstance(value, Data):
                 value = value.copy()
             elif isinstance(value, int) or isinstance(value, long):
-                value = Data.from_int_big_endian(value, int(length))
+                try:
+                    value = Data.from_int_big_endian(value, int(length))
+                except UndecodedReferenceError:
+                    value = _encode_unknown_variable_length_integer(entry, value, params)
             else:
                 value = Data.from_binary_text(_convert_type(entry, value, str))
         except DataError, ex:
@@ -104,8 +138,8 @@ class _ContextLength:
     def __int__(self):
         return self.length.evaluate(self.context)
 
-def convert_value_context(entry, value, context):
-    return convert_value(entry, value, _ContextLength(entry.length, context))
+def convert_value_context(entry, value, context, params=None):
+    return convert_value(entry, value, _ContextLength(entry.length, context), params)
 
 def _encode_data(entry, value, length):
     if entry.format in (Field.BINARY, Field.HEX):
@@ -205,29 +239,7 @@ class FieldEncoder(EntryEncoder):
         except UndecodedReferenceError, ex:
             # We don't know how long this entry should be.
             if self.entry.format == self.entry.INTEGER:
-                # Integers require a specific length of encoding. If one is
-                # not specified, we'll try several lengths until we find one
-                # that fits.
-                #
-                # We only consider lengths that are in the range specified by
-                # the entry length to avoid choosing an out of bounds length.
-                length_range = erange(self.entry.length, self.entry, self._params)
-                def is_valid(length):
-                    if length_range.min is not None and length_range.min > length:
-                        return False
-                    if length_range.max is not None and length_range.max < length:
-                        return False
-                    return True
-                possible_lengths = [8, 16, 32, 64]
-                for length in (l for l in possible_lengths if is_valid(l)):
-                    try:
-                        return encode_value(self.entry, value, length)
-                    except FieldDataError:
-                        # The value didn't fit in this length... try the next
-                        # one.
-                        pass
-                else:
-                    raise VariableIntegerTooLongError(self.entry, value)
+                return _encode_unknown_variable_length_integer(self.entry, value, self._params)
             else:
                 # All other types (eg: string, binary, hex) have an implicit
                 # length that the encoder can use.
@@ -243,7 +255,7 @@ class FieldEncoder(EntryEncoder):
                 # may be zero length), it's not missing.
                 if value is None or self.entry.format not in [Field.HEX, Field.BINARY, Field.TEXT]:
                     raise
-        return convert_value_context(self.entry, value, context)
+        return convert_value_context(self.entry, value, context, self._params)
 
     def _encode(self, query, value, context):
         yield self._get_data(value, context)
