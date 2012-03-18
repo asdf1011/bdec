@@ -181,10 +181,6 @@ class Constant(Expression):
                 leading_bits = 8 - len(value) % 8
                 value = dt.Data('\x00', start=0, end=leading_bits) + value
             return '0x%s' % value.get_hex()
-        elif isinstance(self.value, int) and self.value % 8 == 0 and \
-                self.value / 8 > 1:
-            # It can be clearer to return numbers in bytes
-            return "%i * 8" % (self.value / 8)
         return str(self.value)
 
 
