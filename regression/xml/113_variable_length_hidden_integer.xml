@@ -2,7 +2,7 @@
     <sequence name="a">
         <sequence name="b:" value="${value:}">
             <field name="len:" length="8" />
-            <field name="value:" length="${len:} * 8" />
+            <field name="value:" type="integer" length="${len:} * 8" />
         </sequence>
         <sequence name="c" value="${b:}" />
     </sequence>

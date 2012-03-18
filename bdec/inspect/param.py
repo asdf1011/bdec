@@ -797,6 +797,14 @@ class EncodeExpressionParameters(_Parameters):
     def is_output_param_used(self, entry, child, param):
         return self.expression_params.is_output_param_used(entry, child, param)
 
+    def is_length_known(self, entry):
+        references = self.expression_params._collect_references(entry.length)
+        for r in references:
+            for p in self.get_params(entry):
+                if r.name == p.name and p.direction == p.OUT:
+                    return False
+        return True
+
     def is_hidden(self, entry):
         return self._hidden_map[entry]
 

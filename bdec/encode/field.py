@@ -68,6 +68,17 @@ def _convert_type(entry, data, expected_type):
     except:
         raise BadFormatError(entry, data, expected_type)
 
+def get_valid_integer_lengths(entry, params):
+    length_range = erange(entry.length, entry, params)
+    def is_valid(length):
+        if length_range.min is not None and length_range.min > length:
+            return False
+        if length_range.max is not None and length_range.max < length:
+            return False
+        return True
+    possible_lengths = [8, 16, 32, 64]
+    return (l for l in possible_lengths if is_valid(l))
+
 def _encode_unknown_variable_length_integer(entry, value, params):
     # Integers require a specific length of encoding. If one is
     # not specified, we'll try several lengths until we find one
@@ -77,15 +88,7 @@ def _encode_unknown_variable_length_integer(entry, value, params):
     # the entry length to avoid choosing an out of bounds length.
     assert params is not None, "Asked to encode a variable length field " \
             "without parameters. This shouldn't happen."
-    length_range = erange(entry.length, entry, params)
-    def is_valid(length):
-        if length_range.min is not None and length_range.min > length:
-            return False
-        if length_range.max is not None and length_range.max < length:
-            return False
-        return True
-    possible_lengths = [8, 16, 32, 64]
-    for length in (l for l in possible_lengths if is_valid(l)):
+    for length in get_valid_integer_lengths(entry, params):
         try:
             if entry.format != Field.INTEGER or entry.encoding == Field.BIG_ENDIAN:
                 result = Data.from_int_big_endian(value, length)

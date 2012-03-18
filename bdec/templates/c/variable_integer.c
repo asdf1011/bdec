@@ -176,11 +176,17 @@ void print_escaped_string(const Text* text)
     }
 }
 
-void encode_big_endian_integer(unsigned int value, int num_bits, struct EncodedData* result)
+int encode_big_endian_integer(unsigned int value, int num_bits, struct EncodedData* result)
 {
     char* buffer;
     int shiftDistance;
     int isFirstByteOverlapping;
+
+    if (num_bits < sizeof(value) * 8 && (value >> num_bits) != 0)
+    {
+        /* This number is too big to store in num_bits. */
+        return 0;
+    }
 
     ensureEncodeSpace(result, num_bits);
     buffer = &result->buffer[result->num_bits / 8];
@@ -215,9 +221,10 @@ void encode_big_endian_integer(unsigned int value, int num_bits, struct EncodedD
         }
     }
     result->num_bits += num_bits;
+    return 1;
 }
 
-void encode_little_endian_integer(unsigned int value, int num_bits, struct EncodedData* result)
+int encode_little_endian_integer(unsigned int value, int num_bits, struct EncodedData* result)
 {
     int i;
     for (i = 0; i < num_bits / 8; ++i)
@@ -225,11 +232,19 @@ void encode_little_endian_integer(unsigned int value, int num_bits, struct Encod
         encode_big_endian_integer(value & 0xFF, 8, result);
         value >>= 8;
     }
+    return value == 0;
 }
 
-void encode_long_big_endian_integer(uint64_t value, int num_bits, struct EncodedData* result)
+int encode_long_big_endian_integer(uint64_t value, int num_bits, struct EncodedData* result)
 {
     unsigned int upper;
+
+    if (num_bits < sizeof(value) * 8 && (value >> num_bits) != 0)
+    {
+        /* This number is too big to store in num_bits. */
+        return 0;
+    }
+
     if (num_bits > 32)
     {
         /* Encode the highest four bytes */
@@ -238,10 +253,10 @@ void encode_long_big_endian_integer(uint64_t value, int num_bits, struct Encoded
         encode_big_endian_integer(upper, 32, result);
         value -= ((uint64_t)upper) << num_bits;
     }
-    encode_big_endian_integer(value, num_bits, result);
+    return encode_big_endian_integer(value, num_bits, result);
 }
 
-void encode_long_little_endian_integer(uint64_t value, int num_bits, struct EncodedData* result)
+int encode_long_little_endian_integer(uint64_t value, int num_bits, struct EncodedData* result)
 {
     int i;
     for (i = 0; i < num_bits / 8; ++i)
@@ -249,6 +264,7 @@ void encode_long_little_endian_integer(uint64_t value, int num_bits, struct Enco
         encode_big_endian_integer(value & 0xFF, 8, result);
         value >>= 8;
     }
+    return value == 0;
 }
 
 int64_t ${'divide with rounding' | function}(int64_t numerator, int64_t denominator, int should_round_up)

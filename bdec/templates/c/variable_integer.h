@@ -62,10 +62,10 @@ unsigned int decode_little_endian_integer(BitBuffer* buffer, int num_bits);
 uint64_t decode_long_little_endian_integer(BitBuffer* buffer, int num_bits);
 
 /* Encode a big endian integer */
-void encode_big_endian_integer(unsigned int value, int num_bits, struct EncodedData* result);
-void encode_little_endian_integer(unsigned int value, int num_bits, struct EncodedData* result);
-void encode_long_big_endian_integer(uint64_t value, int num_bits, struct EncodedData* result);
-void encode_long_little_endian_integer(uint64_t value, int num_bits, struct EncodedData* result);
+int encode_big_endian_integer(unsigned int value, int num_bits, struct EncodedData* result);
+int encode_little_endian_integer(unsigned int value, int num_bits, struct EncodedData* result);
+int encode_long_big_endian_integer(uint64_t value, int num_bits, struct EncodedData* result);
+int encode_long_little_endian_integer(uint64_t value, int num_bits, struct EncodedData* result);
 
 /* Helper function to print an xml escaped string */
 void print_escaped_string(const Text* text);

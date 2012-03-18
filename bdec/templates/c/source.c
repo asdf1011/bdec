@@ -4,7 +4,7 @@
   from bdec.choice import Choice
   from bdec.constraints import Equals
   from bdec.data import Data
-  from bdec.encode.field import encode_value
+  from bdec.encode.field import encode_value, get_valid_integer_lengths
   from bdec.encode.choice import get_default_option_params
   from bdec.expression import Constant, ValueResult, UndecodedReferenceError
   from bdec.field import Field
@@ -779,6 +779,11 @@ ${recursivePrint(entry, False)}
                 <% local_vars.append((settings.ctype(entry), value_name)) %>
     ${value_name} = ${name};
             %else:
+                <% if not raw_encode_expression_params.is_length_known(entry):
+                      raise NotImplementedError(entry, 'Encoding a hidden ' \
+                              'binary field that has an unknown length is ' \
+                              'not supported. Change it to an integer field.')
+                      %>
                 <% long_name = 'long_' if EntryValueType(entry).range(raw_params).max > 0xffffffff else '' %>
                 <% length = settings.value(entry, entry.length) %>
                 <% local_vars.append(('char', 'tempBuffer[(%s + 7) / 8]' % length)) %>
@@ -786,7 +791,10 @@ ${recursivePrint(entry, False)}
     binaryValue.buffer = tempBuffer;
     binaryValue.num_bits = 0;
     binaryValue.allocated_length_bytes = (${length} + 7) / 8;
-    encode_${long_name}big_endian_integer(${name}, ${length}, &binaryValue);
+    if (encode_${long_name}big_endian_integer(${name}, ${length}, &binaryValue) == 0)
+    {
+        return 0;
+    }
     <% local_vars.append(('BitBuffer', value_name)) %>
     ${value_name}.buffer= (unsigned char*)binaryValue.buffer;
     ${value_name}.start_bit = 0;
@@ -831,9 +839,27 @@ ${recursivePrint(entry, False)}
     ${checkConstraints(entry, source_name, None, local_vars)}
     %if entry.format == Field.INTEGER:
       <% long_name = 'long_' if EntryValueType(entry).range(raw_params).max > 0xffffffff else '' %>
-      <% length = settings.value(entry, entry.length) %>
       <% endian = 'big' if entry.encoding == Field.BIG_ENDIAN else 'little' %>
-    encode_${long_name}${endian}_endian_integer(${value_name}, ${length}, result);
+        %if raw_encode_expression_params.is_length_known(entry):
+      <% length = settings.value(entry, entry.length) %>
+    if (encode_${long_name}${endian}_endian_integer(${value_name}, ${length}, result) == 0)
+    {
+        return 0;
+    }
+        %else:
+          <% else_name = '' %>
+          %for integer_length in get_valid_integer_lengths(entry, raw_params):
+    ${else_name}if (encode_${long_name}${endian}_endian_integer(${value_name}, ${integer_length}, result) != 0)
+    {
+        /* We were able to encode it as a ${integer_length} number. */
+    }
+            <% else_name = 'else ' %>
+          %endfor
+    else
+    {
+        return 0;
+    }
+        %endif
     %elif entry.format == Field.BINARY:
       %if settings.is_numeric(settings.ctype(entry)):
         <% length = EntryLengthType(entry).range(raw_params).min %>
