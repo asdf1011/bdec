@@ -82,6 +82,14 @@ class ExecuteError(Exception):
     def __str__(self):
         return 'Execute failed with exit code %i; %s' % (self.exit_code, self.stderr)
 
+class CompilerError(Exception):
+    def __init__(self, args, output):
+        self.args = args
+        self.output = output
+
+    def __str__(self):
+        return '%s\n%s' % (' '.join(self.args), self.output)
+
 def _is_xml_text_equal(a, b):
     a = a.text or ""
     b = b.text or ""
@@ -176,9 +184,9 @@ def compile_and_run(data, details, encode_filename=None):
     command = details.COMPILER + files
     p = subprocess.Popen(command, stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT)
-    output = p.stdout.read()
+    output = p.stdout.read().decode('ascii', errors='ignore')
     if p.wait() != 0:
-        raise Exception(output)
+        raise CompilerError(command, output)
 
     if not isinstance(data, str):
         data = data.read()
