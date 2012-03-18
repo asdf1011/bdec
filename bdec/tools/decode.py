@@ -52,6 +52,7 @@ import bdec.data as dt
 import bdec.inspect.param
 import bdec.output.xmlout as xmlout
 from bdec.spec import load_specs
+from bdec.spec.xmlspec import dumps
 
 def usage(program):
     print 'Decode standard input to xml given a bdec specification.'
@@ -69,6 +70,7 @@ def usage(program):
     print '  -q                Quiet output. Only errors will be printed to stderr.'
     print '  --remove-unused   Remove any entries that are not referenced from the main'
     print '                    entry.'
+    print '  -S                Print an xml representation of the specification.'
     print '  --verbose         Include hidden entries and raw data in the decoded output.'
     print '  -V                Print the version of the bdec compiler.'
 
@@ -77,8 +79,9 @@ def _parse_args():
     binary = sys.stdin
     main_spec = None
     should_remove_unused = False
+    should_print_spec = False
     try:
-        opts, args = getopt.getopt(sys.argv[1:], 'f:hlqV', ['help', 'main=', 'remove-unused', 'verbose'])
+        opts, args = getopt.getopt(sys.argv[1:], 'f:hlqSV', ['help', 'main=', 'remove-unused', 'verbose'])
     except getopt.GetoptError, ex:
         sys.exit("%s\nSee '%s -h' for correct usage." % (ex, sys.argv[0]))
     for opt, arg in opts:
@@ -97,6 +100,8 @@ def _parse_args():
             should_remove_unused = True
         elif opt == "-l":
             logging.basicConfig(level=logging.INFO)
+        elif opt == '-S':
+            should_print_spec = True
         elif opt == '-V':
             print bdec.__version__
             sys.exit(0)
@@ -106,15 +111,19 @@ def _parse_args():
     if len(args) == 0:
         sys.exit("Missing arguments! See '%s -h' for more info." % sys.argv[0])
 
-    return (main_spec, args, binary, verbose, should_remove_unused)
+    return (main_spec, args, binary, verbose, should_remove_unused, should_print_spec)
 
 
 def main():
-    main_spec, specs, binary, verbose, should_remove_unused = _parse_args()
+    main_spec, specs, binary, verbose, should_remove_unused, should_print_spec = _parse_args()
     try:
         decoder, common, lookup = load_specs([(s, None, None) for s in specs], main_spec, should_remove_unused)
     except bdec.spec.LoadError, ex:
         sys.exit(str(ex))
+
+    if should_print_spec:
+        print dumps(decoder, common)
+        return
 
     data = dt.Data(binary)
     try:
