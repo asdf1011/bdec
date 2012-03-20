@@ -618,7 +618,7 @@ def sequence_encoder_order(entry):
                 # We found a temporary buffer that starts here
                 start_temp_buffer = temp_buffer['name']
 
-        # Check for temporary buffers that start here; not that there can be
+        # Check for temporary buffers that start here; note that there can be
         # several temp buffers that need to be chained together (see the
         # xml/089_length_reference regression test).
         end_temp_buffers = []
@@ -649,3 +649,9 @@ def should_free(entry):
 def is_value_used(entry):
    return should_free(entry) or is_value_referenced(entry) or entry.constraints
 
+def is_param_initialised(entry, param):
+    # HACK: This is ugly, horrible, and nasty. It needs to determine if a
+    # parameter has been populated (to detect if it should initialise it with
+    # a dummy value). But I am tired, and feeling stupid, and cannot determine
+    # the right way to do it.
+    return not param.name.startswith('unused')

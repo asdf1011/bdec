@@ -125,18 +125,7 @@ def get_default_option_params(choice, child, expression_params, encode_expressio
         for c in choice.children[:choice.children.index(child)]:
             for r in _get_ranges(c.entry, name, encode_expression_params):
                 possible.remove(r)
-
-        # Use the possible value closest to zero.
-        positive = Range(0, None)
-        negative = Range(None, 0)
-        if possible.intersect(positive):
-            value = possible.intersect(positive)[0].min
-        elif possible.intersect(negative):
-            value = possible.intersect(positive)[-1].max
-        else:
-            value = 0
-            logging.warning('Unable to choose a good output for %s; using %s', name, value)
-        result[name] = value
+        result[name] = possible.get_default()
     return result
 
 class ChoiceEncoder(EntryEncoder):

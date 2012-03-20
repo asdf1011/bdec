@@ -8,6 +8,7 @@
   from bdec.encode.choice import get_default_option_params
   from bdec.expression import Constant, ValueResult, UndecodedReferenceError
   from bdec.field import Field
+  from bdec.inspect.range import Ranges
   from bdec.inspect.solver import solve_expression
   from bdec.inspect.type import expression_range as erange
   from bdec.sequence import Sequence
@@ -690,7 +691,7 @@ ${recursivePrint(entry, False)}
         <% raw_params = raw_encode_expression_params.get_passed_variables(entry, child) %>
         <% esc_params = stupid_ugly_expression_encode_params.get_passed_variables(entry, child) %>
         %for raw_param, esc_param in zip(raw_params, esc_params):
-            %if raw_param.direction == raw_param.OUT and raw_encode_expression_params.is_output_param_used(entry, child, raw_param):
+           %if raw_param.direction == raw_param.OUT and raw_encode_expression_params.is_output_param_used(entry, child, raw_param):
               ## For every expression parameter that is passed out, that is an
               ## value that during encoding comes from the value parameter we
               ## pass in. Thus we have to set the mock parameters appropriately...
@@ -727,6 +728,11 @@ ${recursivePrint(entry, False)}
       %endif
   %else:
     <% child_variable = "don't look here, move along." %>
+    %for param in encode_params.get_passed_variables(entry, entry.children[i]):
+      %if param.direction == param.IN and not settings.is_param_initialised(entry, param):
+    ${param.name} = ${Ranges([param.type.range(raw_decode_params)]).get_default()};
+      %endif
+    %endfor
   %endif
     if (${prefix}${settings.encode_name(child.entry)}(${buffer_name}${encode_passed_params(entry, i, child_variable)}))
 </%def>

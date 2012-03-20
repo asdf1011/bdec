@@ -390,13 +390,8 @@ class ExpressionParameters(_Parameters):
                     self._populate_child_input_parameter_type(child.entry, name, param_type)
 
     def is_output_param_used(self, entry, child, param):
-        """Check to see if an parameter is used."""
         assert param.direction == Param.OUT
-        try:
-            return param.name in self._local_child_param_name[entry][child].values()
-        except KeyError:
-            # The parameter doesn't have a local name; it must be unused.
-            return False
+        return param.name in self._local_child_param_name[entry][child].values()
 
     def _get_local_reference(self, entry, child, param):
         """Get the local of a parameter used by a child entry.
