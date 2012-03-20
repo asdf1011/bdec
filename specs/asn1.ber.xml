@@ -103,10 +103,13 @@
         <sequence name="object identifier">
             <field name="tag:" length="8" value="0x6" />
             <reference name="length:" type="definite length:" />
-            <reference name="combined first id:" type="multi byte value" />
-            <sequence name="id" value="${combined first id:} / 40" />
-            <sequence name="id" value="${combined first id:} % 40" />
-            <sequenceof name="ids" length="${length:} * 8 - len{combined first id:}">
+            <!-- We should hide this variable, but the solver cannot combine
+                 'id one' and 'id two' to create a consistent
+                 'combined first id'. -->
+            <reference name="combined first id" type="multi byte value" />
+            <sequence name="id one" value="${combined first id} / 40" />
+            <sequence name="id two" value="${combined first id} % 40" />
+            <sequenceof name="ids" length="${length:} * 8 - len{combined first id}">
                 <reference name="id" type="multi byte value" />
             </sequenceof>
         </sequence>

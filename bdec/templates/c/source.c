@@ -1058,7 +1058,7 @@ ${static}int ${settings.encode_name(entry)}(struct EncodedData* result${settings
         encode_source_code += capture(solve, entry, entry.length, 'result->num_bits - startBit', 'length', local_vars)
      endif
    %>
-  %for type, name in local_vars:
+  %for type, name in set(local_vars):
     ${type} ${name};
   %endfor
   ${encode_source_code}
