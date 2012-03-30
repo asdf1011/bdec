@@ -810,15 +810,21 @@ ${recursivePrint(entry, False)}
             ## This entry doesn't have a known value; mock it.
             <%
             local_vars.append((settings.ctype(entry), value_name))
+            range = EntryValueType(entry).range(raw_decode_params)
+            default = Ranges([range]).get_default()
             try:
                 # If this entry has a fixed (known) length, just allocate a null
                 # buffer on the stack.
                 length = entry.length.evaluate({})
-                data = '"\\000"' * ((length + 7) / 8)
+                data = settings.c_string(Data.from_int_big_endian(default, length).bytes());
             except UndecodedReferenceError:
                 if _is_length_known(entry):
-                    # There is an explicit length for this entry.
+                    # There is an variable length for this entry.
                     length = value(entry, entry.length, encode_params)
+                    if default != 0:
+                        raise NotImplementedError('Defaulting a variable '
+                                'length buffer to non-zero not supported. '
+                                'Make it an integer if possible.', entry)
                     data = "calloc((%s) / 8, 1)" % length
                     should_free_buffer = True
                 else:
@@ -826,7 +832,7 @@ ${recursivePrint(entry, False)}
                     length = 0
                     data = '""' %>
             %if settings.is_numeric(settings.ctype(entry)):
-    ${value_name} = 0;
+    ${value_name} = ${default};
             %elif entry.format == fld.Field.TEXT:
     ${value_name}.buffer = (char*)${data};
     ${value_name}.length = (${length}) / 8;

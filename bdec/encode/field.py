@@ -48,7 +48,9 @@ from bdec.data import Data, DataError, IntegerTooLongError
 from bdec.field import Field, FieldDataError, BadFormatError, BadEncodingError
 from bdec.encode.entry import EntryEncoder
 from bdec.expression import UndecodedReferenceError
-from bdec.inspect.type import expression_range as erange
+from bdec.inspect.param import UnknownReferenceError
+from bdec.inspect.type import expression_range as erange, EntryValueType
+from bdec.inspect.range import Ranges
 
 class MissingFieldException(DecodeError):
     def __str__(self):
@@ -223,13 +225,18 @@ class FieldEncoder(EntryEncoder):
                 break
         else:
             if self.is_hidden:
+                range = EntryValueType(self.entry).range(self._params)
+                value = Ranges([range]).get_default()
                 try:
                     length = self.entry.length.evaluate(context)
                 except UndecodedReferenceError, ex:
                     # We don't know, and can't calculate, the length; try
                     # making it zero.
                     length = 0
-                value = self.entry.decode_value(Data('\x00' * (length / 8 + 1), 0, length))
+                if self.entry.format in [Field.HEX, Field.BINARY]:
+                    value = Data.from_int_big_endian(value, length)
+                elif self.entry.format in [Field.TEXT]:
+                    value = '\x00' * (length / 8 - 1) + chr(value)
             else:
                 # We don't have a default for this entry
                 raise MissingFieldException(self.entry)
