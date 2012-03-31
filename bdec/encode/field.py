@@ -230,9 +230,11 @@ class FieldEncoder(EntryEncoder):
                 try:
                     length = self.entry.length.evaluate(context)
                 except UndecodedReferenceError, ex:
-                    # We don't know, and can't calculate, the length; try
-                    # making it zero.
-                    length = 0
+                    # We don't know, and can't calculate, the length
+                    if value == 0:
+                        length = 0
+                    else:
+                        length = 8
                 if self.entry.format in [Field.HEX, Field.BINARY]:
                     value = Data.from_int_big_endian(value, length)
                 elif self.entry.format in [Field.TEXT]:

@@ -828,9 +828,12 @@ ${recursivePrint(entry, False)}
                     data = "calloc((%s) / 8, 1)" % length
                     should_free_buffer = True
                 else:
-                    # The length isn't known; just default it to zero.
-                    length = 0
-                    data = '""' %>
+                    # The length isn't known.
+                    if default == 0:
+                        length = 0
+                    else:
+                        length = 8
+                    data = settings.c_string(Data.from_int_big_endian(default, length).bytes()) %>
             %if settings.is_numeric(settings.ctype(entry)):
     ${value_name} = ${default};
             %elif entry.format == fld.Field.TEXT:

@@ -78,7 +78,7 @@
             <sequence name="false">
                 <field name="tag:" length="8" value="0x1" />
                 <reference name="length:" type="definite length:" />
-                <field length="${length:} * 8"/>
+                <field length="${length:} * 8" min="1" />
             </sequence>
         </choice>
 
