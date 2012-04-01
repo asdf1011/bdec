@@ -972,7 +972,7 @@ ${recursivePrint(entry, False)}
   ## Now populate any outputs that weren't explicitly set by this option.
   <% names = dict(zip((p.name for p in raw_encode_params.get_params(choice)),
              (p.name for p in  encode_params.get_params(choice)))) %>
-  %for name, value in get_default_option_params(choice, choice.children[i], raw_expression_params, raw_encode_expression_params).items():
+  %for name, value in get_default_option_params(choice, choice.children[i], raw_decode_params, raw_encode_expression_params).items():
       *${names[name]} = ${value};
   %endfor
 </%def>
