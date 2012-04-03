@@ -176,7 +176,7 @@ void print_escaped_string(const Text* text)
     }
 }
 
-int encode_big_endian_integer(unsigned int value, int num_bits, struct EncodedData* result)
+int encode_big_endian_integer(unsigned int value, unsigned int num_bits, struct EncodedData* result)
 {
     char* buffer;
     int shiftDistance;
@@ -224,9 +224,9 @@ int encode_big_endian_integer(unsigned int value, int num_bits, struct EncodedDa
     return 1;
 }
 
-int encode_little_endian_integer(unsigned int value, int num_bits, struct EncodedData* result)
+int encode_little_endian_integer(unsigned int value, unsigned int num_bits, struct EncodedData* result)
 {
-    int i;
+    unsigned int i;
     for (i = 0; i < num_bits / 8; ++i)
     {
         encode_big_endian_integer(value & 0xFF, 8, result);
@@ -235,7 +235,7 @@ int encode_little_endian_integer(unsigned int value, int num_bits, struct Encode
     return value == 0;
 }
 
-int encode_long_big_endian_integer(uint64_t value, int num_bits, struct EncodedData* result)
+int encode_long_big_endian_integer(uint64_t value, unsigned int num_bits, struct EncodedData* result)
 {
     unsigned int upper;
 
@@ -256,9 +256,9 @@ int encode_long_big_endian_integer(uint64_t value, int num_bits, struct EncodedD
     return encode_big_endian_integer(value, num_bits, result);
 }
 
-int encode_long_little_endian_integer(uint64_t value, int num_bits, struct EncodedData* result)
+int encode_long_little_endian_integer(uint64_t value, unsigned int num_bits, struct EncodedData* result)
 {
-    int i;
+    unsigned int i;
     for (i = 0; i < num_bits / 8; ++i)
     {
         encode_big_endian_integer(value & 0xFF, 8, result);
