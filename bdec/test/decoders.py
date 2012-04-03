@@ -451,7 +451,7 @@ class _BaseRegressionTest:
                     pass
         return None
 
-    def _test_spec(self, test_path, spec_filename, successes, failures, config):
+    def _test_spec(self, test_path, spec_filename, entry_name, successes, failures, config):
         assert successes or failures
         skip = self._get(config, self.decoder.NAME, test_path.lower()) or \
                 self._get(config, 'default', test_path.lower())
@@ -478,6 +478,8 @@ class _BaseRegressionTest:
                 xml_file = file(expected_filename, 'r')
                 expected_xml = xml_file.read()
                 xml_file.close()
+            if entry_name is not None:
+                spec = common[entry_name]
             self._test_success(spec, common, spec_filename, data_filename,
                     expected_xml, should_encode, require_exact_encoding)
 
@@ -485,8 +487,8 @@ class _BaseRegressionTest:
             self._test_failure(spec, common, spec_filename, data_filename, should_encode)
 
     @classmethod
-    def add_method(cls, name, test_path, spec_filename, successes, failures, config):
-        method = lambda self: self._test_spec(test_path, spec_filename, successes, failures, config)
+    def add_method(cls, name, test_path, spec_filename, entry, successes, failures, config):
+        method = lambda self: self._test_spec(test_path, spec_filename, entry, successes, failures, config)
         method.__name__ = 'test_%s' % name
         setattr(cls, method.__name__, method)
 
@@ -506,7 +508,7 @@ def create_classes(name, tests, config):
     """
     clsname = name[0].upper() + name[1:]
     cls = type(clsname, (object, _BaseRegressionTest,), {})
-    for test_name, spec_filename, successes, failures in tests:
-        cls.add_method(test_name, '%s/%s' % (name, test_name), spec_filename, successes, failures, config)
+    for test_name, spec_filename, entry, successes, failures in tests:
+        cls.add_method(test_name, '%s/%s' % (name, test_name), spec_filename, entry, successes, failures, config)
     return create_decoder_classes([(cls, clsname)], __name__)
 
