@@ -771,7 +771,7 @@ ${recursivePrint(entry, False)}
     ${value_name}.start_bit = ${len(null)};
     ${value_name}.num_bits = ${len(data) - len(null)};
             %elif entry.format == fld.Field.HEX:
-    ${value_name}.buffer = (char*)${settings.c_string(expected.value.bytes())};
+    ${value_name}.buffer = (unsigned char*)${settings.c_string(expected.value.bytes())};
     ${value_name}.length = ${len(expected.value) / 8};
             %else:
                 <% raise Exception("Don't know how to define a constant for %s!" % entry) %>
