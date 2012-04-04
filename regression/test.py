@@ -43,7 +43,8 @@ def _find_regression_tests(spec_extension, regression_dir):
             elif len(names) == 4 and names[1] == 'failure':
                 tests[names[0]].failures.append(path)
             else:
-                assert False, "Unknown regression file '%s'!" % path
+                assert os.path.splitext(filename) not in ['swp'], \
+                        "Unknown regression file '%s'!" % path
     for name, test in tests.items():
         entry = None
         if '-' in name:
