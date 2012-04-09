@@ -334,7 +334,19 @@ def _check_encoded_data(spec, sourcefile, actual, actual_xml, require_exact_enco
             raise Exception('Re-decoding of encoded data failed: %s' % str(ex))
 
         if require_exact_encoding:
-            raise Exception("Encoded data doesn't match, but we require exact encoding!")
+            # The files are different, but the visible entries are identical.
+            # Re-compare the files in verbose mode to give a better error.
+            expected_data = dt.Data(expected)
+            actual_data = dt.Data(actual)
+            expected_xml = xmlout.to_string(spec.decode(expected_data), verbose=True)
+            actual_xml = xmlout.to_string(spec.decode(actual_data), verbose=True)
+
+            assert_xml_equivalent(expected_xml, actual_xml)
+
+            # The verbose decode shows identical files. We must have different
+            # trailing data!
+            raise Exception('Unexpected trailing data. Original file has '
+                    '%s, re-encode has %s.' % (expected_data, actual_data))
 
 
 class _CompiledDecoder(object):
