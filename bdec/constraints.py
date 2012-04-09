@@ -41,12 +41,19 @@ def _limit(expression):
         # We aren't able to determine this limit
         return None
 
-class Minimum:
+
+class Constraint:
     def __init__(self, limit):
         if not isinstance(limit, Expression):
             limit = Constant(limit)
         self.limit = limit
-        self.type = '<'
+
+    def __repr__(self):
+        return '%s %s' % (self.type, self.limit)
+
+
+class Minimum(Constraint):
+    type = '<'
 
     def check(self, entry, value, context):
         expected = self.limit.evaluate(context)
@@ -60,12 +67,8 @@ class Minimum:
         return Range(_limit(self.limit), None)
 
 
-class Maximum:
-    def __init__(self, limit):
-        if not isinstance(limit, Expression):
-            limit = Constant(limit)
-        self.limit = limit
-        self.type = '>'
+class Maximum(Constraint):
+    type = '>'
 
     def check(self, entry, value, context):
         expected = self.limit.evaluate(context)
@@ -79,12 +82,8 @@ class Maximum:
         return Range(None, _limit(self.limit))
 
 
-class Equals:
-    def __init__(self, expected):
-        if not isinstance(expected, Expression):
-            expected = Constant(expected)
-        self.limit = expected
-        self.type = '!='
+class Equals(Constraint):
+    type = '!='
 
     def check(self, entry, value, context):
         expected = self.limit.evaluate(context)
@@ -118,12 +117,8 @@ class Equals:
         return Range(limit, limit)
 
 
-class NotEquals:
-    def __init__(self, expected):
-        if not isinstance(expected, Expression):
-            expected = Constant(expected)
-        self.limit = expected
-        self.type = '=='
+class NotEquals(Constraint):
+    type = '=='
 
     def check(self, entry, value, context):
         expected = self.limit.evaluate(context)
