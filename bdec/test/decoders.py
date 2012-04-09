@@ -464,7 +464,6 @@ class _BaseRegressionTest:
         return None
 
     def _test_spec(self, test_path, spec_filename, entry_name, successes, failures, config):
-        assert successes or failures
         skip = self._get(config, self.decoder.NAME, test_path.lower()) or \
                 self._get(config, 'default', test_path.lower())
 
@@ -491,7 +490,12 @@ class _BaseRegressionTest:
                 expected_xml = xml_file.read()
                 xml_file.close()
             if entry_name is not None:
-                spec = common[entry_name]
+                for entry in common:
+                    if entry.name == entry_name:
+                        spec = entry
+                        break
+                else:
+                    raise Exception("Unknown common entry", entry_name)
             self._test_success(spec, common, spec_filename, data_filename,
                     expected_xml, should_encode, require_exact_encoding)
 

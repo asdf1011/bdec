@@ -78,7 +78,7 @@ def get_valid_integer_lengths(entry, params):
         if length_range.max is not None and length_range.max < length:
             return False
         return True
-    possible_lengths = [8, 16, 32, 64]
+    possible_lengths = [8, 16, 24, 32, 64]
     return (l for l in possible_lengths if is_valid(l))
 
 def _encode_unknown_variable_length_integer(entry, value, params):

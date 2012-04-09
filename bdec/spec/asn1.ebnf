@@ -131,9 +131,8 @@ ValueSetTypeAssignment = typereference, Type, "::=", ValueSet;
 ValueSet = "{", ElementSetSpecs, "}";
 
 Type = 
-         BuiltinType
-     |   ReferencedType
-     (* | ConstrainedType -- Disabled as this creates a recursive specification *) ;
+         RawType
+     | ConstrainedType;
 
 BuiltinType =
          BitStringType
@@ -608,8 +607,12 @@ GeneralString = "OCTECT STRING";
 UniversalString = "OCTECT STRING";
 BMPString = "OCTECT STRING";
 
+RawType =
+         BuiltinType
+     |   ReferencedType;
+
 ConstrainedType =
-        Type, Constraint
+        RawType, Constraint
    |    TypeWithConstraint;
 
 TypeWithConstraint =

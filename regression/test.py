@@ -49,8 +49,8 @@ def _find_regression_tests(spec_extension, regression_dir):
         entry = None
         if '-' in name:
             assert test.filename is None
-            entry = name.split('-')[0]
-            test.filename = os.path.join(regression_dir, entry + '.' + spec_extension)
+            base, entry = name.split('-')
+            test.filename = os.path.join(regression_dir, base + '.' + spec_extension)
             assert os.path.exists(test.filename)
         assert test.filename is not None, 'Missing specification for regression %s!' % name
         yield name, test.filename, entry, test.successes, test.failures

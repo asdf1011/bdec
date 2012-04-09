@@ -123,7 +123,7 @@
       %elif settings.ctype(entry) in ['Buffer', 'Text']:
     if (${value}.length != 1 || (unsigned int)${value}.buffer[0] ${constraint.type} ${str(constraint.limit)})
       %else:
-      <%raise Exception("Don't know how to compare '%s' types!" % constraint) %>
+      <%raise Exception("Don't know how to compare '%s' types (with constraint %s)!" % (entry, constraint)) %>
       %endif
     %endif
     {
