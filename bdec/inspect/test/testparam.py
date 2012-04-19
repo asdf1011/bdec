@@ -441,6 +441,31 @@ class TestExpressionParameters(unittest.TestCase):
             fld.Field('c', length=expr.compile('${b}'))])
         self.assertRaises(prm.BadReferenceTypeError, prm.ExpressionParameters, [a])
 
+    def test_recursive_entry_with_input_param(self):
+        # There was a bug with passing input parameters to recursive entries,
+        # where the embedded (recursed) entry wouldn't have the parameter
+        # correctly passed. This technique is used in the asn.1 decoder.
+        a = chc.Choice('a', [
+            fld.Field('not recursive', length=8, constraints=[Equals(expr.ValueResult('zero'))]),
+            seq.Sequence('recursive', [
+                fld.Field('unused', length=8)
+                ])
+            ])
+        a.children[1].entry.children.append(ent.Child('a', a))
+        b = seq.Sequence('b', [
+            seq.Sequence('zero', [], value=expr.Constant(0)),
+            a
+            ])
+
+        lookup = prm.ExpressionParameters([a, b])
+        self.assertEqual([
+            prm.Param('zero', prm.Param.IN, _Integer())],
+            list(lookup.get_passed_variables(a, a.children[1])))
+        self.assertEqual([
+            prm.Param('zero', prm.Param.IN, _Integer())],
+            list(lookup.get_passed_variables(a.children[1].entry, a.children[1].entry.children[1])))
+
+
 class TestEndEntryParameters(unittest.TestCase):
     def test_end_entry_lookup(self):
         null = fld.Field("null", 8, constraints=[Equals(dt.Data('\x00'))])

@@ -113,7 +113,7 @@ class Child(object):
         self.entry = entry
 
     def __repr__(self):
-        return "%s '%s'" % (self.name, self.entry)
+        return "'%s' %s" % (self.entry, self.name)
 
 class Entry(object):
     """An entry is an item in a protocol that can be decoded.

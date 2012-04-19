@@ -1,0 +1,26 @@
+<protocol>
+    <sequence name="blah">
+        <sequence name="magic value:" value="2" />
+        <reference name="payload" />
+    </sequence>
+    <common>
+        <!-- There was a bug where a recursive call to an entry wouldn't pass
+             in required parameters. In this case, the 'tag:' needs
+             'magic value', but the parameter wasn't being passed in from
+             'recursive'.
+
+             This was a problem with ASN.1 specifications. -->
+        <choice name="payload">
+            <field name="non recursive" length="8" expected="${magic value:}" />
+            <reference name="recursive" />
+        </choice>
+
+        <sequence name="recursive">
+            <field name="unused" type="integer" length="8" />
+            <!-- We use an intermediate common entry to ensure we detect
+                 parameters being passed across common entries. -->
+            <reference name="payload" />
+        </sequence>
+    </common>
+</protocol>
+
