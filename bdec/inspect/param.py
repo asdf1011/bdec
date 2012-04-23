@@ -277,17 +277,23 @@ class ExpressionParameters(_Parameters):
         self._referenced_lengths = set()
         unreferenced_entries = {}
         entry_stack = []
-        entries_used = set()
-        delayed_dependencies = []
+        entries_visited = set()
+        recursive_entries = set()
         param_source = []
         for entry in entries:
             self._populate_references(entry, unreferenced_entries,
-                    entries_used, entry_stack, delayed_dependencies,
+                    entries_visited, entry_stack, recursive_entries,
                     param_source)
-        for stack in delayed_dependencies:
-            for entry in reversed(stack):
-                self._populate_parameter_source(entry, unreferenced_entries,
-                        param_source)
+
+        # We need to redetect parameters for recursive entries, as we there may
+        # be input parameters that weren't detected on the first pass.
+        parents = {}
+        visited = set()
+        for entry in entries:
+            parents.setdefault(entry, set())
+            self._update_parent_tree(entry, parents, visited)
+        for entry in recursive_entries:
+            self._update_recursive_input_params(entry, unreferenced_entries, param_source, set(), parents)
 
         # Walk through all entries with output parameters, and use the
         # type of those entries to populate the input variables.
@@ -300,7 +306,7 @@ class ExpressionParameters(_Parameters):
             for param in self._params[entry]:
                 if not param.types:
                     should_have_failed = True
-                    if entry not in entries_used:
+                    if entry not in entries_visited:
                         # We found a top-level entry with an unknown parameter.
                         # We only want top-level entries as this provides the
                         # most context to the user (and if a child entry is
@@ -310,6 +316,25 @@ class ExpressionParameters(_Parameters):
                         raise UnknownReferenceError(stack[0], name, stack[1:])
         assert not should_have_failed, 'Found a parameter with an unknown type, ' \
             "but didn't fail on a parent entry! Something went wrong."
+
+    def _update_parent_tree(self, entry, parents, visited):
+        if entry in visited:
+            return
+        visited.add(entry)
+        for child in entry.children:
+            parents.setdefault(child.entry, set()).add(entry)
+            self._update_parent_tree(child.entry, parents, visited)
+
+    def _update_recursive_input_params(self, entry, unreferenced_entries,
+            param_source, visited, parents):
+        self._populate_parameter_source(entry, unreferenced_entries,
+                param_source)
+        if entry in visited:
+            return
+        visited.add(entry)
+        for parent in parents[entry]:
+            self._update_recursive_input_params(parent, unreferenced_entries,
+                    param_source, visited, parents)
 
     def _find_child_using_param(self, entry, name):
         """Find the child entry using the given parameter name.
@@ -342,8 +367,8 @@ class ExpressionParameters(_Parameters):
             raise Exception("Unable to collect references from unhandled expression type '%s'!" % expression)
         return result
 
-    def _populate_references(self, entry, unreferenced_entries, entries_used,
-            entry_stack, delayed_dependencies, param_source):
+    def _populate_references(self, entry, unreferenced_entries, entries_visited,
+            entry_stack, recursive_entries, param_source):
         """
         Walk down the tree, populating the '_params', '_referenced_XXX' sets.
 
@@ -351,8 +376,9 @@ class ExpressionParameters(_Parameters):
         """
         if entry in entry_stack:
             # We've found a cyclic dependency. We will not have populated the
-            # parameters for entry, so we'll have to delay it until later.
-            delayed_dependencies.append(entry_stack[entry_stack.index(entry):] + [entry])
+            # input / output parameters yet, so we'll have to delay it until
+            # later.
+            recursive_entries.add(entry)
             return
 
         if entry in self._params:
@@ -363,9 +389,9 @@ class ExpressionParameters(_Parameters):
 
         entry_stack.append(entry)
         for child in entry.children:
-            entries_used.add(child.entry)
+            entries_visited.add(child.entry)
             self._populate_references(child.entry, unreferenced_entries,
-                    entries_used, entry_stack, delayed_dependencies,
+                    entries_visited, entry_stack, recursive_entries,
                     param_source)
         assert entry == entry_stack.pop()
 
@@ -442,8 +468,10 @@ class ExpressionParameters(_Parameters):
             # If an output parameter isn't in the lookup, it it's because
             # the child is a common entry that has been referenced
             # elsewhere (but isn't used in this context).
-            assert param.direction != Param.IN, 'Expected unused ouput for ' \
-                    '%s -> %s, but found %s!' % (entry, child, param)
+            assert param.direction != Param.IN, 'Found input parameter ' \
+                    "%s being passed from %s to %s, but %s doesn't have a " \
+                    'local name for the parameter!' % (param, entry, child,
+                            entry)
             name = 'unused %s' % param.reference.name
 
         # Create a new instance of the expression reference, using the new name

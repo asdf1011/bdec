@@ -465,6 +465,42 @@ class TestExpressionParameters(unittest.TestCase):
             prm.Param('zero', prm.Param.IN, _Integer())],
             list(lookup.get_passed_variables(a.children[1].entry, a.children[1].entry.children[1])))
 
+    def test_two_recursive_entries_with_input_parameters(self):
+        # The previous fix for recursive parameters didn't handle two
+        # structures that were recursive using the same intermediate instance.
+        #
+        # In this case, 'a' is recursive through both 'recursive x' and
+        # 'recursive y', and the bug was that any input parameters to
+        # 'recursive y' weren't being correctly detected.
+        a = chc.Choice('a', [
+            fld.Field('not recursive', length=8, constraints=[Equals(expr.ValueResult('zero'))]),
+            seq.Sequence('recursive x', [
+                fld.Field('unused', length=8, constraints=[Maximum(10)])
+                ]),
+            seq.Sequence('recursive y', [
+                fld.Field('unused', length=8)
+                ]),
+            ])
+        a.children[1].entry.children.append(ent.Child('a1', a))
+        a.children[2].entry.children.append(ent.Child('a2', a))
+        b = seq.Sequence('b', [
+            seq.Sequence('zero', [], value=expr.Constant(0)),
+            a
+            ])
+
+        lookup = prm.ExpressionParameters([a, b])
+        self.assertEqual([
+            prm.Param('zero', prm.Param.IN, _Integer())],
+            list(lookup.get_passed_variables(a, a.children[1])))
+        self.assertEqual([
+            prm.Param('zero', prm.Param.IN, _Integer())],
+            list(lookup.get_passed_variables(a.children[1].entry, a.children[1].entry.children[1])))
+        self.assertEqual([
+            prm.Param('zero', prm.Param.IN, _Integer())],
+            list(lookup.get_passed_variables(a, a.children[2])))
+        self.assertEqual([
+            prm.Param('zero', prm.Param.IN, _Integer())],
+            list(lookup.get_passed_variables(a.children[2].entry, a.children[2].entry.children[1])))
 
 class TestEndEntryParameters(unittest.TestCase):
     def test_end_entry_lookup(self):
