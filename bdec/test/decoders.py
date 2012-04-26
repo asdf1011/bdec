@@ -381,7 +381,7 @@ class _PythonDecoder:
     def decode_file(self, spec, common, sourcefile, should_check_encoding=True, require_exact_encoding=False):
         data = dt.Data(sourcefile)
         try:
-	    xml = xmlout.to_string(spec.decode(data))
+            xml = xmlout.to_string(spec.decode(data))
         except bdec.DecodeError, ex:
             raise ExecuteError(3, ex)
 
