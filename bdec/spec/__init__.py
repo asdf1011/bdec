@@ -111,7 +111,7 @@ def _validate_parameters(entries, lookup):
         prm.CompoundParameters([prm.EndEntryParameters(entries),
             prm.ExpressionParameters(entries)])
     except prm.BadReferenceError, ex:
-        context = [(lookup[e] + (str(e),)) for e in ex.context if ex.entry in lookup]
+        context = [(lookup[e] + (str(e),)) for e in ex.context if e in lookup]
         raise ReferenceError(ex, ex.entry, lookup, context)
 
 def _walk(entry, entries):
