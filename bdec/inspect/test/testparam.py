@@ -46,16 +46,19 @@ import operator
 import unittest
 
 import bdec
-import bdec.choice as chc
+from bdec.choice import Choice
 from bdec.constraints import Equals, Maximum, Minimum
-import bdec.data as dt
-import bdec.entry as ent
-import bdec.field as fld
-import bdec.inspect.param as prm
+from bdec.data import Data
+from bdec.entry import Child
+from bdec.field import Field
+from bdec.inspect.param import EncodeExpressionParameters, Param, \
+        ResultParameters, Local, ExpressionParameters, BadReferenceError, \
+        BadReferenceTypeError, EndEntryParameters, ShouldEndType, DataChecker
 from bdec.inspect.type import EntryType, IntegerType, EntryLengthType
-import bdec.sequence as seq
-import bdec.sequenceof as sof
-import bdec.expression as expr
+from bdec.sequence import Sequence
+from bdec.sequenceof import SequenceOf
+from bdec.expression import parse, ValueResult, Constant, LengthResult, \
+        ArithmeticExpression
 
 class _Integer(IntegerType, object):
     """Test class that identifies an integer parameter."""
@@ -65,28 +68,28 @@ class _Integer(IntegerType, object):
 
 class TestExpressionParameters(unittest.TestCase):
     def test_direct_children(self):
-        a = fld.Field('a', 8)
-        value = expr.ValueResult('a')
-        b = fld.Field('b', value)
-        spec = seq.Sequence('blah', [a,b])
+        a = Field('a', 8)
+        value = ValueResult('a')
+        b = Field('b', value)
+        spec = Sequence('blah', [a,b])
 
-        vars = prm.ExpressionParameters([spec])
-        self.assertEqual([prm.Local('a', _Integer())], vars.get_locals(spec))
+        vars = ExpressionParameters([spec])
+        self.assertEqual([Local('a', _Integer())], vars.get_locals(spec))
         self.assertTrue(vars.is_value_referenced(a))
         self.assertFalse(vars.is_value_referenced(b))
         self.assertEqual([], vars.get_locals(a))
 
     def test_sub_children(self):
-        a2 = fld.Field('a2', 8)
-        a1 = seq.Sequence('a1', [a2])
-        a = seq.Sequence('a', [a1])
-        value = expr.ValueResult('a.a1.a2')
-        b1 = fld.Field('b1', value)
-        b = seq.Sequence('b', [b1])
-        spec = seq.Sequence('blah', [a,b])
+        a2 = Field('a2', 8)
+        a1 = Sequence('a1', [a2])
+        a = Sequence('a', [a1])
+        value = ValueResult('a.a1.a2')
+        b1 = Field('b1', value)
+        b = Sequence('b', [b1])
+        spec = Sequence('blah', [a,b])
 
-        vars = prm.ExpressionParameters([spec])
-        self.assertEqual([prm.Local('a.a1.a2', _Integer())], vars.get_locals(spec))
+        vars = ExpressionParameters([spec])
+        self.assertEqual([Local('a.a1.a2', _Integer())], vars.get_locals(spec))
         # Note that despite containing a referenced entry, it isn't a local (as
         # it is passed up to the parent entry).
         self.assertEqual([], vars.get_locals(a))
@@ -94,201 +97,201 @@ class TestExpressionParameters(unittest.TestCase):
         # Now check what parameters are passed in and out. Note that we check
         # that the name is correct for the context of the parameter.
         self.assertEqual([], vars.get_params(spec))
-        self.assertEqual([prm.Param('a2', prm.Param.OUT, _Integer())], vars.get_params(a2))
-        self.assertEqual([prm.Param('a2', prm.Param.OUT, _Integer())], vars.get_params(a1))
-        self.assertEqual([prm.Param('a1.a2', prm.Param.OUT, _Integer())], vars.get_params(a))
-        self.assertEqual([prm.Param('a1.a2', prm.Param.OUT, _Integer())], list(vars.get_passed_variables(a, a.children[0])))
-        self.assertEqual([prm.Param('a.a1.a2', prm.Param.IN, _Integer())], vars.get_params(b))
-        self.assertEqual([prm.Param('a.a1.a2', prm.Param.IN, _Integer())], vars.get_params(b1))
-        self.assertEqual([prm.Param('a.a1.a2', prm.Param.IN, _Integer())], list(vars.get_passed_variables(b, b.children[0])))
+        self.assertEqual([Param('a2', Param.OUT, _Integer())], vars.get_params(a2))
+        self.assertEqual([Param('a2', Param.OUT, _Integer())], vars.get_params(a1))
+        self.assertEqual([Param('a1.a2', Param.OUT, _Integer())], vars.get_params(a))
+        self.assertEqual([Param('a1.a2', Param.OUT, _Integer())], list(vars.get_passed_variables(a, a.children[0])))
+        self.assertEqual([Param('a.a1.a2', Param.IN, _Integer())], vars.get_params(b))
+        self.assertEqual([Param('a.a1.a2', Param.IN, _Integer())], vars.get_params(b1))
+        self.assertEqual([Param('a.a1.a2', Param.IN, _Integer())], list(vars.get_passed_variables(b, b.children[0])))
 
     def test_length_reference(self):
-        a1 = fld.Field('a1', 8)
-        a = seq.Sequence('a', [a1])
-        b1 = fld.Field('b1', expr.LengthResult('a'))
-        b = seq.Sequence('b', [b1])
-        spec = seq.Sequence('blah', [a,b])
+        a1 = Field('a1', 8)
+        a = Sequence('a', [a1])
+        b1 = Field('b1', LengthResult('a'))
+        b = Sequence('b', [b1])
+        spec = Sequence('blah', [a,b])
 
-        vars = prm.ExpressionParameters([spec])
-        self.assertEqual([prm.Local('a length', _Integer())], vars.get_locals(spec))
+        vars = ExpressionParameters([spec])
+        self.assertEqual([Local('a length', _Integer())], vars.get_locals(spec))
         self.assertFalse(vars.is_length_referenced(a1))
         self.assertTrue(vars.is_length_referenced(a))
-        self.assertEqual([prm.Param('a length', prm.Param.OUT, EntryLengthType(a))], vars.get_params(a))
-        self.assertEqual([prm.Param('a length', prm.Param.IN, EntryLengthType(a))], vars.get_params(b))
+        self.assertEqual([Param('a length', Param.OUT, EntryLengthType(a))], vars.get_params(a))
+        self.assertEqual([Param('a length', Param.IN, EntryLengthType(a))], vars.get_params(b))
 
     def test_sequence_value(self):
         # Define an integer with a custom byte ordering
-        lower = fld.Field('lower byte', 8)
-        lower_value = expr.ValueResult('lower byte')
-        ignored = fld.Field('ignored', 8)
-        upper = fld.Field('upper byte', 8)
-        upper_value = expr.ValueResult('upper byte')
-        value = expr.ArithmeticExpression(operator.__add__, expr.ArithmeticExpression(operator.__mul__, upper_value, expr.Constant(256)), lower_value)
-        length = seq.Sequence('length', [lower, ignored, upper], value)
-        header = seq.Sequence('header', [length])
+        lower = Field('lower byte', 8)
+        lower_value = ValueResult('lower byte')
+        ignored = Field('ignored', 8)
+        upper = Field('upper byte', 8)
+        upper_value = ValueResult('upper byte')
+        value = ArithmeticExpression(operator.__add__, ArithmeticExpression(operator.__mul__, upper_value, Constant(256)), lower_value)
+        length = Sequence('length', [lower, ignored, upper], value)
+        header = Sequence('header', [length])
 
-        int_value = expr.ValueResult('length')
-        data = fld.Field('data', int_value)
-        spec = seq.Sequence('blah', [length, data])
+        int_value = ValueResult('length')
+        data = Field('data', int_value)
+        spec = Sequence('blah', [length, data])
 
-        vars = prm.ExpressionParameters([spec])
+        vars = ExpressionParameters([spec])
         self.assertEquals([], vars.get_params(spec))
         self.assertTrue(vars.is_value_referenced(lower))
         self.assertFalse(vars.is_value_referenced(ignored))
         self.assertTrue(vars.is_value_referenced(upper))
-        self.assertEqual([prm.Local('lower byte', _Integer()), prm.Local('upper byte', _Integer())], vars.get_locals(length))
-        self.assertEqual([prm.Param('lower byte', prm.Param.OUT, _Integer())], vars.get_params(lower))
-        self.assertEqual([prm.Param('upper byte', prm.Param.OUT, _Integer())], vars.get_params(upper))
-        self.assertEqual([prm.Param('length', prm.Param.OUT, _Integer())], vars.get_params(length))
+        self.assertEqual([Local('lower byte', _Integer()), Local('upper byte', _Integer())], vars.get_locals(length))
+        self.assertEqual([Param('lower byte', Param.OUT, _Integer())], vars.get_params(lower))
+        self.assertEqual([Param('upper byte', Param.OUT, _Integer())], vars.get_params(upper))
+        self.assertEqual([Param('length', Param.OUT, _Integer())], vars.get_params(length))
 
-        self.assertEqual([prm.Local('length', _Integer())], vars.get_locals(spec))
-        self.assertEqual([prm.Param('length', prm.Param.IN, _Integer())], vars.get_params(data))
+        self.assertEqual([Local('length', _Integer())], vars.get_locals(spec))
+        self.assertEqual([Param('length', Param.IN, _Integer())], vars.get_params(data))
 
     def test_choice_reference(self):
         """
         Test the parameter names when we have items selected under a choice.
         """
-        byte = seq.Sequence('8 bit:', [fld.Field('id', 8, constraints=[Equals(dt.Data('\x00'))]), fld.Field('length', 8)])
-        word = seq.Sequence('16 bit:', [fld.Field('id', 8, constraints=[Equals(dt.Data('\x01'))]), fld.Field('length', 16)])
-        length = chc.Choice('variable integer', [byte, word])
-        length_value = expr.ValueResult('variable integer.length')
-        data = fld.Field('data', length_value)
-        spec = seq.Sequence('spec', [length, data])
-        vars = prm.ExpressionParameters([spec])
+        byte = Sequence('8 bit:', [Field('id', 8, constraints=[Equals(Data('\x00'))]), Field('length', 8)])
+        word = Sequence('16 bit:', [Field('id', 8, constraints=[Equals(Data('\x01'))]), Field('length', 16)])
+        length = Choice('variable integer', [byte, word])
+        length_value = ValueResult('variable integer.length')
+        data = Field('data', length_value)
+        spec = Sequence('spec', [length, data])
+        vars = ExpressionParameters([spec])
 
         self.assertFalse(vars.is_value_referenced(byte))
         self.assertTrue(vars.is_value_referenced(byte.children[1].entry))
         self.assertFalse(vars.is_value_referenced(word))
         self.assertTrue(vars.is_value_referenced(word.children[1].entry))
-        self.assertEqual([prm.Param('length', prm.Param.OUT, _Integer())], vars.get_params(byte))
-        self.assertEqual([prm.Param('length', prm.Param.OUT, _Integer())], vars.get_params(word))
-        self.assertEqual([prm.Param('length', prm.Param.OUT, _Integer())], vars.get_params(length))
+        self.assertEqual([Param('length', Param.OUT, _Integer())], vars.get_params(byte))
+        self.assertEqual([Param('length', Param.OUT, _Integer())], vars.get_params(word))
+        self.assertEqual([Param('length', Param.OUT, _Integer())], vars.get_params(length))
         self.assertEqual([], vars.get_locals(length))
-        self.assertEqual([prm.Param('length', prm.Param.OUT, _Integer())], list(vars.get_passed_variables(length, length.children[0])))
+        self.assertEqual([Param('length', Param.OUT, _Integer())], list(vars.get_passed_variables(length, length.children[0])))
 
-        self.assertEqual([prm.Local('variable integer.length', _Integer())], vars.get_locals(spec))
-        self.assertEqual([prm.Param('variable integer.length', prm.Param.IN, _Integer())], vars.get_params(data))
+        self.assertEqual([Local('variable integer.length', _Integer())], vars.get_locals(spec))
+        self.assertEqual([Param('variable integer.length', Param.IN, _Integer())], vars.get_params(data))
 
     def test_reference_outside_of_choice(self):
         """
         Test passing in a parameter into choice options.
         """
         # Note that the 'integer' option has a fixed length...
-        length = fld.Field('length:', 8)
-        length_value = expr.ValueResult('length:')
-        text = seq.Sequence('text', [
-            fld.Field('id:',  8, constraints=[Equals(dt.Data('\x00'))]),
-            fld.Field('value', length_value, fld.Field.TEXT)])
-        integer = seq.Sequence('integer', [
-            fld.Field('id:',  8, constraints=[Equals(dt.Data('\x01'))]),
-            fld.Field('value', 16, fld.Field.INTEGER)])
-        spec = seq.Sequence('spec', [length, chc.Choice('data', [text, integer])])
+        length = Field('length:', 8)
+        length_value = ValueResult('length:')
+        text = Sequence('text', [
+            Field('id:',  8, constraints=[Equals(Data('\x00'))]),
+            Field('value', length_value, Field.TEXT)])
+        integer = Sequence('integer', [
+            Field('id:',  8, constraints=[Equals(Data('\x01'))]),
+            Field('value', 16, Field.INTEGER)])
+        spec = Sequence('spec', [length, Choice('data', [text, integer])])
 
-        vars = prm.ExpressionParameters([spec])
+        vars = ExpressionParameters([spec])
         self.assertTrue(vars.is_value_referenced(length))
         self.assertEqual([], vars.get_params(spec))
-        self.assertEqual([prm.Local('length:', _Integer())], vars.get_locals(spec))
-        self.assertEqual([prm.Param('length:', prm.Param.OUT, _Integer())], vars.get_params(length))
-        self.assertEqual([prm.Param('length:', prm.Param.OUT, _Integer())], list(vars.get_passed_variables(spec, spec.children[0])))
+        self.assertEqual([Local('length:', _Integer())], vars.get_locals(spec))
+        self.assertEqual([Param('length:', Param.OUT, _Integer())], vars.get_params(length))
+        self.assertEqual([Param('length:', Param.OUT, _Integer())], list(vars.get_passed_variables(spec, spec.children[0])))
 
-        self.assertEqual([prm.Param('length:', prm.Param.IN, _Integer())], vars.get_params(spec.children[1].entry))
-        self.assertEqual([prm.Param('length:', prm.Param.IN, _Integer())], list(vars.get_passed_variables(spec, spec.children[1])))
-        self.assertEqual([prm.Param('length:', prm.Param.IN, _Integer())], vars.get_params(text))
-        self.assertEqual([prm.Param('length:', prm.Param.IN, _Integer())], list(vars.get_passed_variables(spec.children[1].entry, spec.children[1].entry.children[0])))
-        self.assertEqual([prm.Param('length:', prm.Param.IN, _Integer())], vars.get_params(text.children[1].entry))
+        self.assertEqual([Param('length:', Param.IN, _Integer())], vars.get_params(spec.children[1].entry))
+        self.assertEqual([Param('length:', Param.IN, _Integer())], list(vars.get_passed_variables(spec, spec.children[1])))
+        self.assertEqual([Param('length:', Param.IN, _Integer())], vars.get_params(text))
+        self.assertEqual([Param('length:', Param.IN, _Integer())], list(vars.get_passed_variables(spec.children[1].entry, spec.children[1].entry.children[0])))
+        self.assertEqual([Param('length:', Param.IN, _Integer())], vars.get_params(text.children[1].entry))
         self.assertEqual([], vars.get_params(integer))
         self.assertEqual([], list(vars.get_passed_variables(spec.children[1].entry, spec.children[1].entry.children[1])))
 
     def test_unused_parameters(self):
         # Test detection of re-use of a common entry, where not all output parameters are used.
-        length = fld.Field('length', 8)
-        shared = seq.Sequence('shared', [length])
-        length_value = expr.ValueResult('shared.length')
+        length = Field('length', 8)
+        shared = Sequence('shared', [length])
+        length_value = ValueResult('shared.length')
 
         # Now we'll reference that common component twice, but only once
         # referencing an actual value. In 'b' we use it twice, to detect that
         # it only turns up in the locals list once.
-        a = seq.Sequence('a', [shared, fld.Field('a data', length_value)])
-        b = seq.Sequence('b', [shared, shared])
-        spec = seq.Sequence('spec', [a,b])
-        vars = prm.ExpressionParameters([spec])
+        a = Sequence('a', [shared, Field('a data', length_value)])
+        b = Sequence('b', [shared, shared])
+        spec = Sequence('spec', [a,b])
+        vars = ExpressionParameters([spec])
         self.assertEqual([], list(vars.get_params(spec)))
         self.assertTrue(vars.is_value_referenced(length))
         self.assertFalse(vars.is_value_referenced(shared))
         self.assertEqual([], vars.get_locals(spec))
 
         # Test that the 'length' and 'shared' entries pass out their value
-        self.assertEqual([prm.Param('length', prm.Param.OUT, _Integer())], list(vars.get_params(length)))
-        self.assertEqual([prm.Param('length', prm.Param.OUT, _Integer())], vars.get_params(shared))
+        self.assertEqual([Param('length', Param.OUT, _Integer())], list(vars.get_params(length)))
+        self.assertEqual([Param('length', Param.OUT, _Integer())], vars.get_params(shared))
 
         # First validate the passing of the length value within entry 'a'
         self.assertEqual([], vars.get_params(a))
-        self.assertEqual([prm.Local('shared.length', _Integer())], vars.get_locals(a))
-        self.assertEqual([prm.Param('shared.length', prm.Param.OUT, _Integer())], list(vars.get_passed_variables(a, a.children[0])))
-        self.assertEqual([prm.Param('shared.length', prm.Param.IN, _Integer())], list(vars.get_passed_variables(a, a.children[1])))
+        self.assertEqual([Local('shared.length', _Integer())], vars.get_locals(a))
+        self.assertEqual([Param('shared.length', Param.OUT, _Integer())], list(vars.get_passed_variables(a, a.children[0])))
+        self.assertEqual([Param('shared.length', Param.IN, _Integer())], list(vars.get_passed_variables(a, a.children[1])))
         self.assertEqual([], list(vars.get_passed_variables(spec, spec.children[0])))
 
         # Now test the passing out (and ignoring) of the length value within 'b'
         self.assertEqual([], vars.get_params(b))
-        self.assertEqual([prm.Local('unused length', _Integer())], vars.get_locals(b))
-        self.assertEqual([prm.Param('unused length', prm.Param.OUT, _Integer())], list(vars.get_passed_variables(b, b.children[0])))
+        self.assertEqual([Local('unused length', _Integer())], vars.get_locals(b))
+        self.assertEqual([Param('unused length', Param.OUT, _Integer())], list(vars.get_passed_variables(b, b.children[0])))
         self.assertEqual([], list(vars.get_passed_variables(spec, spec.children[0])))
 
     def test_referencing_sequence_without_value(self):
-        a = seq.Sequence('a', [])
-        b = fld.Field('b', expr.compile('${a}'), fld.Field.INTEGER)
-        c = seq.Sequence('c', [a, b])
+        a = Sequence('a', [])
+        b = Field('b', parse('${a}'), Field.INTEGER)
+        c = Sequence('c', [a, b])
 
-        self.assertRaises(prm.BadReferenceError, prm.ExpressionParameters, [c])
+        self.assertRaises(BadReferenceError, ExpressionParameters, [c])
 
     def test_name_ends_in_length(self):
-        a = fld.Field('data length', 8, fld.Field.INTEGER)
-        b = fld.Field('data', expr.compile('${data length} * 8'))
-        c = seq.Sequence('c', [a, b])
-        params = prm.ExpressionParameters([c])
-        self.assertEqual([prm.Local('data length', _Integer())], params.get_locals(c))
+        a = Field('data length', 8, Field.INTEGER)
+        b = Field('data', parse('${data length} * 8'))
+        c = Sequence('c', [a, b])
+        params = ExpressionParameters([c])
+        self.assertEqual([Local('data length', _Integer())], params.get_locals(c))
         self.assertEqual([], params.get_params(c))
-        self.assertEqual([prm.Param('data length', prm.Param.OUT, _Integer())], params.get_params(a))
-        self.assertEqual([prm.Param('data length', prm.Param.IN, _Integer())], params.get_params(b))
+        self.assertEqual([Param('data length', Param.OUT, _Integer())], params.get_params(a))
+        self.assertEqual([Param('data length', Param.IN, _Integer())], params.get_params(b))
         self.assertEqual(True, params.is_value_referenced(a))
         self.assertEqual(False, params.is_length_referenced(a))
 
     def test_param_ordering(self):
         # Test that we order the parameters consistently
-        a = fld.Field('a', 8)
-        b = fld.Field('b', 8)
-        c = fld.Field('c', 8)
-        d = seq.Sequence('d', [a,b,c])
+        a = Field('a', 8)
+        b = Field('b', 8)
+        c = Field('c', 8)
+        d = Sequence('d', [a,b,c])
 
-        e = fld.Field('e', expr.compile('${d.a} + ${d.b} + ${d.c}'))
-        f = seq.Sequence('f', [d, e])
+        e = Field('e', parse('${d.a} + ${d.b} + ${d.c}'))
+        f = Sequence('f', [d, e])
 
-        params = prm.ExpressionParameters([f])
-        self.assertEqual([prm.Local('d.a', _Integer()),
-            prm.Local('d.b', _Integer()),
-            prm.Local('d.c', _Integer())], params.get_locals(f))
-        self.assertEqual([prm.Param('a', prm.Param.OUT, _Integer()), 
-            prm.Param('b', prm.Param.OUT, _Integer()),
-            prm.Param('c', prm.Param.OUT, _Integer())],
+        params = ExpressionParameters([f])
+        self.assertEqual([Local('d.a', _Integer()),
+            Local('d.b', _Integer()),
+            Local('d.c', _Integer())], params.get_locals(f))
+        self.assertEqual([Param('a', Param.OUT, _Integer()), 
+            Param('b', Param.OUT, _Integer()),
+            Param('c', Param.OUT, _Integer())],
             params.get_params(d))
-        self.assertEqual([prm.Param('d.a', prm.Param.OUT, _Integer()),
-            prm.Param('d.b', prm.Param.OUT, _Integer()),
-            prm.Param('d.c', prm.Param.OUT, _Integer())],
+        self.assertEqual([Param('d.a', Param.OUT, _Integer()),
+            Param('d.b', Param.OUT, _Integer()),
+            Param('d.c', Param.OUT, _Integer())],
             list(params.get_passed_variables(f, f.children[0])))
 
     def test_renamed_common_reference(self):
-        text_digit = fld.Field('text digit', 8, constraints=[Minimum(48), Maximum(58)])
+        text_digit = Field('text digit', 8, constraints=[Minimum(48), Maximum(58)])
 
-        digit = seq.Sequence('digit', [text_digit],
-            value=expr.compile("${text digit} - 48"))
-        b = seq.Sequence('b', [
-            ent.Child('length', digit),
-            fld.Field('data', length=expr.compile("${length} * 8"))])
-        lookup = prm.ExpressionParameters([b])
+        digit = Sequence('digit', [text_digit],
+            value=parse("${text digit} - 48"))
+        b = Sequence('b', [
+            Child('length', digit),
+            Field('data', length=parse("${length} * 8"))])
+        lookup = ExpressionParameters([b])
         self.assertEqual([], lookup.get_params(b))
-        self.assertEqual([prm.Param('digit', prm.Param.OUT, _Integer())],
+        self.assertEqual([Param('digit', Param.OUT, _Integer())],
                 lookup.get_params(digit))
-        self.assertEqual([prm.Param('length', prm.Param.OUT, _Integer())],
+        self.assertEqual([Param('length', Param.OUT, _Integer())],
                 list(lookup.get_passed_variables(b, b.children[0])))
 
     def test_choice_reference(self):
@@ -297,40 +300,40 @@ class TestExpressionParameters(unittest.TestCase):
         #
         # We test this by creating a choice where each child has a value type,
         # and attempt to reference the top level choice.
-        len = fld.Field('len', length=8)
-        a = fld.Field('a', length=32)
-        b = fld.Field('b', length=16)
-        c = fld.Field('c', length=8)
-        var_len = chc.Choice('var_len', [a, b, c], length=expr.compile('${len}'))
-        data = fld.Field('data', length=expr.compile('${var_len}'))
-        spec = seq.Sequence('spec', [len, var_len, data])
+        len = Field('len', length=8)
+        a = Field('a', length=32)
+        b = Field('b', length=16)
+        c = Field('c', length=8)
+        var_len = Choice('var_len', [a, b, c], length=parse('${len}'))
+        data = Field('data', length=parse('${var_len}'))
+        spec = Sequence('spec', [len, var_len, data])
 
         # Check the parameters passed in and out of each entry
-        lookup = prm.ExpressionParameters([spec])
+        lookup = ExpressionParameters([spec])
         self.assertEqual([], lookup.get_params(spec))
-        self.assertEqual([prm.Param('len', prm.Param.OUT, _Integer())],
+        self.assertEqual([Param('len', Param.OUT, _Integer())],
                 lookup.get_params(len))
-        self.assertEqual([prm.Param('len', prm.Param.IN, _Integer()),
-                    prm.Param('var_len', prm.Param.OUT, _Integer())],
+        self.assertEqual([Param('len', Param.IN, _Integer()),
+                    Param('var_len', Param.OUT, _Integer())],
                 lookup.get_params(var_len))
-        self.assertEqual([prm.Param('a', prm.Param.OUT, _Integer())],
+        self.assertEqual([Param('a', Param.OUT, _Integer())],
                 lookup.get_params(a))
-        self.assertEqual([prm.Param('b', prm.Param.OUT, _Integer())],
+        self.assertEqual([Param('b', Param.OUT, _Integer())],
                 lookup.get_params(b))
-        self.assertEqual([prm.Param('var_len', prm.Param.IN, _Integer())],
+        self.assertEqual([Param('var_len', Param.IN, _Integer())],
                 lookup.get_params(data))
 
         # Test the mapping of the parameters for the choice to the option
         # entries.
-        self.assertEqual([prm.Param('var_len', prm.Param.OUT, _Integer())],
+        self.assertEqual([Param('var_len', Param.OUT, _Integer())],
                 list(lookup.get_passed_variables(var_len, var_len.children[0])))
-        self.assertEqual([prm.Param('var_len', prm.Param.OUT, _Integer())],
+        self.assertEqual([Param('var_len', Param.OUT, _Integer())],
                 list(lookup.get_passed_variables(var_len, var_len.children[1])))
-        self.assertEqual([prm.Param('var_len', prm.Param.OUT, _Integer())],
+        self.assertEqual([Param('var_len', Param.OUT, _Integer())],
                 list(lookup.get_passed_variables(var_len, var_len.children[2])))
 
         # And validate the locals...
-        self.assertEqual([prm.Local('len', _Integer()), prm.Local('var_len', _Integer())], lookup.get_locals(spec))
+        self.assertEqual([Local('len', _Integer()), Local('var_len', _Integer())], lookup.get_locals(spec))
         self.assertEqual([], lookup.get_locals(len))
         self.assertEqual([], lookup.get_locals(var_len))
         self.assertEqual([], lookup.get_locals(a))
@@ -343,126 +346,126 @@ class TestExpressionParameters(unittest.TestCase):
         #        ___ e ___
         #   __c__         d(len=a)
         #  a   b(len=a)
-        a = fld.Field('a', length=8)
-        b = fld.Field('b', length=expr.compile('${a}'))
-        c = seq.Sequence('c', [a, b])
-        d = fld.Field('d', length=expr.compile('${c.a}'))
-        e = seq.Sequence('e', [c, d])
+        a = Field('a', length=8)
+        b = Field('b', length=parse('${a}'))
+        c = Sequence('c', [a, b])
+        d = Field('d', length=parse('${c.a}'))
+        e = Sequence('e', [c, d])
 
-        lookup = prm.ExpressionParameters([e])
+        lookup = ExpressionParameters([e])
         self.assertEqual([], lookup.get_params(e))
-        self.assertEqual([prm.Param('a', prm.Param.OUT, _Integer())], lookup.get_params(a))
-        self.assertEqual([prm.Param('a', prm.Param.OUT, _Integer())], lookup.get_params(c))
-        self.assertEqual([prm.Param('a', prm.Param.IN, _Integer())], lookup.get_params(b))
-        self.assertEqual([prm.Param('c.a', prm.Param.IN, _Integer())], lookup.get_params(d))
-        self.assertEqual([prm.Local('c.a', _Integer())], lookup.get_locals(e))
+        self.assertEqual([Param('a', Param.OUT, _Integer())], lookup.get_params(a))
+        self.assertEqual([Param('a', Param.OUT, _Integer())], lookup.get_params(c))
+        self.assertEqual([Param('a', Param.IN, _Integer())], lookup.get_params(b))
+        self.assertEqual([Param('c.a', Param.IN, _Integer())], lookup.get_params(d))
+        self.assertEqual([Local('c.a', _Integer())], lookup.get_locals(e))
         self.assertEqual([], lookup.get_locals(c))
 
         self.assertTrue(lookup.is_value_referenced(a))
 
-        self.assertEqual([prm.Param('a', prm.Param.IN, _Integer())],
+        self.assertEqual([Param('a', Param.IN, _Integer())],
                 list(lookup.get_passed_variables(c, c.children[1])))
-        self.assertEqual([prm.Param('c.a', prm.Param.IN, _Integer())],
+        self.assertEqual([Param('c.a', Param.IN, _Integer())],
                 list(lookup.get_passed_variables(e, e.children[1])))
 
     def test_length_and_value_reference(self):
         # Test a length reference and a value reference to the same entry.
-        a = fld.Field('a', length=8)
-        c = fld.Field('c', length=expr.compile('len{a}'))
-        d = fld.Field('d', length=expr.compile('${a}'))
-        b = seq.Sequence('b', [a, c, d])
+        a = Field('a', length=8)
+        c = Field('c', length=parse('len{a}'))
+        d = Field('d', length=parse('${a}'))
+        b = Sequence('b', [a, c, d])
 
         # Lets just try a quick decode to make sure we've specified it ok...
-        #list(b.decode(dt.Data('\x08cd')))
+        #list(b.decode(Data('\x08cd')))
 
         # Now test the parameters being passed around.
-        lookup = prm.ExpressionParameters([b])
-        self.assertEqual([prm.Param('a', prm.Param.OUT, _Integer()),
-            prm.Param('a length', prm.Param.OUT, _Integer())],
+        lookup = ExpressionParameters([b])
+        self.assertEqual([Param('a', Param.OUT, _Integer()),
+            Param('a length', Param.OUT, _Integer())],
                 lookup.get_params(a))
-        self.assertEqual([prm.Param('a', prm.Param.OUT, _Integer()),
-            prm.Param('a length', prm.Param.OUT, _Integer())],
+        self.assertEqual([Param('a', Param.OUT, _Integer()),
+            Param('a length', Param.OUT, _Integer())],
                 list(lookup.get_passed_variables(b, b.children[0])))
-        self.assertEqual([prm.Param('a length', prm.Param.IN, _Integer())],
+        self.assertEqual([Param('a length', Param.IN, _Integer())],
                 list(lookup.get_passed_variables(b, b.children[1])))
-        self.assertEqual([prm.Param('a length', prm.Param.IN, _Integer())],
+        self.assertEqual([Param('a length', Param.IN, _Integer())],
                 lookup.get_params(c))
-        self.assertEqual([prm.Local('a', _Integer()), prm.Local('a length', _Integer())],
+        self.assertEqual([Local('a', _Integer()), Local('a length', _Integer())],
                 lookup.get_locals(b))
         self.assertTrue(lookup.is_length_referenced(a))
 
     def test_common_entry_with_input_parameter(self):
         # Test that we correctly resolve a common entry that has an input
         # parameter that resolves to mulitiple (different) entries.
-        a = fld.Field('a', length=expr.compile('${b}'))
+        a = Field('a', length=parse('${b}'))
 
         # Here the common entry 'a' is used into two locations, each time it
         # resolves to an entry with a different length.
-        c = seq.Sequence('c', [fld.Field('b', 8), a])
-        d = seq.Sequence('d', [fld.Field('b', 16), a])
-        lookup = prm.ExpressionParameters([a, c, d])
+        c = Sequence('c', [Field('b', 8), a])
+        d = Sequence('d', [Field('b', 16), a])
+        lookup = ExpressionParameters([a, c, d])
 
-        self.assertEqual([prm.Param('b', prm.Param.OUT, _Integer())], list(lookup.get_passed_variables(c, c.children[0])))
-        self.assertEqual([prm.Param('b', prm.Param.OUT, _Integer())], list(lookup.get_passed_variables(d, d.children[0])))
+        self.assertEqual([Param('b', Param.OUT, _Integer())], list(lookup.get_passed_variables(c, c.children[0])))
+        self.assertEqual([Param('b', Param.OUT, _Integer())], list(lookup.get_passed_variables(d, d.children[0])))
 
     def test_unused_parameters_with_same_name(self):
         # Test that when we have multiple 'unused' parameters with the same
         # name we don't duplicate the same local variable. This happened with
         # the vfat specification (the different bootsector types all had the
         # same output parameters).
-        a1 = fld.Field('a', length=16)
-        a2 = fld.Field('a', length=8)
+        a1 = Field('a', length=16)
+        a2 = Field('a', length=8)
         # C doesn't use the outputs from a1 and a2, so should have a single
         # local variable.
-        c = seq.Sequence('c', [a1, a2])
+        c = Sequence('c', [a1, a2])
         # Now create a couple of other entries that actually use a1 & a2
-        d1 = seq.Sequence('d1', [a1, fld.Field('e1', length=expr.compile('${a}'))])
-        d2 = seq.Sequence('d2', [a2, fld.Field('e2', length=expr.compile('${a}'))])
+        d1 = Sequence('d1', [a1, Field('e1', length=parse('${a}'))])
+        d2 = Sequence('d2', [a2, Field('e2', length=parse('${a}'))])
 
-        lookup = prm.ExpressionParameters([a1, a2, c, d1, d2])
-        self.assertEqual([prm.Param('unused a', prm.Param.OUT, _Integer())], list(lookup.get_passed_variables(c, c.children[0])))
-        self.assertEqual([prm.Param('unused a', prm.Param.OUT, _Integer())], list(lookup.get_passed_variables(c, c.children[1])))
-        self.assertEqual([prm.Local('unused a', _Integer())], lookup.get_locals(c))
+        lookup = ExpressionParameters([a1, a2, c, d1, d2])
+        self.assertEqual([Param('unused a', Param.OUT, _Integer())], list(lookup.get_passed_variables(c, c.children[0])))
+        self.assertEqual([Param('unused a', Param.OUT, _Integer())], list(lookup.get_passed_variables(c, c.children[1])))
+        self.assertEqual([Local('unused a', _Integer())], lookup.get_locals(c))
 
     def test_sequence_with_referenced_value(self):
-        a = fld.Field('a', length=8)
-        b = seq.Sequence('b', [ent.Child('b:', a)], value=expr.compile('${b:}'))
-        c = fld.Field('c', length=expr.compile('${b} * 8'))
-        d = seq.Sequence('d', [a, b, c])
-        lookup = prm.ExpressionParameters([a, d])
-        self.assertEqual([prm.Local('b:', _Integer())], lookup.get_locals(b))
-        self.assertEqual([prm.Param('a', prm.Param.OUT, _Integer())], lookup.get_params(a))
-        self.assertEqual([prm.Param('b', prm.Param.OUT, _Integer())], lookup.get_params(b))
-        self.assertEqual([prm.Param('b', prm.Param.IN, _Integer())], lookup.get_params(c))
+        a = Field('a', length=8)
+        b = Sequence('b', [Child('b:', a)], value=parse('${b:}'))
+        c = Field('c', length=parse('${b} * 8'))
+        d = Sequence('d', [a, b, c])
+        lookup = ExpressionParameters([a, d])
+        self.assertEqual([Local('b:', _Integer())], lookup.get_locals(b))
+        self.assertEqual([Param('a', Param.OUT, _Integer())], lookup.get_params(a))
+        self.assertEqual([Param('b', Param.OUT, _Integer())], lookup.get_params(b))
+        self.assertEqual([Param('b', Param.IN, _Integer())], lookup.get_params(c))
         self.assertEqual([], lookup.get_params(d))
 
     def test_exception_when_referencing_text_field(self):
-        a = seq.Sequence('a', [fld.Field('b', length=8, format=fld.Field.TEXT),
-            fld.Field('c', length=expr.compile('${b}'))])
-        self.assertRaises(prm.BadReferenceTypeError, prm.ExpressionParameters, [a])
+        a = Sequence('a', [Field('b', length=8, format=Field.TEXT),
+            Field('c', length=parse('${b}'))])
+        self.assertRaises(BadReferenceTypeError, ExpressionParameters, [a])
 
     def test_recursive_entry_with_input_param(self):
         # There was a bug with passing input parameters to recursive entries,
         # where the embedded (recursed) entry wouldn't have the parameter
         # correctly passed. This technique is used in the asn.1 decoder.
-        a = chc.Choice('a', [
-            fld.Field('not recursive', length=8, constraints=[Equals(expr.ValueResult('zero'))]),
-            seq.Sequence('recursive', [
-                fld.Field('unused', length=8)
+        a = Choice('a', [
+            Field('not recursive', length=8, constraints=[Equals(ValueResult('zero'))]),
+            Sequence('recursive', [
+                Field('unused', length=8)
                 ])
             ])
-        a.children[1].entry.children.append(ent.Child('a', a))
-        b = seq.Sequence('b', [
-            seq.Sequence('zero', [], value=expr.Constant(0)),
+        a.children[1].entry.children.append(Child('a', a))
+        b = Sequence('b', [
+            Sequence('zero', [], value=Constant(0)),
             a
             ])
 
-        lookup = prm.ExpressionParameters([a, b])
+        lookup = ExpressionParameters([a, b])
         self.assertEqual([
-            prm.Param('zero', prm.Param.IN, _Integer())],
+            Param('zero', Param.IN, _Integer())],
             list(lookup.get_passed_variables(a, a.children[1])))
         self.assertEqual([
-            prm.Param('zero', prm.Param.IN, _Integer())],
+            Param('zero', Param.IN, _Integer())],
             list(lookup.get_passed_variables(a.children[1].entry, a.children[1].entry.children[1])))
 
     def test_two_recursive_entries_with_input_parameters(self):
@@ -472,93 +475,94 @@ class TestExpressionParameters(unittest.TestCase):
         # In this case, 'a' is recursive through both 'recursive x' and
         # 'recursive y', and the bug was that any input parameters to
         # 'recursive y' weren't being correctly detected.
-        a = chc.Choice('a', [
-            fld.Field('not recursive', length=8, constraints=[Equals(expr.ValueResult('zero'))]),
-            seq.Sequence('recursive x', [
-                fld.Field('unused', length=8, constraints=[Maximum(10)])
+        a = Choice('a', [
+            Field('not recursive', length=8, constraints=[Equals(ValueResult('zero'))]),
+            Sequence('recursive x', [
+                Field('unused', length=8, constraints=[Maximum(10)])
                 ]),
-            seq.Sequence('recursive y', [
-                fld.Field('unused', length=8)
+            Sequence('recursive y', [
+                Field('unused', length=8)
                 ]),
             ])
-        a.children[1].entry.children.append(ent.Child('a1', a))
-        a.children[2].entry.children.append(ent.Child('a2', a))
-        b = seq.Sequence('b', [
-            seq.Sequence('zero', [], value=expr.Constant(0)),
+        a.children[1].entry.children.append(Child('a1', a))
+        a.children[2].entry.children.append(Child('a2', a))
+        b = Sequence('b', [
+            Sequence('zero', [], value=Constant(0)),
             a
             ])
 
-        lookup = prm.ExpressionParameters([a, b])
+        lookup = ExpressionParameters([a, b])
         self.assertEqual([
-            prm.Param('zero', prm.Param.IN, _Integer())],
+            Param('zero', Param.IN, _Integer())],
             list(lookup.get_passed_variables(a, a.children[1])))
         self.assertEqual([
-            prm.Param('zero', prm.Param.IN, _Integer())],
+            Param('zero', Param.IN, _Integer())],
             list(lookup.get_passed_variables(a.children[1].entry, a.children[1].entry.children[1])))
         self.assertEqual([
-            prm.Param('zero', prm.Param.IN, _Integer())],
+            Param('zero', Param.IN, _Integer())],
             list(lookup.get_passed_variables(a, a.children[2])))
         self.assertEqual([
-            prm.Param('zero', prm.Param.IN, _Integer())],
+            Param('zero', Param.IN, _Integer())],
             list(lookup.get_passed_variables(a.children[2].entry, a.children[2].entry.children[1])))
+
 
 class TestEndEntryParameters(unittest.TestCase):
     def test_end_entry_lookup(self):
-        null = fld.Field("null", 8, constraints=[Equals(dt.Data('\x00'))])
-        char = fld.Field("char", 8)
-        entry = chc.Choice('entry', [null, char])
-        string = sof.SequenceOf("null terminated string", entry, None, end_entries=[null])
+        null = Field("null", 8, constraints=[Equals(Data('\x00'))])
+        char = Field("char", 8)
+        entry = Choice('entry', [null, char])
+        string = SequenceOf("null terminated string", entry, None, end_entries=[null])
 
-        lookup = prm.EndEntryParameters([string])
-        self.assertEqual(set([prm.Param('should end', prm.Param.OUT, prm.ShouldEndType())]), lookup.get_params(null))
-        self.assertEqual(set([prm.Param('should end', prm.Param.OUT, prm.ShouldEndType())]), lookup.get_params(entry))
-        self.assertEqual([prm.Local('should end', _Integer())], lookup.get_locals(string))
+        lookup = EndEntryParameters([string])
+        self.assertEqual(set([Param('should end', Param.OUT, ShouldEndType())]), lookup.get_params(null))
+        self.assertEqual(set([Param('should end', Param.OUT, ShouldEndType())]), lookup.get_params(entry))
+        self.assertEqual([Local('should end', _Integer())], lookup.get_locals(string))
         self.assertTrue(lookup.is_end_sequenceof(null))
 
 class TestResultParameters(unittest.TestCase):
     def test_field_output(self):
-        a = fld.Field('a', 8)
-        b = seq.Sequence('b', [a])
-        lookup = prm.ResultParameters([b])
-        self.assertEqual([prm.Param('result', prm.Param.OUT, EntryType(a))], lookup.get_params(a))
-        self.assertEqual([prm.Param('magic unknown param', prm.Param.OUT, EntryType(a))], lookup.get_passed_variables(b, b.children[0]))
-        self.assertEqual([prm.Param('result', prm.Param.OUT, EntryType(b))], lookup.get_params(b))
+        a = Field('a', 8)
+        b = Sequence('b', [a])
+        lookup = ResultParameters([b])
+        self.assertEqual([Param('result', Param.OUT, EntryType(a))], lookup.get_params(a))
+        self.assertEqual([Param('magic unknown param', Param.OUT, EntryType(a))], lookup.get_passed_variables(b, b.children[0]))
+        self.assertEqual([Param('result', Param.OUT, EntryType(b))], lookup.get_params(b))
 
     def test_hidden_field(self):
-        a = fld.Field('', 8)
-        lookup = prm.ResultParameters([a])
+        a = Field('', 8)
+        lookup = ResultParameters([a])
         self.assertEqual([], lookup.get_params(a))
 
     def test_hidden_entry_visible_child(self):
         # If an entry is hidden, but it has visible children, we want the entry
         # to be hidden regardless.
-        a = fld.Field('a', 8)
-        b = seq.Sequence('', [a])
-        lookup = prm.ResultParameters([b])
+        a = Field('a', 8)
+        b = Sequence('', [a])
+        lookup = ResultParameters([b])
         self.assertEqual([], lookup.get_params(b))
         self.assertEqual([], lookup.get_params(a))
 
     def test_recursive_common(self):
         # Test a recursive parser to decode xml style data
 
-        embedded = seq.Sequence('embedded', [])
-        digit = fld.Field('data', 8, constraints=[Minimum(ord('0')), Maximum(ord('9'))])
-        item = chc.Choice('item', [embedded, digit])
+        embedded = Sequence('embedded', [])
+        digit = Field('data', 8, constraints=[Minimum(ord('0')), Maximum(ord('9'))])
+        item = Choice('item', [embedded, digit])
         embedded.children = [
-                fld.Field('', length=8, format=fld.Field.TEXT, constraints=[Equals('<')]),
+                Field('', length=8, format=Field.TEXT, constraints=[Equals('<')]),
                 item,
-                fld.Field('', length=8, format=fld.Field.TEXT, constraints=[Equals('>')])]
+                Field('', length=8, format=Field.TEXT, constraints=[Equals('>')])]
 
         # Lets just test that we can decode things correctly...
-        list(item.decode(dt.Data('8')))
-        list(item.decode(dt.Data('<5>')))
-        list(item.decode(dt.Data('<<7>>')))
-        self.assertRaises(bdec.DecodeError, list, item.decode(dt.Data('a')))
-        self.assertRaises(bdec.DecodeError, list, item.decode(dt.Data('<5')))
+        list(item.decode(Data('8')))
+        list(item.decode(Data('<5>')))
+        list(item.decode(Data('<<7>>')))
+        self.assertRaises(bdec.DecodeError, list, item.decode(Data('a')))
+        self.assertRaises(bdec.DecodeError, list, item.decode(Data('<5')))
 
-        lookup = prm.ResultParameters([item])
-        self.assertEqual([prm.Param('result', prm.Param.OUT, EntryType(item))], lookup.get_params(item))
-        self.assertEqual([prm.Param('result', prm.Param.OUT, EntryType(embedded))], lookup.get_params(embedded))
+        lookup = ResultParameters([item])
+        self.assertEqual([Param('result', Param.OUT, EntryType(item))], lookup.get_params(item))
+        self.assertEqual([Param('result', Param.OUT, EntryType(embedded))], lookup.get_params(embedded))
 
     def test_hidden_reference(self):
         # Test a visible common reference that is hidden through its reference
@@ -566,34 +570,34 @@ class TestResultParameters(unittest.TestCase):
         #
         # Note that in this case 'b' won't have an output, because all of the
         # fields it defines are hidden, and so doesn't have a type itself.
-        a = fld.Field('a', 8, fld.Field.INTEGER)
-        b = seq.Sequence('b', [ent.Child('a:', a)])
-        lookup = prm.ResultParameters([a, b])
-        self.assertEqual([prm.Param('result', prm.Param.OUT, EntryType(a))], lookup.get_params(a))
+        a = Field('a', 8, Field.INTEGER)
+        b = Sequence('b', [Child('a:', a)])
+        lookup = ResultParameters([a, b])
+        self.assertEqual([Param('result', Param.OUT, EntryType(a))], lookup.get_params(a))
         self.assertEqual([], lookup.get_params(b))
-        self.assertEqual([prm.Local('unused a:', EntryType(a))], lookup.get_locals(b))
-        self.assertEqual([prm.Param('unused a:', prm.Param.OUT, EntryType(a))], lookup.get_passed_variables(b, b.children[0]))
+        self.assertEqual([Local('unused a:', EntryType(a))], lookup.get_locals(b))
+        self.assertEqual([Param('unused a:', Param.OUT, EntryType(a))], lookup.get_passed_variables(b, b.children[0]))
 
     def test_sequence_value(self):
-        a = fld.Field('a:', 8, fld.Field.INTEGER)
-        b = seq.Sequence('b', [a], expr.compile('${a:}'))
-        lookup = prm.ResultParameters([b])
+        a = Field('a:', 8, Field.INTEGER)
+        b = Sequence('b', [a], parse('${a:}'))
+        lookup = ResultParameters([b])
         self.assertEqual([], lookup.get_params(a))
-        self.assertEqual([prm.Param('result', prm.Param.OUT, EntryType(b))],
+        self.assertEqual([Param('result', Param.OUT, EntryType(b))],
                 lookup.get_params(b))
         self.assertEqual([], lookup.get_locals(a))
         self.assertEqual([], lookup.get_locals(b))
         self.assertEqual([], lookup.get_passed_variables(b, b.children[0]))
 
     def test_visible_common_in_hidden_context(self):
-        a = fld.Field('a', 8)
-        b = seq.Sequence('b:', [a])
-        lookup = prm.ResultParameters([a, b])
-        self.assertEqual([prm.Param('result', prm.Param.OUT, EntryType(a))],
+        a = Field('a', 8)
+        b = Sequence('b:', [a])
+        lookup = ResultParameters([a, b])
+        self.assertEqual([Param('result', Param.OUT, EntryType(a))],
                 lookup.get_params(a))
         self.assertEqual([], lookup.get_params(b))
-        self.assertEqual([prm.Local('unused a', EntryType(a))], lookup.get_locals(b))
-        self.assertEqual([prm.Param('unused a', prm.Param.OUT, EntryType(a))],
+        self.assertEqual([Local('unused a', EntryType(a))], lookup.get_locals(b))
+        self.assertEqual([Param('unused a', Param.OUT, EntryType(a))],
             lookup.get_passed_variables(b, b.children[0]))
 
 
@@ -601,9 +605,9 @@ class TestDataChecker(unittest.TestCase):
     def test_hidden_entry_visible_child(self):
         # Test that when the parent entry is hidden, the child entry is hidden
         # too.
-        a = fld.Field('a', 8)
-        b = seq.Sequence('b:', [a])
-        checker = prm.DataChecker([b])
+        a = Field('a', 8)
+        b = Sequence('b:', [a])
+        checker = DataChecker([b])
         self.assertFalse(checker.contains_data(a))
         self.assertFalse(checker.contains_data(b))
         self.assertFalse(checker.child_has_data(b.children[0]))
@@ -611,9 +615,9 @@ class TestDataChecker(unittest.TestCase):
     def test_visible_child_renamed_to_be_hidden(self):
         # Test that when a child is visible, but its name isn't, the parent
         # can be hidden.
-        a = fld.Field('a', 8)
-        b = seq.Sequence('b', [ent.Child('a:', a)])
-        checker = prm.DataChecker([a, b])
+        a = Field('a', 8)
+        b = Sequence('b', [Child('a:', a)])
+        checker = DataChecker([a, b])
         self.assertTrue(checker.contains_data(a))
         self.assertFalse(checker.contains_data(b))
 
@@ -624,11 +628,11 @@ class TestEncodeParameters(unittest.TestCase):
         # 'a' entry should have an output parameter 'a', but 'c' should also
         # have it as an output; 'b' will be responsible for mocking the
         # parameter to pass into 'a:' during encoding.
-        a = fld.Field('a', 8)
-        b = seq.Sequence('b', [
-            ent.Child('a:', a),
-            seq.Sequence('c', [], value=expr.parse('${a:}'))])
-        params = prm.EncodeExpressionParameters([a, b])
-        self.assertEqual([prm.Param('a', prm.Param.OUT, _Integer())], params.get_params(a))
-        self.assertEqual([prm.Param('a:', prm.Param.OUT, _Integer())], params.get_passed_variables(b, b.children[0]))
-        self.assertEqual([prm.Param('a:', prm.Param.OUT, _Integer())], params.get_params(b.children[1].entry))
+        a = Field('a', 8)
+        b = Sequence('b', [
+            Child('a:', a),
+            Sequence('c', [], value=parse('${a:}'))])
+        params = EncodeExpressionParameters([a, b])
+        self.assertEqual([Param('a', Param.OUT, _Integer())], params.get_params(a))
+        self.assertEqual([Param('a:', Param.OUT, _Integer())], params.get_passed_variables(b, b.children[0]))
+        self.assertEqual([Param('a:', Param.OUT, _Integer())], params.get_params(b.children[1].entry))
