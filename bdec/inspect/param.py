@@ -408,31 +408,32 @@ class ExpressionParameters(_Parameters):
             param_source):
         """Populate the source of parameters values for unknown values."""
         # Store the names the child doesn't know about (ie: names that must be
-        # resolved for this entry to decode)
-        child_unknowns = set()
+        # resolved for this entry to decode).
+        child_unknowns = []
         if isinstance(entry, seq.Sequence) and entry.value is not None:
-            child_unknowns.update(self._collect_references(entry.value))
+            child_unknowns.extend((None, ref) for ref in self._collect_references(entry.value))
         for constraint in entry.constraints:
-            child_unknowns.update(self._collect_references(constraint.limit))
-        for child in entry.children:
+            child_unknowns.extend((None, ref) for ref in self._collect_references(constraint.limit))
+        for i, child in enumerate(entry.children):
             unknowns = unreferenced_entries[child.entry]
             self._local_child_param_name.setdefault(entry, {}).setdefault(child, {}).update(
                     (ref.name, ref.name) for ref in unknowns)
-            child_unknowns.update(unknowns)
+            child_unknowns.extend((i, ref) for ref in unknowns)
 
         # Our unknown list is all the unknowns in our children that aren't
         # present in our known references.
-        child_names = [child.name for child in entry.children]
-        for unknown in child_unknowns:
+        for i, unknown in child_unknowns:
             name = unknown.name.split('.')[0]
-            if name not in child_names:
+            for j, child in enumerate(entry.children):
+                if child.name == name and (i is None or i > j):
+                    # This value comes from one of our child entries, so drill down
+                    # into it.
+                    param_type = self._add_out_params(entry, unknown)
+                    param_source.append((entry, unknown.name, param_type))
+                    break
+            else:
                 # This value is 'unknown' to the entry, and must be passed in.
                 unreferenced_entries[entry].add(unknown)
-            else:
-                # This value comes from one of our child entries, so drill down
-                # into it.
-                param_type = self._add_out_params(entry, unknown)
-                param_source.append((entry, unknown.name, param_type))
 
         for reference in unreferenced_entries[entry]:
             self._params[entry].add(_VariableParam(reference, Param.IN, None))

@@ -505,6 +505,32 @@ class TestExpressionParameters(unittest.TestCase):
             Param('zero', Param.IN, _Integer())],
             list(lookup.get_passed_variables(a.children[2].entry, a.children[2].entry.children[1])))
 
+    def test_same_param_from_parent_and_siblings(self):
+        # Test that we ask the parent for a parameter even when there is a
+        # child with the same name (but _after_ the entry that needs it).
+        a = Sequence('a', [
+            Sequence('expected', [], value=Constant(2)),
+            Sequence('b', [
+                # This should come from the parent (ie: a.expected)
+                Field('c', length=8, constraints=[Equals(ValueResult('expected'))]),
+                Sequence('expected', [], value=Constant(1)),
+                # This should come from the sibling (ie: b.expected)
+                Field('d', length=8, constraints=[Equals(ValueResult('expected'))]),
+                ])
+            ])
+        b = a.children[1].entry
+        lookup = ExpressionParameters([a])
+        self.assertEqual([Param('expected', Param.IN, _Integer())],
+            list(lookup.get_passed_variables(a, a.children[1])))
+        self.assertEqual([Param('expected', Param.OUT, _Integer())],
+            list(lookup.get_passed_variables(b, b.children[1])))
+        self.assertEqual([Param('expected', Param.IN, _Integer())],
+            list(lookup.get_passed_variables(b, b.children[2])))
+
+        self.assertRaises(bdec.DecodeError, list, a.decode(Data('\x01\x01')))
+        self.assertRaises(bdec.DecodeError, list, a.decode(Data('\x02\x00')))
+        list(a.decode(Data('\x02\x01')))
+
 
 class TestEndEntryParameters(unittest.TestCase):
     def test_end_entry_lookup(self):
