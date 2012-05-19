@@ -448,7 +448,8 @@ class ExpressionParameters(_Parameters):
 
         for child in entry.children:
             for param in self._params[child.entry]:
-                if param.reference.name == name and param.direction == Param.IN:
+                if param.reference.name == name and param.direction == Param.IN \
+                        and param_type.is_reference_match(param.reference):
                     param.types.add(param_type)
                     self._populate_child_input_parameter_type(child.entry,
                             name, param_type, visited)

@@ -54,7 +54,7 @@ from bdec.field import Field
 from bdec.inspect.param import EncodeExpressionParameters, Param, \
         ResultParameters, Local, ExpressionParameters, BadReferenceError, \
         BadReferenceTypeError, EndEntryParameters, ShouldEndType, DataChecker
-from bdec.inspect.type import EntryType, IntegerType, EntryLengthType
+from bdec.inspect.type import EntryType, IntegerType, EntryLengthType, EntryValueType
 from bdec.sequence import Sequence
 from bdec.sequenceof import SequenceOf
 from bdec.expression import parse, ValueResult, Constant, LengthResult, \
@@ -65,6 +65,8 @@ class _Integer(IntegerType, object):
     def __eq__(self, other):
         return isinstance(other, IntegerType)
 
+    def __str__(self):
+        return 'integer'
 
 class TestExpressionParameters(unittest.TestCase):
     def test_direct_children(self):
@@ -530,6 +532,30 @@ class TestExpressionParameters(unittest.TestCase):
         self.assertRaises(bdec.DecodeError, list, a.decode(Data('\x01\x01')))
         self.assertRaises(bdec.DecodeError, list, a.decode(Data('\x02\x00')))
         list(a.decode(Data('\x02\x01')))
+
+    def test_param_length_postfix(self):
+        # Test that a 'length:' postfix doesn't confuse the parameter
+        # detection. There was a bug where the types would get confused if
+        # both the length and value of an entry ending in ' length:' were
+        # referenced.
+        a = Sequence('a', [
+            Field('b length:', 8),
+            Field('b', length=parse('${b length:}'), format=Field.TEXT),
+            Sequence('c', [], value=parse('len{b length:} + len{b}')),
+            ])
+        lookup = ExpressionParameters([a])
+        self.assertEqual([
+            Param('b length:', Param.OUT, EntryValueType(a.children[0].entry)),
+            Param('b length: length', Param.OUT, EntryLengthType(a.children[0].entry))],
+            list(lookup.get_passed_variables(a, a.children[0])))
+        self.assertEqual([
+            Param('b length', Param.OUT, EntryLengthType(a.children[1].entry)),
+            Param('b length:', Param.IN, EntryValueType(a.children[0].entry))],
+            list(lookup.get_passed_variables(a, a.children[1])))
+        self.assertEqual([
+            Param('b length', Param.IN, EntryLengthType(a.children[1].entry)),
+            Param('b length: length', Param.IN, EntryLengthType(a.children[0].entry))],
+            list(lookup.get_passed_variables(a, a.children[2])))
 
 
 class TestEndEntryParameters(unittest.TestCase):
