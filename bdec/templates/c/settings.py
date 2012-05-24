@@ -655,3 +655,9 @@ def is_param_initialised(entry, param):
     # a dummy value). But I am tired, and feeling stupid, and cannot determine
     # the right way to do it.
     return not param.name.startswith('unused')
+
+def get_reference_name(entry, klass):
+    for param in get_params(entry):
+        if isinstance(param.type, klass):
+            return param.name
+    return None

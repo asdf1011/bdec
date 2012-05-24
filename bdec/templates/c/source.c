@@ -147,7 +147,7 @@
     <% assignment = '%s = ' % value if is_value_used(entry) else '' %>
     ${assignment}decode_${prefix}integer(buffer, ${settings.value(entry, entry.length)});
     %if is_value_referenced(entry):
-    *${entry.name |variable} = ${value};
+    *${get_reference_name(entry, EntryValueType)} = ${value};
     %endif
   %elif entry.format == Field.TEXT:
     <% local_vars.append(('unsigned int', 'i')) %>
@@ -192,7 +192,7 @@
     buffer->num_bits -= ${value}.num_bits;
 
     %if is_value_referenced(entry):
-    *${entry.name |variable} = ${get_integer(entry)}(&${value});
+    *${get_reference_name(entry, EntryValueType)} = ${get_integer(entry)}(&${value});
     %endif
   %elif entry.format == Field.FLOAT:
     <% encoding = 'BDEC_LITTLE_ENDIAN' if entry.encoding == Field.LITTLE_ENDIAN \
@@ -247,7 +247,7 @@
         %endif
       %endif
       %if is_value_referenced(entry):
-    *${entry.name |variable} = ${value};
+    *${get_reference_name(entry, EntryValueType)} = ${value};
       %endif
     %endif
 </%def>
@@ -501,7 +501,7 @@ ${static}int ${settings.decode_name(entry)}(BitBuffer* buffer${settings.define_p
     buffer->num_bits = ${'unused number of bits' |variable};
   %endif
   %if is_length_referenced(entry):
-    *${entry.name + ' length' |variable} = ${'initial length' |variable} - buffer->num_bits;
+    *${get_reference_name(entry, EntryLengthType)} = ${'initial length' |variable} - buffer->num_bits;
   %endif
     return 1;
 }
@@ -779,7 +779,7 @@ ${recursivePrint(entry, False)}
         %elif is_value_referenced(entry):
             ## This entry is used in an expression. Use the value that is passed
             ## when encoding.
-            <% name = variable(entry.name) %>
+            <% name = get_reference_name(entry, EntryValueType) %>
             <% source_name = name %>
             %if settings.is_numeric(settings.ctype(entry)):
                 <% local_vars.append((settings.ctype(entry), value_name)) %>
@@ -903,7 +903,7 @@ ${recursivePrint(entry, False)}
     free(${value_name}.buffer);
     %endif
     %if encode_params.is_value_referenced(entry):
-    *${entry.name |variable} = ${value_name};
+    *${get_reference_name(entry, EntryValueType)} = ${value_name};
     %endif
 </%def>
 
@@ -1073,7 +1073,7 @@ ${static}int ${settings.encode_name(entry)}(struct EncodedData* result${settings
   ${encode_source_code}
 
   %if is_length_referenced(entry):
-    *${entry.name + ' length' |variable} = result->num_bits - startBit;
+    *${get_reference_name(entry, EntryLengthType)} = result->num_bits - startBit;
   %endif
     return 1;
 }
