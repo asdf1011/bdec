@@ -288,6 +288,13 @@ class MultiSourceType(IntegerType):
                 return False
         return True
 
+    def is_reference_match(self, expression):
+        assert isinstance(expression, ReferenceExpression), "expected ReferenceExpression, got %s" % expression
+        for source in self.sources:
+            if source.is_reference_match(expression):
+                return True
+        return False
+
     def __repr__(self):
         return 'coalsce(%s)' % ','.join(str(source) for source in self.sources)
 
