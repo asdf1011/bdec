@@ -658,6 +658,6 @@ def is_param_initialised(entry, param):
 
 def get_reference_name(entry, klass):
     for param in get_params(entry):
-        if isinstance(param.type, klass):
+        if param.type == klass(entry):
             return param.name
     return None
