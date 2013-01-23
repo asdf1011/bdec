@@ -220,7 +220,7 @@ def _differentiate(entries):
     possible = []
     have_new_success = False
     options = [(entry, _ProtocolStream(entry)) for entry in entries]
-    while len(options) > 1:
+    while len(options) > 0:
         length = min(len(option.data) for entry, option in options)
 
         # Calculate the length of the next section of 'differentiable' protocol

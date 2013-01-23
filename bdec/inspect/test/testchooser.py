@@ -93,10 +93,8 @@ class TestChooser(unittest.TestCase):
         b = fld.Field("b", 8)
         chooser = chsr.Chooser([a, b])
         self.assertEqual([b], chooser.choose(dt.Data("xa")))
-        self.assertEqual([a, b], chooser.choose(dt.Data("yz")))
-        # FIXME: We currently don't distinguish based on the amount of data
-        # available.
-        #self.assertEqual([b], chooser.choose(dt.Data("y")))
+        self.assertEqual([a], chooser.choose(dt.Data("yz")))
+        self.assertEqual([b], chooser.choose(dt.Data("y")))
 
     def test_choose_within_choice(self):
         a = chc.Choice('a', [
@@ -251,3 +249,19 @@ class TestChooser(unittest.TestCase):
         c = seq.Sequence('c', [])
         chooser = chsr.Chooser([a, b, c])
         self.assertEqual([c], chooser.choose(dt.Data('', 0, 0)))
+
+    def test_choose_with_null_fallback(self):
+        # Test when we have a single entry we get the correct result
+        space = fld.Field('space', length=8, format=fld.Field.TEXT, constraints=[Equals(' ')])
+        empty = seq.Sequence('empty', [])
+        chooser = chsr.Chooser([space, empty])
+        self.assertEqual([space], chooser.choose(dt.Data(' ')))
+        self.assertEqual([empty], chooser.choose(dt.Data('?')))
+
+        # Test when we have multiple entries we get the correct result
+        new_line = fld.Field('new line', length=8, format=fld.Field.TEXT, constraints=[Equals('\n')])
+        chooser = chsr.Chooser([space, new_line, empty])
+        self.assertEqual([space], chooser.choose(dt.Data(' ')))
+        self.assertEqual([new_line], chooser.choose(dt.Data('\n')))
+        self.assertEqual([empty], chooser.choose(dt.Data('x')))
+

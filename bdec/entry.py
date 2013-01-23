@@ -154,8 +154,6 @@ class Entry(object):
             if isinstance(child, Child):
                 items.append(child)
             else:
-                # For convenience in the tests, we allow the children to be
-                # assigned an array of Entry instances.
                 items.append(Child(child.name, child))
             if isinstance(items[-1].entry, ReferencedEntry):
                 items[-1].entry.add_parent(items[-1])
