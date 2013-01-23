@@ -136,3 +136,28 @@ class TestParsing(unittest.TestCase):
         self.assertEqual(['then'], list(a.parseString(' then ')))
         self.assertEqual(['if'], list(a.parseString('if')))
         self.assertRaises(ParseException, a.parseString, 'bad')
+
+    def test_parse_results(self):
+        def to_int(tokens):
+            self.assertEquals(ParseResults, tokens.__class__)
+            return int(tokens[0])
+        number = Word(srange('[0-9]')).setParseAction(to_int)('number')
+        expr = (number('a') + number('b'))('c') + StringEnd()
+        self.assertEqual(253, expr.parseString('253 617').a)
+        self.assertEqual(617, expr.parseString('253 617')['b'])
+        self.assertEqual(253, expr.parseString('253 617').c['a'])
+        self.assertEqual(617, expr.parseString('253 617').c.b)
+        self.assertEqual([253], expr.parseString('253 617')[:1])
+        self.assertEqual([253, 617], expr.parseString('253 617').asList())
+
+    def test_optional(self):
+        number = Word(srange('[0-9]'))
+        expr = Optional(number) + StringEnd()
+        self.assertEqual(['253'], expr.parseString('253').asList())
+        self.assertEqual([], expr.parseString('').asList())
+
+    def test_delimited_list(self):
+        number = Word(srange('[0-9]'))
+        number_list = delimitedList(number, ',')
+        expr = number_list + StringEnd()
+        self.assertEqual(['232', '777', '899'], expr.parseString('232, 777,899 ').asList())

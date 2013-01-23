@@ -40,8 +40,48 @@ class ParseException(DecodeError):
                 str(self.error), self._text.splitlines()[self.lineno-1],
                 ' ' * self.col + '^')
 
+class ParseResults:
+    """Object to hold parse results.
+
+    Behaves like a list, a dictionary, and an object."""
+    def __init__(self, tokens, names):
+        self._tokens = tokens
+        self._names = names
+
+    def __len__(self):
+        return len(self._tokens)
+
+    def __getitem__(self, i):
+        if isinstance(i, (int, slice)):
+            return self._tokens[i]
+        return getattr(self, i)
+
+    def pop(self, i):
+        if isinstance(i, int):
+            return self._tokens.pop(i)
+        else:
+            return self._names.pop(i)
+
+    def __getattr__(self, name):
+        try:
+            result = self._names[name]
+        except KeyError:
+            raise AttributeError()
+
+        if len(result) == 1:
+            # Only a single token. Return that token directly.
+            return result[0]
+        return result
+
+    def __repr__(self):
+        return '%s' % (self._tokens)
+
+    def asList(self):
+        return list(self._tokens)
+
 
 class ParserElement:
+    """Base class for all parser elements."""
     def __init__(self):
         self._actions = []
         self._internal_actions = []
@@ -53,8 +93,11 @@ class ParserElement:
         self._ignore = None
         self._name = None
 
+    def copy(self):
+        return And([self])
+
     def _is_important(self):
-        return self._actions or self._internal_actions or self._ignore
+        return self._actions or self._internal_actions or self._ignore or self._name is not None
 
     def ignore(self, expr):
         self._ignore = expr
@@ -63,7 +106,6 @@ class ParserElement:
         raise NotImplementedError()
 
     def createDecoder(self, separator):
-
         if self._decoder is not None:
             return self._decoder
 
@@ -113,31 +155,38 @@ class ParserElement:
         if isinstance(text, unicode):
             text = text.encode('ascii')
 
-        stack = []
-        tokens = []
+        token_stack = [[]]
+        name_stack = [{}]
         for is_starting, name, entry, data, value in self._decode(text, '<string>'):
             if is_starting:
-                stack.append(tokens)
-                tokens = []
+                token_stack.append([])
+                name_stack.append({})
             else:
                 if name and not is_hidden(name) and value is not None:
-                    tokens.append(value)
+                    token_stack[-1].append(value)
 
-                try:
-                    actions = entry.actions
-                except AttributeError:
-                    actions = []
-
-                for action in actions:
+                names = name_stack.pop()
+                tokens = ParseResults(token_stack.pop(), names)
+                for action in getattr(entry, 'actions', []):
                     tokens = action(tokens)
-                    if not isinstance(tokens, list):
-                        tokens = [tokens]
+                    if not isinstance(tokens, ParseResults):
+                        if not isinstance(tokens, list):
+                            tokens = [tokens]
+                        names = {}
+                        tokens = ParseResults(tokens, names)
+
+                if name is not None and not is_hidden(name):
+                    # FIXME: This isn't entirely correct, as it includes the
+                    # default names we use in the decoder (such as 'and',
+                    # 'or', etc), instead of just the user defined names.
+                    name_stack[-1][name] = tokens
+                name_stack[-1].update(names)
 
                 # Extend the current tokens list with the child tokens
-                stack[-1].extend(tokens)
-                tokens = stack.pop()
-        assert len(stack) == 0
-        return tokens
+                token_stack[-1] += tokens
+        assert len(token_stack) == 1
+        assert len(name_stack) == 1
+        return ParseResults(token_stack.pop(), name_stack.pop())
 
     def _decode(self, text, filename):
         if self._parser is None:
@@ -175,6 +224,9 @@ class ParserElement:
     def __or__(self, other):
         return MatchFirst([self, other])
 
+    def __xor__(self, other):
+        return MatchFirst([self, other])
+
     def __ror__(self, other):
         if not isinstance(other, ParserElement):
             other = Literal(other)
@@ -184,7 +236,12 @@ class ParserElement:
         return NotAny(self)
 
     def __call__(self, name):
-        return self.setName(name)
+        result = And([self])
+        result.setName(name)
+        return result
+
+    def streamline(self):
+        return self
 
     def setName(self, name):
         self._name = name
@@ -214,6 +271,7 @@ class Literal(ParserElement):
     def __init__(self, text):
         ParserElement.__init__(self)
         assert isinstance(text, basestring), 'Literal must be a string! Is %s' % (repr(text))
+        assert text, "Literal text entries shouldn't be empty!"
         self.text = text
 
     def _createEntry(self, separator):
@@ -301,7 +359,7 @@ Or = MatchFirst
 class StringEnd(ParserElement):
     def _createEntry(self, separator):
         data = Choice('data:', [Field(None, length=8), Sequence(None, [])])
-        length_check = Sequence(None, [], value=LengthResult('data:'), constraints=[Equals(0)])
+        length_check = Sequence('end of string:', [], value=LengthResult('data:'), constraints=[Equals(0)])
         return Sequence(None, [data, length_check])
 
 
@@ -466,8 +524,8 @@ def CaselessLiteral(text):
 
 restOfLine = CharsNotIn('\n') + '\n'
 
-def Optional(expr, null=''):
-    return expr | Literal(null)
+def Optional(expr):
+    return expr | empty
 
 def QuotedString(quoteChar, multiline=True, escChar=''):
     return nestedExpr(quoteChar, quoteChar)
@@ -489,4 +547,12 @@ def CaselessKeyword(text):
 
 def oneOf(exprs):
     return Combine(Or(exprs))
+
+empty = And([])
+
+def lineno():
+    return 0
+
+def delimitedList(expr, delim=','):
+    return expr + ZeroOrMore(Suppress(delim) + expr)
 
