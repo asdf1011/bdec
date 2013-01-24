@@ -30,7 +30,7 @@ union FloatConversion
     double doubleValue;
 };
 
-enum Encoding getMachineEncoding()
+enum Encoding getMachineEncoding(void)
 {
     union {
         long int l;
@@ -38,7 +38,7 @@ enum Encoding getMachineEncoding()
     } u;
     u.l = 1;
 
-    // Derived from http://stackoverflow.com/questions/280162/is-there-a-way-to-do-a-c-style-compile-time-assertion-to-determine-machines-en
+    /* Derived from http://stackoverflow.com/questions/280162/is-there-a-way-to-do-a-c-style-compile-time-assertion-to-determine-machines-en */
     return u.c[0] == 1 ? BDEC_LITTLE_ENDIAN : BDEC_BIG_ENDIAN;
 }
 
@@ -85,16 +85,16 @@ static void appendFloatBuffer(const unsigned char source[], int numBytes, enum E
 
 double decodeFloat(BitBuffer* data, enum Encoding encoding)
 {
-    assert(data->num_bits == 32);
     union FloatConversion conv;
+    assert(data->num_bits == 32);
     convertEndian(encoding, conv.buffer, data);
     return conv.floatValue;
 }
 
 double decodeDouble(BitBuffer* data, enum Encoding encoding)
 {
-    assert(data->num_bits == 64);
     union FloatConversion conv;
+    assert(data->num_bits == 64);
     convertEndian(encoding, conv.buffer, data);
     return conv.doubleValue;
 }
@@ -118,17 +118,18 @@ void ensureEncodeSpace(struct EncodedData* buffer, int numBits)
     int numBitsRequired = numBits + buffer->num_bits;
     if (numBitsRequired > buffer->allocated_length_bytes * 8)
     {
-        // We need to allocate more room for this data. This logic is an
-        // attempt to avoid too many large allocations, while at the same
-        // time avoiding a excessive amount of reallocations. It isn't based
-        // on measurements, just on purely subjective guesses.
-        //
-        // FIXME: Profile the allocation sizes for a series of protocols to
-        // improve the re-allocation logic... if we're allocating a lot of
-        // small buffers using a built-in buffer in the EncodedBuffer instance
-        // may be a good idea. Another option may be chaining multiple
-        // allocation buffers using some sort of reference counting scheme.
-        // Note that we don't need random access into the allocated buffer...
+        /* We need to allocate more room for this data. This logic is an
+         * attempt to avoid too many large allocations, while at the same
+         * time avoiding a excessive amount of reallocations. It isn't based
+         * on measurements, just on purely subjective guesses.
+         *
+         * FIXME: Profile the allocation sizes for a series of protocols to
+         * improve the re-allocation logic... if we're allocating a lot of
+         * small buffers using a built-in buffer in the EncodedBuffer instance
+         * may be a good idea. Another option may be chaining multiple
+         * allocation buffers using some sort of reference counting scheme.
+         * Note that we don't need random access into the allocated buffer...
+         */
         int numBytesRequired = numBitsRequired / 8 + 1;
         if (numBytesRequired > 100000)
         {
@@ -142,7 +143,7 @@ void ensureEncodeSpace(struct EncodedData* buffer, int numBits)
         {
             numBytesRequired *= 2;
         }
-        buffer->buffer = realloc(buffer->buffer, numBytesRequired);
+        buffer->buffer = (char*)realloc(buffer->buffer, numBytesRequired);
         buffer->allocated_length_bytes = numBytesRequired;
     }
 }
@@ -164,19 +165,28 @@ void appendBitBuffer(struct EncodedData* result, const BitBuffer* data)
 
 void appendText(struct EncodedData* result, const Text* value)
 {
-    BitBuffer copy = {(unsigned char*)value->buffer, 0, value->length * 8};
+    BitBuffer copy;
+    copy.buffer = (unsigned char*)value->buffer;
+    copy.start_bit = 0;
+    copy.num_bits = value->length * 8;
     appendBitBuffer(result, &copy);
 }
 
 void appendBuffer(struct EncodedData* result, const Buffer* value)
 {
-    BitBuffer copy = {value->buffer, 0, value->length * 8};
+    BitBuffer copy;
+    copy.buffer = value->buffer;
+    copy.start_bit = 0;
+    copy.num_bits = value->length * 8;
     appendBitBuffer(result, &copy);
 }
 
 void appendEncodedBuffer(struct EncodedData* result, const struct EncodedData* value)
 {
-    BitBuffer temp = {(unsigned char*)value->buffer, 0, value->num_bits};
+    BitBuffer temp;
+    temp.buffer = (unsigned char*)value->buffer;
+    temp.start_bit = 0;
+    temp.num_bits = value->num_bits;
     appendBitBuffer(result, &temp);
 }
 

@@ -55,7 +55,7 @@ class InvalidSequenceOfCount(DecodeError):
         self.actual = actual
 
     def __str__(self):
-        return "%s expected count of %i, got %i" % (self.sequenceof, self.expected, self.actual)
+        return "%s expected count of %s, got %s" % (self.sequenceof, self.expected, self.actual)
 
 class SequenceOfEncoder(EntryEncoder):
     def _fixup_value(self, value, context):

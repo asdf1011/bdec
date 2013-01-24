@@ -51,7 +51,7 @@ import bdec.choice as chc
 from bdec.constraints import Equals
 from bdec.entry import UndecodedReferenceError
 from bdec.expression import ArithmeticExpression, Constant, ValueResult, \
-        LengthResult, RoundUpDivisionExpression
+        LengthResult, RoundUpDivisionExpression, ReferenceExpression
 import bdec.field as fld
 from bdec.inspect.range import Range
 import bdec.sequence as seq
@@ -149,6 +149,12 @@ class IntegerType(VariableType):
         """Is the value referenced by this entry constant or visible."""
         raise NotImplementedError()
 
+    def is_reference_match(self, expression):
+        """Is the bdec.expression.ReferenceExpression matching our type."""
+        assert isinstance(expression, ReferenceExpression), "expected ReferenceExpression, got %s" % expression
+        raise NotImplementedError()
+
+
 class ShouldEndType(IntegerType):
     """Parameter used to pass the 'should end' up to the parent."""
     def __eq__(self, other):
@@ -171,6 +177,10 @@ class EntryLengthType(IntegerType):
 
     def __eq__(self, other):
         return isinstance(other, EntryLengthType) and self.entry is other.entry
+
+    def is_reference_match(self, expression):
+        assert isinstance(expression, ReferenceExpression), "expected ReferenceExpression, got %s" % expression
+        return isinstance(expression, LengthResult)
 
     def __repr__(self):
         return 'len{%s}' % self.entry
@@ -243,6 +253,10 @@ class EntryValueType(IntegerType):
     def has_expected_value(self):
         return self._is_value_known(self.entry)
 
+    def is_reference_match(self, expression):
+        assert isinstance(expression, ReferenceExpression), "expected ReferenceExpression, got %s" % expression
+        return isinstance(expression, ValueResult)
+
     def __repr__(self):
         return '${%s}' % self.entry
 
@@ -273,6 +287,13 @@ class MultiSourceType(IntegerType):
             if not source.has_expected_value():
                 return False
         return True
+
+    def is_reference_match(self, expression):
+        assert isinstance(expression, ReferenceExpression), "expected ReferenceExpression, got %s" % expression
+        for source in self.sources:
+            if source.is_reference_match(expression):
+                return True
+        return False
 
     def __repr__(self):
         return 'coalsce(%s)' % ','.join(str(source) for source in self.sources)

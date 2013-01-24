@@ -1,0 +1,14 @@
+<!-- Test compiling a protocol where we have duplicate solve temporary
+     variables. -->
+<protocol>
+    <sequence name="two digits" value="((${digit 1:} * 10) + ${digit 2:})">
+        <reference name="digit 1:" type="digit" />
+        <reference name="digit 2:" type="digit" />
+    </sequence>
+    <common>
+        <sequence name="digit" value="(${char:} - 48)">
+            <field name="char:" type="integer" length="8" min="48" max="58" />
+        </sequence>
+    </common>
+</protocol>
+

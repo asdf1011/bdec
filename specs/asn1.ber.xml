@@ -21,7 +21,7 @@
 
         <sequence name="unknown primitive">
             <sequence name="type">
-                <reference name="class" />
+                <reference name="class_" />
                 <field name="primitive:" length="1" value="0x0" />
                 <reference name="tag number" />
             </sequence>
@@ -31,7 +31,7 @@
 
         <sequence name="unknown constructed">
             <sequence name="type">
-                <reference name="class" />
+                <reference name="class_" />
                 <field name="constructed:" length="1" value="0x1" />
                 <reference name="tag number" />
             </sequence>
@@ -78,7 +78,7 @@
             <sequence name="false">
                 <field name="tag:" length="8" value="0x1" />
                 <reference name="length:" type="definite length:" />
-                <field length="${length:} * 8"/>
+                <field length="${length:} * 8" min="1" />
             </sequence>
         </choice>
 
@@ -103,10 +103,13 @@
         <sequence name="object identifier">
             <field name="tag:" length="8" value="0x6" />
             <reference name="length:" type="definite length:" />
-            <reference name="combined first id:" type="multi byte value" />
-            <sequence name="id" value="${combined first id:} / 40" />
-            <sequence name="id" value="${combined first id:} % 40" />
-            <sequenceof name="ids" length="${length:} * 8 - len{combined first id:}">
+            <!-- We should hide this variable, but the solver cannot combine
+                 'id one' and 'id two' to create a consistent
+                 'combined first id'. -->
+            <reference name="combined first id" type="multi byte value" />
+            <sequence name="id one" value="${combined first id} / 40" />
+            <sequence name="id two" value="${combined first id} % 40" />
+            <sequenceof name="ids" length="${length:} * 8 - len{combined first id}">
                 <reference name="id" type="multi byte value" />
             </sequenceof>
         </sequence>
@@ -198,7 +201,7 @@
             </choice>
         </sequence>
 
-        <choice name="class">
+        <choice name="class_">
             <field name="universal" length="2" value="0x0" />
             <field name="application" length="2" value="0x1" />
             <field name="context-specific" length="2" value="0x2" />

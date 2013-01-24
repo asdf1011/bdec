@@ -1,0 +1,11 @@
+<protocol>
+    <!-- Tests a bug experienced when modifying the asn.1 decoding scheme.
+
+         The problem was with referencing the length of a hidden field. -->
+    <sequence name="a">
+        <field name="packet length:" length="16" />
+        <field name="payload length:" length="8" />
+        <field name="payload" length="${payload length:} * 8" type="text" />
+        <field name="unused:" length="${packet length:} * 8 - len{payload} - len{payload length:}" />
+    </sequence>
+</protocol>

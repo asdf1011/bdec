@@ -241,8 +241,8 @@ class _VariableParam:
     def __eq__(self, other):
         return type(self.reference) == type(other.reference) and self.reference.name == other.reference.name and self.direction == other.direction
 
-    def __str__(self):
-        return "%s %s" % (self.direction, self.reference)
+    def __repr__(self):
+        return "%s %s %s" % (self.types, self.direction, self.reference)
 
     def get_type(self):
         if len(self.types) > 1:
@@ -276,16 +276,37 @@ class ExpressionParameters(_Parameters):
         self._referenced_values = set()
         self._referenced_lengths = set()
         unreferenced_entries = {}
-        entries_used = set()
+        entry_stack = []
+        entries_visited = set()
+        recursive_entries = set()
+        param_source = []
         for entry in entries:
-            self._populate_references(entry, unreferenced_entries, entries_used)
+            self._populate_references(entry, unreferenced_entries,
+                    entries_visited, entry_stack, recursive_entries,
+                    param_source)
+
+        # We need to redetect parameters for recursive entries, as we there may
+        # be input parameters that weren't detected on the first pass.
+        parents = {}
+        visited = set()
+        for entry in entries:
+            parents.setdefault(entry, set())
+            self._update_parent_tree(entry, parents, visited)
+        for entry in recursive_entries:
+            self._update_recursive_input_params(entry, unreferenced_entries, param_source, set(), parents)
+
+        # Walk through all entries with output parameters, and use the
+        # type of those entries to populate the input variables.
+        for entry, name, param_type in param_source:
+            visited = set()
+            self._populate_child_input_parameter_type(entry, name, param_type, visited)
 
         should_have_failed = False
         for entry, references in unreferenced_entries.iteritems():
             for param in self._params[entry]:
                 if not param.types:
                     should_have_failed = True
-                    if entry not in entries_used:
+                    if entry not in entries_visited:
                         # We found a top-level entry with an unknown parameter.
                         # We only want top-level entries as this provides the
                         # most context to the user (and if a child entry is
@@ -295,6 +316,25 @@ class ExpressionParameters(_Parameters):
                         raise UnknownReferenceError(stack[0], name, stack[1:])
         assert not should_have_failed, 'Found a parameter with an unknown type, ' \
             "but didn't fail on a parent entry! Something went wrong."
+
+    def _update_parent_tree(self, entry, parents, visited):
+        if entry in visited:
+            return
+        visited.add(entry)
+        for child in entry.children:
+            parents.setdefault(child.entry, set()).add(entry)
+            self._update_parent_tree(child.entry, parents, visited)
+
+    def _update_recursive_input_params(self, entry, unreferenced_entries,
+            param_source, visited, parents):
+        self._populate_parameter_source(entry, unreferenced_entries,
+                param_source)
+        if entry in visited:
+            return
+        visited.add(entry)
+        for parent in parents[entry]:
+            self._update_recursive_input_params(parent, unreferenced_entries,
+                    param_source, visited, parents)
 
     def _find_child_using_param(self, entry, name):
         """Find the child entry using the given parameter name.
@@ -327,20 +367,33 @@ class ExpressionParameters(_Parameters):
             raise Exception("Unable to collect references from unhandled expression type '%s'!" % expression)
         return result
 
-    def _populate_references(self, entry, unreferenced_entries, entries_used):
+    def _populate_references(self, entry, unreferenced_entries, entries_visited,
+            entry_stack, recursive_entries, param_source):
         """
         Walk down the tree, populating the '_params', '_referenced_XXX' sets.
 
         Handles recursive elements.
         """
+        if entry in entry_stack:
+            # We've found a cyclic dependency. We will not have populated the
+            # input / output parameters yet, so we'll have to delay it until
+            # later.
+            recursive_entries.add(entry)
+            return
+
         if entry in self._params:
+            # We have already detected parameters for this entry.
             return
         self._params[entry] = set()
         unreferenced_entries[entry] = set()
 
+        entry_stack.append(entry)
         for child in entry.children:
-            entries_used.add(child.entry)
-            self._populate_references(child.entry, unreferenced_entries, entries_used)
+            entries_visited.add(child.entry)
+            self._populate_references(child.entry, unreferenced_entries,
+                    entries_visited, entry_stack, recursive_entries,
+                    param_source)
+        assert entry == entry_stack.pop()
 
         # An entries unknown references are those referenced in any 
         # expressions, and those that are unknown in all of its children.
@@ -349,54 +402,61 @@ class ExpressionParameters(_Parameters):
         if isinstance(entry, sof.SequenceOf) and entry.count is not None:
             unreferenced_entries[entry].update(self._collect_references(entry.count))
 
+        self._populate_parameter_source(entry, unreferenced_entries, param_source)
+
+    def _populate_parameter_source(self, entry, unreferenced_entries,
+            param_source):
+        """Populate the source of parameters values for unknown values."""
         # Store the names the child doesn't know about (ie: names that must be
-        # resolved for this entry to decode)
-        child_unknowns = set()
-        for child in entry.children:
+        # resolved for this entry to decode).
+        child_unknowns = []
+        if isinstance(entry, seq.Sequence) and entry.value is not None:
+            child_unknowns.extend((None, ref) for ref in self._collect_references(entry.value))
+        for constraint in entry.constraints:
+            child_unknowns.extend((None, ref) for ref in self._collect_references(constraint.limit))
+        for i, child in enumerate(entry.children):
             unknowns = unreferenced_entries[child.entry]
             self._local_child_param_name.setdefault(entry, {}).setdefault(child, {}).update(
                     (ref.name, ref.name) for ref in unknowns)
-            child_unknowns.update(unknowns)
-
-        if isinstance(entry, seq.Sequence) and entry.value is not None:
-            child_unknowns.update(self._collect_references(entry.value))
-        for constraint in entry.constraints:
-            child_unknowns.update(self._collect_references(constraint.limit))
+            child_unknowns.extend((i, ref) for ref in unknowns)
 
         # Our unknown list is all the unknowns in our children that aren't
         # present in our known references.
-        child_names = [child.name for child in entry.children]
-        for unknown in child_unknowns:
+        for i, unknown in child_unknowns:
             name = unknown.name.split('.')[0]
-            if name not in child_names:
+            for j, child in enumerate(entry.children):
+                if child.name == name and (i is None or i > j):
+                    # This value comes from one of our child entries, so drill down
+                    # into it.
+                    param_type = self._add_out_params(entry, unknown)
+                    param_source.append((entry, unknown.name, param_type))
+                    break
+            else:
                 # This value is 'unknown' to the entry, and must be passed in.
                 unreferenced_entries[entry].add(unknown)
-            else:
-                # This value comes from one of our child entries, so drill down
-                # into it.
-                param_type = self._add_out_params(entry, unknown)
-                self._populate_child_input_parameter_type(entry, unknown.name, param_type)
 
         for reference in unreferenced_entries[entry]:
             self._params[entry].add(_VariableParam(reference, Param.IN, None))
 
-    def _populate_child_input_parameter_type(self, entry, name, param_type):
-        """ Set the input parameter type of any of children that use the named
+    def _populate_child_input_parameter_type(self, entry, name, param_type, visited):
+        """ Set the input parameter for children that use the named
         parameter."""
+        if entry in visited:
+            # A recursive entry; we've already populated the input parameter.
+            return
+        visited.add(entry)
+
         for child in entry.children:
             for param in self._params[child.entry]:
-                if param.reference.name == name and param.direction == Param.IN:
+                if param.reference.name == name and param.direction == Param.IN \
+                        and param_type.is_reference_match(param.reference):
                     param.types.add(param_type)
-                    self._populate_child_input_parameter_type(child.entry, name, param_type)
+                    self._populate_child_input_parameter_type(child.entry,
+                            name, param_type, visited)
 
     def is_output_param_used(self, entry, child, param):
-        """Check to see if an parameter is used."""
         assert param.direction == Param.OUT
-        try:
-            return param.name in self._local_child_param_name[entry][child].values()
-        except KeyError:
-            # The parameter doesn't have a local name; it must be unused.
-            return False
+        return param.name in self._local_child_param_name[entry][child].values()
 
     def _get_local_reference(self, entry, child, param):
         """Get the local of a parameter used by a child entry.
@@ -410,6 +470,10 @@ class ExpressionParameters(_Parameters):
             # If an output parameter isn't in the lookup, it it's because
             # the child is a common entry that has been referenced
             # elsewhere (but isn't used in this context).
+            assert param.direction != Param.IN, 'Found input parameter ' \
+                    "%s being passed from %s to %s, but %s doesn't have a " \
+                    'local name for the parameter!' % (param, entry, child,
+                            entry)
             name = 'unused %s' % param.reference.name
 
         # Create a new instance of the expression reference, using the new name
@@ -626,8 +690,9 @@ class DataChecker:
         stack.append(entry)
         for child in entry.children:
              assert child not in self._parents, \
-                     "Found child '%s' in parents '%s' and '%s'!" % (child,
-                             entry, self._parents[child])
+                     "Found child '%s' in parents '%s' and '%s'! Entries " \
+                     "cannot be repeated unless they are common entries." % (
+                             child, entry, self._parents[child])
              self._parents[child] = entry
              self._populate(child.entry, stack, intermediates)
         stack.remove(entry)
@@ -796,6 +861,14 @@ class EncodeExpressionParameters(_Parameters):
 
     def is_output_param_used(self, entry, child, param):
         return self.expression_params.is_output_param_used(entry, child, param)
+
+    def is_length_known(self, entry):
+        references = self.expression_params._collect_references(entry.length)
+        for r in references:
+            for p in self.get_params(entry):
+                if r.name == p.name and p.direction == p.OUT:
+                    return False
+        return True
 
     def is_hidden(self, entry):
         return self._hidden_map[entry]

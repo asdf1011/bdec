@@ -61,7 +61,10 @@ class _Item(object):
         self.value = None
 
     def __getattr__(self, name):
-        return self.children[name]
+        try:
+            return self.children[name]
+        except KeyError:
+            raise AttributeError(name)
 
     def __repr__(self):
         return unicode(self.children)

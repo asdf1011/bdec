@@ -111,32 +111,21 @@ def _get_ranges(entry, param_name, expression_params):
                     yield r
                 break
 
-def get_default_option_params(choice, child, expression_params):
+def get_default_option_params(choice, child, expression_params, encode_expression_params):
     """Create a dictionary containing default values for output parameters
     that aren't used by this option.
 
     Returns a {param_name: value} dictionary."""
     result = {}
-    outputs = _get_unpopulated_outputs(choice, child, expression_params)
+    outputs = _get_unpopulated_outputs(choice, child, encode_expression_params)
     for name, params in outputs.items():
         # Find the possible range of source values, and intersect it with
         # the constraints placed on it by other earlier children.
         possible = Ranges(p.type.range(expression_params) for p in params)
         for c in choice.children[:choice.children.index(child)]:
-            for r in _get_ranges(c.entry, name, expression_params):
+            for r in _get_ranges(c.entry, name, encode_expression_params):
                 possible.remove(r)
-
-        # Use the possible value closest to zero.
-        positive = Range(0, None)
-        negative = Range(None, 0)
-        if possible.intersect(positive):
-            value = possible.intersect(positive)[0].min
-        elif possible.intersect(negative):
-            value = possible.intersect(positive)[-1].max
-        else:
-            value = 0
-            logging.warning('Unable to choose a good output for %s; using %s', name, value)
-        result[name] = value
+        result[name] = possible.get_default()
     return result
 
 class ChoiceEncoder(EntryEncoder):
@@ -173,5 +162,5 @@ class ChoiceEncoder(EntryEncoder):
                     best_guess_bits = bits_encoded
 
         result = self._encode_child(best_guess, query, value, 0, context)
-        context.update(get_default_option_params(self.entry, best_guess.child, self._encode_expression_params))
+        context.update(get_default_option_params(self.entry, best_guess.child, self._params, self._encode_expression_params))
         return result

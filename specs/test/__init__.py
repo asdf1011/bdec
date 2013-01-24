@@ -28,8 +28,12 @@ def _create_decode_classes():
         tests = []
         if os.path.exists(datadir):
             for datafile in os.listdir(datadir):
-                tests.append((datafile[:datafile.index('.')], filename,
-                    [os.path.join(datadir, datafile)], []))
+                tests.append((
+                    datafile[:datafile.index('.')],
+                    filename,
+                    None,
+                    [os.path.join(datadir, datafile)],
+                    []))
 
         result.update(create_classes(name, tests, config))
     assert result, "No example specifications found!"

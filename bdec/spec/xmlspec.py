@@ -416,8 +416,8 @@ _handlers = {fld.Field: _save_field,
         }
 
 class _XmlOut:
-    def __init__(self):
-        self._buffer  = StringIO.StringIO()
+    def __init__(self, buffer):
+        self._buffer  = buffer
         self._offset = 0
         self._is_open = False
 
@@ -505,12 +505,12 @@ def _write_entry(gen, entry, common, end_entry):
         gen.end('end-sequenceof')
     gen.end(name)
 
-def dumps(spec, common=[]):
+def dump(spec, common, output):
     """Save a specification in the xml format."""
     if spec not in common:
         common = common + [spec]
     end_entry = prm.EndEntryParameters(common)
-    gen = _XmlOut()
+    gen = _XmlOut(output)
 
     gen.start('protocol')
     _write_entry(gen, spec, common, end_entry)
@@ -523,5 +523,10 @@ def dumps(spec, common=[]):
                 _write_entry(gen, entry, common, end_entry)
         gen.end('common')
     gen.end('protocol')
-    return str(gen)
+
+def dumps(spec, common=[]):
+    """Save a specification in the xml format."""
+    output = StringIO.StringIO()
+    dump(spec, common, output)
+    return output.getvalue()
 save = dumps

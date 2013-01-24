@@ -50,6 +50,7 @@ from bdec.constraints import Equals
 from bdec.data import Data
 from bdec.encode import get_encoder
 from bdec.entry import Entry
+from bdec.inspect.range import Range
 from bdec.inspect.solver import solve_expression
 import bdec.field as fld
 import bdec.sequence as seq
@@ -65,8 +66,8 @@ keywords=['char', 'int', 'short', 'long', 'float', 'if', 'then', 'else', 'struct
 # clash with our types.
 keywords += ['Buffer', 'Text', 'BitBuffer']
 
-unsigned_types = {'unsigned int':(32, '%u'), 'unsigned long long':(64, '%llu')}
-signed_types = {'int':(32, '%i'), 'long long':(64, '%lli')}
+unsigned_types = {'unsigned int':(32, '%u'), 'uint64_t':(64, '%llu')}
+signed_types = {'int':(32, '%i'), 'int64_t':(64, '%lli')}
 
 def is_numeric(type):
     if type == 'unsigned char':
@@ -190,6 +191,18 @@ def ctype(variable):
         return _integer_type(variable)
     else:
         raise Exception("Unknown parameter type '%s'!" % variable)
+
+def sequenceof_count_ctype(entry):
+    assert isinstance(entry, SequenceOf)
+    assert len(entry.children) == 1
+    if entry.count is not None:
+        return type_from_range(expression_range(entry.count, entry, raw_params))
+    if entry.length is not None:
+        range = expression_range(entry.length, entry, raw_params) / \
+                EntryLengthType(entry.children[0].entry).range(raw_params)
+        return type_from_range(range)
+    # No count, no type, so use the longest possible.
+    return type_from_range(Range(0, None))
 
 def _get_param_string(params):
     result = ""
@@ -382,11 +395,11 @@ def value(entry, expr, params=None, magic_expression=None, magic_name=None, ref_
   elif isinstance(expr, int):
       return str(expr)
   elif isinstance(expr, Constant):
-      if expr.value >= (1 << 61):
-          return "%iUL" % expr.value
-      if expr.value >= (1 << 32):
-          return "%iL" % expr.value
-      elif expr.value > (1 << 31):
+      if int(expr.value) >= (1 << 61):
+          return "%iULL" % expr.value
+      if int(expr.value) >= (1 << 32):
+          return "%iLL" % expr.value
+      elif int(expr.value) > (1 << 31):
           return "%iU" % expr.value
       else:
           return int(expr.value)
@@ -471,7 +484,7 @@ def c_string(data):
     """Return a correctly quoted c-style string for an arbitrary binary string."""
     return '"%s"' % ''.join(_c_repr(char) for char in data)
 
-def _get_equals(entry):
+def get_equals(entry):
     for constraint in entry.constraints:
         if isinstance(constraint, Equals):
             return constraint.limit
@@ -507,9 +520,9 @@ def get_sequence_value(entry):
         # All of the components of this entrie's value are being passed in (ie:
         # we can determine its value)
         value_name = value(entry, entry.value)
-    elif _get_equals(entry) is not None:
+    elif get_equals(entry) is not None:
         # This entry has an expected value
-        value_name = value(entry, _get_equals(entry))
+        value_name = value(entry, get_equals(entry))
     else:
         # We cannot determine the value of this entry! It's probably being
         # derived from child values.
@@ -519,67 +532,10 @@ def get_sequence_value(entry):
         value_name = value(entry, entry.value)
     return value_name, should_solve
 
-def get_expected(entry):
-    expected = _get_equals(entry)
-    if expected is not None:
-        if settings.is_numeric(settings.ctype(entry)):
-            return value(entry, expected)
-        elif entry.format == fld.Field.TEXT:
-            return '{%s, %i}' % (c_string(expected.value), len(expected.value))
-        elif entry.format == fld.Field.BINARY:
-            # This is a bitbuffer type; add leading null bytes so we can
-            # represent it in bytes.
-            null = Data('\x00', 0, 8 - (len(expected.value) % 8))
-            data = null + expected.value
-            result = '{(unsigned char*)%s, %i, %i}' % (
-                    c_string(data.bytes()), len(null),
-                    len(data) - len(null))
-            return result
-        elif entry.format == fld.Field.HEX:
-            result = '{(unsigned char*)%s, %i}' % (
-                    c_string(expected.value.bytes()), len(expected.value) / 8)
-            return result
-        else:
-            raise Exception("Don't know how to define a constant for %s!" % entry)
-
 def _is_length_known(entry):
     inputs = [p.name for p in raw_encode_params.get_params(entry) if p.direction == p.IN]
     constant, components = solve_expression(entry.length, entry.length, entry, raw_decode_params, inputs)
     return len(components) == 0
-
-def get_null_mock_value(entry):
-    """Get a mock value for the given entry.
-
-    Returns a (mock string, should_free_buffer) tuple."""
-    should_free_buffer = False
-    if settings.is_numeric(settings.ctype(entry)):
-        return 0, should_free_buffer
-
-    try:
-        # If this entry has a fixed (known) length, just allocate a null
-        # buffer on the stack.
-        length = entry.length.evaluate({})
-        data = '"\\000"' * ((length + 7) / 8)
-    except UndecodedReferenceError:
-        if _is_length_known(entry):
-            # There is an explicit length for this entry.
-            length = value(entry, entry.length, encode_params)
-            data = "calloc((%s) / 8, 1)" % length
-            should_free_buffer = True
-        else:
-            # The length isn't known; just default it to zero.
-            length = 0
-            data = '""'
-    if entry.format == fld.Field.TEXT:
-        value_text = '{%s, (%s) / 8}' % (data, length)
-    elif entry.format == fld.Field.HEX:
-        value_text = '{(unsigned char*)%s, (%s) / 8}' % (data, length)
-    elif entry.format == fld.Field.BINARY:
-        value_text = '{(unsigned char*)%s, 0, %s}' % (data, length)
-    else:
-        raise Exception("Don't know how to define a constant for %s!" % entry)
-    return value_text, should_free_buffer
-
 
 def is_empty_sequenceof(entry):
     return isinstance(entry, SequenceOf) and not contains_data(entry)
@@ -662,7 +618,7 @@ def sequence_encoder_order(entry):
                 # We found a temporary buffer that starts here
                 start_temp_buffer = temp_buffer['name']
 
-        # Check for temporary buffers that start here; not that there can be
+        # Check for temporary buffers that start here; note that there can be
         # several temp buffers that need to be chained together (see the
         # xml/089_length_reference regression test).
         end_temp_buffers = []
@@ -693,3 +649,15 @@ def should_free(entry):
 def is_value_used(entry):
    return should_free(entry) or is_value_referenced(entry) or entry.constraints
 
+def is_param_initialised(entry, param):
+    # HACK: This is ugly, horrible, and nasty. It needs to determine if a
+    # parameter has been populated (to detect if it should initialise it with
+    # a dummy value). But I am tired, and feeling stupid, and cannot determine
+    # the right way to do it.
+    return not param.name.startswith('unused')
+
+def get_reference_name(entry, klass):
+    for param in get_params(entry):
+        if param.type == klass(entry):
+            return param.name
+    return None

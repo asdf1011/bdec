@@ -1,0 +1,14 @@
+<!-- Test a protocol where the referenced output of a hidden common entry is
+     not used. -->
+<protocol>
+    <sequence name="a">
+        <reference name="b:" />
+        <sequence name="c" value="${value:}">
+            <reference name="value:" type="b:" />
+        </sequence>
+    </sequence>
+    <common>
+        <field name="b:" length="8" />
+    </common>
+</protocol>
+

@@ -21,9 +21,10 @@ import bdec
 # General configuration
 # ---------------------
 
+
 # Add any Sphinx extension module names here, as strings. They can be extensions
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
-#extensions = []
+extensions = ['sphinx.ext.extlinks']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['.templates']
@@ -36,7 +37,7 @@ master_doc = 'index'
 
 # General substitutions.
 project = 'bdec'
-copyright = '2008, Henry Ludemann'
+copyright = '2012, Henry Ludemann'
 
 # The default replacements for |version| and |release|, also used in various
 # other places throughout the built documents.
@@ -45,6 +46,8 @@ copyright = '2008, Henry Ludemann'
 version = bdec.__version__
 # The full version, including alpha/beta/rc tags.
 release = bdec.__version__
+
+extlinks = {'pdfdocs' : ('http://www.protocollogic.com/files/bdec-%s.pdf%%s' % release, None)}
 
 # There are two options for replacing |today|: either, you set today to some
 # non-false value, then it is used:

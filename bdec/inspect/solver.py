@@ -116,9 +116,17 @@ def _break_into_parts(entry, expression, input_params):
             elif expression.op == operator.div:
                 if right:
                     raise SolverError(entry, expression, 'Dividing by a non-constant not supported')
+                if len(left) > 1:
+                    raise SolverError(entr, expression, 'Dividing two unknowns not supported.')
                 for ref, expr in left.items():
                     result[ref] = expr / rconst
                 constant = lconst / rconst
+            elif expression.op == operator.mod:
+                if right:
+                    raise SolverError(entry, expression, 'Modding by a non-constant not supported')
+                for ref, expr in left.items():
+                    result[ref] = expr % rconst
+                constant = lconst % rconst
             else:
                 raise SolverError(entry, expression, 'Breaking apart expressions with %s not supported' % expression.op)
     elif isinstance(expression, Constant):

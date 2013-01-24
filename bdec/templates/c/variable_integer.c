@@ -48,14 +48,14 @@
 
 unsigned int get_integer(const BitBuffer* buffer)
 {
-    // We'll just create a copy of the buffer, and decode it's value.
+    /* We'll just create a copy of the buffer, and decode it's value. */
     BitBuffer temp = *buffer;
     return decode_integer(&temp, temp.num_bits);
 }
 
-unsigned long long get_long_integer(const BitBuffer* buffer)
+uint64_t get_long_integer(const BitBuffer* buffer)
 {
-    // We'll just create a copy of the buffer, and decode it's value.
+    /* We'll just create a copy of the buffer, and decode it's value. */
     BitBuffer temp = *buffer;
     return decode_long_integer(&temp, temp.num_bits);
 }
@@ -63,13 +63,16 @@ unsigned long long get_long_integer(const BitBuffer* buffer)
 unsigned int decode_integer(BitBuffer* buffer, int num_bits)
 {
     unsigned int result = 0;
+    unsigned char mask;
+    int bits_used;
+    unsigned int unused_trailing_bits;
+    unsigned int data;
     while (num_bits > 0)
     {
         assert(buffer->num_bits > 0);
 
-        // We need to mask the higher and lower bits we don't care about
-        unsigned char mask = 0xFF >> buffer->start_bit;
-        int bits_used;// = 8 - buffer->start_bit;
+        /* We need to mask the higher and lower bits we don't care about */
+        mask = 0xFF >> buffer->start_bit;
         if (buffer->start_bit + num_bits > 8)
         {
             bits_used = 8 - buffer->start_bit;
@@ -78,8 +81,8 @@ unsigned int decode_integer(BitBuffer* buffer, int num_bits)
         {
             bits_used = num_bits;
         }
-        unsigned int unused_trailing_bits = 8 - bits_used - buffer->start_bit;
-        unsigned int data = (buffer->buffer[0] & mask) >> unused_trailing_bits;
+        unused_trailing_bits = 8 - bits_used - buffer->start_bit;
+        data = (buffer->buffer[0] & mask) >> unused_trailing_bits;
 
         buffer->start_bit += bits_used;
         buffer->num_bits -= bits_used;
@@ -95,9 +98,9 @@ unsigned int decode_integer(BitBuffer* buffer, int num_bits)
     return result;
 }
 
-unsigned long long decode_long_integer(BitBuffer* buffer, int num_bits)
+uint64_t decode_long_integer(BitBuffer* buffer, int num_bits)
 {
-    unsigned long long result = 0;
+    uint64_t result = 0;
     while (num_bits > 0)
     {
         int size = num_bits > 32 ? 32 : num_bits;
@@ -110,12 +113,12 @@ unsigned long long decode_long_integer(BitBuffer* buffer, int num_bits)
 
 unsigned int decode_little_endian_integer(BitBuffer* buffer, int num_bits)
 {
-    // Little endian conversion only works for fields that are a multiple
-    // of 8 bits.
-    assert(num_bits % 8  == 0);
-
     int i;
     unsigned int result = 0;
+
+    /* Little endian conversion only works for fields that are a multiple
+       of 8 bits. */
+    assert(num_bits % 8  == 0);
     for (i = 0; i < num_bits / 8; ++i)
     {
         result |= decode_integer(buffer, 8) << (i * 8);
@@ -123,17 +126,18 @@ unsigned int decode_little_endian_integer(BitBuffer* buffer, int num_bits)
     return result;
 }
 
-unsigned long long decode_long_little_endian_integer(BitBuffer* buffer, int num_bits)
+uint64_t decode_long_little_endian_integer(BitBuffer* buffer, int num_bits)
 {
-    // Little endian conversion only works for fields that are a multiple
-    // of 8 bits.
-    assert(num_bits % 8  == 0);
-
     int i;
-    unsigned long long result = 0;
+    uint64_t result = 0;
+    uint64_t value;
+
+    /* Little endian conversion only works for fields that are a multiple
+       of 8 bits. */
+    assert(num_bits % 8  == 0);
     for (i = 0; i < num_bits / 8; ++i)
     {
-        unsigned long long value = decode_integer(buffer, 8);
+        value = decode_integer(buffer, 8);
         result |= value << (i * 8);
     }
     return result;
@@ -146,8 +150,8 @@ void print_escaped_string(const Text* text)
     for (i = 0; i < text->length; ++i)
     {
         c = text->buffer[i];
-        // The list of 'safe' xml characters is from
-        // http://www.w3.org/TR/REC-xml/#NT-Char
+        /* The list of 'safe' xml characters is from
+           http://www.w3.org/TR/REC-xml/#NT-Char */
         if (c == '<')
         {
             printf("&lt;");
@@ -166,35 +170,45 @@ void print_escaped_string(const Text* text)
         }
         else
         {
-            // This character cannot be safely represent in xml
+            /* This character cannot be represented in xml */
             putc('?', stdout);
         }
     }
 }
 
-void encode_big_endian_integer(unsigned int value, int num_bits, struct EncodedData* result)
+int encode_big_endian_integer(unsigned int value, unsigned int num_bits, struct EncodedData* result)
 {
+    char* buffer;
+    int shiftDistance;
+    int isFirstByteOverlapping;
+
+    if (num_bits < sizeof(value) * 8 && (value >> num_bits) != 0)
+    {
+        /* This number is too big to store in num_bits. */
+        return 0;
+    }
+
     ensureEncodeSpace(result, num_bits);
-    char* buffer = &result->buffer[result->num_bits / 8];
-    int shiftDistance = num_bits - (8 - result->num_bits % 8);
-    int isFirstByteOverlapping = (result->num_bits % 8 != 0);
+    buffer = &result->buffer[result->num_bits / 8];
+    shiftDistance = num_bits - (8 - result->num_bits % 8);
+    isFirstByteOverlapping = (result->num_bits % 8 != 0);
     if (shiftDistance >= 0)
     {
         if (isFirstByteOverlapping)
         {
             isFirstByteOverlapping = 0;
-            // We need to OR the first byte (to fill the first byte)
+            /* We need to OR the first byte (to fill the first byte) */
             *(buffer++) |= (value >> shiftDistance) & 0xFF;
             shiftDistance -= 8;
         }
-        // We can now proceed to write whole bytes to the output
+        /* We can now proceed to write whole bytes to the output */
         while (shiftDistance >= 0)
         {
             *(buffer++) = (value >> shiftDistance) & 0xFF;
             shiftDistance -= 8;
         }
     }
-    // If we still have data left, it needs to be shifted to the left
+    /* If we still have data left, it needs to be shifted to the left */
     if (shiftDistance > -8)
     {
         if (!isFirstByteOverlapping)
@@ -207,51 +221,62 @@ void encode_big_endian_integer(unsigned int value, int num_bits, struct EncodedD
         }
     }
     result->num_bits += num_bits;
+    return 1;
 }
 
-void encode_little_endian_integer(unsigned int value, int num_bits, struct EncodedData* result)
+int encode_little_endian_integer(unsigned int value, unsigned int num_bits, struct EncodedData* result)
 {
-    int i;
+    unsigned int i;
     for (i = 0; i < num_bits / 8; ++i)
     {
         encode_big_endian_integer(value & 0xFF, 8, result);
         value >>= 8;
     }
+    return value == 0;
 }
 
-void encode_long_big_endian_integer(unsigned long long value, int num_bits, struct EncodedData* result)
+int encode_long_big_endian_integer(uint64_t value, unsigned int num_bits, struct EncodedData* result)
 {
+    unsigned int upper;
+
+    if (num_bits < sizeof(value) * 8 && (value >> num_bits) != 0)
+    {
+        /* This number is too big to store in num_bits. */
+        return 0;
+    }
+
     if (num_bits > 32)
     {
-        // Encode the highest four bytes
+        /* Encode the highest four bytes */
         num_bits -= 32;
-        unsigned int upper = value >> num_bits;
+        upper = value >> num_bits;
         encode_big_endian_integer(upper, 32, result);
-        value -= ((unsigned long long)upper) << num_bits;
+        value -= ((uint64_t)upper) << num_bits;
     }
-    encode_big_endian_integer(value, num_bits, result);
+    return encode_big_endian_integer(value, num_bits, result);
 }
 
-void encode_long_little_endian_integer(unsigned long long value, int num_bits, struct EncodedData* result)
+int encode_long_little_endian_integer(uint64_t value, unsigned int num_bits, struct EncodedData* result)
 {
-    int i;
+    unsigned int i;
     for (i = 0; i < num_bits / 8; ++i)
     {
         encode_big_endian_integer(value & 0xFF, 8, result);
         value >>= 8;
     }
+    return value == 0;
 }
 
-long long ${'divide with rounding' | function}(long long numerator, long long denominator, int should_round_up)
+int64_t ${'divide with rounding' | function}(int64_t numerator, int64_t denominator, int should_round_up)
 {
-    long long result = numerator / denominator;
-    long long remainder = numerator % denominator;
+    int64_t result = numerator / denominator;
+    int64_t remainder = numerator % denominator;
     if (remainder != 0)
     {
         if ((numerator < 0 && denominator > 0) || (numerator > 0 && denominator < 0))
         {
-            // C division is round towards zero, but this function implements round
-            // towards negative infinity...
+            /* C division is round towards zero, but this function implements round
+               towards negative infinity... */
             --result;
         }
     }

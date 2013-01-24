@@ -297,3 +297,16 @@ class TestSequence(unittest.TestCase):
             'a' : {'a1' : 3},
             'b' : 'xyz',
             'c' : 'st'}).bytes())
+
+    def test_value_of_variable_length_binary_field(self):
+        number = Sequence('b:', [
+                Field('len:', length=8),
+                #Field('value:', length=parse('${len:} * 8'), format=Field.INTEGER) ],
+                Field('value:', length=parse('${len:} * 8'))],
+                value=parse('${value:}'))
+        a = Sequence('a', [
+            number,
+            Sequence('c', [], value=parse('${b:}'))
+            ])
+        self.assertEqual('\x01\x00', encode(a, {'c':0}).bytes())
+        self.assertEqual('\x02\x10\xff', encode(a, {'c':0x10ff}).bytes())

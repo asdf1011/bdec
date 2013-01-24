@@ -185,7 +185,7 @@ class Range:
 
         if other.max == 0:
             maxy = _Infinite()
-        elif other.min is None:
+        elif other.max is None:
             maxy = 0
         else:
             maxy = 1 / decimal.Decimal(other.max)
@@ -312,3 +312,17 @@ class Ranges:
 
     def __str__(self):
         return ',  '.join(str(r) for r in self.get_ranges())
+
+    def get_default(self):
+        """Get a good default that lies within this range."""
+        # Use the possible value closest to zero.
+        positive = Range(0, None)
+        negative = Range(None, 0)
+        if self.intersect(positive):
+            result = self.intersect(positive)[0].min
+        elif self.intersect(negative):
+            result = self.intersect(positive)[-1].max
+        else:
+            result = 0
+            logging.warning('Unable to choose a good output for %s; using %s', name, value)
+        return result

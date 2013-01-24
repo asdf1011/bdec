@@ -113,7 +113,7 @@ class Child(object):
         self.entry = entry
 
     def __repr__(self):
-        return "%s '%s'" % (self.name, self.entry)
+        return "'%s' %s" % (self.entry, self.name)
 
 class Entry(object):
     """An entry is an item in a protocol that can be decoded.
@@ -154,8 +154,6 @@ class Entry(object):
             if isinstance(child, Child):
                 items.append(child)
             else:
-                # For convenience in the tests, we allow the children to be
-                # assigned an array of Entry instances.
                 items.append(Child(child.name, child))
             if isinstance(items[-1].entry, ReferencedEntry):
                 items[-1].entry.add_parent(items[-1])

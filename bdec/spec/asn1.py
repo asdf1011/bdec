@@ -43,7 +43,7 @@
 #   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import bdec.choice as chc
-from bdec.constraints import Equals
+from bdec.constraints import Equals, Minimum, Maximum
 import bdec.data as dt
 import bdec.entry as ent
 import bdec.expression as expr
@@ -51,10 +51,14 @@ import bdec.field as fld
 import bdec.sequence as seq
 from bdec.spec import LoadError, xmlspec
 from bdec.spec.ebnf import parse
+from bdec.spec.references import ReferencedEntry
+import operator
 import os.path
 from pyparsing import Word, nums, alphanums, StringEnd, \
     ParseException, Optional, Combine, oneOf, alphas,\
     QuotedString, empty, lineno, SkipTo, ParserElement
+
+ParserElement.enablePackrat()
 
 class Asn1Error(LoadError):
     def __init__(self, filename, lineno):
@@ -122,6 +126,7 @@ class _Loader:
         for name, entry in parsers.items():
             entry.setParseAction(not_implemented_handler(name))
         self._common_entries = {}
+        self._constants = {}
 
         # Default handler to pass the childrens tokens from a parser element.
         pass_children = lambda t, l, tokens: tokens
@@ -148,6 +153,7 @@ class _Loader:
         parsers['IntegerType'].setParseAction(self._create_integer)
         parsers['BuiltinType'].setParseAction(pass_children)
         parsers['Type'].setParseAction(pass_children)
+        parsers['RawType'].setParseAction(pass_children)
         parsers['NamedType'].setParseAction(self._set_entry_name)
         entries('ComponentType')
         parsers['ComponentTypeList'].setParseAction(lambda s,l,t:t[0::2])
@@ -182,6 +188,33 @@ class _Loader:
         entries('RootAlternativeTypeList')
         entries('AlternativeTypeLists')
         parsers['ChoiceType'].setParseAction(self._create_choice)
+
+        # Value references
+        parsers['valuereference'].setParseAction(lambda s,l,t:t[0])
+        parsers['EnumeratedValue'].setParseAction(self._create_enumerated_value)
+        parsers['BuiltinValue'].setParseAction(lambda s,l,t:t[0])
+        parsers['Value'].setParseAction(lambda s,l,t:t[0])
+        parsers['ValueAssignment'].setParseAction(self._set_constant)
+
+        # Constraints
+        parsers['LowerEndValue'].setParseAction(self._lower_constraint)
+        parsers['LowerEndpoint'].setParseAction(pass_children)
+        parsers['UpperEndValue'].setParseAction(self._upper_constraint)
+        parsers['UpperEndpoint'].setParseAction(pass_children)
+        parsers['ValueRange'].setParseAction(lambda s,l,t:[t[0], t[2]])
+        parsers['Constraint'].setParseAction(lambda s,l,t:t[1:-1])
+        parsers['ConstrainedType'].setParseAction(self._create_constrained_type)
+
+        parsers['SubtypeElements'].setParseAction(pass_children)
+        parsers['Elements'].setParseAction(pass_children)
+        parsers['IntersectionElements'].setParseAction(pass_children)
+        parsers['Intersections'].setParseAction(pass_children)
+        parsers['Unions'].setParseAction(pass_children)
+        parsers['ElementSetSpec'].setParseAction(pass_children)
+        parsers['RootElementSetSpec'].setParseAction(pass_children)
+        parsers['ElementSetSpecs'].setParseAction(pass_children)
+        parsers['SubtypeConstraint'].setParseAction(pass_children)
+        parsers['ConstraintSpec'].setParseAction(pass_children)
 
     def _load_ebnf(self):
         # Load the xml spec that we will use for doing the decoding.
@@ -242,6 +275,43 @@ class _Loader:
             options.append(ent.Child('unknown:', self._common('enumerated')))
         return chc.Choice('enumeration', options)
 
+    def _create_enumerated_value(self, s, l, t):
+        assert len(t) == 1
+        try:
+            return int(t[0])
+        except ValueError:
+            try:
+                return self._constants[t[0]]
+            except KeyError:
+                raise Exception('Unknown constraint', t[0])
+
+    def _set_constant(self, s, l, t):
+        self._constants[t[0]] = t[3]
+        return []
+
+    def _lower_constraint(self, s, l, t):
+        if t[0] == 'MIN':
+            return []
+        return Minimum(int(t[0]))
+
+    def _upper_constraint(self, s, l, t):
+        if t[0] == 'MAX':
+            return []
+        return Maximum(int(t[0]))
+
+    def _create_constrained_type(self, s, l, t):
+        if isinstance(t[0].entry, ReferencedEntry):
+            name = t[0].name
+            if not name.endswith(':'):
+                name += ':'
+            result = seq.Sequence(t[0].name, [ent.Child(name, t[0].entry)],
+                    value=expr.ValueResult(name), constraints=t[1:])
+            t[0].entry.add_parent(result.children[0])
+            return [result]
+        del t[0].constraints
+        t[0].constraints = t[1:]
+        return [t[0]]
+
     def _parse_integer(self, s, l, t):
         if len(t) == 1:
             return t[0]
@@ -275,17 +345,55 @@ class _Loader:
         Handles entries with both definite and indefinite lengths. """
         # Constructed entries can be either indefinite (no specified length,
         # but terminated with a null), or definite (with a specified length).
+        #
+        # The 'header:' is split into two to avoid cyclic dependancies while
+        # encoding;
+        # * 'footer:' depends on 'header:' for the type
+        # * 'header:' depends on 'footer:' for the length
+        # By moving the length out of 'header:', we work around this
+        # dependancy.
+        #
+        # PROBLEM: By splitting the dependancy in this way, we lose the
+        # ability to put 'definite' first, as we no longer have a field
+        # present to choose on. A better solution is to properly solve
+        # dependencies between 'header:' and 'footer:'.
         header = chc.Choice('header:', [
-            seq.Sequence('indefinite', [_field('', 8, 0x80)], value=expr.Constant(1)),
-            seq.Sequence('definite', [self._common('definite length:')], value=expr.Constant(0))])
+            seq.Sequence('indefinite', [
+                seq.Sequence('type', [], value=expr.Constant(1)),
+                _field('', 8, 0x80),
+                ]),
+            seq.Sequence('definite', [
+                seq.Sequence('type', [], value=expr.Constant(0)),
+                ])
+            ])
+        header_length = chc.Choice('header length:', [
+            seq.Sequence('indefinite', [
+                    seq.Sequence('type', [],
+                        value=expr.ValueResult('header:.type'),
+                        constraints=[Equals(expr.Constant(1))])],
+                value=expr.Constant(0)),
+            seq.Sequence('definite', [
+                    seq.Sequence('type', [],
+                        value=expr.ValueResult('header:.type'),
+                        constraints=[Equals(expr.Constant(0))]),
+                    self._common('definite length:')],
+                value=expr.ValueResult('definite length:')),
+            ])
 
         # FIXME: Handle extra entries after the expected ones...
         footer = chc.Choice('footer:', [
                     seq.Sequence('indefinite', [_field('', 16, 0x00)],
-                        value=expr.ValueResult('header:'),
+                        value=expr.ValueResult('header:.type'),
                         constraints=[Equals(expr.Constant(1))]),
-                    seq.Sequence('definite', [])])
-        return seq.Sequence(name, [tag, header] + children + [footer])
+                    seq.Sequence('definite', [
+                            seq.Sequence('definite length:', [],
+                                value=reduce(operator.add, (expr.LengthResult(c.name) for c in children)),
+                                constraints=[Equals(expr.ValueResult('header length:') * expr.Constant(8))])
+                            ],
+                        value=expr.ValueResult('header:.type'),
+                        constraints=[Equals(expr.Constant(0))]),
+                    ])
+        return seq.Sequence(name, [tag, header, header_length] + children + [footer])
 
     def _set_entry_name(self, s, loc, toks):
         toks[1].name = toks[0]

@@ -1,0 +1,9 @@
+<blah>
+    <recursive>
+        <unused>0</unused>
+        <recursive>
+            <unused>1</unused>
+            <non-recursive />
+        </recursive>
+    </recursive>
+</blah>

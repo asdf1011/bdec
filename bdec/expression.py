@@ -181,10 +181,6 @@ class Constant(Expression):
                 leading_bits = 8 - len(value) % 8
                 value = dt.Data('\x00', start=0, end=leading_bits) + value
             return '0x%s' % value.get_hex()
-        elif isinstance(self.value, int) and self.value % 8 == 0 and \
-                self.value / 8 > 1:
-            # It can be clearer to return numbers in bytes
-            return "%i * 8" % (self.value / 8)
         return str(self.value)
 
 
@@ -260,9 +256,11 @@ def _collapse(s,l,t):
     return result
 
 def _int_expression():
-    from pyparsing import Word, alphanums, nums, Forward, ZeroOrMore, Combine, CaselessLiteral, srange, ParserElement
-    entry_name = Word(alphanums + ' _+:.-')
-    integer = Word(nums).addParseAction(lambda s,l,t: [Constant(int(t[0]))])
+    from pyparsing import Word, alphanums, nums, Forward, ZeroOrMore, Combine, CaselessLiteral, srange, ParserElement, Optional
+    ParserElement.enablePackrat()
+
+    entry_name = Word(alphanums + ' _+:.-/')
+    integer = Combine(Optional('-') + Word(nums)).addParseAction(lambda s,l,t: [Constant(int(t[0]))])
     hex = Combine(CaselessLiteral("0x") + Word(srange("[0-9a-fA-F]"))).addParseAction(lambda s,l,t:[Constant(int(t[0][2:], 16))])
     named_reference = ('${' + entry_name + '}').addParseAction(lambda s,l,t:ValueResult(t[1]))
     length_reference = ('len{' + entry_name + '}').addParseAction(lambda s,l,t:LengthResult(t[1]))

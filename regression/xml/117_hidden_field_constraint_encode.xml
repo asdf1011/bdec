@@ -1,0 +1,6 @@
+<protocol>
+    <sequence name="false">
+        <field length="8" min="1" />
+    </sequence>
+</protocol>
+

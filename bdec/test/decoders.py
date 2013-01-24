@@ -59,6 +59,7 @@ import shutil
 import subprocess
 import stat
 import StringIO
+import time
 import xml.etree.ElementTree
 
 import bdec
@@ -80,6 +81,14 @@ class ExecuteError(Exception):
 
     def __str__(self):
         return 'Execute failed with exit code %i; %s' % (self.exit_code, self.stderr)
+
+class CompilerError(Exception):
+    def __init__(self, args, output):
+        self.args = args
+        self.output = output
+
+    def __str__(self):
+        return '%s\n%s' % (' '.join(self.args), self.output)
 
 def _is_xml_text_equal(a, b):
     a = a.text or ""
@@ -140,7 +149,22 @@ def generate(spec, common, details, should_check_encoding):
     details -- Object containing information on how and where to compile this
         specification. """
     if os.path.exists(details.TEST_DIR):
-        shutil.rmtree(details.TEST_DIR)
+        # For some reason on Windows it takes some time for the executable
+        # to be freed by the system; we keep on getting
+        #
+        #   WindowsError: [Error 145] The directory is not empty: '...'
+        #
+        # We just wait for a bit, and retry.
+        i = 0
+        while 1:
+            try:
+                shutil.rmtree(details.TEST_DIR)
+                break
+            except OSError:
+                if i > 10:
+                    raise
+                i += 1
+                time.sleep(0.01)
     os.mkdir(details.TEST_DIR)
 
     options = {
@@ -156,20 +180,23 @@ def compile_and_run(data, details, encode_filename=None):
     details -- Contains information on the generated decoder, and how to
         compile it.
     """
-    files = glob.glob(os.path.join(details.TEST_DIR, '*.%s' % details.FILE_TYPE))
-    command = [details.COMPILER] + details.COMPILER_FLAGS + [details.EXECUTABLE] + files
-    if subprocess.call(command) != 0:
-        raise Exception('Failed to compile!')
+    files = glob.glob('*.%s' % details.LANGUAGE)
+    command = details.COMPILER + files
+    p = subprocess.Popen(command, stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT)
+    output = p.stdout.read().decode('ascii', errors='ignore')
+    if p.wait() != 0:
+        raise CompilerError(command, output)
 
     if not isinstance(data, str):
         data = data.read()
 
-    filename = os.path.join(details.TEST_DIR, 'data.bin')
+    filename = 'data.bin'
     datafile = open(filename, 'wb')
     datafile.write(data)
     datafile.close()
 
-    command = [details.EXECUTABLE, '-e', encode_filename, filename]
+    command = ['./decode', '-e', encode_filename, filename]
     if not encode_filename:
         # We don't want to encode; strip out those parameters.
         command = command[0:1] + command[3:4]
@@ -307,51 +334,66 @@ def _check_encoded_data(spec, sourcefile, actual, actual_xml, require_exact_enco
             raise Exception('Re-decoding of encoded data failed: %s' % str(ex))
 
         if require_exact_encoding:
-            raise Exception("Encoded data doesn't match, but we require exact encoding!")
+            # The files are different, but the visible entries are identical.
+            # Re-compare the files in verbose mode to give a better error.
+            expected_data = dt.Data(expected)
+            actual_data = dt.Data(actual)
+            expected_xml = xmlout.to_string(spec.decode(expected_data), verbose=True)
+            actual_xml = xmlout.to_string(spec.decode(actual_data), verbose=True)
+
+            assert_xml_equivalent(expected_xml, actual_xml)
+
+            # The verbose decode shows identical files. We must have different
+            # trailing data!
+            raise Exception('Unexpected trailing data. Original file has '
+                    '%s, re-encode has %s.' % (expected_data, actual_data))
 
 
-class _CompiledDecoder:
+class _CompiledDecoder(object):
     """Base class for testing decoders that are compiled."""
     TEST_DIR = os.path.join(os.path.dirname(__file__), 'temp')
-    EXECUTABLE = os.path.join(TEST_DIR, 'decode')
     VALGRIND = _get_valgrind()
 
-    def _decode_file(self, spec, common, data, should_check_encoding=True, require_exact_encoding=False):
+    def decode_file(self, spec, common, data, should_check_encoding=True, require_exact_encoding=False):
         """Return a tuple containing the exit code and the decoded xml."""
         generate(spec, common, self, should_check_encoding)
         encode_filename = os.path.join(self.TEST_DIR, 'encoded.bin') if should_check_encoding else None
-        xml = compile_and_run(data, self, encode_filename)
+
+        old_dir = os.getcwd()
+        os.chdir(self.TEST_DIR)
+        try:
+            xml = compile_and_run(data, self, encode_filename)
+        finally:
+            os.chdir(old_dir)
 
         try:
             _validate_xml(spec, dt.Data(data), xml)
         except bdec.DecodeError, ex:
             raise Exception("Compiled decoder succeeded, but should have failed with: %s" % str(ex))
-	if should_check_encoding:
+        if should_check_encoding:
             _check_encoded_data(spec, data, open(encode_filename, 'rb').read(), xml, require_exact_encoding)
         return xml
 
-
-class _CDecoder(_CompiledDecoder):
-    # We compile using g++ because it is stricter than gcc
-    COMPILER = os.getenv('CC', 'gcc')
-    COMPILER_FLAGS = os.getenv('CFLAGS', '-Wall -Werror -g').split() + ['-o']
-    FILE_TYPE = "c"
-    LANGUAGE = "c"
-
-
 class _PythonDecoder:
     """Use the builtin python decoder for the tests."""
-    def _decode_file(self, spec, common, sourcefile, should_check_encoding=True, require_exact_encoding=False):
+    NAME = 'Python'
+
+    def decode_file(self, spec, common, sourcefile, should_check_encoding=True, require_exact_encoding=False):
         data = dt.Data(sourcefile)
         try:
-	    xml = xmlout.to_string(spec.decode(data))
+            xml = xmlout.to_string(spec.decode(data))
         except bdec.DecodeError, ex:
             raise ExecuteError(3, ex)
 
-	if should_check_encoding:
-	    generated_data = xmlout.encode(spec, xml)
+        if should_check_encoding:
+            generated_data = xmlout.encode(spec, xml)
             _check_encoded_data(spec, sourcefile, generated_data.bytes(), xml, require_exact_encoding)
-	return xml
+        return xml
+
+def _decoder(name, template, compiler):
+    # FIXME: We don't need to create a new class here!!
+    return type('%sDecode' % name, (_CompiledDecoder, ),
+            {'NAME':name, 'LANGUAGE':template, 'COMPILER':compiler.split(' ')})()
 
 def create_decoder_classes(base_classes, module):
     """
@@ -361,8 +403,8 @@ def create_decoder_classes(base_classes, module):
     C, ...). The key of the dictionary is the name of the class, the value
     the class itself.
     
-    Each class will have a _decode_file method which can be used to perform
-    the decode.
+    Each class will have a 'decoder' instance which can be used to perform
+    the decode by 'self.decoder.decode(...)'.
 
     Can be used by globals().update(create_decoder_classes(...))
 
@@ -370,12 +412,17 @@ def create_decoder_classes(base_classes, module):
     base_classes -- a tuple containing (base class, name)
     module -- the module name the generated classes will part of
     """
-    decoders = [(_CDecoder, 'C'), (_PythonDecoder, 'Python')]
+    decoders = [
+            _decoder('C', 'c', 'gcc -Wall -Werror -g -Wno-long-long -pedantic -o decode'),
+            _decoder('Cpp', 'c', 'g++ -Wall -Werror -g -Wno-long-long -pedantic -o decode'),
+            _decoder('C89', 'c', 'gcc -Wall -Werror -g -std=c89 -Wno-long-long -pedantic -o decode'),
+            _decoder('VisualC', 'c', 'cl.exe /TC /W2 /WX /Fedecode.exe'),
+            _PythonDecoder()]
     result = {}
     for base, prefix in base_classes:
-        for decoder, name in decoders:
-            test_name = "Test%s%s" % (prefix, name)
-            result[test_name] = type(test_name, (unittest.TestCase, decoder, base), {'language':name})
+        for decoder in decoders:
+            test_name = "Test%s%s" % (prefix, decoder.NAME)
+            result[test_name] = type(test_name, (unittest.TestCase, base), {'decoder':decoder})
             result[test_name].__module__ = module
     return result
 
@@ -385,7 +432,7 @@ class _BaseRegressionTest:
     def _test_failure(self, spec, common, spec_filename, data_filename, should_encode):
         datafile = open(data_filename, 'rb')
         try:
-            xml = self._decode_file(spec, common, datafile, should_encode)
+            xml = self.decoder.decode_file(spec, common, datafile, should_encode)
             raise Exception("'%s' should have failed to decode '%s', but succeeded with output:\n%s" % (spec_filename, data_filename, xml))
         except ExecuteError, ex:
             if ex.exit_code != 3:
@@ -400,26 +447,30 @@ class _BaseRegressionTest:
             datafile = StringIO.StringIO(gzip.GzipFile(data_filename, 'rb').read())
         else:
             datafile = open(data_filename, 'rb')
-        xml = self._decode_file(spec, common, datafile, should_encode, require_exact_encoding)
+        xml = self.decoder.decode_file(spec, common, datafile, should_encode, require_exact_encoding)
         datafile.close()
         if expected_xml:
             assert_xml_equivalent(expected_xml, xml)
 
     def _get(self, config, section, option):
-        try:
-            return config.get(section, option)
-        except NoOptionError:
-            return None
+        # We reverse the sections, as we want the final valid section to
+        # override earlier sections.
+        for s in reversed(config.sections()):
+            if section.lower() in s.lower().split(','):
+                try:
+                    return config.get(s, option)
+                except (NoOptionError, NoSectionError):
+                    pass
+        return None
 
-    def _test_spec(self, test_path, spec_filename, successes, failures, config):
-        assert successes or failures
-        skip = self._get(config, self.language, test_path.lower()) or \
+    def _test_spec(self, test_path, spec_filename, entry_name, successes, failures, config):
+        skip = self._get(config, self.decoder.NAME, test_path.lower()) or \
                 self._get(config, 'default', test_path.lower())
 
-        if skip == 'decode':
+        if skip == 'decoding-broken':
             print 'Skipping test.'
             return
-        elif skip == 'encode':
+        elif skip == 'encoding-broken':
             should_encode = False
             require_exact_encoding = True
         elif skip == 'encoding-equivalent':
@@ -438,6 +489,13 @@ class _BaseRegressionTest:
                 xml_file = file(expected_filename, 'r')
                 expected_xml = xml_file.read()
                 xml_file.close()
+            if entry_name is not None:
+                for entry in common:
+                    if entry.name == entry_name:
+                        spec = entry
+                        break
+                else:
+                    raise Exception("Unknown common entry", entry_name)
             self._test_success(spec, common, spec_filename, data_filename,
                     expected_xml, should_encode, require_exact_encoding)
 
@@ -445,8 +503,8 @@ class _BaseRegressionTest:
             self._test_failure(spec, common, spec_filename, data_filename, should_encode)
 
     @classmethod
-    def add_method(cls, name, test_path, spec_filename, successes, failures, config):
-        method = lambda self: self._test_spec(test_path, spec_filename, successes, failures, config)
+    def add_method(cls, name, test_path, spec_filename, entry, successes, failures, config):
+        method = lambda self: self._test_spec(test_path, spec_filename, entry, successes, failures, config)
         method.__name__ = 'test_%s' % name
         setattr(cls, method.__name__, method)
 
@@ -466,7 +524,7 @@ def create_classes(name, tests, config):
     """
     clsname = name[0].upper() + name[1:]
     cls = type(clsname, (object, _BaseRegressionTest,), {})
-    for test_name, spec_filename, successes, failures in tests:
-        cls.add_method(test_name, '%s/%s' % (name, test_name), spec_filename, successes, failures, config)
+    for test_name, spec_filename, entry, successes, failures in tests:
+        cls.add_method(test_name, '%s/%s' % (name, test_name), spec_filename, entry, successes, failures, config)
     return create_decoder_classes([(cls, clsname)], __name__)
 

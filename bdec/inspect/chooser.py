@@ -93,6 +93,7 @@ def _get_constraint(entry, constraint_type):
     return None
 
 class _ProtocolStream:
+    """ A class for iterating over entries and their potential data. """
     _MAX_FIELD_RANGE = 100
     def __init__(self, entry, parent=None, parent_offset=None):
         min = _get_constraint(entry, Minimum)
@@ -107,9 +108,19 @@ class _ProtocolStream:
             self.entry = chc.Choice('mock %s' % entry.name, options)
         else:
             self.entry = entry
-        self.data = self._create_data()
         self._parent = parent
         self._parent_offset = parent_offset
+
+        # Walk the parent chain to ensure we're not in a cyclic loop
+        while parent is not None:
+            if parent.entry is entry:
+                # We've found a cyclic loop. Don't both returning any more
+                # data; just say it's unknown.
+                self.data = _UnknownData()
+                break
+            parent = parent._parent
+        else:
+            self.data = self._create_data()
 
     def _next(self, offset):
         """Walk up the tree looking for the next child.
@@ -220,7 +231,7 @@ def _differentiate(entries):
     possible = []
     have_new_success = False
     options = [(entry, _ProtocolStream(entry)) for entry in entries]
-    while len(options) > 1:
+    while len(options) > 0:
         length = min(len(option.data) for entry, option in options)
 
         # Calculate the length of the next section of 'differentiable' protocol

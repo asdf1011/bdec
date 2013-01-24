@@ -42,6 +42,7 @@
 #   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 #   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+from bdec import DecodeError
 import bdec.data as dt
 from bdec.entry import DecodeLengthError, EntryDataError
 
@@ -72,6 +73,16 @@ class Child:
 
     def __str__(self):
         return '%s %s' % (str(self.decoder), self.name)
+
+class MissingContextError(DecodeError):
+    def __init__(self, entry, child, name):
+        DecodeError.__init__(self, entry)
+        self.child = child
+        self.name = name
+
+    def __str__(self):
+        return "%s unable to find '%s' from context for child %s!" % \
+                (self.entry, self.name, self.child)
 
 
 class EntryDecoder:
@@ -156,7 +167,10 @@ class EntryDecoder:
         # Create the childs context from our data
         child_context = {}
         for our_name, child_name in child.inputs:
-            child_context[child_name] = context[our_name]
+            try:
+                child_context[child_name] = context[our_name]
+            except KeyError:
+                raise MissingContextError(self.entry, child, our_name)
 
         # Do the decode
         for result in child.decoder.decode(data, child_context, child.name):
