@@ -56,23 +56,26 @@ def escape(name):
     return name.replace(' ', '_')
 
 class _Item(object):
-    def __init__(self):
-        self.children = {}
-        self.value = None
+    def __init__(self, value, children):
+        self._value = value
+        self._children = children
 
     def __getattr__(self, name):
         try:
-            return self.children[name]
+            return self._children[name]
         except KeyError:
             raise AttributeError(name)
 
     def __repr__(self):
-        return unicode(self.children)
+        result = unicode(self._children)
+        if self._value is not None:
+            result = '%i %s' % (self._value, result)
+        return result
 
     def __int__(self):
-        if self.value is None:
+        if self._value is None:
             raise TypeError
-        return int(self.value)
+        return int(self._value)
 
 class _DecodedItem:
     """ Class to handle creating python instances from decoded entries """
@@ -106,13 +109,7 @@ class _DecodedItem:
                 # as the raw value (eg: a sequence with a value).
                 result = value
             else:
-                result = _Item()
-                if value is not None:
-                    # This object can be convert to an integer
-                    result.value = value
-
-                for name, value in self._children:
-                    result.children[escape(name)] = value
+                result = _Item(value, dict((escape(name),value) for name, value in self._children))
         return result
 
 def get_instance(items):
