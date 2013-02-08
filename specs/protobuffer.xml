@@ -1,0 +1,21 @@
+<protocol>
+  <reference name="varint" />
+
+  <common>
+    <sequence name="varint" value="${embedded:}" >
+      <choice name="embedded:">
+        <sequence name="single byte" value="${value}">
+          <field length="1" value="0" />
+          <field name="value" length="7" type="integer" />
+        </sequence>
+        <sequence name="multi byte" value="${varint} * 128 + ${value}" >
+          <field length="1" value="1" />
+          <field name="value" length="7" type="integer" />
+          <reference name="varint" />
+        </sequence>
+      </choice>
+    </sequence>
+
+    <reference name="int32" type="varint" min="0-(1 &lt;&lt; 32)" max="(1 &lt;&lt; 32) - 1" />
+  </common>
+</protocol>
