@@ -50,9 +50,13 @@ from bdec.expression import ArithmeticExpression, Constant, \
 from bdec.inspect.range import Range
 from bdec.inspect.type import expression_range as erange
 
-class SolverError(DecodeError):
+class SolverError(Exception):
+    """ This isn't an encoding error, but rather a specification, or internal error.
+
+    Treating it as an encoding error could cause encoding to continue, but
+    with a different option in a choice (which is wrong)."""
     def __init__(self, entry, expr, reason):
-        DecodeError.__init__(self, entry)
+        self.entry = entry
         self.expr = expr
         self.reason = reason
 
@@ -65,7 +69,7 @@ class UnsolvableExpressionError(SolverError):
         self.expected = expected
 
     def __str__(self):
-        return 'Unsolvable exression: %s != %s' % (self.expr, self.expected)
+        return 'Unsolvable expression: %s == %s' % (self.expr, self.expected)
 
 
 def _break_into_parts(entry, expression, input_params):
