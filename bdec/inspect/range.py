@@ -215,7 +215,12 @@ class Range:
         return Range(0, other.max)
 
     def __lshift__(self, other):
-        return Range(self.min << other.min, self.max << other.max)
+        if other.min is None or other.max is None:
+            # If we're shifting by anywhere up to infinite, there is no maximum.
+            return Range(None, None)
+        min = self.min << other.min if self.min is not None else None
+        max = self.max << other.max if self.max is not None else None
+        return Range(min, max)
 
     def __rshift__(self, other):
         return Range(self.min >> other.max, self.max >> other.min)

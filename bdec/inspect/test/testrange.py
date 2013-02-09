@@ -132,6 +132,11 @@ class TestRange(unittest.TestCase):
         b = Range(0, None)
         self.assertEqual(Range(None, None), a / b)
 
+    def test_shift_none(self):
+        a = Range(0, 10)
+        b = Range(None, None)
+        self.assertEqual(Range(None, None), a << b)
+        self.assertEqual(Range(None, None), b << a)
 
 class TestRanges(unittest.TestCase):
     def test_initialise(self):
