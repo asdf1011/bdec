@@ -1,8 +1,31 @@
 <protocol>
-  <reference name="varint" />
+  <reference name="unknown field" />
 
   <common>
-      <sequence name="varint" value="${embedded:}" min="0">
+    <sequence name="unknown field">
+      <field name="field number" type="integer" length="5" />
+      <choice name="value">
+        <sequence name="varint">
+          <field name="tag:" length="3" value="0x0" />
+          <reference name="varint" />
+        </sequence>
+        <sequence name="64 bit">
+          <field name="tag:" length="3" value="0x1" />
+          <field name="data" length="64" type="hex" />
+        </sequence>
+        <sequence name="length delimited">
+          <field name="tag:" length="3" value="0x2" />
+          <reference name="num bytes:" type="varint" />
+          <field name="data" type="hex" length="${num bytes:} * 8" />
+        </sequence>
+        <sequence name="32 bit">
+          <field name="tag:" length="3" value="0x5" />
+          <field name="data" length="32" type="hex" />
+        </sequence>
+      </choice>
+    </sequence>
+
+    <sequence name="varint" value="${embedded:}" min="0">
       <choice name="embedded:">
         <sequence name="single byte" value="${value}">
           <field length="1" value="0" />
@@ -16,6 +39,15 @@
       </choice>
     </sequence>
 
-    <reference name="int32" type="varint" min="0-(1 &lt;&lt; 31)" max="(1 &lt;&lt; 31) - 1" />
+    <sequence name="int32" value="${value:}">
+      <choice name="value:">
+        <reference name="positive" type="varint" min="0" max="(1 &lt;&lt; 31) - 1" />
+        <!-- Negative int32 values are negative int64 values -->
+        <sequence name="negative" value="${varint} - (1 &lt;&lt; 64)">
+          <reference name="varint" />
+        </sequence>
+      </choice>
+    </sequence>
+
   </common>
 </protocol>

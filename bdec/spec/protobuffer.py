@@ -1,5 +1,6 @@
 
 from bdec.constraints import Equals
+from bdec.field import Field
 from bdec.entry import Child
 from bdec.expression import parse
 from bdec.sequence import Sequence
@@ -36,23 +37,32 @@ class _Parser:
         type.addParseAction(lambda s,l,t: self._createType(t[0], t[1], t[2], int(t[4])))
         message.addParseAction(lambda s,l,t:self._createMessage(t[1], t[3:-1]))
 
-        # A lookup of type name to handling function. The handing function takes
-        # the name and returns a (entry, typeNumber) tuple.
-        self._type_lookup = {'int32' : self._create_int32}
         self._references = references
-
-    def _create_int32(self, name):
-        return 0, Child(name,self._references.get_common('int32'))
 
     def _createType(self, rule, type, name, fieldNumber):
         if rule != 'required':
-            raise NotImplementedError('Only handlle required at the moment!')
-        wire_type, entry = self._type_lookup[type](name)
+            raise NotImplementedError('Only handle required at the moment!')
+        entries = []
+        if name in ['int32', 'int64', 'uint32', 'uint64', 'sint32', 'sint64',
+                'bool', 'enum']:
+            wire_type = 0
+        elif name in ['fixed64', 'sfixed64', 'double']:
+            wire_type = 1
+        elif name in ['fixed32', 'sfixed32', 'float']:
+            wire_type = 5
+        else:
+            entries += [Child('length:', self._references.get_common('varint'))]
+            wire_type = 2
+
+        if type in ['string', 'bytes']:
+            entries += [Field(name, length=parse('${length:} * 8'), format=Field.TEXT)]
+        else:
+            entries += [Child(name, self._references.get_common(type))]
 
         keyValue = fieldNumber << 3 | wire_type
         key = Sequence('key:', [self._references.get_common('varint')],
                 value=parse("${varint}"), constraints=[Equals(keyValue)])
-        return [key, entry]
+        return [key] + entries
 
     def _createMessage(self, name, types):
         return Sequence(name, types)
