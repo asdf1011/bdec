@@ -19,7 +19,8 @@
 
 from bdec.choice import Choice
 from bdec.constraints import Minimum, Maximum, Equals
-from bdec.expression import compile
+from bdec.entry import Child
+from bdec.expression import parse
 from bdec.field import Field
 from bdec.inspect.param import ExpressionParameters
 from bdec.inspect.type import expression_range, Range, EntryValueType, EntryLengthType, \
@@ -31,31 +32,31 @@ import unittest
 class TestExpressionRange(unittest.TestCase):
 
     def test_constant_range(self):
-        a = compile('8')
+        a = parse('8')
         self.assertEqual(8, expression_range(a).min)
         self.assertEqual(8, expression_range(a).max)
 
     def test_multiple_range(self):
-        a = compile('8 * 1 * 4')
+        a = parse('8 * 1 * 4')
         self.assertEqual(32, expression_range(a).min)
         self.assertEqual(32, expression_range(a).max)
 
     def test_divide_range(self):
-        a = compile('16 / 2 / 4')
+        a = parse('16 / 2 / 4')
         self.assertEqual(2, expression_range(a).min)
         self.assertEqual(2, expression_range(a).max)
 
     def test_mod_range(self):
-        a = compile('100 % 2')
+        a = parse('100 % 2')
         self.assertEqual(Range(0, 1), expression_range(a))
 
     def test_add_range(self):
-        a = compile('(10 + 3) + 7')
+        a = parse('(10 + 3) + 7')
         self.assertEqual(20, expression_range(a).min)
         self.assertEqual(20, expression_range(a).max)
 
     def test_subtract_range(self):
-        a = compile('95 - (100 - 20)')
+        a = parse('95 - (100 - 20)')
         self.assertEqual(15, expression_range(a).min)
         self.assertEqual(15, expression_range(a).max)
 
@@ -85,7 +86,7 @@ class TestTypeRange(unittest.TestCase):
 
     def test_referenced_field_value(self):
         a = Field('a', length=4)
-        b = Sequence('b', [], value=compile('${a} * 8'))
+        b = Sequence('b', [], value=parse('${a} * 8'))
         c = Sequence('c', [a, b])
         params = ExpressionParameters([c])
         range = EntryValueType(b).range(params)
@@ -94,7 +95,7 @@ class TestTypeRange(unittest.TestCase):
 
     def test_referenced_field_length(self):
         a = Field('a', length=4)
-        b = Sequence('b', [], value=compile('len{a} * 8 + 4'))
+        b = Sequence('b', [], value=parse('len{a} * 8 + 4'))
         c = Sequence('c', [a, b])
         params = ExpressionParameters([c])
         range = EntryValueType(b).range(params)
@@ -115,3 +116,22 @@ class TestTypeRange(unittest.TestCase):
         range = EntryValueType(c).range(None)
         self.assertEqual(5, range.min)
         self.assertEqual(30, range.max)
+
+    def test_recursive_type(self):
+        variable_length_integer = Choice('variable length integer', [])
+        variable_length_integer.children = [
+            Sequence('final byte:', [
+                Field(None, length=1, constraints=[Equals(0)]),
+                Field('value:', length=7)],
+                value=parse('${value:}')),
+            Sequence('intermediate byte:', [
+                Field(None, length=1, constraints=[Equals(1)]),
+                Field('value:', length=7),
+                Child('next:', variable_length_integer)],
+                value=parse('(${value:} << 7) + ${next:}'))]
+
+        params = ExpressionParameters([variable_length_integer])
+        range = EntryValueType(variable_length_integer).range(params)
+        self.assertEqual(None, range.min)
+        self.assertEqual(None, range.max)
+

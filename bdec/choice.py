@@ -56,8 +56,6 @@ class Choice(bdec.entry.Entry):
     def __init__(self, name, children, length=None):
         bdec.entry.Entry.__init__(self, name, length, children)
 
-        assert len(children) > 0
-
     def _range(self, ignore_entries):
         minimum = min(child.entry.range(ignore_entries).min for child in self.children)
         maximum = max(child.entry.range(ignore_entries).max for child in self.children)
