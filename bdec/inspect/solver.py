@@ -192,9 +192,9 @@ def _invert(result_expr, entry, expression, params, input_params, remainder_rang
                 should_round_up = False
                 if (our_range.min is None or our_range.min < 0) and \
                         (remainder_range.max is None or remainder_range.max > 0):
-                    # We are negative, remainder is position; we need to round up.
+                    # We are negative, remainder is positive; we need to round up.
                     should_round_up = True
-                elif our_range.max is None or our_range.max > 0 and \
+                elif (our_range.max is None or our_range.max > 0) and \
                         (remainder_range.min is None or remainder_range.min < 0):
                     # We are positive, remainder is negative; we need to round up.
                     should_round_up = True
@@ -220,7 +220,7 @@ def _invert(result_expr, entry, expression, params, input_params, remainder_rang
     return left
 
 def solve_expression(result_expr, expression, entry, params, input_params):
-    """Get a list of expression for solving the given expression. For example,
+    """Get a list of expressions for solving the given expression. For example,
     for
        y = 2 * x + 5
     'y' is the result expression, '2 * x + 5' is the expression, it would
@@ -245,10 +245,13 @@ def solve_expression(result_expr, expression, entry, params, input_params):
         reference, expression = component
         output = erange(expression, entry, params)
         result = 0
-        if output.min:
+        if output.min is not None and output.max is not None:
             result = max(abs(output.min), result)
-        if output.max:
             result = max(abs(output.max), result)
+        else:
+            # As we have either no minimum or maximum, our influence will
+            # be really big.
+            result = 1e1024
         return result
     variables = sorted(components.items(), key=influence, reverse=True)
     result_params = []
