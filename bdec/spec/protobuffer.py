@@ -43,12 +43,12 @@ class _Parser:
         if rule != 'required':
             raise NotImplementedError('Only handle required at the moment!')
         entries = []
-        if name in ['int32', 'int64', 'uint32', 'uint64', 'sint32', 'sint64',
+        if type in ['int32', 'int64', 'uint32', 'uint64', 'sint32', 'sint64',
                 'bool', 'enum']:
             wire_type = 0
-        elif name in ['fixed64', 'sfixed64', 'double']:
+        elif type in ['fixed64', 'sfixed64', 'double']:
             wire_type = 1
-        elif name in ['fixed32', 'sfixed32', 'float']:
+        elif type in ['fixed32', 'sfixed32', 'float']:
             wire_type = 5
         else:
             entries += [Child('length:', self._references.get_common('varint'))]
