@@ -33,7 +33,7 @@ def _find_regression_tests(spec_extension, regression_dir):
             names = filename.split('.')
             if len(names) == 2:
                 assert names[1] == spec_extension, \
-                    "'%s' looks like specification, but doesn't end with '%s'!" % spec_extension
+                    "'%s' looks like specification, but doesn't end with '%s'!" % (filename, spec_extension)
                 tests[names[0]].filename = path
             elif len(names) == 3:
                 tests[names[0]].successes.append(path)
