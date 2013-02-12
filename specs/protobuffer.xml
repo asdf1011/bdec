@@ -43,11 +43,22 @@
       <choice name="value:">
         <reference name="positive" type="varint" min="0" max="(1 &lt;&lt; 31) - 1" />
         <!-- Negative int32 values are negative int64 values -->
-        <sequence name="negative" value="${varint} - (1 &lt;&lt; 64)">
+        <sequence name="negative" value="${varint} - (1 &lt;&lt; 64)" min="0 - (1 &lt;&lt; 31)" max="0-1">
           <reference name="varint" />
         </sequence>
       </choice>
     </sequence>
 
+    <sequence name="zigzag" value="${value:}">
+      <reference name="varint:" type="varint" />
+      <choice name="value:">
+        <sequence name="positive" value="${varint:} / 2">
+          <sequence name="check:" value="${varint:} % 2" expected="0" />
+        </sequence>
+        <sequence name="negative" value="0 - 1 - (${varint:} - 1) / 2" />
+      </choice>
+    </sequence>
+
+    <reference name="sint32" type="zigzag" min="0 - (1 &lt;&lt; 31)" max="(1 &lt;&lt; 31) - 1" />
   </common>
 </protocol>
