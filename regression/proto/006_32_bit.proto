@@ -1,0 +1,5 @@
+message fixed32types {
+    required fixed32 a = 1;
+    required sfixed32 b = 2;
+    required float c = 3;
+}
