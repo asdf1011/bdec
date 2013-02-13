@@ -1,0 +1,5 @@
+message fixed64types {
+    required fixed64 a = 1;
+    required sfixed64 b = 2;
+    required double c = 3;
+}
