@@ -21,11 +21,11 @@ class _Locator:
 
 class Error(bdec.spec.LoadErrorWithLocation):
     def __init__(self, filename, lineno, col, message):
-        bdec.spec.LoadErrorWithLocation.__init__(filename, _Locator(lineno, col))
+        bdec.spec.LoadErrorWithLocation.__init__(self, filename, _Locator(lineno, col))
         self._message = message
 
     def __str__(self):
-        return self._src() + self._message
+        return '%s %s' % (self._src(), self._message)
 
 class _Parser:
     def __init__(self, references):

@@ -28,22 +28,22 @@
     <sequence name="varint" value="${embedded:}" min="0">
       <choice name="embedded:">
         <sequence name="single byte" value="${value}">
-          <field length="1" value="0" />
+          <field name="end bit:" length="1" value="0" />
           <field name="value" length="7" type="integer" />
         </sequence>
         <sequence name="multi byte" value="${most significant:} * 128 + ${least significant:}" >
-          <field length="1" value="1" />
+          <field name="end bit:" length="1" value="1" />
           <field name="least significant:" length="7" type="integer" />
           <reference name="most significant:" type="varint" />
         </sequence>
       </choice>
     </sequence>
 
-    <sequence name="int32" value="${value:}">
+    <sequence name="svarint" value="${value:}">
       <choice name="value:">
-        <reference name="positive" type="varint" min="0" max="(1 &lt;&lt; 31) - 1" />
+        <reference name="positive" type="varint" max="(1 &lt;&lt; 63) - 1" />
         <!-- Negative int32 values are negative int64 values -->
-        <sequence name="negative" value="${varint} - (1 &lt;&lt; 64)" min="0 - (1 &lt;&lt; 31)" max="0-1">
+        <sequence name="negative" value="${varint} - (1 &lt;&lt; 64)">
           <reference name="varint" />
         </sequence>
       </choice>
@@ -59,6 +59,11 @@
       </choice>
     </sequence>
 
+    <reference name="int32" type="svarint" min="0 - (1 &lt;&lt; 31)" max="(1 &lt;&lt; 31) - 1" />
+    <reference name="int64" type="svarint" />
+    <reference name="uint32" type="varint" min="0" max="(1 &lt;&lt; 32)" />
+    <reference name="uint64" type="varint" />
     <reference name="sint32" type="zigzag" min="0 - (1 &lt;&lt; 31)" max="(1 &lt;&lt; 31) - 1" />
+    <reference name="sint64" type="zigzag" />
   </common>
 </protocol>
