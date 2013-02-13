@@ -1,4 +1,5 @@
 
+from bdec.choice import Choice
 from bdec.constraints import Equals
 from bdec.field import Field
 from bdec.entry import Child
@@ -40,9 +41,7 @@ class _Parser:
         self._references = references
 
     def _createType(self, rule, type, name, fieldNumber):
-        if rule != 'required':
-            raise NotImplementedError('Only handle required at the moment!')
-        entries = []
+        length = []
         if type in ['int32', 'int64', 'uint32', 'uint64', 'sint32', 'sint64',
                 'bool', 'enum']:
             wire_type = 0
@@ -51,18 +50,38 @@ class _Parser:
         elif type in ['fixed32', 'sfixed32', 'float']:
             wire_type = 5
         else:
-            entries += [Child('length:', self._references.get_common('varint'))]
+            length = [Child('length:', self._references.get_common('varint'))]
             wire_type = 2
 
-        if type in ['string', 'bytes']:
-            entries += [Field(name, length=parse('${length:} * 8'), format=Field.TEXT)]
-        else:
-            entries += [Child(name, self._references.get_common(type))]
-
         keyValue = fieldNumber << 3 | wire_type
-        key = Sequence('key:', [self._references.get_common('varint')],
-                value=parse("${varint}"), constraints=[Equals(keyValue)])
-        return [key] + entries
+        key = [Sequence('key:', [self._references.get_common('varint')],
+                value=parse("${varint}"), constraints=[Equals(keyValue)])]
+
+        if type in ['string', 'bytes']:
+            entry = Field(name, length=parse('${length:} * 8'), format=Field.TEXT)
+        else:
+            entry = Child(name, self._references.get_common(type))
+
+
+        if rule == 'required':
+            result = key + length + [entry]
+        elif rule == 'optional':
+            check = Choice('%s check:' % name, [
+                Sequence('present', key, value=parse("1")),
+                Sequence('not present', [Sequence('length:', [], value=parse("0"))], value=parse("0"))])
+            if length:
+                length = [Choice('length:', [
+                    Sequence('not present', [
+                        Sequence('check:', [], value=parse("${%s check:}" % name), constraints=[Equals(0)])],
+                        value=parse('0')),
+                    length[0]])]
+            result = [check] + length + [Choice('optional %s' % name, [
+                Sequence('not present:', [], value=parse("${%s check:}" % name), constraints=[Equals(0)]),
+                entry])]
+        else:
+            raise NotImplementedError('Unhandled rule %s' % rule)
+
+        return result
 
     def _createMessage(self, name, types):
         return Sequence(name, types)
