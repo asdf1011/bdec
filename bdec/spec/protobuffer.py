@@ -8,7 +8,8 @@ from bdec.sequence import Sequence
 from bdec.sequenceof import SequenceOf
 import bdec.spec.xmlspec
 import os.path
-from pyparsing import alphanums, Literal, nums, OneOrMore, ParseException, StringEnd, Word
+from pyparsing import alphanums, Literal, nums, OneOrMore, ParseException, \
+        StringEnd, Word, Optional
 
 class _Locator:
     def __init__(self, lineno, column):
@@ -32,16 +33,17 @@ class Error(bdec.spec.LoadErrorWithLocation):
 class _Parser:
     def __init__(self, references):
         rule = Literal('required') | 'optional' | 'repeated'
-        type = rule + Word(alphanums) + Word(alphanums) + '=' + Word(nums) + ';'
+        packed = Optional('[packed=true]').addParseAction(lambda s,l,t: t[0] if t else '')
+        type = rule + Word(alphanums) + Word(alphanums) + '=' + Word(nums) + packed + ';'
         message = 'message' + Word(alphanums) + '{' + OneOrMore(type) + '}'
         self._parser = OneOrMore(message) + StringEnd()
 
-        type.addParseAction(lambda s,l,t: self._createType(t[0], t[1], t[2], int(t[4])))
+        type.addParseAction(lambda s,l,t: self._createType(t[0], t[1], t[2], int(t[4]), t[5]))
         message.addParseAction(lambda s,l,t:self._createMessage(t[1], t[3:-1]))
 
         self._references = references
 
-    def _createType(self, rule, type, name, fieldNumber):
+    def _createType(self, rule, type, name, fieldNumber, packed):
         length = []
         if type in ['int32', 'int64', 'uint32', 'uint64', 'sint32', 'sint64',
                 'bool', 'enum']:
@@ -64,6 +66,9 @@ class _Parser:
             entry = Child(name, self._references.get_common(type))
 
 
+        if rule != 'repeated' and packed:
+            raise NotImplementedError("Found a packed entry that isn't repeated?!")
+
         if rule == 'required':
             result = key + length + [entry]
         elif rule == 'optional':
@@ -82,7 +87,12 @@ class _Parser:
         elif rule == 'repeated':
             # This is a little awkward, as we have to create an additional
             # sequence to pack in the hidden key / length.
-            result = SequenceOf(name, Sequence(name, key + length + [entry]))
+            if not packed:
+                result = [SequenceOf(name, Sequence(name, key + length + [entry]))]
+            else:
+                result = key + length + [SequenceOf(name,
+                    Sequence(name, length + [entry]),
+                    length=parse("${length:} * 8"))]
         else:
             raise NotImplementedError("Unhandled rule '%s'" % rule)
 
