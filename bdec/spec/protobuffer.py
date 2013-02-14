@@ -5,6 +5,7 @@ from bdec.field import Field
 from bdec.entry import Child
 from bdec.expression import parse
 from bdec.sequence import Sequence
+from bdec.sequenceof import SequenceOf
 import bdec.spec.xmlspec
 import os.path
 from pyparsing import alphanums, Literal, nums, OneOrMore, ParseException, StringEnd, Word
@@ -78,8 +79,12 @@ class _Parser:
             result = [check] + length + [Choice('optional %s' % name, [
                 Sequence('not present:', [], value=parse("${%s check:}" % name), constraints=[Equals(0)]),
                 entry])]
+        elif rule == 'repeated':
+            # This is a little awkward, as we have to create an additional
+            # sequence to pack in the hidden key / length.
+            result = SequenceOf(name, Sequence(name, key + length + [entry]))
         else:
-            raise NotImplementedError('Unhandled rule %s' % rule)
+            raise NotImplementedError("Unhandled rule '%s'" % rule)
 
         return result
 

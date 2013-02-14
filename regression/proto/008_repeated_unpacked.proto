@@ -1,0 +1,3 @@
+message optional {
+    repeated string a = 1;
+}
