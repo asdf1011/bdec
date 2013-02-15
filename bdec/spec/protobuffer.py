@@ -123,5 +123,5 @@ def load(filename, contents, references):
         raise Error(filename, ex.lineno, ex.col, ex)
     for entry in entries:
         references.add_common(entry)
-    return entries[0], lookup
+    return entries[-1], lookup
 
