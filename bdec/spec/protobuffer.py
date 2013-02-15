@@ -61,7 +61,7 @@ class _Parser:
                 value=parse("${varint}"), constraints=[Equals(keyValue)])]
 
         if type in ['string', 'bytes']:
-            entry = Field(name, length=parse('${length:} * 8'), format=Field.TEXT)
+            entry = Field(name, length=parse('${length:} * 8'), format=Field.TEXT, encoding="utf8")
         else:
             entry = Child(name, self._references.get_common(type))
 
