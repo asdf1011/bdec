@@ -9,7 +9,7 @@ from bdec.sequenceof import SequenceOf
 import bdec.spec.xmlspec
 import os.path
 from pyparsing import alphanums, Literal, nums, OneOrMore, ParseException, \
-        StringEnd, Word, Optional
+        StringEnd, Word, Optional, SkipTo
 
 class _Locator:
     def __init__(self, lineno, column):
@@ -36,7 +36,9 @@ class _Parser:
         packed = Optional('[packed=true]').addParseAction(lambda s,l,t: t[0] if t else '')
         type = rule + Word(alphanums) + Word(alphanums) + '=' + Word(nums) + packed + ';'
         message = 'message' + Word(alphanums) + '{' + OneOrMore(type) + '}'
+        comment = '//' + SkipTo('\n')
         self._parser = OneOrMore(message) + StringEnd()
+        self._parser.ignore(comment)
 
         type.addParseAction(lambda s,l,t: self._createType(t[0], t[1], t[2], int(t[4]), t[5]))
         message.addParseAction(lambda s,l,t:self._createMessage(t[1], t[3:-1]))
