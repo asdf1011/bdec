@@ -1,0 +1,10 @@
+message enum {
+  enum Animal {
+    DUCK = 0;
+    FOX = 1;
+    BUNNY = 2;
+    PIG = 3;
+  }
+  required Animal pet1 = 1;
+  required Animal pet2 = 2;
+}

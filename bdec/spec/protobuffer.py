@@ -35,20 +35,36 @@ class _Parser:
         rule = Literal('required') | 'optional' | 'repeated'
         packed = Optional('[packed=true]').addParseAction(lambda s,l,t: t[0] if t else '')
         type = rule + Word(alphanums) + Word(alphanums) + '=' + Word(nums) + packed + ';'
-        message = 'message' + Word(alphanums) + '{' + OneOrMore(type) + '}'
-        comment = '//' + SkipTo('\n')
+        enum_option = Word(alphanums) + '=' + Word(nums) + ';'
+        enum = 'enum' + Word(alphanums) + '{' + OneOrMore(enum_option) + '}'
+        message = 'message' + Word(alphanums) + '{' + OneOrMore(enum | type) + '}'
         self._parser = OneOrMore(message) + StringEnd()
+
+        comment = '//' + SkipTo('\n')
         self._parser.ignore(comment)
 
         type.addParseAction(lambda s,l,t: self._createType(t[0], t[1], t[2], int(t[4]), t[5]))
+        enum_option.addParseAction(lambda s,l,t: self._create_option(t[0], t[2]))
+        enum.addParseAction(lambda s,l,t: self._create_enum(t[1], t[3:-1]))
         message.addParseAction(lambda s,l,t:self._createMessage(t[1], t[3:-1]))
 
         self._references = references
+        self._enum_types = set()
+
+    def _create_option(self, name, value):
+        return Sequence(name,
+                [Child('value:', self._references.get_common('varint'))],
+                value=parse('${value:}'), constraints=[Equals(int(value))])
+
+    def _create_enum(self, name, options):
+        self._enum_types.add(name)
+        self._references.add_common(Choice(name, options))
+        return []
 
     def _createType(self, rule, type, name, fieldNumber, packed):
         length = []
         if type in ['int32', 'int64', 'uint32', 'uint64', 'sint32', 'sint64',
-                'bool', 'enum']:
+                'bool', 'enum'] or type in self._enum_types:
             wire_type = 0
         elif type in ['fixed64', 'sfixed64', 'double']:
             wire_type = 1
