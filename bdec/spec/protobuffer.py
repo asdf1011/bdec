@@ -9,7 +9,7 @@ from bdec.sequenceof import SequenceOf
 import bdec.spec.xmlspec
 import os.path
 from pyparsing import alphanums, Literal, nums, OneOrMore, ParseException, \
-        StringEnd, Word, Optional, SkipTo
+        StringEnd, Word, Optional, SkipTo, Forward
 
 class _Locator:
     def __init__(self, lineno, column):
@@ -37,7 +37,9 @@ class _Parser:
         type = rule + Word(alphanums) + Word(alphanums) + '=' + Word(nums) + packed + ';'
         enum_option = Word(alphanums) + '=' + Word(nums) + ';'
         enum = 'enum' + Word(alphanums) + '{' + OneOrMore(enum_option) + '}'
-        message = 'message' + Word(alphanums) + '{' + OneOrMore(enum | type) + '}'
+        message = Forward()
+        message_start = 'message' + Word(alphanums)
+        message << message_start + '{' + OneOrMore(enum | message | type) + '}'
         self._parser = OneOrMore(message) + StringEnd()
 
         comment = '//' + SkipTo('\n')
@@ -46,10 +48,12 @@ class _Parser:
         type.addParseAction(lambda s,l,t: self._createType(t[0], t[1], t[2], int(t[4]), t[5]))
         enum_option.addParseAction(lambda s,l,t: self._create_option(t[0], t[2]))
         enum.addParseAction(lambda s,l,t: self._create_enum(t[1], t[3:-1]))
-        message.addParseAction(lambda s,l,t:self._createMessage(t[1], t[3:-1]))
+        message_start.addParseAction(lambda s,l,t: self._begin_message(t[1]))
+        message.addParseAction(lambda s,l,t:self._createMessage(t[0], t[2:-1]))
 
         self._references = references
         self._enum_types = set()
+        self._message_stack = list()
 
     def _create_option(self, name, value):
         return Sequence(name,
@@ -116,8 +120,18 @@ class _Parser:
 
         return result
 
+    def _begin_message(self, name):
+        self._message_stack.append(name)
+        return [name]
+
     def _createMessage(self, name, types):
-        return Sequence(name, types)
+        assert name == self._message_stack.pop()
+        result = Sequence(name, types)
+        self._references.add_common(result)
+        if not self._message_stack:
+            # We want the parser to return all 'top level' entries.
+            return [result]
+        return []
 
     def parse(self, text):
         return list(self._parser.parseString(text))
@@ -139,7 +153,5 @@ def load(filename, contents, references):
         entries = parser.parse(contents.read())
     except ParseException, ex:
         raise Error(filename, ex.lineno, ex.col, ex)
-    for entry in entries:
-        references.add_common(entry)
     return entries[-1], lookup
 
