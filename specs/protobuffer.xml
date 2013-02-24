@@ -1,5 +1,7 @@
 <protocol>
-  <reference name="unknown field" />
+  <sequenceof name="fields">
+      <reference name="unknown field" />
+  </sequenceof>
 
   <common>
     <sequence name="unknown field">
@@ -17,6 +19,12 @@
           <field name="tag:" length="3" value="0x2" />
           <reference name="num bytes:" type="varint" />
           <field name="data" type="hex" length="${num bytes:} * 8" />
+        </sequence>
+        <sequence name="start group">
+          <field name="tag:" length="3" value="0x3" />
+        </sequence>
+        <sequence name="end group">
+          <field name="tag:" length="3" value="0x4" />
         </sequence>
         <sequence name="32 bit">
           <field name="tag:" length="3" value="0x5" />

@@ -9,7 +9,7 @@ from bdec.sequenceof import SequenceOf
 import bdec.spec.xmlspec
 import os.path
 from pyparsing import alphanums, Literal, nums, OneOrMore, ParseException, \
-        StringEnd, Word, Optional, SkipTo, Forward
+        StringEnd, Word, Optional, SkipTo, Forward, Suppress
 
 class _Locator:
     def __init__(self, lineno, column):
@@ -38,8 +38,13 @@ class _Parser:
         enum_option = Word(alphanums) + '=' + Word(nums) + ';'
         enum = 'enum' + Word(alphanums) + '{' + OneOrMore(enum_option) + '}'
         message = Forward()
+        group = Forward()
+        types = OneOrMore(enum | message | type | group)
+
+        group << rule + 'group' + Word(alphanums) + '=' + Word(nums) + \
+                '{' + types + '}' + Suppress(Optional(';'))
         message_start = 'message' + Word(alphanums)
-        message << message_start + '{' + OneOrMore(enum | message | type) + '}'
+        message << message_start + '{' + types + '}'
         self._parser = OneOrMore(message) + StringEnd()
 
         comment = '//' + SkipTo('\n')
@@ -50,10 +55,27 @@ class _Parser:
         enum.addParseAction(lambda s,l,t: self._create_enum(t[1], t[3:-1]))
         message_start.addParseAction(lambda s,l,t: self._begin_message(t[1]))
         message.addParseAction(lambda s,l,t:self._createMessage(t[0], t[2:-1]))
+        group.addParseAction(lambda s,l,t:self._create_group(t[0], t[2], int(t[4]), t[6:-1]))
 
         self._references = references
         self._enum_types = set()
         self._message_stack = list()
+
+    def _create_group(self, rule, name, field_number, types):
+        start_group = self._create_key(field_number, 3)
+        end_group = self._create_key(field_number, 4)
+        if rule == 'required':
+            result = start_group + types + end_group
+        elif rule == 'optional':
+            result = self._create_optional(name, start_group, Sequence(name,
+                types + end_group), [])
+        elif rule == 'repeated':
+            end = Choice('end test:', start_group + [Sequence('end:', [])])
+            result = start_group + [SequenceOf(name, Sequence(name,
+                types + end_group + [end]), end_entries=[end.children[-1].entry])]
+        else:
+            raise NotImplementedError('Unknown rule %s' % rule)
+        return result
 
     def _create_option(self, name, value):
         return Sequence(name,
@@ -75,18 +97,16 @@ class _Parser:
         elif type in ['fixed32', 'sfixed32', 'float']:
             wire_type = 5
         else:
-            length = [Child('length:', self._references.get_common('varint'))]
+            length = [Child('%s length:' % name,
+                self._references.get_common('varint'))]
             wire_type = 2
 
-        keyValue = fieldNumber << 3 | wire_type
-        key = [Sequence('key:', [self._references.get_common('varint')],
-                value=parse("${varint}"), constraints=[Equals(keyValue)])]
-
+        key = self._create_key(fieldNumber, wire_type)
         if type in ['string', 'bytes']:
-            entry = Field(name, length=parse('${length:} * 8'), format=Field.TEXT, encoding="utf8")
+            entry = Field(name, length=parse('${%s length:} * 8' % name),
+                    format=Field.TEXT, encoding="utf8")
         else:
             entry = Child(name, self._references.get_common(type))
-
 
         if rule != 'repeated' and packed:
             raise NotImplementedError("Found a packed entry that isn't repeated?!")
@@ -94,18 +114,7 @@ class _Parser:
         if rule == 'required':
             result = key + length + [entry]
         elif rule == 'optional':
-            check = Choice('%s check:' % name, [
-                Sequence('present', key, value=parse("1")),
-                Sequence('not present', [Sequence('length:', [], value=parse("0"))], value=parse("0"))])
-            if length:
-                length = [Choice('length:', [
-                    Sequence('not present', [
-                        Sequence('check:', [], value=parse("${%s check:}" % name), constraints=[Equals(0)])],
-                        value=parse('0')),
-                    length[0]])]
-            result = [check] + length + [Choice('optional %s' % name, [
-                Sequence('not present:', [], value=parse("${%s check:}" % name), constraints=[Equals(0)]),
-                entry])]
+            result = self._create_optional(name, key, entry, length)
         elif rule == 'repeated':
             # This is a little awkward, as we have to create an additional
             # sequence to pack in the hidden key / length.
@@ -114,11 +123,29 @@ class _Parser:
             else:
                 result = key + length + [SequenceOf(name,
                     Sequence(name, length + [entry]),
-                    length=parse("${length:} * 8"))]
+                    length=parse("${%s length:} * 8" % name))]
         else:
             raise NotImplementedError("Unhandled rule '%s'" % rule)
-
         return result
+
+    def _create_key(self, fieldNumber, wire_type):
+        keyValue = fieldNumber << 3 | wire_type
+        return [Sequence('key:', [self._references.get_common('varint')],
+                value=parse("${varint}"), constraints=[Equals(keyValue)])]
+
+    def _create_optional(self, name, key, entry, length):
+        check = Choice('%s check:' % name, [
+            Sequence('present', key, value=parse("1")),
+            Sequence('not present', [Sequence('length:', [], value=parse("0"))], value=parse("0"))])
+        if length:
+            length = [Choice('length:', [
+                Sequence('not present', [
+                    Sequence('check:', [], value=parse("${%s check:}" % name), constraints=[Equals(0)])],
+                    value=parse('0')),
+                length[0]])]
+        return [check] + length + [Choice('optional %s' % name, [
+            Sequence('not present:', [], value=parse("${%s check:}" % name), constraints=[Equals(0)]),
+            entry])]
 
     def _begin_message(self, name):
         self._message_stack.append(name)
@@ -130,11 +157,11 @@ class _Parser:
         self._references.add_common(result)
         if not self._message_stack:
             # We want the parser to return all 'top level' entries.
-            return [result]
+            return [result] 
         return []
 
     def parse(self, text):
-        return list(self._parser.parseString(text))
+        return self._parser.parseString(text)
 
 def load(filename, contents, references):
     """Load a protocol buffer spec.
