@@ -44,8 +44,11 @@ class _Parser:
         group << rule + 'group' + Word(alphanums) + '=' + Word(nums) + \
                 '{' + types + '}' + Suppress(Optional(';'))
         message_start = 'message' + Word(alphanums)
-        message << message_start + '{' + types + '}'
-        self._parser = OneOrMore(message) + StringEnd()
+        extension_range = Optional('extensions' + Word(nums) + 'to' + Word(nums) + ';')
+        message << message_start + '{' + types + extension_range + '}'
+
+        extension = 'extend' + Word(alphanums) + '{' + types + '}'
+        self._parser = OneOrMore(message | extension) + StringEnd()
 
         comment = '//' + SkipTo('\n')
         self._parser.ignore(comment)
@@ -54,12 +57,15 @@ class _Parser:
         enum_option.addParseAction(lambda s,l,t: self._create_option(t[0], t[2]))
         enum.addParseAction(lambda s,l,t: self._create_enum(t[1], t[3:-1]))
         message_start.addParseAction(lambda s,l,t: self._begin_message(t[1]))
-        message.addParseAction(lambda s,l,t:self._createMessage(t[0], t[2:-1]))
+        message.addParseAction(lambda s,l,t:self._createMessage(t[0], t[2:-3], t[-3:-1]))
         group.addParseAction(lambda s,l,t:self._create_group(t[0], t[2], int(t[4]), t[6:-1]))
+        extension_range.addParseAction(lambda s,l,t: [t[1], t[3]] if t else [None, None])
+        extension.addParseAction(lambda s,l,t: self._create_extension(t[1], t[3:-1]))
 
         self._references = references
         self._enum_types = set()
         self._message_stack = list()
+        self._extensions = dict()
 
     def _create_group(self, rule, name, field_number, types):
         start_group = self._create_key(field_number, 3)
@@ -151,17 +157,29 @@ class _Parser:
         self._message_stack.append(name)
         return [name]
 
-    def _createMessage(self, name, types):
+    def _createMessage(self, name, types, extensions):
         assert name == self._message_stack.pop()
+        assert name not in self._extensions
         result = Sequence(name, types)
+        self._extensions[name] = (extensions, result)
         self._references.add_common(result)
         if not self._message_stack:
             # We want the parser to return all 'top level' entries.
             return [result] 
         return []
 
+    def _create_extension(self, name, types):
+        try:
+            extension_range, entry = self._extensions[name]
+        except KeyError:
+            raise Exception("Asked to extend unknown message '%s'!" % name)
+        assert(isinstance(entry, Sequence))
+        entry.children += types
+        return []
+
     def parse(self, text):
         return self._parser.parseString(text)
+
 
 def load(filename, contents, references):
     """Load a protocol buffer spec.
