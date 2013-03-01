@@ -39,7 +39,8 @@ class _Parser:
         enum = 'enum' + Word(alphanums) + '{' + OneOrMore(enum_option) + '}'
         message = Forward()
         group = Forward()
-        types = OneOrMore(enum | message | type | group)
+        extension = Forward()
+        types = OneOrMore(enum | message | type | group | extension)
 
         group << rule + 'group' + Word(alphanums) + '=' + Word(nums) + \
                 '{' + types + '}' + Suppress(Optional(';'))
@@ -47,7 +48,7 @@ class _Parser:
         extension_range = Optional('extensions' + Word(nums) + 'to' + Word(nums) + ';')
         message << message_start + '{' + types + extension_range + '}'
 
-        extension = 'extend' + Word(alphanums) + '{' + types + '}'
+        extension << 'extend' + Word(alphanums) + '{' + types + '}'
         self._parser = OneOrMore(message | extension) + StringEnd()
 
         comment = '//' + SkipTo('\n')
