@@ -45,7 +45,8 @@ class _Parser:
         group << rule + 'group' + Word(alphanums) + '=' + Word(nums) + \
                 '{' + types + '}' + Suppress(Optional(';'))
         message_start = 'message' + Word(alphanums)
-        extension_range = Optional('extensions' + Word(nums) + 'to' + Word(nums) + ';')
+        extension_max = Literal('max')
+        extension_range = Optional('extensions' + Word(nums) + 'to' + (Word(nums) | extension_max) + ';')
         message << message_start + '{' + types + extension_range + '}'
 
         extension << 'extend' + Word(alphanums) + '{' + types + '}'
@@ -62,6 +63,7 @@ class _Parser:
         group.addParseAction(lambda s,l,t:self._create_group(t[0], t[2], int(t[4]), t[6:-1]))
         extension_range.addParseAction(lambda s,l,t: [t[1], t[3]] if t else [None, None])
         extension.addParseAction(lambda s,l,t: self._create_extension(t[1], t[3:-1]))
+        extension_max.addParseAction(lambda s,l,t: [pow(2,29)-1])
 
         self._references = references
         self._enum_types = set()

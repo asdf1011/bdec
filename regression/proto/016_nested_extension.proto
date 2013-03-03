@@ -1,6 +1,6 @@
 message Original {
   required int32 a = 1;
-  extensions 100 to 199;
+  extensions 100 to max;
 }
 
 message Other {
