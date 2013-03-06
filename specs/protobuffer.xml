@@ -73,6 +73,12 @@
     <reference name="uint64" type="varint" />
     <reference name="sint32" type="zigzag" min="0 - (1 &lt;&lt; 31)" max="(1 &lt;&lt; 31) - 1" />
     <reference name="sint64" type="zigzag" />
+    <choice name="bool">
+        <reference name="false" type="varint" expected="0" />
+        <sequence name="true">
+            <reference name="value:" type="varint" min="1" />
+        </sequence>
+    </choice>
 
     <field name="double" type="float" length="64" encoding="little endian" />
     <field name="fixed64" type="integer" length="64" encoding="little endian" />
