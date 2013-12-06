@@ -53,6 +53,7 @@ import bdec.field as fld
 from bdec.inspect.param import UnknownReferenceError
 import bdec.sequence as seq
 import bdec.sequenceof as sof
+from collections import defaultdict
 
 class _UnknownData:
     """
@@ -67,6 +68,8 @@ class _UnknownData:
         if self._length is not None:
             assert self._length >= length
             self._length -= length
+        else:
+            length = None
         return self.__class__(length)
 
     def __len__(self):
@@ -218,17 +221,22 @@ def _differentiate(entries):
     """
     Differentiate between protocol entries.
 
-    Returns an iterator to (offset, length, lookup, undistinguished, decoded, 
-    possibles) entries, where lookup is a dictionary mapping 
-    value -> entries, and undistinguished is a list of entries that don't
-    distinguish themselves on this entry.
+    Returns an iterator to (offset, length, lookup, undistinguished, successful,
+    possibles) entries, where
+     offset - The distance in bits from the start of the choice
+     length - The distance in bits for the data being compared
+     lookup - a dictionary mapping value -> entries
+     undistinguished - a set of entries that don't distinguish themselves on
+            this entry.
+     finished - A set of entries that have finished decoding.
+     possible_failure - A set of entries that may have failed.
     """
     offset = 0
 
     # We need to keep track of entries that have successfully decoded, and
     # those that may have decoded.
-    successful = []
-    possible = []
+    finished = set()
+    possible_failure = set()
     have_new_success = False
     options = [(entry, _ProtocolStream(entry)) for entry in entries]
     while len(options) > 0:
@@ -241,23 +249,29 @@ def _differentiate(entries):
             break
 
         # Get the values of all of the options for this data section
-        lookup = {}
-        undistinguished = []
+        lookup = defaultdict(set)
+        undistinguished = set()
         for entry, option in options:
             data = option.data.pop(length)
-            if isinstance(data, _AnyData):
-                undistinguished.append(entry)
+            if isinstance(data, dt.Data):
+                if data:
+                    lookup[int(data)].add(entry)
+                else:
+                    undistinguished.add(entry)
+            elif isinstance(data, _AnyData):
+                undistinguished.add(entry)
             elif isinstance(data, _UnknownData):
                 # This entry _may_ have been successfuly decoded...
-                undistinguished.append(entry)
-                if entry not in possible:
-                    possible.append(entry)
-            elif data:
-                lookup.setdefault(int(data), []).append(entry)
+                if len(data) == _UnknownData.UNKNOWN_LENGTH:
+                    finished.add(entry)
+                undistinguished.add(entry)
+                possible_failure.add(entry)
+            else:
+                raise Exception('Unknown data type %s?!' % data)
 
-        if have_new_success or _can_differentiate(lookup, undistinguished + successful + possible):
+        if have_new_success or _can_differentiate(lookup, undistinguished | finished | possible_failure):
             # We also should notify if we have a new item in the successful (or possible) list...
-            yield offset, length, lookup, undistinguished, successful, possible
+            yield offset, length, lookup, undistinguished, finished, possible_failure
         have_new_success = False
 
         for entry, option in options[:]:
@@ -269,18 +283,15 @@ def _differentiate(entries):
                         # We found a unique item!
                         options.append(item)
 
-                if len(next) == 0 and entry not in possible:
-                    # This entry has finished decoding. If we _know_ it has
-                    # finished decoding, we know that anything after this
-                    # entry will not get a chance to decode (ie: early out).
+                if len(next) == 0:
                     have_new_success = True
-                    successful.append(entry)
+                    finished.add(entry)
 
         offset += length
 
     # Unable to differentiate any more; give one more result with all
     # of the current possible option.
-    yield offset, 0, {}, [entry for entry, option in options], successful, possible
+    yield offset, 0, {}, set(entry for entry, option in options), finished, possible_failure
 
 class _Cache:
     """ Class to cache differentiated entries. """
@@ -292,8 +303,8 @@ class _Cache:
         for item in self._cache:
             yield item
 
-        for offset, length, lookup, undistinguished, successful, possible in self._items:
-            item = (offset, length, lookup.copy(), undistinguished[:], successful[:], possible[:])
+        for offset, length, lookup, undistinguished, finished, possible_failure in self._items:
+            item = (offset, length, lookup.copy(), undistinguished.copy(), finished.copy(), possible_failure.copy())
             self._cache.append(item)
             yield item
 
@@ -307,7 +318,15 @@ class Chooser:
         options = list(self._entries)
         current_offset = 0
         copy = data.copy()
-        for offset, length, lookup, undistinguished, successful, possible in self._cache:
+        for offset, length, lookup, undistinguished, finished, possible_failure in self._cache:
+            lookup_entries = set()
+            for keyed_entries in lookup.values():
+                lookup_entries.update(keyed_entries)
+
+            assert set(self._entries) == lookup_entries | undistinguished | \
+                    finished | possible_failure, "Expected to find all " \
+                            "entries in options, but didn't! Missing items " \
+                            "can lead to incorrect choices."
             if len(options) <= 1:
                 break
 
@@ -319,14 +338,14 @@ class Chooser:
             except dt.NotEnoughDataError:
                 # We don't have enough data left for this option; reduce
                 # the possibles to those that have finished decoding.
-                options = [option for option in options if option in set(successful + possible)]
+                options = [option for option in options if option in finished]
                 break
             current_offset = offset
 
             # Check to see if we have a successful item, and remove any items
             # after that item (as they cannot succeed).
             for i, option in enumerate(options):
-                if option in successful:
+                if option in finished and option not in possible_failure:
                     # We found a successful item; no options after this can 
                     # succeed (as they are a lower priority).
                     del options[i+1:]
@@ -339,15 +358,15 @@ class Chooser:
                 except dt.NotEnoughDataError:
                     # We don't have enough data left for this option; reduce
                     # the possibles to those that have finished decoding.
-                    options = [option for option in options if option in set(successful + possible)]
+                    options = [option for option in options if option in finished]
                     break
 
                 if lookup:
                     # We found a range of bits that can be used to distinguish
                     # between the diffent options.
-                    filter = successful + possible + undistinguished
+                    filter = finished | undistinguished
                     try:
-                        filter += lookup[value]
+                        filter.update(lookup[value])
                     except KeyError:
                         pass
                     options = [option for option in options if option in filter]
