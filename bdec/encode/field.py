@@ -126,7 +126,7 @@ def convert_value(entry, value, length, params=None):
     elif entry.format == Field.HEX:
         value = Data.from_hex(_convert_type(entry, value, str))
     elif entry.format == Field.TEXT:
-        value = _convert_type(entry, value, str)
+        value = _convert_type(entry, value, unicode)
     elif entry.format == Field.INTEGER:
         value = _convert_type(entry, value, int)
     elif entry.format == Field.FLOAT:
