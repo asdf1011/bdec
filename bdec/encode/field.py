@@ -124,7 +124,10 @@ def convert_value(entry, value, length, params=None):
         except DataError, ex:
             raise FieldDataError(entry, ex)
     elif entry.format == Field.HEX:
-        value = Data.from_hex(_convert_type(entry, value, str))
+        if isinstance(value, Data):
+            value = value.copy()
+        else:
+            value = Data.from_hex(_convert_type(entry, value, str))
     elif entry.format == Field.TEXT:
         value = _convert_type(entry, value, unicode)
     elif entry.format == Field.INTEGER:
