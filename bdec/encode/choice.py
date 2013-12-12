@@ -146,20 +146,26 @@ class ChoiceEncoder(EntryEncoder):
         children = sorted(self.children, key=lambda c:c.is_hidden)
 
         best_guess = None
-        best_guess_bits = 0
+        best_guess_value = None
         for child in children:
             try:
                 bits_encoded = 0
-                for data in self._encode_child(child, query, value, 0, context):
+                num_entries = [0]
+                def mock_query(obj, child, i, name):
+                    result = query(obj, child, i, name)
+                    num_entries[0] += 1
+                    return result
+                for data in self._encode_child(child, mock_query, value, 0, context):
                     bits_encoded += len(data)
 
                 # We successfully encoded the entry!
                 best_guess = child
                 break
             except DecodeError:
-                if best_guess is None or bits_encoded > best_guess_bits:
+                rating = (bits_encoded, num_entries[0])
+                if best_guess is None or rating > best_guess_value:
                     best_guess = child
-                    best_guess_bits = bits_encoded
+                    best_guess_value = rating
 
         result = self._encode_child(best_guess, query, value, 0, context)
         context.update(get_default_option_params(self.entry, best_guess.child, self._params, self._encode_expression_params))
