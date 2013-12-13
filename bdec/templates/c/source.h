@@ -6,7 +6,7 @@
   from bdec.sequenceof import SequenceOf
  %>
 
-/*  Copyright (C) 2008-2010 Henry Ludemann
+/*  Copyright (C) 2008-2012 Henry Ludemann
     This file is part of the bdec decoder library.
 
     The bdec decoder library is free software; you can redistribute it
