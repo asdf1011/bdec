@@ -1,3 +1,17 @@
+0.8.0 (2013-12-13)
+------------------
+
+Major feature:
+
+* Fixes and explicit testing of C89, C90, Visual C++
+
+Minor features:
+
+* Internal implementation of pyparsing (currently disabled)
+
+Various minor fixes.
+
+
 0.7.2 (2011-07-10)
 ------------------
 
