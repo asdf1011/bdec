@@ -1,4 +1,4 @@
-#   Copyright (C) 2010 Henry Ludemann
+#   Copyright (C) 2010-2013 Henry Ludemann
 #
 #   This file is part of the bdec decoder library.
 #
@@ -56,23 +56,23 @@ def escape(name):
     return name.replace(' ', '_')
 
 class _Item(object):
-    def __init__(self):
-        self.children = {}
-        self.value = None
+    def __init__(self, value, children):
+        self._children = children
+        self._value = value
 
     def __getattr__(self, name):
         try:
-            return self.children[name]
+            return self._children[name]
         except KeyError:
             raise AttributeError(name)
 
     def __repr__(self):
-        return unicode(self.children)
+        return unicode(self._children)
 
     def __int__(self):
-        if self.value is None:
+        if self._value is None:
             raise TypeError
-        return int(self.value)
+        return int(self._value)
 
 class _DecodedItem:
     """ Class to handle creating python instances from decoded entries """
@@ -106,13 +106,9 @@ class _DecodedItem:
                 # as the raw value (eg: a sequence with a value).
                 result = value
             else:
-                result = _Item()
-                if value is not None:
-                    # This object can be convert to an integer
-                    result.value = value
+                children = dict((escape(name), value) for name, value in self._children)
+                result = _Item(value, children)
 
-                for name, value in self._children:
-                    result.children[escape(name)] = value
         return result
 
 def get_instance(items):

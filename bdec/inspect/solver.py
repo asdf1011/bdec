@@ -1,4 +1,4 @@
-#   Copyright (C) 2011 Henry Ludemann
+#   Copyright (C) 2011-2012 Henry Ludemann
 #
 #   This file is part of the bdec decoder library.
 #

@@ -1,5 +1,5 @@
 ## vim:set syntax=mako:
-/*  Copyright (C) 2010 Henry Ludemann
+/*  Copyright (C) 2010-2012 Henry Ludemann
 
     This file is part of the bdec decoder library.
 

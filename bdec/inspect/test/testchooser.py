@@ -1,4 +1,4 @@
-#   Copyright (C) 2008-2010 Henry Ludemann
+#   Copyright (C) 2008-2013 Henry Ludemann
 #
 #   This file is part of the bdec decoder library.
 #
@@ -26,6 +26,7 @@ import bdec.expression as expr
 import bdec.field as fld
 import bdec.inspect.chooser as chsr
 import bdec.sequence as seq
+from bdec.sequenceof import SequenceOf
 
 class TestProtocolStream(unittest.TestCase):
     def test_field(self):
@@ -264,4 +265,73 @@ class TestChooser(unittest.TestCase):
         self.assertEqual([space], chooser.choose(dt.Data(' ')))
         self.assertEqual([new_line], chooser.choose(dt.Data('\n')))
         self.assertEqual([empty], chooser.choose(dt.Data('x')))
+
+    def test_choice_with_constraints(self):
+        # There was a bug where unknown constraints would result in an item
+        # being put in the 'possibles' list, regardless of whether there was
+        # still more data to come. This stopped the vfat decoder from correctly
+        # choosing between fat12 / fat16 / fat32
+        a = fld.Field('a', length=8, constraints=[Maximum(5)])
+
+        b1 = seq.Sequence('b1', [a,
+            fld.Field('b1', length=8, constraints=[Equals(1)])])
+        b2 = seq.Sequence('b2', [a,
+            fld.Field('b2', length=8, constraints=[Equals(2)])])
+
+        chooser = chsr.Chooser([b1, b2])
+        self.assertEqual([b1], chooser.choose(dt.Data('\x00\x01')))
+        self.assertEqual([b2], chooser.choose(dt.Data('\x00\x02')))
+
+    def test_removes_option_with_constraint_and_not_enough_data(self):
+        # There was a bug where an unknown constraint could prevent an item
+        # from being discarded despite there being not enough data.
+        a = fld.Field('a', length=8, constraints=[Maximum(5)])
+        b1 = seq.Sequence('b1', [a,
+            fld.Field('b1', length=8)])
+        b2 = seq.Sequence('b2', [a])
+
+        chooser = chsr.Chooser([b1, b2])
+        self.assertEqual([b1, b2], chooser.choose(dt.Data('\x00\x00')))
+        self.assertEqual([b2], chooser.choose(dt.Data('\x00')))
+
+    def test_choice_with_empty_sequenceof(self):
+        # When an option is a sequenceof (with a possible length of zero), it
+        # should always be treated as a possible.
+        end = seq.Sequence(None, [])
+        a = SequenceOf('a',
+                end,
+                end_entries=[end])
+        b = fld.Field('b', length=8, constraints=[Equals(dt.Data('\x00'))])
+
+        chooser = chsr.Chooser([a, b])
+        self.assertEqual([a, b], chooser.choose(dt.Data('\x00')))
+        self.assertEqual([a], chooser.choose(dt.Data('')))
+
+    def test_choice_with_trailing_sequenceof(self):
+        # There was a bug with choosing between embedded choices and sequenceof
+        # objects
+        end = seq.Sequence(None, [])
+        optional_ws = SequenceOf('optional whitespace',
+                chc.Choice('optional', [
+                    fld.Field('a1', length=16, constraints=[Equals(dt.Data(' '))]),
+                    end]),
+                end_entries=[end])
+
+        a = chc.Choice('a', [
+                seq.Sequence('if', [
+                    fld.Field('a1', length=16, constraints=[Equals(dt.Data('if'))]),
+                    SequenceOf('footer',
+                        chc.Choice('optional whitespace', [
+                            fld.Field('a1', length=16, constraints=[Equals(dt.Data(' '))]),
+                            end]),
+                        end_entries=[end])
+                    ]),
+                fld.Field('then', length=32, constraints=[Equals(dt.Data('then'))])])
+
+        b = seq.Sequence('null', [])
+
+        chooser = chsr.Chooser([a, b])
+        self.assertEqual([a, b], chooser.choose(dt.Data('if')))
+        self.assertEqual([b], chooser.choose(dt.Data('')))
+        self.assertEqual([b], chooser.choose(dt.Data('i')))
 

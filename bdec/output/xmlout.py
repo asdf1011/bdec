@@ -68,8 +68,12 @@ def escape_name(name):
     return result.replace(' ', '-')
 
 class _XMLGenerator(xml.sax.saxutils.XMLGenerator):
+    def __init__(self, *args, **kwargs):
+        xml.sax.saxutils.XMLGenerator.__init__(self, *args, **kwargs)
+        self.__out = args[0]
+
     def comment(self, text):
-        self._out.write('<!-- %s -->' % text)
+        self.__out.write('<!-- %s -->' % text)
 
 class UnknownIntegerError(Exception):
     def __str__(self):

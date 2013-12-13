@@ -1,4 +1,4 @@
-#   Copyright (C) 2010 Henry Ludemann
+#   Copyright (C) 2010-2013 Henry Ludemann
 #
 #   This file is part of the bdec decoder library.
 #
@@ -422,8 +422,11 @@ def create_decoder_classes(base_classes, module):
     for base, prefix in base_classes:
         for decoder in decoders:
             test_name = "Test%s%s" % (prefix, decoder.NAME)
-            result[test_name] = type(test_name, (unittest.TestCase, base), {'decoder':decoder})
-            result[test_name].__module__ = module
+            cls = type(test_name, (unittest.TestCase, base), {'decoder':decoder})
+            cls.__module__ = module
+            if decoder.NAME == 'VisualC' and os.name != 'nt':
+                cls = unittest.skip('Skipping Visual C on non-Windows platform')(cls)
+            result[test_name] = cls
     return result
 
 class _BaseRegressionTest:

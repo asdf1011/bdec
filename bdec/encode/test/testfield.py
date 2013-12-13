@@ -1,4 +1,6 @@
-#   Copyright (C) 2010 Henry Ludemann
+# -*- coding: utf8 -*-
+
+#   Copyright (C) 2010-2013 Henry Ludemann
 #
 #   This file is part of the bdec decoder library.
 #
@@ -92,3 +94,11 @@ class TestField(unittest.TestCase):
                 ])
         self.assertEqual('\x02ab', encode(a, {'c':'6162'}).bytes())
         self.assertEqual('\x00', encode(a, {'c':''}).bytes())
+
+    def test_unicode_field(self):
+        a = Sequence('a', [
+                Field('b:', length=8),
+                Field('c', format=Field.TEXT, length=parse('${b:} * 8'), encoding='utf8')
+                ])
+        self.assertEqual('\x0c\xe3\x83\xad\xe3\x82\xb0\xe3\x82\xa4\xe3\x83\xb3',
+                encode(a, {'c':u'ログイン'}).bytes())

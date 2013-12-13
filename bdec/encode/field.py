@@ -1,4 +1,4 @@
-#   Copyright (C) 2008-2010 Henry Ludemann
+#   Copyright (C) 2008-2013 Henry Ludemann
 #
 #   This file is part of the bdec decoder library.
 #
@@ -124,9 +124,12 @@ def convert_value(entry, value, length, params=None):
         except DataError, ex:
             raise FieldDataError(entry, ex)
     elif entry.format == Field.HEX:
-        value = Data.from_hex(_convert_type(entry, value, str))
+        if isinstance(value, Data):
+            value = value.copy()
+        else:
+            value = Data.from_hex(_convert_type(entry, value, str))
     elif entry.format == Field.TEXT:
-        value = _convert_type(entry, value, str)
+        value = _convert_type(entry, value, unicode)
     elif entry.format == Field.INTEGER:
         value = _convert_type(entry, value, int)
     elif entry.format == Field.FLOAT:

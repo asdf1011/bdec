@@ -1,4 +1,4 @@
-#   Copyright (C) 2010 Henry Ludemann
+#   Copyright (C) 2010-2013 Henry Ludemann
 #
 #   This file is part of the bdec decoder library.
 #
@@ -87,7 +87,7 @@ def main():
             (filename, line_number, column_number) = lookup[ex.entry]
         except KeyError:
             (filename, line_number, column_number) = ('unknown', 0, 0)
-        sys.exit("%s[%i]: %s" % (filename, line_number, str(ex)))
+        sys.exit(("%s[%i]: %s" % (filename, line_number, ex)).encode('utf8'))
     sys.stdout.write(binary)
 
 if __name__ == '__main__':

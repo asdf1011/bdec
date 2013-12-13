@@ -1,4 +1,4 @@
-#   Copyright (C) 2008 Henry Ludemann
+#   Copyright (C) 2008-2011 Henry Ludemann
 #
 #   This file is part of the bdec decoder library.
 #
@@ -43,7 +43,7 @@ bdec contains the following subpackages and modules:
    :style: UML
 """
 
-__version__ = "0.7.2"
+__version__ = "0.8.0"
 
 class DecodeError(Exception):
     """ An error raise when decoding fails """
