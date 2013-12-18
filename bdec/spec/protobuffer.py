@@ -147,7 +147,7 @@ class _Parser:
             Sequence('present', key, value=parse("1")),
             Sequence('not present', [Sequence('length:', [], value=parse("0"))], value=parse("0"))])
         if length:
-            length = [Choice('length:', [
+            length = [Choice(length[0].name, [
                 Sequence('not present', [
                     Sequence('check:', [], value=parse("${%s check:}" % name), constraints=[Equals(0)])],
                     value=parse('0')),
