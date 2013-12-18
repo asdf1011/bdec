@@ -1,0 +1,9 @@
+<protocol>
+    <!-- There was a problem with using the value of a hidden entry in an
+         'expected' clause. We should enable solving this from the value. -->
+    <sequence name="Rectangle">
+        <field name="header length:" length="8" />
+        <sequence name="length" value="0" expected="(${header length:} * 8)" />
+    </sequence>
+</protocol>
+
