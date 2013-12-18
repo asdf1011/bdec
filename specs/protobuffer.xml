@@ -1,0 +1,91 @@
+<protocol>
+  <sequenceof name="fields">
+      <reference name="unknown field" />
+  </sequenceof>
+
+  <common>
+    <sequence name="unknown field">
+      <field name="field number" type="integer" length="5" />
+      <choice name="value">
+        <sequence name="varint">
+          <field name="tag:" length="3" value="0x0" />
+          <reference name="varint" />
+        </sequence>
+        <sequence name="64 bit">
+          <field name="tag:" length="3" value="0x1" />
+          <field name="data" length="64" type="hex" />
+        </sequence>
+        <sequence name="length delimited">
+          <field name="tag:" length="3" value="0x2" />
+          <reference name="num bytes:" type="varint" />
+          <field name="data" type="hex" length="${num bytes:} * 8" />
+        </sequence>
+        <sequence name="start group">
+          <field name="tag:" length="3" value="0x3" />
+        </sequence>
+        <sequence name="end group">
+          <field name="tag:" length="3" value="0x4" />
+        </sequence>
+        <sequence name="32 bit">
+          <field name="tag:" length="3" value="0x5" />
+          <field name="data" length="32" type="hex" />
+        </sequence>
+      </choice>
+    </sequence>
+
+    <sequence name="varint" value="${embedded:}" min="0">
+      <choice name="embedded:">
+        <sequence name="single byte" value="${value}">
+          <field name="end bit:" length="1" value="0" />
+          <field name="value" length="7" type="integer" />
+        </sequence>
+        <sequence name="multi byte" value="${most significant:} * 128 + ${least significant:}" >
+          <field name="end bit:" length="1" value="1" />
+          <field name="least significant:" length="7" type="integer" />
+          <reference name="most significant:" type="varint" />
+        </sequence>
+      </choice>
+    </sequence>
+
+    <sequence name="svarint" value="${value:}">
+      <choice name="value:">
+        <reference name="positive" type="varint" max="(1 &lt;&lt; 63) - 1" />
+        <!-- Negative int32 values are negative int64 values -->
+        <sequence name="negative" value="${varint} - (1 &lt;&lt; 64)">
+          <reference name="varint" />
+        </sequence>
+      </choice>
+    </sequence>
+
+    <sequence name="zigzag" value="${value:}">
+      <reference name="varint:" type="varint" />
+      <choice name="value:">
+        <sequence name="positive" value="${varint:} / 2">
+          <sequence name="check:" value="${varint:} % 2" expected="0" />
+        </sequence>
+        <sequence name="negative" value="0 - 1 - (${varint:} - 1) / 2" />
+      </choice>
+    </sequence>
+
+    <reference name="int32" type="svarint" min="0 - (1 &lt;&lt; 31)" max="(1 &lt;&lt; 31) - 1" />
+    <reference name="int64" type="svarint" />
+    <reference name="uint32" type="varint" min="0" max="(1 &lt;&lt; 32)" />
+    <reference name="uint64" type="varint" />
+    <reference name="sint32" type="zigzag" min="0 - (1 &lt;&lt; 31)" max="(1 &lt;&lt; 31) - 1" />
+    <reference name="sint64" type="zigzag" />
+    <choice name="bool">
+        <reference name="false" type="varint" expected="0" />
+        <sequence name="true">
+            <reference name="value:" type="varint" min="1" />
+        </sequence>
+    </choice>
+
+    <field name="double" type="float" length="64" encoding="little endian" />
+    <field name="fixed64" type="integer" length="64" encoding="little endian" />
+    <field name="sfixed64" type="signed integer" length="64" encoding="little endian" />
+
+    <field name="float" type="float" length="32" encoding="little endian" />
+    <field name="fixed32" type="integer" length="32" encoding="little endian" />
+    <field name="sfixed32" type="signed integer" length="32" encoding="little endian" />
+  </common>
+</protocol>

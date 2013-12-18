@@ -57,12 +57,12 @@ from bdec.inspect.range import Range
 import bdec.sequence as seq
 
 
-def _delayed_range(delayed, entry, parameters):
-    left = expression_range(delayed.left, entry, parameters)
-    right = expression_range(delayed.right, entry, parameters)
+def _delayed_range(delayed, entry, parameters, entries_stack):
+    left = expression_range(delayed.left, entry, parameters, entries_stack)
+    right = expression_range(delayed.right, entry, parameters, entries_stack)
     return delayed.op(left, right)
 
-def _constant_range(constant, entry, parameters):
+def _constant_range(constant, entry, parameters, entries_stack):
     return Range(int(constant.value), int(constant.value))
 
 def _get_param(entry, name, parameters):
@@ -85,12 +85,12 @@ def _get_param(entry, name, parameters):
         return Param(entry.name, Param.OUT, EntryValueType(entry))
     raise Exception("Failed to find parameter '%s' in params for entry '%s'! Found params are %s" % (name, entry, names))
 
-def _reference_range(value, entry, parameters):
-    return _get_param(entry, value.param_name(), parameters).type.range(parameters)
+def _reference_range(value, entry, parameters, entries_stack):
+    return _get_param(entry, value.param_name(), parameters).type.range(parameters, entries_stack)
 
-def _round_up_range(expr, entry, parameters):
-    left = expression_range(expr.numerator, entry, parameters)
-    right = expression_range(expr.denominator, entry, parameters)
+def _round_up_range(expr, entry, parameters, entries_stack):
+    left = expression_range(expr.numerator, entry, parameters, entries_stack)
+    right = expression_range(expr.denominator, entry, parameters, entries_stack)
     result = left / right
     if expr.should_round_up:
         result.max += 1
@@ -104,15 +104,17 @@ _handlers = {
         RoundUpDivisionExpression: _round_up_range,
         }
 
-def expression_range(expression, entry=None, parameters=None):
+def expression_range(expression, entry=None, parameters=None, entries_stack=None):
     """Return a Range instance representing the possible ranges of the expression.
 
     exression -- The expression to calculate the  range for.
     entry -- The entry where this expression is used. All ValueResult and
         LengthResult names are relative to this entry.
     parameters -- A bdec.inspect.param.ExpressionParameters instance, used to
-        calculate the ranges of referenced entries."""
-    result = _handlers[expression.__class__](expression, entry, parameters)
+        calculate the ranges of referenced entries.
+    entries_stack -- A set of the entries currently being used to determine
+        the range. Used to prevent infinite recursion."""
+    result = _handlers[expression.__class__](expression, entry, parameters, entries_stack)
     return result
 
 
@@ -141,7 +143,7 @@ class EntryType(VariableType):
 
 class IntegerType(VariableType):
     """Base class for describing the type of an integer."""
-    def range(self, parameters):
+    def range(self, parameters, entries_stack=None):
         """Return a bdec.inspect.range.Range instance indicating the range of valid values."""
         raise NotImplementedError()
 
@@ -160,7 +162,7 @@ class ShouldEndType(IntegerType):
     def __eq__(self, other):
         return isinstance(other, ShouldEndType)
 
-    def range(self, parameters):
+    def range(self, parameters, entries_stack=None):
         return Range(0, 1)
 
     def __repr__(self):
@@ -185,12 +187,12 @@ class EntryLengthType(IntegerType):
     def __repr__(self):
         return 'len{%s}' % self.entry
 
-    def range(self, parameter):
+    def range(self, parameter, entries_stack=None):
         if self.entry.length is None:
             # We don't know how long this entry is.
             # TODO: We could try examining its children...
             return Range(0, None)
-        return expression_range(self.entry.length, self.entry ,parameter)
+        return expression_range(self.entry.length, self.entry, parameter, entries_stack)
 
     def has_expected_value(self):
         return False
@@ -207,21 +209,28 @@ class EntryValueType(IntegerType):
     def __eq__(self, other):
         return isinstance(other, EntryValueType) and self.entry is other.entry
 
-    def range(self, parameters):
+    def range(self, parameters, entries_stack=None):
+        if entries_stack is None:
+            entries_stack = set()
+        if self.entry in entries_stack:
+            # We can't keep recursing...
+            return Range()
+        entries_stack.add(self.entry)
         if isinstance(self.entry, fld.Field):
-            length_range = expression_range(self.entry.length, self.entry, parameters)
+            length_range = expression_range(self.entry.length, self.entry, parameters, entries_stack)
             # If our length is of a variable range, it can be very large.
             # Attempting to take a power of a large number takes a very long
             # time, is is quite meaningless; limit it to 64 bits.
             max_length = min(length_range.max, 64)
             result = Range(0, pow(2, max_length) - 1)
         elif isinstance(self.entry, seq.Sequence):
-            result = expression_range(self.entry.value, self.entry, parameters)
+            result = expression_range(self.entry.value, self.entry, parameters, entries_stack)
         elif isinstance(self.entry, chc.Choice):
-            ranges = [EntryValueType(child.entry).range(parameters) for child in self.entry.children]
+            ranges = [EntryValueType(child.entry).range(parameters, entries_stack) for child in self.entry.children]
             result = reduce(Range.union, ranges)
         else:
             raise NotImplementedError("Don't know how to query the value range of entry '%s'!'" % self.entry)
+        entries_stack.remove(self.entry)
 
         for constraint in self.entry.constraints:
             result = result.intersect(constraint.range())
@@ -278,8 +287,8 @@ class MultiSourceType(IntegerType):
                 return False
         return True
 
-    def range(self, parameters):
-        ranges = (source.range(parameters) for source in self.sources)
+    def range(self, parameters, entries_stack=None):
+        ranges = (source.range(parameters, entries_stack) for source in self.sources)
         return reduce(Range.union, ranges)
 
     def has_expected_value(self):

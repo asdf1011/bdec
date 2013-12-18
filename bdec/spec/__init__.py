@@ -144,7 +144,8 @@ def _resolve(decoder, references, lookup, should_remove_unused):
 def _load_spec(filename, contents, format, references):
     import bdec.spec.asn1 as asn1
     import bdec.spec.xmlspec as xmlspec
-    loaders = {'xml':xmlspec, 'asn1':asn1}
+    import bdec.spec.protobuffer as protobuffer
+    loaders = {'xml':xmlspec, 'asn1':asn1, 'proto':protobuffer}
     try:
         loader = loaders[format]
     except KeyError:

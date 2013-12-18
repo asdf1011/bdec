@@ -1,0 +1,5 @@
+message Boolean
+{
+   required bool a = 1;
+   optional bool b = 2;
+}

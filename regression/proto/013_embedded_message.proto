@@ -1,0 +1,6 @@
+message Hello {
+  message World {
+    required int32 a = 1;
+  }
+  required World world = 1;
+}

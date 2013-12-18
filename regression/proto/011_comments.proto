@@ -1,0 +1,6 @@
+message Test1 {
+    // Let's test some comments
+    required int32 a = 1;
+    // required int32 b = 2;
+    optional int32 c = 3; // Hello end of line
+}

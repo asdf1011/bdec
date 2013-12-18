@@ -26,6 +26,8 @@
 import unittest
 
 from bdec.constraints import Minimum, Maximum
+from bdec.choice import Choice
+from bdec.constraints import Equals
 from bdec.entry import Child
 from bdec.expression import parse
 from bdec.field import Field
@@ -38,7 +40,7 @@ def _solve(entry, child, value, context=None):
     if context is None:
         context = {}
     ent = entry.children[child].entry if child is not None else entry
-    result = solve(ent.value, entry,
+    result = solve(ent.value, ent,
             ExpressionParameters([entry]), context, value)
     return dict((str(c), v) for c,v in result.items())
 
@@ -156,4 +158,26 @@ class TestSolver (unittest.TestCase):
         self.assertEqual({'${signed:}':1, '${value:}':0x7f}, _solve(a, 2, -1))
         self.assertEqual({'${signed:}':0, '${value:}':0}, _solve(a, 2, 0))
         self.assertEqual({'${signed:}':0, '${value:}':0x7f}, _solve(a, 2, 127))
+
+    def test_unknown_range(self):
+        # In this case 'intermediate byte:' has an unknown range, while
+        # 'final byte:' has a known range. We should attempt to solve
+        # the smallest range first...
+        variable_length_integer = Choice('variable length integer', [])
+        variable_length_integer.children = [
+            Sequence('final byte:', [
+                Field(None, length=1, constraints=[Equals(0)]),
+                Field('value:', length=7)],
+                value=parse('${value:}')),
+            Sequence('intermediate byte:', [
+                Field(None, length=1, constraints=[Equals(1)]),
+                Field('least significant:', length=7),
+                Child('most significant:', variable_length_integer)],
+                value=parse('(${most significant:} * 128) + ${least significant:}'),
+            constraints=[Minimum(0)])]
+
+        self.assertEqual({'${most significant:}':1, '${least significant:}':0},
+                _solve(variable_length_integer, 1, 128))
+        self.assertEqual({'${most significant:}':1, '${least significant:}':1},
+                _solve(variable_length_integer, 1, 129))
 

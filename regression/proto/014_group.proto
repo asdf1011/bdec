@@ -1,0 +1,9 @@
+message Groups {
+  repeated group Hello = 1 {
+    required int32 a = 1;
+  };
+  optional group World = 2 {
+    required string b = 1;
+    required string c = 2;
+  }
+}

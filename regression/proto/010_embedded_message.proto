@@ -1,0 +1,7 @@
+message Test1 {
+    required int32 a = 1;
+}
+
+message Test2 {
+    required Test1 test1 = 1;
+}

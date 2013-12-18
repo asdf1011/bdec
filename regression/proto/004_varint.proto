@@ -1,0 +1,8 @@
+message Varints {
+    required int32 a = 1;
+    required int64 b = 2;
+    required uint32 c = 3;
+    required uint64 d = 4;
+    required sint32 e = 5;
+    required sint64 f = 6;
+}

@@ -1,0 +1,3 @@
+message String {
+ required string value = 2;
+}

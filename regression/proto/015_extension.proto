@@ -1,0 +1,12 @@
+message Original {
+  required int32 a = 1;
+  extensions 100 to 199;
+}
+
+extend Original {
+  required int32 b = 100;
+}
+
+extend Original {
+  required int32 c = 101;
+}

@@ -67,7 +67,10 @@ class _Item(object):
             raise AttributeError(name)
 
     def __repr__(self):
-        return unicode(self._children)
+        result = unicode(self._children)
+        if self._value is not None:
+            result = '%i %s' % (self._value, result)
+        return result
 
     def __int__(self):
         if self._value is None:
@@ -108,7 +111,6 @@ class _DecodedItem:
             else:
                 children = dict((escape(name), value) for name, value in self._children)
                 result = _Item(value, children)
-
         return result
 
 def get_instance(items):
