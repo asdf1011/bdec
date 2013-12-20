@@ -1,0 +1,29 @@
+(* A simple EBNF for the protocol buffers specification format *)
+
+message_or_extension = message | extension;
+messages = message_or_extension, {message_or_extension};
+
+message_start = "message", name;
+message = message_start, "{", types, {types}, extension_range, "}";
+
+types = enum | message | type | group | extension;
+
+extension_max = "max";
+extension_end = number | extension_max;
+extension_range =
+    "extensions", number, "to", extension_end, ";"
+    | empty;
+
+rule = "required" | "optional" | "repeated";
+
+typename = name;
+packed = "[packed=true]" | empty;
+type = rule, typename, name, "=", number, packed, ";";
+
+optional_semi = ";" | empty;
+group = rule, "group", name, "=", number, "{", types, {types}, "}", optional_semi;
+
+extension = "extend", name, "{", types, "}";
+
+enum = "enum", name, "{", enum_option, {enum_option}, "}";
+enum_option = name, "=", number, ";";

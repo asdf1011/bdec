@@ -6,10 +6,11 @@ from bdec.entry import Child
 from bdec.expression import parse
 from bdec.sequence import Sequence
 from bdec.sequenceof import SequenceOf
+import bdec.spec.ebnf as ebnf
 import bdec.spec.xmlspec
 import os.path
-from pyparsing import alphanums, Literal, nums, OneOrMore, ParseException, \
-        StringEnd, Word, Optional, SkipTo, Forward, Suppress
+from pyparsing import alphanums, nums, ParseException, StringEnd, Word, \
+        SkipTo, empty
 
 class _Locator:
     def __init__(self, lineno, column):
@@ -32,38 +33,28 @@ class Error(bdec.spec.LoadErrorWithLocation):
 
 class _Parser:
     def __init__(self, references):
-        rule = Literal('required') | 'optional' | 'repeated'
-        packed = Optional('[packed=true]').addParseAction(lambda s,l,t: t[0] if t else '')
-        type = rule + Word(alphanums) + Word(alphanums) + '=' + Word(nums) + packed + ';'
-        enum_option = Word(alphanums) + '=' + Word(nums) + ';'
-        enum = 'enum' + Word(alphanums) + '{' + OneOrMore(enum_option) + '}'
-        message = Forward()
-        group = Forward()
-        extension = Forward()
-        types = OneOrMore(enum | message | type | group | extension)
+        table = {
+                'number' : Word(nums),
+                'name' : Word(alphanums),
+                'empty' : empty,
+                }
 
-        group << rule + 'group' + Word(alphanums) + '=' + Word(nums) + \
-                '{' + types + '}' + Suppress(Optional(';'))
-        message_start = 'message' + Word(alphanums)
-        extension_max = Literal('max')
-        extension_range = Optional('extensions' + Word(nums) + 'to' + (Word(nums) | extension_max) + ';')
-        message << message_start + '{' + types + extension_range + '}'
-
-        extension << 'extend' + Word(alphanums) + '{' + types + '}'
-        self._parser = OneOrMore(message | extension) + StringEnd()
-
+        parsers = ebnf.parse(open('bdec/spec/protobuffer.ebnf', 'r').read(), table)
+        self._parser = parsers['messages'] + StringEnd()
         comment = '//' + SkipTo('\n')
         self._parser.ignore(comment)
 
-        type.addParseAction(lambda s,l,t: self._createType(t[0], t[1], t[2], int(t[4]), t[5]))
-        enum_option.addParseAction(lambda s,l,t: self._create_option(t[0], t[2]))
-        enum.addParseAction(lambda s,l,t: self._create_enum(t[1], t[3:-1]))
-        message_start.addParseAction(lambda s,l,t: self._begin_message(t[1]))
-        message.addParseAction(lambda s,l,t:self._createMessage(t[0], t[2:-3], t[-3:-1]))
-        group.addParseAction(lambda s,l,t:self._create_group(t[0], t[2], int(t[4]), t[6:-1]))
-        extension_range.addParseAction(lambda s,l,t: [t[1], t[3]] if t else [None, None])
-        extension.addParseAction(lambda s,l,t: self._create_extension(t[1], t[3:-1]))
-        extension_max.addParseAction(lambda s,l,t: [pow(2,29)-1])
+        parsers['optional_semi'].addParseAction(lambda s,l,t:[])
+        parsers['packed'].addParseAction(lambda s,l,t: t[0] if t else '')
+        parsers['type'].addParseAction(lambda s,l,t: self._createType(t[0], t[1], t[2], int(t[4]), t[5]))
+        parsers['enum_option'].addParseAction(lambda s,l,t: self._create_option(t[0], t[2]))
+        parsers['enum'].addParseAction(lambda s,l,t: self._create_enum(t[1], t[3:-1]))
+        parsers['message_start'].addParseAction(lambda s,l,t: self._begin_message(t[1]))
+        parsers['message'].addParseAction(lambda s,l,t:self._createMessage(t[0], t[2:-3], t[-3:-1]))
+        parsers['group'].addParseAction(lambda s,l,t:self._create_group(t[0], t[2], int(t[4]), t[6:-1]))
+        parsers['extension_range'].addParseAction(lambda s,l,t: [t[1], t[3]] if t else [None, None])
+        parsers['extension'].addParseAction(lambda s,l,t: self._create_extension(t[1], t[3:-1]))
+        parsers['extension_max'].addParseAction(lambda s,l,t: [pow(2,29)-1])
 
         self._references = references
         self._enum_types = set()
