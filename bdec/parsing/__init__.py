@@ -110,6 +110,10 @@ class ParserElement:
         self._ignore = None
         self._name = None
 
+    @staticmethod
+    def enablePackrat():
+        pass
+
     def copy(self):
         return And([self])
 
@@ -287,7 +291,7 @@ def OneOrMore(element):
 class Literal(ParserElement):
     def __init__(self, text):
         ParserElement.__init__(self)
-        assert isinstance(text, basestring), 'Literal must be a string! Is %s' % (repr(text))
+        assert isinstance(text, basestring), 'Literal must be a string! Is %s (%s)' % (repr(text), text.__class__)
         assert text, "Literal text entries shouldn't be empty!"
         self.text = text
 
