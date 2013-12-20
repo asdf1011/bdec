@@ -50,7 +50,7 @@ class _Parser:
         parsers['enum_option'].addParseAction(lambda s,l,t: self._create_option(t[0], t[2]))
         parsers['enum'].addParseAction(lambda s,l,t: self._create_enum(t[1], t[3:-1]))
         parsers['message_start'].addParseAction(lambda s,l,t: self._begin_message(t[1]))
-        parsers['message'].addParseAction(lambda s,l,t:self._createMessage(t[0], t[2:-3], t[-3:-1]))
+        parsers['message'].addParseAction(lambda s,l,t:self._create_message(t[0], t[2:-3], t[-3:-1]))
         parsers['group'].addParseAction(lambda s,l,t:self._create_group(t[0], t[2], int(t[4]), t[6:-1]))
         parsers['extension_range'].addParseAction(lambda s,l,t: [t[1], t[3]] if t else [None, None])
         parsers['extension'].addParseAction(lambda s,l,t: self._create_extension(t[1], t[3:-1]))
@@ -151,7 +151,7 @@ class _Parser:
         self._message_stack.append(name)
         return [name]
 
-    def _createMessage(self, name, types, extensions):
+    def _create_message(self, name, types, extensions):
         assert name == self._message_stack.pop()
         assert name not in self._extensions
         result = Sequence(name, types)
