@@ -119,12 +119,6 @@ class _Loader:
         # Default for all handlers will be to fail on 'not implemented'. We
         # then have to manually go through and enable all handlers explicitly.
         self.filename = filename
-        def not_implemented_handler(name):
-            def _handler(text, location, tokens):
-                raise NotImplementedError(name, tokens, filename, lineno(location, text))
-            return _handler
-        for name, entry in parsers.items():
-            entry.setParseAction(not_implemented_handler(name))
         self._common_entries = {}
         self._constants = {}
 
@@ -239,7 +233,8 @@ class _Loader:
         table['number'].setParseAction(_parse_number)
 
         # Load the ebnf for the ASN.1 format, so we know how to parse the specification.
-        parsers = parse(open('bdec/spec/asn1.ebnf', 'r').read(), table)
+        parsers = parse(open('bdec/spec/asn1.ebnf', 'r').read(), table,
+                default_not_implemented=True)
         parser = parsers['ModuleDefinition'] + StringEnd()
         parser.ignore('--' + SkipTo('\n'))
 
