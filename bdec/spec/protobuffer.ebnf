@@ -16,9 +16,8 @@ extension_range =
 
 rule = "required" | "optional" | "repeated";
 
-typename = name;
 packed = "[packed=true]" | empty;
-type = rule, typename, name, "=", number, packed, ";";
+type = rule, name, name, "=", number, packed, ";";
 
 optional_semi = ";" | empty;
 group = rule, "group", name, "=", number, "{", types, {types}, "}", optional_semi;

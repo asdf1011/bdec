@@ -34,27 +34,32 @@ class Error(bdec.spec.LoadErrorWithLocation):
 class _Parser:
     def __init__(self, references):
         table = {
-                'number' : Word(nums),
+                'number' : Word(nums).setParseAction(lambda s,l,t:int(t[0])),
                 'name' : Word(alphanums),
                 'empty' : empty,
                 }
 
-        parsers = ebnf.parse(open('bdec/spec/protobuffer.ebnf', 'r').read(), table)
+        parsers = ebnf.parse(open('bdec/spec/protobuffer.ebnf', 'r').read(), table, default_not_implemented=True)
+
         self._parser = parsers['messages'] + StringEnd()
         comment = '//' + SkipTo('\n')
         self._parser.ignore(comment)
 
-        parsers['optional_semi'].addParseAction(lambda s,l,t:[])
-        parsers['packed'].addParseAction(lambda s,l,t: t[0] if t else '')
-        parsers['type'].addParseAction(lambda s,l,t: self._createType(t[0], t[1], t[2], int(t[4]), t[5]))
-        parsers['enum_option'].addParseAction(lambda s,l,t: self._create_option(t[0], t[2]))
-        parsers['enum'].addParseAction(lambda s,l,t: self._create_enum(t[1], t[3:-1]))
-        parsers['message_start'].addParseAction(lambda s,l,t: self._begin_message(t[1]))
-        parsers['message'].addParseAction(lambda s,l,t:self._create_message(t[0], t[2:-3], t[-3:-1]))
-        parsers['group'].addParseAction(lambda s,l,t:self._create_group(t[0], t[2], int(t[4]), t[6:-1]))
-        parsers['extension_range'].addParseAction(lambda s,l,t: [t[1], t[3]] if t else [None, None])
-        parsers['extension'].addParseAction(lambda s,l,t: self._create_extension(t[1], t[3:-1]))
-        parsers['extension_max'].addParseAction(lambda s,l,t: [pow(2,29)-1])
+        for name in ['types', 'message_or_extension', 'messages', 'rule', \
+                'extension_end']:
+            parsers[name].setParseAction(lambda s,l,t:t)
+
+        parsers['optional_semi'].setParseAction(lambda s,l,t:[])
+        parsers['packed'].setParseAction(lambda s,l,t: t[0] if t else '')
+        parsers['type'].setParseAction(lambda s,l,t: self._createType(t[0], t[1], t[2], int(t[4]), t[5]))
+        parsers['enum_option'].setParseAction(lambda s,l,t: self._create_option(t[0], t[2]))
+        parsers['enum'].setParseAction(lambda s,l,t: self._create_enum(t[1], t[3:-1]))
+        parsers['message_start'].setParseAction(lambda s,l,t: self._begin_message(t[1]))
+        parsers['message'].setParseAction(lambda s,l,t:self._create_message(t[0], t[2:-3], t[-3:-1]))
+        parsers['group'].setParseAction(lambda s,l,t:self._create_group(t[0], t[2], int(t[4]), t[6:-1]))
+        parsers['extension_range'].setParseAction(lambda s,l,t: [t[1], t[3]] if t else [None, None])
+        parsers['extension'].setParseAction(lambda s,l,t: self._create_extension(t[1], t[3:-1]))
+        parsers['extension_max'].setParseAction(lambda s,l,t: [pow(2,29)-1])
 
         self._references = references
         self._enum_types = set()

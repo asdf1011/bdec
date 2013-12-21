@@ -147,8 +147,13 @@ for name in all_names:
     expr.setParseAction(action)
     #~ expr.setDebug()
 
+def not_implemented_handler(name):
+    def _handler(text, location, tokens):
+        raise NotImplementedError(name, tokens, lineno(location, text))
+    return _handler
 
-def parse(ebnf, given_table={}):
+def parse(ebnf, given_table={}, default_not_implemented=False):
+    """Return a pypyarsing instance representing the ebnf."""
     symbol_table.clear()
     symbol_table.update(given_table)
     forward_count.value = 0
@@ -159,5 +164,7 @@ def parse(ebnf, given_table={}):
     for name in table:
         expr = table[name]
         expr.setName(name)
+        if default_not_implemented and name not in given_table:
+            expr.setParseAction(not_implemented_handler(name))
         #~ expr.setDebug()
     return table
