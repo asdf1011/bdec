@@ -70,7 +70,7 @@ def get_best_guess(entry, data):
 
 def query(context, child, i, name):
     if not context or child.name not in context:
-        raise MissingInstanceError(context, child)
+        raise MissingInstanceError(context, child, name)
     return context[child.name]
 
 class TestChoice(unittest.TestCase):

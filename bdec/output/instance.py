@@ -135,7 +135,7 @@ def decode(decoder, binary):
 
 def _get_data(obj, child, i, name):
     if name.endswith(':'):
-        raise MissingInstanceError(obj, child)
+        raise MissingInstanceError(obj, child, name)
 
     try: 
         return getattr(obj, escape(name))
@@ -145,7 +145,7 @@ def _get_data(obj, child, i, name):
     try:
         return obj[name]
     except (AttributeError, KeyError, TypeError):
-        raise MissingInstanceError(obj, child)
+        raise MissingInstanceError(obj, child, name)
 
 def _get_value(obj, child, i, name):
     result = _get_data(obj, child, i, name)

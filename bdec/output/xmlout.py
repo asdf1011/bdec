@@ -176,17 +176,18 @@ def _query_element(obj, child, offset, name):
 
     If the child has no sub-elements itself, return the element text contents.
     """
+    assert isinstance(child, ent.Entry)
     try:
         childNodes = obj.childNodes
     except AttributeError:
-        raise MissingInstanceError(obj, child)
+        raise MissingInstanceError(obj, child, name)
 
     name = escape_name(name)
     for child_node in childNodes:
         if child_node.nodeType == xml.dom.Node.ELEMENT_NODE and child_node.tagName == name:
             return _get_element_value(child_node, child)
 
-    raise MissingInstanceError(obj, child)
+    raise MissingInstanceError(obj, child, name)
 
 def _get_element_value(element, entry):
     """Get an instance that can be encoded for a given xml element node.

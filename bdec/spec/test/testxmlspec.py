@@ -1118,7 +1118,7 @@ class TestXml(unittest.TestCase):
         def query(parent, entry, offset, name):
             if entry.name == 'a':
                 return None
-            raise MissingInstanceError(parent, entry)
+            raise MissingInstanceError(parent, entry, name)
         self.assertEqual(dt.Data('\x08\x03'), reduce(operator.add, spec.encode(query, None)))
 
     def test_multiple_children_in_sequenceof(self):

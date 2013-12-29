@@ -69,13 +69,17 @@ class MissingInstanceError(bdec.DecodeError):
     """
     Error raised during encoding when a parent object doesn't have a named child object.
     """
-    def __init__(self, parent, child):
+    def __init__(self, parent, child, name):
         bdec.DecodeError.__init__(self, child)
         self.parent = parent
         self.child = child
+        self.name = name
 
     def __str__(self):
-        return "object '%s' doesn't have child object '%s'" % (self.parent, self.child.name)
+        message =  "object '%s' doesn't have child object '%s'" % (self.parent, self.name)
+        if self.name != self.child.name:
+            message += ' (%s)' % (self.child.name)
+        return message
 
 class Child:
     def __init__(self, child, encoder, passed_params, is_hidden):
@@ -100,7 +104,7 @@ def _mock_query(parent, entry, offset, name):
 
     It will return null data for fields, etc."""
     if isinstance(parent, (int, long)) or parent is None:
-        raise MissingInstanceError(parent, entry)
+        raise MissingInstanceError(parent, entry, name)
 
     try:
         return parent[name]
@@ -118,7 +122,7 @@ def _mock_query(parent, entry, offset, name):
         return result
 
     if is_hidden(entry.name):
-        raise MissingInstanceError(parent, entry)
+        raise MissingInstanceError(parent, entry, name)
 
     # We have to return some suitable data for these entries; return a null
     # data object.
