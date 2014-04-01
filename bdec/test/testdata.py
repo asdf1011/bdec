@@ -57,6 +57,17 @@ class NonSeekable(StringIO.StringIO):
     def tell(self):
         raise IOError()
 
+class FileWithBadEnding(NonSeekable):
+    """A file instance that cannot be read past a certain point."""
+    def __init__(self, data):
+        self._data = data
+
+    def read(self, num_bytes):
+        assert num_bytes <= len(self._data), 'Read beyond where it should go!'
+        result = self._data[:num_bytes]
+        self._data = self._data[num_bytes:]
+        return result
+
 class TestData(unittest.TestCase):
     def test_pop_empty_data(self):
         self.assertRaises(dt.NotEnoughDataError, int, dt.Data("").pop(1))
@@ -260,3 +271,14 @@ class TestData(unittest.TestCase):
         a = dt.Data('\x01', 7, 8)
         b = dt.Data('\x0f\xff', 4, 16)
         self.assertEqual('11111 11111111', (a + b).get_binary_text())
+
+    def test_pop_neverending_buffer(self):
+        # Decoding a large file would result in the rest of the (unused) file
+        # taking a really long time to decode because it incorrectly iterated
+        # over the rest of the unused data. Make sure this is no longer the
+        # case.
+        data = dt.Data(FileWithBadEnding('abcdef'))
+        a = data.pop(1)
+        b = data.copy().pop(3 * 8 - 1)
+        self.assertEqual('abc', (a + b).text('ascii'))
+

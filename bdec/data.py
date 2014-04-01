@@ -159,7 +159,7 @@ class _ByteBuffer(object):
         return ''.join(chr(c) for c in self._byte_iter())
 
     def __add__(self, other):
-        return _MemoryBuffer(self._bytes() + other._bytes())
+        return _JoinedBuffers(self, other)
 
     def _shift_chars(self, num_bits):
         byte = 0
@@ -178,8 +178,42 @@ class _ByteBuffer(object):
         return _MemoryBuffer(''.join(self._shift_chars(num_bits)))
 
     def __getslice__(self, start, end):
-        result = _MemoryBuffer(self._bytes()[start:end])
-        return result
+        return _SlicedBuffer(self, start, end)
+
+
+class _JoinedBuffers(_ByteBuffer):
+    """A buffer representing two buffers joined together."""
+    def __init__(self, a, b):
+        self._a = a
+        self._b = b
+
+    def read_byte(self, offset):
+        try:
+            return self._a.read_byte(offset)
+        except _OutOfDataError:
+            return self._b.read_byte(offset - len(self._a))
+
+    def __len__(self):
+        return len(self._a) + len(self._b)
+
+
+class _SlicedBuffer(_ByteBuffer):
+    """Byte buffer that reads from a region of another buffer."""
+    def __init__(self, buffer, start, end):
+        assert start is not None
+        self._buffer = buffer
+        self._start = start
+        self._end = end
+
+    def read_byte(self, offset):
+        if offset < 0 or (self._end is not None and offset >= (self._end - self._start)):
+            raise _OutOfDataError()
+        return self._buffer.read_byte(offset + self._start)
+
+    def __len__(self):
+        if self._end is not None:
+            return self._end - self._start
+        return len(self._buffer) - self._start
 
 
 class _FileBuffer(_ByteBuffer):
