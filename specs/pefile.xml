@@ -1,0 +1,150 @@
+<protocol>
+  <!-- Written by the references found at
+       http://en.wikibooks.org/wiki/X86_Disassembly/Windows_Executable_Files#File_Format
+       https://msdn.microsoft.com/en-us/library/windows/desktop/ms680313%28v=vs.85%29.aspx
+    -->
+  <sequence name="portable executable">
+    <reference name="dos header" />
+    <field name="real mode stub program" type="hex" length="${dos header.File address of new exe header} * 8 - len{dos header}" />
+    <reference name="pe file header" />
+  </sequence>
+
+  <common>
+    <field name="USHORT" type="unsigned integer" length="16" encoding="little endian" />
+    <field name="LONG" type="integer" length="32" encoding="little endian" />
+    <field name="ULONG" type="unsigned integer" length="32" encoding="little endian" />
+
+    <sequence name="dos header" length="64*8">
+      <reference name="Magic number:" type="USHORT" value="0x54ad" />
+      <reference name="Bytes on last page of file" type="USHORT" />
+      <reference name="Pages in file" type="USHORT" />
+      <reference name="Relocations" type="USHORT" />
+      <reference name="Size of header in paragraphs" type="USHORT" />
+      <reference name="Minimum extra paragraphs needed" type="USHORT" />
+      <reference name="Maximum extra paragraphs needed" type="USHORT" />
+      <reference name="Initial (relative) SS value" type="USHORT" />
+      <reference name="Initial SP value" type="USHORT" />
+      <reference name="Checksum" type="USHORT" />
+      <reference name="Initial IP value" type="USHORT" />
+      <reference name="Initial (relative) CS value" type="USHORT" />
+      <reference name="File address of relocation table" type="USHORT" />
+      <reference name="Overlay number" type="USHORT" />
+      <field name="Reserved words" type="hex" length="4 * 16" />
+      <reference name="OEM identifier" type="USHORT" />
+      <reference name="OEM information" type="USHORT" />
+      <field name="Reserved words" type="hex" length="10 * 16" />
+      <reference name="File address of new exe header" type="LONG" />
+    </sequence>
+
+    <sequence name="pe file header">
+      <field name="magic:" length="32" value="0x50450000" />
+      <reference name="coff header" />
+    </sequence>
+
+    <sequence name="coff header">
+      <reference name="machine type" />
+      <reference name="Number of sections" type="USHORT" />
+      <reference name="Time Date Stamp" type="ULONG" />
+      <reference name="Pointer To Symbol Table" type="ULONG" />
+      <reference name="Number Of Symbols" type="ULONG" />
+      <reference name="Size Of Optional Header" type="USHORT" />
+
+      <sequence name="characteristics" length="16">
+        <field name="bytes reversed lo" length="1" />
+        <field name="large address aware" length="1" />
+        <field name="unused" length="1" />
+        <field name="aggressive working set trim" length="1" />
+        <field name="local symbols stripped" length="1" />
+        <field name="line numbers stripped" length="1" />
+        <field name="is executable" length="1" />
+        <field name="relocation info stripped" length="1" />
+
+        <field name="bytes reversed hi" length="1" />
+        <field name="uniprocessor system only" length="1" />
+        <field name="is dll" length="1" />
+        <field name="is system file" length="1" />
+        <field name="network run from swap" length="1" />
+        <field name="removable run from swap" length="1" />
+        <field name="debug info stripped" length="1" />
+        <field name="32bit machine" length="1" />
+      </sequence>
+      <sequence name="optional header" if="${Size Of Optional Header} > 0">
+        <choice name="signature">
+          <reference name="32 bit" type="USHORT" expected="267" />
+          <reference name="64 bit" type="USHORT" expected="523" />
+        </choice>
+        <field name="major linker version" length="8" type="integer" />
+        <field name="minor linker version" length="8" type="integer" />
+        <reference name="size of code" type="ULONG" />
+        <reference name="size of initialized data" type="ULONG" />
+        <reference name="size of uninitialized data" type="ULONG" />
+        <reference name="address of entry point" type="ULONG" />
+        <reference name="base of code" type="ULONG" />
+        <reference name="base of data" type="ULONG" />
+        <reference name="image base" type="ULONG" />
+        <reference name="section alignment" type="ULONG" />
+        <reference name="file alignment" type="ULONG" />
+        <reference name="major os version" type="USHORT" />
+        <reference name="minor os version" type="USHORT" />
+        <reference name="major image version" type="USHORT" />
+        <reference name="minor image versoin" type="USHORT" />
+        <reference name="major subsystem version" type="USHORT" />
+        <reference name="minor subsystem version" type="USHORT" />
+        <reference name="reserved" type="ULONG" />
+        <reference name="size of image" type="ULONG" />
+        <reference name="size of headers" type="ULONG" />
+        <reference name="checksum" type="ULONG" />
+        <choice name="sub system">
+          <reference name="native" type="USHORT" expected="1" />
+          <reference name="windows gui" type="USHORT" expected="2" />
+          <reference name="windows non-gui" type="USHORT" expected="3" />
+          <reference name="os2" type="USHORT" expected="5" />
+          <reference name="posix" type="USHORT" expected="7" />
+        </choice>
+        <reference name="dll characteristics" type="USHORT" />
+        <reference name="size of stack reserve" type="ULONG" />
+        <reference name="size of stack commit" type="ULONG" />
+        <reference name="size of heap reserve" type="ULONG" />
+        <reference name="size of heap commit" type="ULONG" />
+        <reference name="loader flags" type="ULONG" />
+        <reference name="number of rva and sizes" type="ULONG" />
+        <sequenceof name="data directories" count="${number of rva and sizes}">
+          <sequence name="data directory">
+            <reference name="virtual address" type="ULONG" />
+            <reference name="size" type="ULONG" />
+          </sequence>
+        </sequenceof>
+      </sequence>
+    </sequence>
+
+    <choice name="machine type">
+      <reference name="Intel 386" expected="0x14c" type="USHORT" />
+      <reference name="Intel i860" expected="0x14d" type="USHORT" />
+      <reference name="MIPS R3000" expected="0x162" type="USHORT" />
+      <reference name="MIPS little endian R4000" expected="0x166" type="USHORT" />
+      <reference name="MIPS R10000" expected="0x168" type="USHORT" />
+      <reference name="MIPS little endian WCI v2" expected="0x169" type="USHORT" />
+      <reference name="old Alpha AXP" expected="0x183" type="USHORT" />
+      <reference name="Alpha AXP" expected="0x184" type="USHORT" />
+      <reference name="Hitachi SH3" expected="0x1a2" type="USHORT" />
+      <reference name="Hitachi SH3 DSP" expected="0x1a3" type="USHORT" />
+      <reference name="Hitachi SH4" expected="0x1a6" type="USHORT" />
+      <reference name="Hitachi SH5" expected="0x1a8" type="USHORT" />
+      <reference name="ARM little endian" expected="0x1c0" type="USHORT" />
+      <reference name="Thumb" expected="0x1c2" type="USHORT" />
+      <reference name="Matsushita AM33" expected="0x1d3" type="USHORT" />
+      <reference name="PowerPC little endian" expected="0x1f0" type="USHORT" />
+      <reference name="PowerPC with floating point support" expected="0x1f1" type="USHORT" />
+      <reference name="Intel IA64" expected="0x200" type="USHORT" />
+      <reference name="MIPS16" expected="0x266" type="USHORT" />
+      <reference name="Motorola 68000 series" expected="0x268" type="USHORT" />
+      <reference name="Alpha AXP 64-bit" expected="0x284" type="USHORT" />
+      <reference name="MIPS with FPU" expected="0x366" type="USHORT" />
+      <reference name="MIPS16 with FPU" expected="0x466" type="USHORT" />
+      <reference name="EFI Byte Code" expected="0xebc" type="USHORT" />
+      <reference name="AMD AMD64" expected="0x8664" type="USHORT" />
+      <reference name="Mitsubishi M32R little endian" expected="0x9041" type="USHORT" />
+      <reference name="clr pure MSIL" expected="0xc0ee" type="USHORT" />
+    </choice>
+  </common>
+</protocol>
