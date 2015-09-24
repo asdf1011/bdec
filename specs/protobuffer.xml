@@ -5,29 +5,31 @@
 
   <common>
     <sequence name="unknown field">
-      <field name="field number" type="integer" length="5" />
+      <reference name="field details:" type="varint" />
+      <sequence name="field number" value="${field details:} / 8" />
+      <sequence name="tag:" value="${field details:} - ${field number} * 8" />
       <choice name="value">
-        <sequence name="varint">
-          <field name="tag:" length="3" value="0x0" />
-          <reference name="varint" />
+        <sequence name="varint" value="${value:}" >
+          <sequence value="${tag:}" expected="0x0" />
+          <reference name="value:" type="varint" />
         </sequence>
         <sequence name="64 bit">
-          <field name="tag:" length="3" value="0x1" />
+          <sequence value="${tag:}" expected="0x1" />
           <field name="data" length="64" type="hex" />
         </sequence>
         <sequence name="length delimited">
-          <field name="tag:" length="3" value="0x2" />
+          <sequence value="${tag:}" expected="0x2" />
           <reference name="num bytes:" type="varint" />
           <field name="data" type="hex" length="${num bytes:} * 8" />
         </sequence>
         <sequence name="start group">
-          <field name="tag:" length="3" value="0x3" />
+          <sequence value="${tag:}" expected="0x3" />
         </sequence>
         <sequence name="end group">
-          <field name="tag:" length="3" value="0x4" />
+          <sequence value="${tag:}" expected="0x4" />
         </sequence>
         <sequence name="32 bit">
-          <field name="tag:" length="3" value="0x5" />
+          <sequence value="${tag:}" expected="0x5" />
           <field name="data" length="32" type="hex" />
         </sequence>
       </choice>
