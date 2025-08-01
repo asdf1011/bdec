@@ -262,7 +262,7 @@ class EntryEncoder:
             # Check that the expression length matches the 'real' length
             try:
                 self._solve(self.entry.length, encode_length, context)
-            except SolverError, ex:
+            except SolverError as ex:
                 raise DataLengthError(self.entry, ex.expr, ex.expected)
         if self._is_length_referenced:
             context[self.entry.name + ' length'] = length

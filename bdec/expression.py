@@ -44,12 +44,13 @@
 
 import bdec.data as dt
 import operator
+from functools import reduce
 
 # A list of supported operators, in order of precedence
 _operators = [
         [
             ('*', operator.mul),
-            ('/', operator.div),
+            ('/', operator.truediv),
             ('%', operator.mod),
         ],
         [
@@ -187,7 +188,7 @@ class Constant(Expression):
 class ReferenceExpression(Expression):
     """A reference to a value or length of another entry."""
     def __init__(self, name):
-        assert isinstance(name, basestring)
+        assert isinstance(name, str)
         self.name = name
 
     def param_name(self):
@@ -288,7 +289,7 @@ def parse(text):
     complete = _int_expression() + StringEnd()
     try:
         return complete.parseString(text)[0]
-    except ParseException, ex:
+    except ParseException as ex:
         raise ExpressionError(ex)
 # Legacy name for parse function
 compile = parse
@@ -354,6 +355,6 @@ def parse_conditional_inverse(text):
     complete = bool_expr + StringEnd()
     try:
         return complete.parseString(text)[0]
-    except ParseException, ex:
+    except ParseException as ex:
         raise ExpressionError(ex)
 

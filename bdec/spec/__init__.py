@@ -43,7 +43,7 @@
 #   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import os.path
-from StringIO import StringIO
+from io import StringIO
 
 class LoadError(Exception):
     """Base class for all loading errors."""
@@ -110,7 +110,7 @@ def _validate_parameters(entries, lookup):
         # Validate all of the parameters in use
         prm.CompoundParameters([prm.EndEntryParameters(entries),
             prm.ExpressionParameters(entries)])
-    except prm.BadReferenceError, ex:
+    except prm.BadReferenceError as ex:
         context = [(lookup[e] + (str(e),)) for e in ex.context if e in lookup]
         raise ReferenceError(ex, ex.entry, lookup, context)
 
@@ -129,7 +129,7 @@ def _resolve(decoder, references, lookup, should_remove_unused):
         common = references.resolve()
         if isinstance(decoder, ReferencedEntry):
             decoder = references.resolve_reference(decoder)
-    except MissingReferenceError, ex:
+    except MissingReferenceError as ex:
         raise ReferenceError(ex, ex.reference, lookup)
 
     if should_remove_unused:

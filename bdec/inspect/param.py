@@ -302,7 +302,7 @@ class ExpressionParameters(_Parameters):
             self._populate_child_input_parameter_type(entry, name, param_type, visited)
 
         should_have_failed = False
-        for entry, references in unreferenced_entries.iteritems():
+        for entry, references in unreferenced_entries.items():
             for param in self._params[entry]:
                 if not param.types:
                     should_have_failed = True
@@ -623,7 +623,7 @@ class ExpressionParameters(_Parameters):
         """
         try:
             return [param.get_param() for param in self._get_params(entry)]
-        except _FailedToResolveError, ex:
+        except _FailedToResolveError as ex:
             raise UnknownReferenceError(entry, ex.name)
 
     def get_passed_variables(self, entry, child):
