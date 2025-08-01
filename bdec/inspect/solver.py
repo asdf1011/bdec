@@ -225,10 +225,11 @@ def _invert(result_expr, entry, expression, params, input_params, remainder_rang
     return left
 
 def solve_expression(result_expr, expression, entry, params, input_params):
-    """Get a list of expressions for solving the given expression using Z3.
-    
-    This function provides backward compatibility with the original interface
-    but uses Z3 internally for more robust solving.
+    """Get a list of expressions for solving the given expression. For example,
+    for
+       y = 2 * x + 5
+    'y' is the result expression, '2 * x + 5' is the expression, it would
+    solve to a constant of 5, and x = y / 2.
 
     result_expr -- An expression for the result.
     expression -- The expression we want to solve.
@@ -243,11 +244,7 @@ def solve_expression(result_expr, expression, entry, params, input_params):
         the reference to an unknown parameter, the portion of the expression that
         is made up of this entry, and the inverted expression to calculate
         its value given it's component of the expression. """
-    
-    # For backward compatibility, we still use the original approach for solve_expression
-    # since it's used in encoding where the step-by-step breakdown is needed
     components, constant = _break_into_parts(entry, expression, input_params)
-    
     # Sort the components in order influence on the output
     def influence(component):
         reference, expression = component
@@ -324,6 +321,19 @@ def _expression_to_z3(expression, vars_map, context):
     else:
         raise SolverError(None, expression, f'Unsupported expression type: {type(expression)}')
 
+def _get_reference_expressions(expression):
+    """Extract all ReferenceExpression instances from an expression tree."""
+    refs = []
+    if isinstance(expression, ReferenceExpression):
+        refs.append(expression)
+    elif isinstance(expression, ArithmeticExpression):
+        refs.extend(_get_reference_expressions(expression.left))
+        refs.extend(_get_reference_expressions(expression.right))
+    elif isinstance(expression, RoundUpDivisionExpression):
+        refs.extend(_get_reference_expressions(expression.numerator))
+        refs.extend(_get_reference_expressions(expression.denominator))
+    return refs
+
 def solve(expression, entry, params, context, value):
     """Solve an expression given the result and the input parameters using Z3.
 
@@ -382,17 +392,4 @@ def solve(expression, entry, params, context, value):
         if isinstance(e, (SolverError, UnsolvableExpressionError)):
             raise
         raise SolverError(entry, expression, f'Z3 solver error: {str(e)}')
-
-def _get_reference_expressions(expression):
-    """Extract all ReferenceExpression instances from an expression tree."""
-    refs = []
-    if isinstance(expression, ReferenceExpression):
-        refs.append(expression)
-    elif isinstance(expression, ArithmeticExpression):
-        refs.extend(_get_reference_expressions(expression.left))
-        refs.extend(_get_reference_expressions(expression.right))
-    elif isinstance(expression, RoundUpDivisionExpression):
-        refs.extend(_get_reference_expressions(expression.numerator))
-        refs.extend(_get_reference_expressions(expression.denominator))
-    return refs
 
