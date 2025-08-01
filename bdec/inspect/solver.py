@@ -334,6 +334,133 @@ def _get_reference_expressions(expression):
         refs.extend(_get_reference_expressions(expression.denominator))
     return refs
 
+def _extract_field_constraints(entry, params):
+    """Extract field constraints from entry hierarchy and map them to expression variables.
+    
+    Returns a dict mapping parameter names to (min_val, max_val) tuples.
+    """
+    from bdec.constraints import Minimum, Maximum
+    from bdec.field import Field
+    from bdec.sequence import Sequence
+    from bdec.entry import Child
+    import operator
+    
+    constraints = {}
+    visited = set()  # Prevent infinite recursion
+    
+    def _visit_entry(ent, entry_name=None):
+        # Prevent infinite recursion by tracking visited (entry, name) pairs
+        entry_key = (id(ent), entry_name)
+        if entry_key in visited:
+            return
+        visited.add(entry_key)
+        # If this entry has a value expression, we need to propagate constraints
+        if hasattr(ent, 'value') and ent.value is not None and entry_name:
+            # This entry's value might be referenced by the expression
+            # We need to trace constraints from child fields to this entry's value
+            field_constraints = {}
+            
+            # Collect constraints from child fields
+            if hasattr(ent, 'children'):
+                for child in ent.children:
+                    child_entry = child.entry if hasattr(child, 'entry') else child
+                    if isinstance(child_entry, Field) and child_entry.constraints:
+                        child_min = None
+                        child_max = None
+                        
+                        for constraint in child_entry.constraints:
+                            try:
+                                limit = constraint.limit.evaluate({})
+                                if isinstance(constraint, Minimum):
+                                    child_min = limit
+                                elif isinstance(constraint, Maximum):
+                                    child_max = limit
+                            except:
+                                pass
+                        
+                        if child_min is not None or child_max is not None:
+                            field_constraints[child_entry.name] = (child_min, child_max)
+            
+            # If we have field constraints and this entry has a value expression,
+            # try to propagate the constraints to the entry's value
+            if field_constraints and hasattr(ent, 'value'):
+                propagated_constraints = _propagate_constraints_through_expression(
+                    ent.value, field_constraints)
+                if propagated_constraints:
+                    constraints[entry_name] = propagated_constraints
+        
+        # Also check if this entry itself is a field with constraints
+        if isinstance(ent, Field) and ent.constraints:
+            min_val = None
+            max_val = None
+            
+            for constraint in ent.constraints:
+                try:
+                    limit = constraint.limit.evaluate({})
+                    if isinstance(constraint, Minimum):
+                        min_val = limit
+                    elif isinstance(constraint, Maximum):
+                        max_val = limit
+                except:
+                    pass
+            
+            if min_val is not None or max_val is not None:
+                name = entry_name or ent.name
+                constraints[name] = (min_val, max_val)
+        
+        # Recursively visit children
+        if hasattr(ent, 'children'):
+            for child in ent.children:
+                child_entry = child.entry if hasattr(child, 'entry') else child
+                child_name = child.name if hasattr(child, 'name') else None
+                _visit_entry(child_entry, child_name)
+    
+    _visit_entry(entry)
+    return constraints
+
+def _propagate_constraints_through_expression(value_expr, field_constraints):
+    """Propagate field constraints through a value expression.
+    
+    For example, if field 'char:' has constraints [48, 57] and the value expression
+    is '${char:} - 48', then the resulting value should have constraints [0, 9].
+    """
+    # Handle simple cases: ${field} + constant, ${field} - constant
+    if isinstance(value_expr, ArithmeticExpression):
+        if isinstance(value_expr.left, ReferenceExpression) and isinstance(value_expr.right, Constant):
+            field_name = value_expr.left.param_name()
+            if field_name in field_constraints:
+                field_min, field_max = field_constraints[field_name]
+                constant_val = value_expr.right.value
+                
+                if value_expr.op == operator.add:
+                    # value = field + constant
+                    result_min = field_min + constant_val if field_min is not None else None
+                    result_max = field_max + constant_val if field_max is not None else None
+                    return (result_min, result_max)
+                elif value_expr.op == operator.sub:
+                    # value = field - constant  
+                    result_min = field_min - constant_val if field_min is not None else None
+                    result_max = field_max - constant_val if field_max is not None else None
+                    return (result_min, result_max)
+        elif isinstance(value_expr.right, ReferenceExpression) and isinstance(value_expr.left, Constant):
+            field_name = value_expr.right.param_name()
+            if field_name in field_constraints:
+                field_min, field_max = field_constraints[field_name]
+                constant_val = value_expr.left.value
+                
+                if value_expr.op == operator.add:
+                    # value = constant + field
+                    result_min = constant_val + field_min if field_min is not None else None
+                    result_max = constant_val + field_max if field_max is not None else None
+                    return (result_min, result_max)
+                elif value_expr.op == operator.sub:
+                    # value = constant - field
+                    result_min = constant_val - field_max if field_max is not None else None
+                    result_max = constant_val - field_min if field_min is not None else None
+                    return (result_min, result_max)
+    
+    return None
+
 def solve(expression, entry, params, context, value):
     """Solve an expression given the result and the input parameters using Z3.
 
@@ -343,6 +470,7 @@ def solve(expression, entry, params, context, value):
     Key improvements over the original solver:
     - Can solve complex expressions that the original solver couldn't handle
     - Uses Z3 SMT solver for mathematically sound constraint solving
+    - Respects field constraints (Minimum/Maximum) when solving
     - May find different but equally valid solutions compared to original
     
     expression -- A bdec.expression.Expression instance to solve.
@@ -363,6 +491,16 @@ def solve(expression, entry, params, context, value):
         
         # Add constraint that expression equals the target value
         solver.add(z3_expr == value)
+        
+        # Extract and add field constraints
+        field_constraints = _extract_field_constraints(entry, params)
+        for param_name, (min_val, max_val) in field_constraints.items():
+            if param_name in vars_map:
+                z3_var = vars_map[param_name]
+                if min_val is not None:
+                    solver.add(z3_var >= min_val)
+                if max_val is not None:
+                    solver.add(z3_var <= max_val)
         
         # Check if solvable
         if solver.check() == z3.sat:
