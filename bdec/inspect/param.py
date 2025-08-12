@@ -1,4 +1,7 @@
 import functools
+
+def cmp(a, b):
+    return (a > b) - (a < b)
 #   Copyright (C) 2008-2012 Henry Ludemann
 #
 #   This file is part of the bdec decoder library.

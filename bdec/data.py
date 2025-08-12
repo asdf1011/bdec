@@ -181,6 +181,15 @@ class _ByteBuffer(object):
         result = _MemoryBuffer(self._bytes()[start:end])
         return result
 
+    def __getitem__(self, key):
+        if isinstance(key, slice):
+            start, stop, step = key.indices(len(self))
+            if step != 1:
+                raise NotImplementedError("Step slicing not supported")
+            return _MemoryBuffer(self._bytes()[start:stop])
+        else:
+            return self.read_byte(key)
+
 
 class _FileBuffer(_ByteBuffer):
     """Byte buffer that reads from a seekable file."""
