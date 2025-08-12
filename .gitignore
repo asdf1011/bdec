@@ -4,3 +4,4 @@ bdec/test/temp
 docs/output
 *.swo
 *.obj
+venv/
