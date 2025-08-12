@@ -32,7 +32,7 @@ class SequenceOfDecoder(EntryDecoder):
             if count < 0:
                 raise NegativeSequenceofLoop(self.entry, count)
 
-            for i in xrange(count):
+            for i in range(count):
                 yield None
         elif self.entry.end_entries:
             while not context['should end']:

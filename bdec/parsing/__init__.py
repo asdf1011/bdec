@@ -158,7 +158,7 @@ class ParserElement:
         return self.addParseAction(fn)
 
     def addParseAction(self, fn):
-        num_args = len(inspect.getargspec(fn)[0])
+        num_args = len(inspect.getfullargspec(fn)[0])
         if num_args == 3:
             action = lambda t:fn('', 0, t)
         elif num_args == 2:

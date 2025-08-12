@@ -4,7 +4,7 @@ Unit tests for testing all of the provided specifications.
 It attempts to load each example specification, and will attempt to decode all
 of the supplied sample files.
 """
-from configparser import configparser as ConfigParser
+from configparser import ConfigParser
 import glob
 import os.path
 

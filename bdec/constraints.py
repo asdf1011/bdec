@@ -57,7 +57,7 @@ class Minimum(Constraint):
 
     def check(self, entry, value, context):
         expected = self.limit.evaluate(context)
-        if isinstance(value, basestring):
+        if isinstance(value, str):
             # It is useful to check the bounds of a text character...
             value = ord(value)
         if int(value) < expected:
@@ -72,7 +72,7 @@ class Maximum(Constraint):
 
     def check(self, entry, value, context):
         expected = self.limit.evaluate(context)
-        if isinstance(value, basestring):
+        if isinstance(value, str):
             # It is useful to check the bounds of a text character...
             value = ord(value)
         if int(value) > expected:

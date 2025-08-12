@@ -202,7 +202,7 @@ class TestXml(unittest.TestCase):
             loads(text)
             raise Exception('Exception not thrown!')
         except bdec.spec.LoadError as ex:
-            print str(ex)
+            print(str(ex))
             self.assertTrue("Can't reference " in str(ex))
 
     def test_expression_references_sub_field(self):
@@ -830,7 +830,7 @@ class TestXml(unittest.TestCase):
             </protocol>'''
         a = loads(text)[0]
 
-        print xml.save(a)
+        print(xml.save(a))
         # Test decoding without a footer
         list(a.decode(dt.Data('\x00\x00')))
 

@@ -228,7 +228,7 @@ def encode(protocol, xmldata):
 
     Returns an iterator to data objects representing the encoded structure.
     """
-    if isinstance(xmldata, basestring):
+    if isinstance(xmldata, str):
         xmldata = StringIO.StringIO(xmldata)
     document = xml.dom.minidom.parse(xmldata)
     return reduce(operator.add, protocol.encode(_query_element, document), Data())

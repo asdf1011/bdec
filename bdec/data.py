@@ -241,7 +241,9 @@ class _NonSeekingFileBuffer(_ByteBuffer):
 class _MemoryBuffer(_ByteBuffer):
     """Byte buffer that reads directly from in memory data."""
     def __init__(self, buffer):
-        assert isinstance(buffer, str), "Expected a string; got %s!" % repr(buffer)
+        assert isinstance(buffer, (str, bytes)), "Expected a string or bytes; got %s!" % repr(buffer)
+        if isinstance(buffer, bytes):
+            buffer = buffer.decode('latin-1')
         self._buffer = buffer
 
     def read_byte(self, offset):
@@ -280,7 +282,9 @@ class Data(object):
         # data objects behave differently depending on what they were 
         # constructed from (a source of bugs) (eg: verification of length
         # at pop time, as opposed to read time).
-        if isinstance(buffer, str):
+        if isinstance(buffer, (str, bytes)):
+            if isinstance(buffer, bytes):
+                buffer = buffer.decode('latin-1')
             self._buffer = _MemoryBuffer(buffer)
         elif isinstance(buffer, _ByteBuffer):
             self._buffer = buffer
