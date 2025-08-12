@@ -243,6 +243,9 @@ class Range:
                 return False
         return True
 
+    def __bool__(self):
+        return self.__nonzero__()
+
 
 class Ranges:
     """A class to keep track of a set of Range instances.

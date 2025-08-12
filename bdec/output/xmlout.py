@@ -144,7 +144,7 @@ def to_file(items, output, encoding="utf-8", verbose=False):
                 if has_children:
                     _print_whitespace(handler, offset)
 
-                text = xml_strip(unicode(value))
+                text = xml_strip(str(value))
                 handler.characters(text)
 
             if verbose and data:

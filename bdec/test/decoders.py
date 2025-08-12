@@ -309,7 +309,7 @@ def _validate_xml(spec, data, xmltext):
                     # be represented in xml (eg: a string with a binary
                     # character). Encode and decode the expected value to see if
                     # matches now (being escaped itself...)
-                    expected_text = xmlout.xml_strip(unicode(expected))
+                    expected_text = xmlout.xml_strip(str(expected))
                     escaped_expected = convert_value(entry, expected_text, len(data))
                     constraint = Equals(escaped_expected)
                     constraint.check(entry, actual, {})

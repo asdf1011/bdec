@@ -68,7 +68,7 @@ class _Item(object):
             raise AttributeError(name)
 
     def __repr__(self):
-        result = unicode(self._children)
+        result = str(self._children)
         if self._value is not None:
             result = '%i %s' % (self._value, result)
         return result

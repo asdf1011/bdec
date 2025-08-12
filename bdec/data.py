@@ -346,7 +346,7 @@ class Data(object):
         
         encoding -- The unicode encoding the data is in. """
         try:
-            return unicode(self.bytes(), encoding)
+            return self.bytes().encode('latin-1').decode(encoding)
         except UnicodeDecodeError:
             raise BadTextEncodingError(self, encoding)
 

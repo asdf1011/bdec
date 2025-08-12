@@ -97,9 +97,9 @@ class TestField(unittest.TestCase):
         actual = self._get_decode_value("017a", 12, fld.Field.BINARY)
         self.assertEqual("0000 00010111", str(actual))
 
-    def test_binary_type_to_unicode(self):
+    def test_binary_type_to_str(self):
         actual = self._get_decode_value("017a", 12, fld.Field.BINARY)
-        self.assertEqual(u"0000 00010111", unicode(actual))
+        self.assertEqual("0000 00010111", str(actual))
 
     def test_hexstring_type(self):
         actual = self._get_decode_value("017a", 12, fld.Field.HEX)
