@@ -174,7 +174,7 @@ class _ByteBuffer(object):
         if num_bits == 0:
             return self
         elif num_bits % 8  == 0:
-            return _MemoryBuffer('\x00' * (num_bits / 8) + self._bytes())
+            return _MemoryBuffer('\x00' * (num_bits // 8) + self._bytes())
         return _MemoryBuffer(''.join(self._shift_chars(num_bits)))
 
     def __getslice__(self, start, end):
@@ -344,7 +344,7 @@ class Data(object):
     def __repr__(self):
         """Return a textual representation of the data."""
         if len(self) % 8 == 0:
-            return 'hex (%i bytes): %s' % (len(self) / 8, self.get_hex())
+            return 'hex (%i bytes): %s' % (len(self) // 8, self.get_hex())
         else:
             return 'bin (%i bits): %s' % (len(self), self.get_binary_text())
 
@@ -374,10 +374,10 @@ class Data(object):
         b = other._get_bits()
         while 1:
             try:
-                a_bit = a.next()
+                a_bit = next(a)
             except StopIteration:
                 try:
-                    b.next()
+                    next(b)
                     # Not equal, as 'other' is longer then we are
                     return False
                 except StopIteration:
@@ -385,7 +385,7 @@ class Data(object):
                     return True
 
             try:
-                b_bit = b.next()
+                b_bit = next(b)
             except StopIteration:
                 # Not equal, as we are longer than 'other'
                 return False
@@ -422,7 +422,7 @@ class Data(object):
         # We don't know where the data ends, so look to see if we can read
         # more of the data.
         try:
-            self._get_bits().next()
+            next(self._get_bits())
             return False
         except StopIteration:
             pass
@@ -438,7 +438,7 @@ class Data(object):
         i += self._start
         if self._end is not None and i >= self._end:
             raise _OutOfDataError()
-        byte = i / 8
+        byte = i // 8
         i = i % 8
         return (self._buffer.read_byte(byte) >> (7 - i)) & 1
 
@@ -504,8 +504,8 @@ class Data(object):
         if not other:
             return self
 
-        left = self._buffer[self._start / 8:(self._end - 1) / 8 + 1]
-        right = other._buffer[other._start / 8:(other._end - 1) / 8 + 1]
+        left = self._buffer[self._start // 8:(self._end - 1) // 8 + 1]
+        right = other._buffer[other._start // 8:(other._end - 1) // 8 + 1]
 
         # Shift the shorter data object (as the shift is relatively intensive)
         if len(self) < len(other):
@@ -518,7 +518,7 @@ class Data(object):
             # It's possible we have to truncate the buffer here, as we may
             # have create an extra byte on the right that contains data we
             # don't care about.
-            left = left[:(left_start + len(self) - 1) / 8 + 1]
+            left = left[:(left_start + len(self) - 1) // 8 + 1]
         else:
             # The right hand buffer is shorter than the left, so shift it so it
             # aligns with the left
@@ -527,12 +527,12 @@ class Data(object):
             left_start = self._start % 8
             right >>= distance
             right_start = other._start % 8 + distance
-            right = right[right_start / 8:(right_start + len(other) - 1) / 8 + 1]
+            right = right[right_start // 8:(right_start + len(other) - 1) // 8 + 1]
 
         if (left_start + len(self)) % 8 and len(self) and len(other):
             # The left doesn't end on a whole byte; create a joining byte to
             # connect the left & right
-            merge_byte = (left_start + len(self) - 1) / 8
+            merge_byte = (left_start + len(self) - 1) // 8
 
             overlapping_bits = (left_start + len(self)) % 8
             overlap =  left.read_byte(merge_byte) & (0xff << (8 - overlapping_bits))
@@ -550,7 +550,7 @@ class Data(object):
         if self._start % 8 == 0 and self._end is not None and self._end % 8 == 0:
             # Optimise for the case where we know the length of the data, and
             # it is byte aligned.
-            for i in xrange(self._start / 8, self._end / 8):
+            for i in range(self._start // 8, self._end // 8):
                 try:
                     yield self._buffer.read_byte(i)
                 except _OutOfDataError:
@@ -660,7 +660,7 @@ class Data(object):
         if length % 8 != 0:
             raise ConversionNeedsBytesError(self)
         chars = []
-        for i in range(length / 8):
+        for i in range(length // 8):
             chars.append(chr(data & 0xff))
             data >>= 8
         if data != 0:
@@ -674,7 +674,7 @@ class Data(object):
         length -- The length in bits of the data buffer to create."""
         data = int(value)
         chars = []
-        num_bytes = length / 8
+        num_bytes = length // 8
         if length % 8 != 0:
             num_bytes += 1
         for i in range(num_bytes):
@@ -710,7 +710,7 @@ class Data(object):
             if len(entry) % 2:
                 entry = '0' + entry
 
-            for i in range(len(entry) / 2):
+            for i in range(len(entry) // 2):
                 offset = i * 2
                 value = entry[offset:offset + 2]
                 for char in value:

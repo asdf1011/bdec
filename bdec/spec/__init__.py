@@ -43,7 +43,7 @@
 #   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import os.path
-from io import StringIO
+import io as StringIO
 
 class LoadError(Exception):
     """Base class for all loading errors."""

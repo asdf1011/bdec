@@ -58,7 +58,7 @@ import unittest
 import shutil
 import subprocess
 import stat
-import StringIO
+import io as StringIO
 import time
 import xml.etree.ElementTree
 
@@ -330,7 +330,7 @@ def _check_encoded_data(spec, sourcefile, actual, actual_xml, require_exact_enco
         try:
             regenerated_xml = xmlout.to_string(spec.decode(dt.Data(actual)))
             assert_xml_equivalent(actual_xml, regenerated_xml)
-        except Exception, ex:
+        except Exception as ex:
             raise Exception('Re-decoding of encoded data failed: %s' % str(ex))
 
         if require_exact_encoding:
@@ -368,7 +368,7 @@ class _CompiledDecoder(object):
 
         try:
             _validate_xml(spec, dt.Data(data), xml)
-        except bdec.DecodeError, ex:
+        except bdec.DecodeError as ex:
             raise Exception("Compiled decoder succeeded, but should have failed with: %s" % str(ex))
         if should_check_encoding:
             _check_encoded_data(spec, data, open(encode_filename, 'rb').read(), xml, require_exact_encoding)
@@ -382,7 +382,7 @@ class _PythonDecoder:
         data = dt.Data(sourcefile)
         try:
             xml = xmlout.to_string(spec.decode(data))
-        except bdec.DecodeError, ex:
+        except bdec.DecodeError as ex:
             raise ExecuteError(3, ex)
 
         if should_check_encoding:
@@ -437,7 +437,7 @@ class _BaseRegressionTest:
         try:
             xml = self.decoder.decode_file(spec, common, datafile, should_encode)
             raise Exception("'%s' should have failed to decode '%s', but succeeded with output:\n%s" % (spec_filename, data_filename, xml))
-        except ExecuteError, ex:
+        except ExecuteError as ex:
             if ex.exit_code != 3:
                 # It should have been a decode error...
                 raise
@@ -462,7 +462,7 @@ class _BaseRegressionTest:
             if section.lower() in s.lower().split(','):
                 try:
                     return config.get(s, option)
-                except (NoOptionError, NoSectionError):
+                except (NoOptionError as NoSectionError):
                     pass
         return None
 

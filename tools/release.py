@@ -319,7 +319,7 @@ def send_email(version, changelog):
         smtp.login(user, password)
         smtp.sendmail('henry@protocollogic.com', to_addr, message)
         smtp.quit()
-    except smtplib.SMTPAuthenticationError, ex:
+    except smtplib.SMTPAuthenticationError as ex:
         print 'Authenticion error!', ex
 
 def _get_freshmeat_auth_code():
@@ -362,7 +362,7 @@ def _get_tags(connection, freshmeat_auth):
 
     # Ask the user what tags they want
     print 'Tags are:'
-    for id, text in tags.iteritems():
+    for id, text in tags.items():
         print '%i - %s' % (id, text)
     ids = [1,3]
     text = raw_input('What is the release focus? [1,3] ')

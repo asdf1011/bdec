@@ -77,7 +77,7 @@ def usage(program):
 def main():
     try:
         opts, args = getopt.getopt(sys.argv[1:], 'd:hV', ['encoder', 'help', 'main=', 'remove-unused', 'template='])
-    except getopt.GetoptError, ex:
+    except getopt.GetoptError as ex:
         sys.exit("%s.\nRun '%s -h' for correct usage." % (ex, sys.argv[0]))
 
     main_spec = None
@@ -114,7 +114,7 @@ def main():
 
     try:
         spec, common, lookup = load_specs([(s, None, None) for s in args], main_spec, should_remove_unused)
-    except bdec.spec.LoadError, ex:
+    except bdec.spec.LoadError as ex:
         sys.exit(str(ex))
 
     if template_dir is None:

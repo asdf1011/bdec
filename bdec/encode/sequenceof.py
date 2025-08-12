@@ -74,5 +74,5 @@ class SequenceOfEncoder(EntryEncoder):
             # Update the context with the detected parameters
             try:
                 self._solve(self.entry.count, count, context)
-            except SolverError, ex:
+            except SolverError as ex:
                 raise InvalidSequenceOfCount(self.entry, ex.expr, ex.expected)

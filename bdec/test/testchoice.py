@@ -1,3 +1,4 @@
+from functools import reduce
 #   Copyright (C) 2008-2011 Henry Ludemann
 #
 #   This file is part of the bdec decoder library.
@@ -63,7 +64,7 @@ def get_best_guess(entry, data):
     try:
         for is_starting, name, entry, entry_data, value in entry.decode(data):
             results.append((is_starting, entry))
-    except ConstraintError, ex:
+    except ConstraintError as ex:
         pass
     assert ex is not None
     return ex.entry, results

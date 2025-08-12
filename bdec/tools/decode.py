@@ -82,7 +82,7 @@ def _parse_args():
     should_print_spec = False
     try:
         opts, args = getopt.getopt(sys.argv[1:], 'f:hlqSV', ['help', 'main=', 'remove-unused', 'verbose'])
-    except getopt.GetoptError, ex:
+    except getopt.GetoptError as ex:
         sys.exit("%s\nSee '%s -h' for correct usage." % (ex, sys.argv[0]))
     for opt, arg in opts:
         if opt == '-f':
@@ -118,7 +118,7 @@ def main():
     main_spec, specs, binary, verbose, should_remove_unused, should_print_spec = _parse_args()
     try:
         decoder, common, lookup = load_specs([(s, None, None) for s in specs], main_spec, should_remove_unused)
-    except bdec.spec.LoadError, ex:
+    except bdec.spec.LoadError as ex:
         sys.exit(str(ex))
 
     if should_print_spec:
@@ -132,7 +132,7 @@ def main():
                 pass
         else:
             xmlout.to_file(decoder.decode(data), sys.stdout, verbose=(verbose==2))
-    except bdec.DecodeError, ex:
+    except bdec.DecodeError as ex:
         try:
             (filename, line_number, column_number) = lookup[ex.entry]
         except KeyError:

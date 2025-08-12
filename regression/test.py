@@ -1,6 +1,6 @@
 
 from collections import defaultdict
-from ConfigParser import ConfigParser
+from configparser import configparser as ConfigParser
 import glob
 import os.path
 import re

@@ -1,6 +1,6 @@
 
 import os.path
-import StringIO
+import io as StringIO
 import unittest
 
 import bdec

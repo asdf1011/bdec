@@ -169,11 +169,11 @@ class Range:
         values.append(maxx * maxy)
 
         values.sort()
-        min = values[0] if isinstance(values[0], (int, long)) else None
-        max = values[3] if isinstance(values[3], (int, long)) else None
+        min = values[0] if isinstance(values[0], int) else None
+        max = values[3] if isinstance(values[3], int) else None
         return Range(min, max)
 
-    def __div__(self, other):
+    def __truediv__(self, other):
          # Instead of implementing division, we'll just figure out the inverse,
          # and multiply the two together.
         if other.min == 0:

@@ -199,7 +199,7 @@ def load(filename, contents, references):
     parser = _Parser(references)
     try:
         entries = parser.parse(contents.read())
-    except ParseException, ex:
+    except ParseException as ex:
         raise Error(filename, ex.lineno, ex.col, ex)
     return entries[-1], lookup
 

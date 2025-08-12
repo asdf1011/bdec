@@ -1,3 +1,4 @@
+from functools import reduce
 #   Copyright (C) 2010-2011 Henry Ludemann
 #
 #   This file is part of the bdec decoder library.
@@ -45,7 +46,7 @@
 #!/usr/bin/env python
 
 import operator
-import StringIO
+import io as StringIO
 import unittest
 
 import bdec
@@ -192,7 +193,7 @@ class TestData(unittest.TestCase):
         try:
             data.text('ascii')
             self.fail('NotEnoughDataError not thrown!')
-        except dt.NotEnoughDataError, ex:
+        except dt.NotEnoughDataError as ex:
             pass
         self.assertEqual(40, ex.requested)
         self.assertEqual(24, ex.available)
@@ -210,7 +211,7 @@ class TestData(unittest.TestCase):
         try:
             dt.Data.from_binary_text('abcd')
             self.fail('Whoops, from_binary_test should have failed!')
-        except dt.InvalidBinaryTextError, ex:
+        except dt.InvalidBinaryTextError as ex:
             self.assertEqual("Invalid binary text 'abcd'", str(ex))
 
     def test_large_add(self):
@@ -221,7 +222,7 @@ class TestData(unittest.TestCase):
         try:
             a = dt.Data('', 0, 4) + dt.Data('b')
             self.fail('Should have thrown NotEnoughDataError...')
-        except dt.NotEnoughDataError, ex:
+        except dt.NotEnoughDataError as ex:
             self.assertEqual('Asked for 4 bits, but only have 0 bits available!', str(ex))
 
     def test_len_not_enough_data(self):

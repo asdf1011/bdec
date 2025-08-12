@@ -1,3 +1,4 @@
+from functools import reduce
 #   Copyright (C) 2008-2011 Henry Ludemann
 #
 #   This file is part of the bdec decoder library.
@@ -185,7 +186,7 @@ class TestField(unittest.TestCase):
         try:
             list(field.decode(dt.Data("\x07")))
             self.fail("Exception not thrown!")
-        except fld.BadRangeError, ex:
+        except fld.BadRangeError as ex:
             text = str(ex)
 
     def test_range(self):

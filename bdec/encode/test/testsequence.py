@@ -112,7 +112,7 @@ class TestSequence(unittest.TestCase):
             Field('payload', length=parse('${header:.length} * 8 - len{header:}'), format=Field.TEXT)])
         try:
             encode(a, {'payload':'boom'})
-        except CyclicEncodingError, ex:
+        except CyclicEncodingError as ex:
             self.assertTrue("'header:' -> 'payload' -> 'header:'" in str(ex), str(ex))
 
     def test_length_reference(self):

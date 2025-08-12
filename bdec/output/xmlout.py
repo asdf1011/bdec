@@ -1,3 +1,4 @@
+from functools import reduce
 #   Copyright (C) 2010-2011 Henry Ludemann
 #
 #   This file is part of the bdec decoder library.
@@ -45,7 +46,7 @@
 import logging
 import operator
 import string
-import StringIO
+import io as StringIO
 import xml.dom.minidom
 import xml.sax.saxutils
 import xml.sax.xmlreader

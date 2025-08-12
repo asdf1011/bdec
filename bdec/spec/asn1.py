@@ -1,3 +1,4 @@
+from functools import reduce
 #   Copyright (C) 2010-2012 Henry Ludemann
 #
 #   This file is part of the bdec decoder library.
@@ -331,7 +332,7 @@ class _Loader:
         """Load a bdec specification from an asn.1 document."""
         try:
             name, modules =  self._parser.parseString(text)[0]
-        except ParseException, ex:
+        except ParseException as ex:
             raise Asn1ParseError(ex, self.filename, ex.lineno)
         common = dict((entry.name, entry) for entry in modules)
         common.update(self._common_entries)

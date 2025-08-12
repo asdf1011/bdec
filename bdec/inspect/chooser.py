@@ -1,3 +1,4 @@
+from functools import reduce
 #   Copyright (C) 2008-2013 Henry Ludemann
 #
 #   This file is part of the bdec decoder library.
@@ -201,7 +202,7 @@ class _ProtocolStream:
 def _can_differentiate(lookup, fallback):
     """Test to see if a lookup differentiates itself from other options."""
     current_entries = None
-    for value, entries in lookup.iteritems():
+    for value, entries in lookup.items():
         entry_set = set(entries)
         if current_entries is None:
             current_entries = entry_set

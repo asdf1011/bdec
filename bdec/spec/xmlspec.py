@@ -43,7 +43,7 @@
 #   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import operator
-import StringIO
+import io as StringIO
 import xml.sax
 from xml.sax import saxutils
 
@@ -212,7 +212,7 @@ class _Handler(xml.sax.handler.ContentHandler):
             try:
                 not_present = exp.parse_conditional_inverse(attrs['if'])
                 not_present.name = 'not present:'
-            except exp.ExpressionError, ex:
+            except exp.ExpressionError as ex:
                 raise XmlExpressionError(ex, self._filename, self.locator)
             assert isinstance(not_present, ent.Entry)
 
@@ -244,7 +244,7 @@ class _Handler(xml.sax.handler.ContentHandler):
         for entry in children:
             try:
                 self._references.add_common(entry)
-            except DuplicateCommonError, ex:
+            except DuplicateCommonError as ex:
                 raise self._error(ex)
 
     def _protocol(self, attributes, children, name, length, breaks):
@@ -259,7 +259,7 @@ class _Handler(xml.sax.handler.ContentHandler):
     def _parse_expression(self, text):
         try:
             return exp.compile(text)
-        except exp.ExpressionError, ex:
+        except exp.ExpressionError as ex:
             raise XmlExpressionError(ex, self._filename, self.locator)
 
     def _reference(self, attributes, children, name, length, breaks):
@@ -307,7 +307,7 @@ class _Handler(xml.sax.handler.ContentHandler):
                 else:
                     assert encoding == fld.Field.LITTLE_ENDIAN
                     integer = self._integers.signed_litte_endian(length)
-            except IntegerError, error:
+            except IntegerError as error:
                 raise self._error(str(error))
             return self._references.get_common(name, integer.name)
 
@@ -340,7 +340,7 @@ class _Handler(xml.sax.handler.ContentHandler):
                 # native format.
                 try:
                     value = convert_value_context(result, expected_text, {})
-                except fld.FieldDataError, ex:
+                except fld.FieldDataError as ex:
                     raise self._error(ex)
             result.constraints.append(Equals(value))
         return result
@@ -384,7 +384,7 @@ def load(filename, specfile, references):
     parser.setContentHandler(handler)
     try:
         parser.parse(specfile)
-    except xml.sax.SAXParseException, ex:
+    except xml.sax.SAXParseException as ex:
         # The sax parse exception object can operate as a locator
         raise XmlError(ex.args[0], filename, ex)
     return (handler.decoder, handler.lookup)

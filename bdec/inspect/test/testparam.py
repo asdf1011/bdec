@@ -137,7 +137,7 @@ class TestExpressionParameters(unittest.TestCase):
         spec = Sequence('blah', [length, data])
 
         vars = ExpressionParameters([spec])
-        self.assertEquals([], vars.get_params(spec))
+        self.assertEqual([], vars.get_params(spec))
         self.assertTrue(vars.is_value_referenced(lower))
         self.assertFalse(vars.is_value_referenced(ignored))
         self.assertTrue(vars.is_value_referenced(upper))

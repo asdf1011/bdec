@@ -1,3 +1,4 @@
+from functools import reduce
 #   Copyright (C) 2010-2013 Henry Ludemann
 #
 #   This file is part of the bdec decoder library.

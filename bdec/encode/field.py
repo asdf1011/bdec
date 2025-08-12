@@ -121,7 +121,7 @@ def convert_value(entry, value, length, params=None):
                     value = _encode_unknown_variable_length_integer(entry, value, params)
             else:
                 value = Data.from_binary_text(_convert_type(entry, value, str))
-        except DataError, ex:
+        except DataError as ex:
             raise FieldDataError(entry, ex)
     elif entry.format == Field.HEX:
         if isinstance(value, Data):
@@ -196,7 +196,7 @@ def encode_value(entry, value, length=None):
 
     try:
         return _encode_data(entry, value, length)
-    except DataError, ex:
+    except DataError as ex:
         raise FieldDataError(entry, ex)
 
 
@@ -218,7 +218,7 @@ class FieldEncoder(EntryEncoder):
                     # to add leading nulls.
                     try:
                         length = self.entry.length.evaluate(context)
-                    except UndecodedReferenceError, ex:
+                    except UndecodedReferenceError as ex:
                         # We don't know what length it should be. Just make
                         # it a multiple of whole bytes.
                         length = len(value)
@@ -232,7 +232,7 @@ class FieldEncoder(EntryEncoder):
                 value = Ranges([range]).get_default()
                 try:
                     length = self.entry.length.evaluate(context)
-                except UndecodedReferenceError, ex:
+                except UndecodedReferenceError as ex:
                     # We don't know, and can't calculate, the length
                     if value == 0:
                         length = 0
@@ -251,7 +251,7 @@ class FieldEncoder(EntryEncoder):
         try:
             length = self.entry.length.evaluate(context)
             return encode_value(self.entry, value, length)
-        except UndecodedReferenceError, ex:
+        except UndecodedReferenceError as ex:
             # We don't know how long this entry should be.
             if self.entry.format == self.entry.INTEGER:
                 return _encode_unknown_variable_length_integer(self.entry, value, self._params)

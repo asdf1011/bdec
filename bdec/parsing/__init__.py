@@ -1,3 +1,4 @@
+from functools import reduce
 #   Copyright (C) 2011-2013 Henry Ludemann
 #
 #   This file is part of the bdec decoder library.
@@ -17,7 +18,7 @@
 #   <http://www.gnu.org/licenses/>.
 
 import inspect
-from string import ascii_letters as alphas, digits as nums, hexdigits as hexnums, printable as printables, lower, upper
+from string import ascii_letters as alphas, digits as nums, hexdigits as hexnums, printable as printables, ascii_lowercase as lower, ascii_uppercase as upper
 
 from bdec import DecodeError
 from bdec.choice import Choice
@@ -225,7 +226,7 @@ class ParserElement:
                 if not is_starting:
                     offset += len(data)
                 yield is_starting, name, entry, data, value
-        except DecodeError, ex:
+        except DecodeError as ex:
             raise ParseException(filename, text, offset, ex)
 
     def __add__(self, other):
@@ -287,7 +288,7 @@ def OneOrMore(element):
 class Literal(ParserElement):
     def __init__(self, text):
         ParserElement.__init__(self)
-        assert isinstance(text, basestring), 'Literal must be a string! Is %s' % (repr(text))
+        assert isinstance(text, str), 'Literal must be a string! Is %s' % (repr(text))
         assert text, "Literal text entries shouldn't be empty!"
         self.text = text
 

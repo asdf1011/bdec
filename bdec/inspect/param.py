@@ -1,3 +1,4 @@
+import functools
 #   Copyright (C) 2008-2012 Henry Ludemann
 #
 #   This file is part of the bdec decoder library.
@@ -248,7 +249,7 @@ class _VariableParam:
         if len(self.types) > 1:
             type = MultiSourceType(self.types)
         elif len(self.types) == 1:
-            type = iter(self.types).next()
+            type = next(iter(self.types))
         else:
             raise _FailedToResolveError(self.reference.name)
         return type
@@ -311,7 +312,7 @@ class ExpressionParameters(_Parameters):
                         # We only want top-level entries as this provides the
                         # most context to the user (and if a child entry is
                         # failing, so to will the top level entry).
-                        name = iter(references).next().name
+                        name = next(iter(references)).name
                         stack = self._find_child_using_param(entry, name)
                         raise UnknownReferenceError(stack[0], name, stack[1:])
         assert not should_have_failed, 'Found a parameter with an unknown type, ' \
@@ -614,7 +615,7 @@ class ExpressionParameters(_Parameters):
                 return 1
             return 0
 
-        params.sort(cmp=compare_references)
+        params.sort(key=functools.cmp_to_key(compare_references))
         return params
 
     def get_params(self, entry):

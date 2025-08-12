@@ -16,7 +16,7 @@ if __name__ == '__main__':
     spec, common, lookup = load_msword_spec()
     try:
         to_file(decode(data, common), sys.stdout)
-    except DecodeError, ex:
+    except DecodeError as ex:
         try:
             (filename, line_number, column_number) = lookup[ex.entry]
         except KeyError:

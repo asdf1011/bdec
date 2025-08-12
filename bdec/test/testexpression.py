@@ -79,12 +79,12 @@ class TestExpression(unittest.TestCase):
     def test_named_reference(self):
         a = exp.compile('${bob}')
         self.assertTrue(isinstance(a, exp.ValueResult))
-        self.assertEquals('bob', a.name)
+        self.assertEqual('bob', a.name)
 
     def test_length_lookup(self):
         a = exp.compile('len{bob}')
         self.assertTrue(isinstance(a, exp.LengthResult))
-        self.assertEquals('bob', a.name)
+        self.assertEqual('bob', a.name)
 
     def test_hex(self):
         self.assertEqual(5, eval("0x5"))
