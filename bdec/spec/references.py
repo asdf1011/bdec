@@ -168,6 +168,6 @@ class References:
 
             assert isinstance(entry, Entry)
             reference.resolve(entry)
-        for entry in lookup.values():
+        for entry in list(lookup.values()):
             assert isinstance(entry, Entry), "%s isn't an entry! This shouldn't be in common." % entry
         return [lookup[c.name] for c in self._common]

@@ -178,5 +178,5 @@ class TestInstance(unittest.TestCase):
     def test_sequence_with_hidden_field_to_string(self):
         a = seq.Sequence('a', [fld.Field('length:', 8), fld.Field('b', format=fld.Field.TEXT, length=parse('${length:} * 8'))])
         data = inst.decode(a, dt.Data('\x03cat'))
-        self.assertEqual(u"{'b': u'cat'}", unicode(data))
+        self.assertEqual("{'b': 'cat'}", str(data))
 

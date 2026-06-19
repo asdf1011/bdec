@@ -52,32 +52,32 @@ import bdec.compiler
 
 
 def usage(program):
-    print 'Compile bdec specifications into language specific decoders.'
-    print 'Usage:'
-    print '   %s [options] <spec_filename> [spec_filename] ...' % program
-    print
-    print 'Arguments:'
-    print '   spec_filename -- The filename of the specification to be compiled.'
-    print
-    print 'Options:'
-    print '  -h, --help        Print this help.'
-    print '  -d <directory>    Directory to save the generated source code. Defaults'
-    print '                    to %s.' % os.getcwd()
-    print '  --encoder         Generate an encoder as well as a decoder.'
-    print '  --main=<name>     Specify the entry to be use as the default decoder.'
-    print '  --remove-unused   Remove any entries that are not referenced from the'
-    print '                    main entry.'
-    print '  --template=<name> Set the template to compile. If there is a directory'
-    print '                    with the specified name, it will be used as the'
-    print '                    template directory. Otherwise it will use the internal'
-    print '                    template with the specified name. If not specified a'
-    print '                    C language decoder will be compiled.'
-    print '  -V                Print the version of the bdec compiler.'
+    print('Compile bdec specifications into language specific decoders.')
+    print('Usage:')
+    print('   %s [options] <spec_filename> [spec_filename] ...' % program)
+    print()
+    print('Arguments:')
+    print('   spec_filename -- The filename of the specification to be compiled.')
+    print()
+    print('Options:')
+    print('  -h, --help        Print this help.')
+    print('  -d <directory>    Directory to save the generated source code. Defaults')
+    print('                    to %s.' % os.getcwd())
+    print('  --encoder         Generate an encoder as well as a decoder.')
+    print('  --main=<name>     Specify the entry to be use as the default decoder.')
+    print('  --remove-unused   Remove any entries that are not referenced from the')
+    print('                    main entry.')
+    print('  --template=<name> Set the template to compile. If there is a directory')
+    print('                    with the specified name, it will be used as the')
+    print('                    template directory. Otherwise it will use the internal')
+    print('                    template with the specified name. If not specified a')
+    print('                    C language decoder will be compiled.')
+    print('  -V                Print the version of the bdec compiler.')
 
 def main():
     try:
         opts, args = getopt.getopt(sys.argv[1:], 'd:hV', ['encoder', 'help', 'main=', 'remove-unused', 'template='])
-    except getopt.GetoptError, ex:
+    except getopt.GetoptError as ex:
         sys.exit("%s.\nRun '%s -h' for correct usage." % (ex, sys.argv[0]))
 
     main_spec = None
@@ -98,7 +98,7 @@ def main():
         elif opt == '--main':
             main_spec = arg
         elif opt == '-V':
-            print bdec.__version__
+            print(bdec.__version__)
             sys.exit(0)
         elif opt == '--remove-unused':
             should_remove_unused = True
@@ -114,7 +114,7 @@ def main():
 
     try:
         spec, common, lookup = load_specs([(s, None, None) for s in args], main_spec, should_remove_unused)
-    except bdec.spec.LoadError, ex:
+    except bdec.spec.LoadError as ex:
         sys.exit(str(ex))
 
     if template_dir is None:

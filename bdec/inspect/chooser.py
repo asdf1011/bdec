@@ -54,6 +54,7 @@ from bdec.inspect.param import UnknownReferenceError
 import bdec.sequence as seq
 import bdec.sequenceof as sof
 from collections import defaultdict
+from functools import reduce
 
 class _UnknownData:
     """
@@ -155,7 +156,7 @@ class _ProtocolStream:
             return False
         return self.data == other.data
 
-    def next(self):
+    def __next__(self):
         """Return an iterator to _ProtocolStream items"""
         return self._next(0)
 
@@ -201,7 +202,7 @@ class _ProtocolStream:
 def _can_differentiate(lookup, fallback):
     """Test to see if a lookup differentiates itself from other options."""
     current_entries = None
-    for value, entries in lookup.iteritems():
+    for value, entries in lookup.items():
         entry_set = set(entries)
         if current_entries is None:
             current_entries = entry_set
@@ -276,14 +277,14 @@ def _differentiate(entries):
 
         for entry, option in options[:]:
             if len(option.data) == 0:
-                next = list((entry, next) for next in option.next())
+                next_options = list((entry, item) for item in next(option))
                 options.remove((entry, option))
-                for item in next:
+                for item in next_options:
                     if item not in options:
                         # We found a unique item!
                         options.append(item)
 
-                if len(next) == 0:
+                if len(next_options) == 0:
                     have_new_success = True
                     finished.add(entry)
 
@@ -320,7 +321,7 @@ class Chooser:
         copy = data.copy()
         for offset, length, lookup, undistinguished, finished, possible_failure in self._cache:
             lookup_entries = set()
-            for keyed_entries in lookup.values():
+            for keyed_entries in list(lookup.values()):
                 lookup_entries.update(keyed_entries)
 
             assert set(self._entries) == lookup_entries | undistinguished | \

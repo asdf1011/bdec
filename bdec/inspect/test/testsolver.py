@@ -42,7 +42,7 @@ def _solve(entry, child, value, context=None):
     ent = entry.children[child].entry if child is not None else entry
     result = solve(ent.value, ent,
             ExpressionParameters([entry]), context, value)
-    return dict((str(c), v) for c,v in result.items())
+    return dict((str(c), v) for c,v in list(result.items()))
 
 
 class TestSolver (unittest.TestCase):

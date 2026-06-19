@@ -54,6 +54,7 @@ from bdec.entry import Child
 from bdec.expression import compile, Constant, ArithmeticExpression, UndecodedReferenceError
 from bdec.field import Field
 from bdec.sequence import Sequence
+from functools import reduce
 
 class IntegerError(Exception):
     pass
@@ -116,7 +117,7 @@ class Integers:
             result = self.common[name]
         except KeyError:
             children = []
-            num_bytes = length / 8
+            num_bytes = length // 8
             for i in range(num_bytes - 1):
                 children.append(Field('byte %i:' % i, 8))
             children.append(Field('signed:', 1))

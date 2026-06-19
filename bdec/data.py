@@ -48,6 +48,22 @@ import string
 import struct
 import weakref
 
+
+def _byte_value(value):
+    """Return an integer byte from a one-byte str/bytes/int value."""
+    if isinstance(value, int):
+        return value
+    if isinstance(value, bytes):
+        return value[0]
+    return ord(value)
+
+
+def _to_text_bytes(value):
+    """Normalize bytes-like input to the Python-2 style latin1 str used internally."""
+    if isinstance(value, bytes):
+        return value.decode('latin1')
+    return value
+
 import bdec
 
 class DataError(Exception):
@@ -165,7 +181,7 @@ class _ByteBuffer(object):
         byte = 0
         for char in self._bytes():
             value = byte << (8 - num_bits)
-            byte = ord(char)
+            byte = _byte_value(char)
             value |= byte >> num_bits
             yield chr(value & 0xFF)
         yield chr((byte << (8 - num_bits)) & 0xff)
@@ -174,8 +190,13 @@ class _ByteBuffer(object):
         if num_bits == 0:
             return self
         elif num_bits % 8  == 0:
-            return _MemoryBuffer('\x00' * (num_bits / 8) + self._bytes())
+            return _MemoryBuffer('\x00' * (num_bits // 8) + self._bytes())
         return _MemoryBuffer(''.join(self._shift_chars(num_bits)))
+
+    def __getitem__(self, key):
+        if isinstance(key, slice):
+            return _MemoryBuffer(self._bytes()[key])
+        return self.read_byte(key)
 
     def __getslice__(self, start, end):
         result = _MemoryBuffer(self._bytes()[start:end])
@@ -195,7 +216,7 @@ class _FileBuffer(_ByteBuffer):
         if len(result) == 0:
             raise _OutOfDataError()
         self._offset = offset + 1
-        return ord(result)
+        return _byte_value(result)
 
     def __len__(self):
         pos = self._file.tell()
@@ -219,7 +240,7 @@ class _NonSeekingFileBuffer(_ByteBuffer):
             self._buffer += self._file.read(extra_bytes_needed)
             if len(self._buffer) < offset + 1:
                 raise _OutOfDataError()
-        return ord(self._buffer[offset])
+        return _byte_value(self._buffer[offset])
 
     def __len__(self):
         try:
@@ -232,14 +253,15 @@ class _NonSeekingFileBuffer(_ByteBuffer):
 class _MemoryBuffer(_ByteBuffer):
     """Byte buffer that reads directly from in memory data."""
     def __init__(self, buffer):
-        assert isinstance(buffer, str), "Expected a string; got %s!" % repr(buffer)
+        buffer = _to_text_bytes(buffer)
+        assert isinstance(buffer, str), "Expected a string/bytes; got %s!" % repr(buffer)
         self._buffer = buffer
 
     def read_byte(self, offset):
         """Read a byte at a given offset"""
         if offset >= len(self._buffer):
             raise _OutOfDataError()
-        return ord(self._buffer[offset])
+        return _byte_value(self._buffer[offset])
 
     def __len__(self):
         return len(self._buffer)
@@ -271,7 +293,7 @@ class Data(object):
         # data objects behave differently depending on what they were 
         # constructed from (a source of bugs) (eg: verification of length
         # at pop time, as opposed to read time).
-        if isinstance(buffer, str):
+        if isinstance(buffer, (str, bytes)):
             self._buffer = _MemoryBuffer(buffer)
         elif isinstance(buffer, _ByteBuffer):
             self._buffer = buffer
@@ -337,14 +359,14 @@ class Data(object):
         
         encoding -- The unicode encoding the data is in. """
         try:
-            return unicode(self.bytes(), encoding)
+            return self.bytes().encode('latin1').decode(encoding)
         except UnicodeDecodeError:
             raise BadTextEncodingError(self, encoding)
 
     def __repr__(self):
         """Return a textual representation of the data."""
         if len(self) % 8 == 0:
-            return 'hex (%i bytes): %s' % (len(self) / 8, self.get_hex())
+            return 'hex (%i bytes): %s' % (len(self) // 8, self.get_hex())
         else:
             return 'bin (%i bits): %s' % (len(self), self.get_binary_text())
 
@@ -374,10 +396,10 @@ class Data(object):
         b = other._get_bits()
         while 1:
             try:
-                a_bit = a.next()
+                a_bit = next(a)
             except StopIteration:
                 try:
-                    b.next()
+                    next(b)
                     # Not equal, as 'other' is longer then we are
                     return False
                 except StopIteration:
@@ -385,7 +407,7 @@ class Data(object):
                     return True
 
             try:
-                b_bit = b.next()
+                b_bit = next(b)
             except StopIteration:
                 # Not equal, as we are longer than 'other'
                 return False
@@ -407,7 +429,7 @@ class Data(object):
             self._end = end
         return self._end - self._start
 
-    def __nonzero__(self):
+    def __bool__(self):
         return not self.empty()
 
     def empty(self):
@@ -422,7 +444,7 @@ class Data(object):
         # We don't know where the data ends, so look to see if we can read
         # more of the data.
         try:
-            self._get_bits().next()
+            next(self._get_bits())
             return False
         except StopIteration:
             pass
@@ -438,7 +460,7 @@ class Data(object):
         i += self._start
         if self._end is not None and i >= self._end:
             raise _OutOfDataError()
-        byte = i / 8
+        byte = i // 8
         i = i % 8
         return (self._buffer.read_byte(byte) >> (7 - i)) & 1
 
@@ -504,8 +526,8 @@ class Data(object):
         if not other:
             return self
 
-        left = self._buffer[self._start / 8:(self._end - 1) / 8 + 1]
-        right = other._buffer[other._start / 8:(other._end - 1) / 8 + 1]
+        left = self._buffer[self._start // 8:(self._end - 1) // 8 + 1]
+        right = other._buffer[other._start // 8:(other._end - 1) // 8 + 1]
 
         # Shift the shorter data object (as the shift is relatively intensive)
         if len(self) < len(other):
@@ -518,7 +540,7 @@ class Data(object):
             # It's possible we have to truncate the buffer here, as we may
             # have create an extra byte on the right that contains data we
             # don't care about.
-            left = left[:(left_start + len(self) - 1) / 8 + 1]
+            left = left[:(left_start + len(self) - 1) // 8 + 1]
         else:
             # The right hand buffer is shorter than the left, so shift it so it
             # aligns with the left
@@ -527,12 +549,12 @@ class Data(object):
             left_start = self._start % 8
             right >>= distance
             right_start = other._start % 8 + distance
-            right = right[right_start / 8:(right_start + len(other) - 1) / 8 + 1]
+            right = right[right_start // 8:(right_start + len(other) - 1) // 8 + 1]
 
         if (left_start + len(self)) % 8 and len(self) and len(other):
             # The left doesn't end on a whole byte; create a joining byte to
             # connect the left & right
-            merge_byte = (left_start + len(self) - 1) / 8
+            merge_byte = (left_start + len(self) - 1) // 8
 
             overlapping_bits = (left_start + len(self)) % 8
             overlap =  left.read_byte(merge_byte) & (0xff << (8 - overlapping_bits))
@@ -550,7 +572,7 @@ class Data(object):
         if self._start % 8 == 0 and self._end is not None and self._end % 8 == 0:
             # Optimise for the case where we know the length of the data, and
             # it is byte aligned.
-            for i in xrange(self._start / 8, self._end / 8):
+            for i in range(self._start // 8, self._end // 8):
                 try:
                     yield self._buffer.read_byte(i)
                 except _OutOfDataError:
@@ -572,10 +594,11 @@ class Data(object):
         """
         Convert the data buffer to a float that has been encoded in big endian.
         """
+        raw = self.bytes().encode('latin1')
         if len(self) == 4 * 8:
-            return struct.unpack('>f', self.bytes())[0]
+            return struct.unpack('>f', raw)[0]
         elif len(self) == 8 * 8:
-            return struct.unpack('>d', self.bytes())[0]
+            return struct.unpack('>d', raw)[0]
         else:
             raise FloatLengthError(self)
 
@@ -583,10 +606,11 @@ class Data(object):
         """
         Convert the data buffer to a float that has been encoded in little endian.
         """
+        raw = self.bytes().encode('latin1')
         if len(self) == 4 * 8:
-            return struct.unpack('<f', self.bytes())[0]
+            return struct.unpack('<f', raw)[0]
         elif len(self) == 8 * 8:
-            return struct.unpack('<d', self.bytes())[0]
+            return struct.unpack('<d', raw)[0]
         else:
             raise FloatLengthError(self)
 
@@ -660,7 +684,7 @@ class Data(object):
         if length % 8 != 0:
             raise ConversionNeedsBytesError(self)
         chars = []
-        for i in range(length / 8):
+        for i in range(length // 8):
             chars.append(chr(data & 0xff))
             data >>= 8
         if data != 0:
@@ -674,7 +698,7 @@ class Data(object):
         length -- The length in bits of the data buffer to create."""
         data = int(value)
         chars = []
-        num_bytes = length / 8
+        num_bytes = length // 8
         if length % 8 != 0:
             num_bytes += 1
         for i in range(num_bytes):
@@ -710,7 +734,7 @@ class Data(object):
             if len(entry) % 2:
                 entry = '0' + entry
 
-            for i in range(len(entry) / 2):
+            for i in range(len(entry) // 2):
                 offset = i * 2
                 value = entry[offset:offset + 2]
                 for char in value:

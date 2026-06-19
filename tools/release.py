@@ -4,7 +4,7 @@
 
 import datetime
 import getpass
-import httplib
+import http.client
 import json
 import os.path
 import re
@@ -19,26 +19,26 @@ sys.path.append(root_path)
 import bdec
 
 def usage():
-    print "A script to simplify deploying new releases."
-    print
-    print "Usage: %s" % sys.argv[0]
-    print
-    print "This script will;"
-    print " 1. Check that all source files have copyright statements."
-    print " 2. Get the changelog from the README."
-    print " 3. If the changelog version matches the bdec version, will prompt "
-    print "    to update the website documentation."
-    print " 4. If the changelog version doesn't match the bdec version, it will;"
-    print "    a) Update the bdec/__init__.py version."
-    print "    b) Insert today's date into the README changelog."
-    print "    c) Update the website bdec documentation."
-    print "    d) Create a new tarball in the website 'files' folder."
-    print "    e) Prompt if the user wants to upload and notify others of this"
-    print "       release. If so, all changes will be automatically committed,"
-    print "       the website will have the changes uploaded, and a new tag will"
-    print "       be created in source control."
-    print "    f) Prompt if user wants freshmeat & pypi to be notified. If so,"
-    print "       README changlog will be used."
+    print("A script to simplify deploying new releases.")
+    print()
+    print("Usage: %s" % sys.argv[0])
+    print()
+    print("This script will;")
+    print(" 1. Check that all source files have copyright statements.")
+    print(" 2. Get the changelog from the README.")
+    print(" 3. If the changelog version matches the bdec version, will prompt ")
+    print("    to update the website documentation.")
+    print(" 4. If the changelog version doesn't match the bdec version, it will;")
+    print("    a) Update the bdec/__init__.py version.")
+    print("    b) Insert today's date into the README changelog.")
+    print("    c) Update the website bdec documentation.")
+    print("    d) Create a new tarball in the website 'files' folder.")
+    print("    e) Prompt if the user wants to upload and notify others of this")
+    print("       release. If so, all changes will be automatically committed,")
+    print("       the website will have the changes uploaded, and a new tag will")
+    print("       be created in source control.")
+    print("    f) Prompt if user wants freshmeat & pypi to be notified. If so,")
+    print("       README changlog will be used.")
 
 _README = os.path.join(root_path, 'README.rst')
 _CHANGELOG = os.path.join(root_path, 'CHANGELOG')
@@ -48,7 +48,7 @@ project_dir = os.path.join(root_path, '..', 'protocollogic', 'protocollogic.com'
 freshmeat_pass = os.path.join(website_dir, 'freshmeat.txt')
 
 def _check_copyright_statements(subdirs):
-    print 'Checking for copyright notices in source files...'
+    print('Checking for copyright notices in source files...')
     is_missing_copyright = False
     for subdir in subdirs:
         for dir, subdirs, filenames in os.walk(os.path.join(root_path, subdir)):
@@ -60,13 +60,13 @@ def _check_copyright_statements(subdirs):
                         if 'Copyright' in line:
                             break
                     else:
-                        print "'%s' doesn't include copyright information!" % filename
+                        print("'%s' doesn't include copyright information!" % filename)
                         is_missing_copyright = True
     if is_missing_copyright:
         sys.exit('Copyright issues must be resolved.')
 
 def _read_changelog():
-    readme = file(_CHANGELOG, 'r')
+    readme = open(_CHANGELOG, 'r')
     contents = readme.read()
     readme.close()
     return contents
@@ -155,7 +155,7 @@ def _create_changelog_html():
     _generate_html(contents)
     os.rename('index.html', 'changelog.html')
 
-def _create_index_file(version):
+def _create_index_open(version):
     # Create a temporary file that contains a modified readme
     version, date, notes = get_changelog()[0]
     notes = '\n  '.join(notes.splitlines())
@@ -173,12 +173,12 @@ def _create_index_file(version):
     _generate_html(contents)
 
 def _create_pdf(version, target):
-    print 'Generating pdf documentation...'
+    print('Generating pdf documentation...')
     os.chdir(os.path.join(root_path, 'docs'))
     command = 'PYTHONPATH=%s sphinx-build -c tempdir -b latex -a source tempdir' % (root_path)
     if not os.path.exists('tempdir'):
         os.mkdir('tempdir')
-    conf = file('tempdir/conf.py', 'w')
+    conf = open('tempdir/conf.py', 'w')
     conf.write('''latex_documents=[('index', 'bdec-%s.tex', 'Bdec binary specifications', 'Henry Ludemann', 'manual', True)]
 release='%s' ''' % (version, version))
     conf.close()
@@ -190,19 +190,19 @@ release='%s' ''' % (version, version))
     shutil.rmtree('tempdir')
 
 def generate_website_files(version):
-    print 'Updating project index...'
+    print('Updating project index...')
 
     pdf_file = os.path.join(project_dir, 'files', 'bdec-%s.pdf' % version)
-    if not os.path.exists(pdf_file) or raw_input("Pdf documentation '%s' exists! Regenerate? [y]" % pdf_file) in ('', 'Y', 'y'):
+    if not os.path.exists(pdf_file) or input("Pdf documentation '%s' exists! Regenerate? [y]" % pdf_file) in ('', 'Y', 'y'):
         _create_pdf(version, pdf_file)
     else:
-        print 'Not regenerating pdf...'
+        print('Not regenerating pdf...')
 
     os.chdir(project_dir)
     _create_changelog_html()
-    _create_index_file(version)
+    _create_index_open(version)
 
-    print 'Updating project documentation...'
+    print('Updating project documentation...')
     os.chdir(os.path.join(root_path, 'docs'))
     html_doc_dir = os.path.join(project_dir, 'docs')
     command = 'PYTHONPATH=%s sphinx-build -a source tempdir' % (root_path)
@@ -225,9 +225,9 @@ def create_release_tarball(version):
     os.chdir(root_path)
     destination = os.path.join(project_dir, 'files', 'bdec-%s.tar.gz' % version)
     if os.path.exists(destination):
-        text = raw_input("Archive '%s' exists! Overwrite? [n]" % destination)
+        text = input("Archive '%s' exists! Overwrite? [n]" % destination)
         if text != 'y':
-            print 'Not updated archiving...'
+            print('Not updated archiving...')
             return
 
     command = 'git archive --format=tar --prefix=bdec-%s/ HEAD | gzip > %s' % (version, destination)
@@ -246,25 +246,25 @@ def tag_changes(version):
     if git.wait() != 0:
         sys.exit('Failed to read git tags!')
     if tag not in tags:
-        text = raw_input("Create new tag '%s'? [y]" % tag)
+        text = input("Create new tag '%s'? [y]" % tag)
     else:
-        text = raw_input("Tag '%s' exists! Overwrite? [y]" % tag)
+        text = input("Tag '%s' exists! Overwrite? [y]" % tag)
 
     if text.strip() and text != 'y':
-        print 'Not tagged.'
+        print('Not tagged.')
     elif os.system('git tag -f "%s"' % tag) != 0:
         sys.exit('Failed to tag!')
 
 def _edit_message(message):
     filename = 'message.edit'
-    data = file(filename, 'w')
+    data = open(filename, 'w')
     data.write(message)
     data.close()
 
     if os.system('vi %s' % filename) != 0:
         sys.exit('Stopping due to edit message failure!')
 
-    data = file(filename, 'r')
+    data = open(filename, 'r')
     message = data.read()
     data.close()
     os.remove(filename)
@@ -274,13 +274,13 @@ def commit_website(version):
     os.chdir(project_dir)
     if os.system('git diff HEAD') != 0:
         sys.exit('Stopped after reviewing changes.')
-    text = raw_input('Commit website changes? [y]')
+    text = input('Commit website changes? [y]')
     if text and text != 'y':
-        print 'Not committed.'
+        print('Not committed.')
         return False
 
     # Commit the website changes
-    data = file('.commitmsg', 'w')
+    data = open('.commitmsg', 'w')
     data.write('Updated bdec project to version %s' % version)
     data.close()
     if os.system('git commit --file .commitmsg --edit') != 0:
@@ -308,10 +308,10 @@ def send_email(version, changelog):
     os.remove('.emailmsg')
 
     try:
-        user = raw_input('Enter gmail username:')
+        user = input('Enter gmail username:')
         password = getpass.getpass()
 
-        print 'Sending email...'
+        print('Sending email...')
         smtp = smtplib.SMTP('smtp.gmail.com', 587)
         smtp.ehlo()
         smtp.starttls()
@@ -319,18 +319,18 @@ def send_email(version, changelog):
         smtp.login(user, password)
         smtp.sendmail('henry@protocollogic.com', to_addr, message)
         smtp.quit()
-    except smtplib.SMTPAuthenticationError, ex:
-        print 'Authenticion error!', ex
+    except smtplib.SMTPAuthenticationError as ex:
+        print('Authenticion error!', ex)
 
 def _get_freshmeat_auth_code():
     if os.path.exists(freshmeat_pass):
-        print 'Reading freshmeat credentials from', freshmeat_pass
-        data = file(freshmeat_pass, 'r')
+        print('Reading freshmeat credentials from', freshmeat_pass)
+        data = open(freshmeat_pass, 'r')
         result = data.read()
         data.close()
     else:
-        result = raw_input('Enter freshmeat auth token (from user page):')
-        data = file(freshmeat_pass, 'w')
+        result = input('Enter freshmeat auth token (from user page):')
+        data = open(freshmeat_pass, 'w')
         data.write(result)
         data.close()
     result = result.strip()
@@ -351,7 +351,7 @@ def _get_tags(connection, freshmeat_auth):
     data = response.read()
     conn.close()
     if response.status >= 400:
-        print response.status, response.reason
+        print(response.status, response.reason)
         sys.exit('Failed to query freshmeat tags! (%s)' % data)
     tags = set()
     for release in json.loads(data):
@@ -361,26 +361,26 @@ def _get_tags(connection, freshmeat_auth):
     tags = dict(enumerate(tags))
 
     # Ask the user what tags they want
-    print 'Tags are:'
-    for id, text in tags.iteritems():
-        print '%i - %s' % (id, text)
+    print('Tags are:')
+    for id, text in tags.items():
+        print('%i - %s' % (id, text))
     ids = [1,3]
-    text = raw_input('What is the release focus? [1,3] ')
+    text = input('What is the release focus? [1,3] ')
     if text.strip():
         ids = [int(id.strip()) for id in text.split(',')]
     return ', '.join(tags[id] for id in ids)
 
 def notify(version, changelog, freshmeat_auth=_get_freshmeat_auth_code,
-        connection=httplib.HTTPConnection, system=os.system, confirm=raw_input,
+        connection=http.client.HTTPConnection, system=os.system, confirm=input,
         tag_list=_get_tags):
     # This is a fresmeat limit
     MAX_CHARS = 600
     short_message = shorten_changelog(changelog)
     while len(short_message) > 600:
-        print 'Changelog is too long (must be less then %i characters, is %i)' % (MAX_CHARS, len(short_message))
-        text = raw_input('Edit changelog for submission? [y]')
+        print('Changelog is too long (must be less then %i characters, is %i)' % (MAX_CHARS, len(short_message)))
+        text = input('Edit changelog for submission? [y]')
         if text and text != 'y':
-            print 'Servers not notified of release.'
+            print('Servers not notified of release.')
             return
 
         short_message = _edit_message(short_message)
@@ -388,12 +388,12 @@ def notify(version, changelog, freshmeat_auth=_get_freshmeat_auth_code,
     # Notify freshmeat
     if confirm('Should freshmeat be notified? [y]') in ['', 'y', 'Y']:
         release = {
-                'auth_code': freshmeat_auth(),
                 'release':{
                     'tag_list':tag_list(connection, freshmeat_auth),
                     'version':str(version),
                     'changelog':short_message
                     },
+                'auth_code': freshmeat_auth(),
                 }
         headers = {"Content-type": "application/json"}
         conn = connection("freshmeat.net")
@@ -402,12 +402,12 @@ def notify(version, changelog, freshmeat_auth=_get_freshmeat_auth_code,
         data = response.read()
         conn.close()
         if response.status >= 400:
-            print response.status, response.reason
+            print(response.status, response.reason)
             sys.exit('Failed to submit to freshmeat! (%s)' % data)
-        print "Created release; %s %s\n%s" % (response.status, response.reason, data)
+        print("Created release; %s %s\n%s" % (response.status, response.reason, data))
 
     else:
-        print 'Not notifying freshmeat.'
+        print('Not notifying freshmeat.')
 
     # Notify the python package index
     if confirm('Should pypi be notified? [y]') in ['', 'y', 'Y']:
@@ -416,19 +416,19 @@ def notify(version, changelog, freshmeat_auth=_get_freshmeat_auth_code,
         if system(command) != 0:
             sys.exit('Failed to update python package index!')
     else:
-        print 'Not notifying pypi.'
+        print('Not notifying pypi.')
 
     if confirm('Send an email to the bdec mailing list? [y]') in ['', 'y', 'Y']:
         send_email(version, changelog)
 
 def upload():
-    print "Uploading to the server..."
+    print("Uploading to the server...")
     while 1:
         os.chdir(project_dir)
         command = "../../google_appengine/appcfg.py update ../"
         if os.system(command) == 0:
             break
-        text = raw_input('Failed to upload to the server! Try again? [y]')
+        text = input('Failed to upload to the server! Try again? [y]')
         if text.strip() and text != 'y':
             sys.exit('Not uploaded.')
 
@@ -436,7 +436,7 @@ def has_modifications():
     process = subprocess.Popen(['git', 'status', '--porcelain'],
             stdout=subprocess.PIPE)
     output = process.stdout.read()
-    print output
+    print(output)
     assert process.wait() == 0, 'Failed to query git status.'
     return len(output.strip()) != 0
 
@@ -451,16 +451,16 @@ def main():
     if version != bdec.__version__:
         sys.exit("Version mismatch! Changelog version is '%s', bdec version is '%s'" % (version, bdec.__version__))
 
-    print "Preparing new bdec release", version
-    print "Changes are;"
-    print shorten_changelog(changelog)
-    print
+    print("Preparing new bdec release", version)
+    print("Changes are;")
+    print(shorten_changelog(changelog))
+    print()
 
     generate_website_files(version)
     create_release_tarball(version)
 
     os.chdir(root_path)
-    if has_modifications() and raw_input('Source tree has changes! Stop? [y]') != 'n':
+    if has_modifications() and input('Source tree has changes! Stop? [y]') != 'n':
         sys.exit('Stopping due to changes in the source tree.')
 
     os.chdir(root_path)

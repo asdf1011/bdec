@@ -17,7 +17,7 @@
 #   <http://www.gnu.org/licenses/>.
 
 import inspect
-from string import ascii_letters as alphas, digits as nums, hexdigits as hexnums, printable as printables, lower, upper
+from string import ascii_letters as alphas, digits as nums, hexdigits as hexnums, printable as printables, ascii_lowercase as lower, ascii_uppercase as upper
 
 from bdec import DecodeError
 from bdec.choice import Choice
@@ -29,6 +29,7 @@ from bdec.field import Field
 from bdec.sequence import Sequence
 from bdec.sequenceof import SequenceOf
 from bdec.spec.references import ReferencedEntry
+from functools import reduce
 
 alphanums = alphas + nums
 
@@ -42,7 +43,7 @@ class ParseException(DecodeError):
 
     @property
     def _lines(self):
-        return self._text[:self._offset / 8].splitlines() or ['']
+        return self._text[:self._offset // 8].splitlines() or ['']
 
     @property
     def lineno(self):
@@ -157,7 +158,7 @@ class ParserElement:
         return self.addParseAction(fn)
 
     def addParseAction(self, fn):
-        num_args = len(inspect.getargspec(fn)[0])
+        num_args = len(inspect.getfullargspec(fn).args)
         if num_args == 3:
             action = lambda t:fn('', 0, t)
         elif num_args == 2:
@@ -169,7 +170,7 @@ class ParserElement:
         return self
 
     def parseString(self, text):
-        if isinstance(text, unicode):
+        if isinstance(text, str):
             text = text.encode('ascii')
 
         token_stack = [[]]
@@ -225,7 +226,7 @@ class ParserElement:
                 if not is_starting:
                     offset += len(data)
                 yield is_starting, name, entry, data, value
-        except DecodeError, ex:
+        except DecodeError as ex:
             raise ParseException(filename, text, offset, ex)
 
     def __add__(self, other):
@@ -287,7 +288,7 @@ def OneOrMore(element):
 class Literal(ParserElement):
     def __init__(self, text):
         ParserElement.__init__(self)
-        assert isinstance(text, basestring), 'Literal must be a string! Is %s' % (repr(text))
+        assert isinstance(text, str), 'Literal must be a string! Is %s' % (repr(text))
         assert text, "Literal text entries shouldn't be empty!"
         self.text = text
 
@@ -529,9 +530,9 @@ def srange(text):
 
 def _get_caseless_action(text):
     if text[0].isupper():
-        action = upper
+        action = str.upper
     else:
-        action = lower
+        action = str.lower
     return lambda t:action(t[0])
 
 def CaselessLiteral(text):

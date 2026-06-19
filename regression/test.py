@@ -1,6 +1,6 @@
 
 from collections import defaultdict
-from ConfigParser import ConfigParser
+from configparser import ConfigParser
 import glob
 import os.path
 import re
@@ -45,7 +45,7 @@ def _find_regression_tests(spec_extension, regression_dir):
             else:
                 assert os.path.splitext(filename) not in ['swp'], \
                         "Unknown regression file '%s'!" % path
-    for name, test in tests.items():
+    for name, test in list(tests.items()):
         entry = None
         if '-' in name:
             assert test.filename is None
@@ -63,12 +63,14 @@ def _create_test_cases():
 
     return -- A dictionary of name to test class.
     """
-    config = ConfigParser()
+    config = ConfigParser(strict=False)
     config.read(os.path.join(os.path.dirname(__file__), 'fixme.cfg'))
 
     result = {}
     regression_dir = os.path.dirname(__file__)
     for name in os.listdir(regression_dir):
+        if name.startswith('__'):
+            continue
         path = os.path.join(regression_dir, name)
         if os.path.isdir(path):
             result.update(create_classes(name, _find_regression_tests(name, path), config))

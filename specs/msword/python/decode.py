@@ -15,12 +15,12 @@ if __name__ == '__main__':
     data = Data(open(sys.argv[1], 'rb'))
     spec, common, lookup = load_msword_spec()
     try:
-        to_file(decode(data, common), sys.stdout)
-    except DecodeError, ex:
+        to_open(decode(data, common), sys.stdout)
+    except DecodeError as ex:
         try:
             (filename, line_number, column_number) = lookup[ex.entry]
         except KeyError:
             (filename, line_number, column_number) = ('unknown', 0, 0)
 
-        print
+        print()
         sys.exit("%s[%i]: %s" % (filename, line_number, str(ex)))

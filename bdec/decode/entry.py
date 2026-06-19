@@ -133,7 +133,7 @@ class EntryDecoder:
         if self.entry.length is not None:
             try:
                 data = data.pop(self.entry.length.evaluate(context))
-            except dt.DataError, ex:
+            except dt.DataError as ex:
                 raise EntryDataError(self.entry, ex)
 
         # Do the actual decode of this entry (and all child entries).

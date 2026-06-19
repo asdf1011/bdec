@@ -43,7 +43,7 @@
 #   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import operator
-import StringIO
+import io
 import xml.sax
 from xml.sax import saxutils
 
@@ -167,25 +167,25 @@ class _Handler(xml.sax.handler.ContentHandler):
         children = self._children[-1]
 
         length = None
-        if attrs.has_key('length'):
+        if 'length' in attrs:
             length = self._parse_expression(attrs['length'])
         entry_name = ""
-        if attrs.has_key('name'):
+        if 'name' in attrs:
             entry_name = attrs['name']
         entry = self._handlers[name](attrs, children, entry_name, length, breaks)
 
         # Check for value constraints
         constraints = []
-        if attrs.has_key('min'):
+        if 'min' in attrs:
             minimum = self._parse_expression(attrs['min'])
             constraints.append(Minimum(minimum))
-        if attrs.has_key('max'):
+        if 'max' in attrs:
             maximum = self._parse_expression(attrs['max'])
             constraints.append(Maximum(maximum))
-        if attrs.has_key('expected'):
+        if 'expected' in attrs:
             expected = self._parse_expression(attrs['expected'])
             constraints.append(Equals(expected))
-        if name == 'field' and not isinstance(entry, fld.Field) and attrs.has_key('value'):
+        if name == 'field' and not isinstance(entry, fld.Field) and 'value' in attrs:
             # Fields that are long integers can be internally converted to
             # references to Sequences; we need to handle the expected values.
             expected = self._parse_expression(attrs['value'])
@@ -204,7 +204,7 @@ class _Handler(xml.sax.handler.ContentHandler):
 
         self._children.pop()
 
-        if attrs.has_key('if'):
+        if 'if' in attrs:
             # This is a 'conditional' entry; only present if the expression in
             # 'if' is true. To decode this, we create a choice with a 'not
             # present' option; this option attempts to decode first, with the
@@ -212,7 +212,7 @@ class _Handler(xml.sax.handler.ContentHandler):
             try:
                 not_present = exp.parse_conditional_inverse(attrs['if'])
                 not_present.name = 'not present:'
-            except exp.ExpressionError, ex:
+            except exp.ExpressionError as ex:
                 raise XmlExpressionError(ex, self._filename, self.locator)
             assert isinstance(not_present, ent.Entry)
 
@@ -244,7 +244,7 @@ class _Handler(xml.sax.handler.ContentHandler):
         for entry in children:
             try:
                 self._references.add_common(entry)
-            except DuplicateCommonError, ex:
+            except DuplicateCommonError as ex:
                 raise self._error(ex)
 
     def _protocol(self, attributes, children, name, length, breaks):
@@ -253,13 +253,13 @@ class _Handler(xml.sax.handler.ContentHandler):
             self.decoder = children[0]
         else:
             self.decoder = None
-        for entry in self._integers.common.values():
+        for entry in list(self._integers.common.values()):
             self._references.add_common(entry)
 
     def _parse_expression(self, text):
         try:
             return exp.compile(text)
-        except exp.ExpressionError, ex:
+        except exp.ExpressionError as ex:
             raise XmlExpressionError(ex, self._filename, self.locator)
 
     def _reference(self, attributes, children, name, length, breaks):
@@ -277,7 +277,7 @@ class _Handler(xml.sax.handler.ContentHandler):
         if length is None:
             raise self._error("Field entries required a 'length' attribute")
 
-        if attributes.has_key('type'):
+        if 'type' in attributes:
             lookup = {
                 "binary" : fld.Field.BINARY,
                 "hex" : fld.Field.HEX,
@@ -290,7 +290,7 @@ class _Handler(xml.sax.handler.ContentHandler):
 
             format = lookup[attributes['type']]
         encoding = None
-        if attributes.has_key('encoding'):
+        if 'encoding' in attributes:
             encoding = attributes['encoding']
             if format is fld.Field.INTEGER:
                 _integer_encodings = [fld.Field.LITTLE_ENDIAN, fld.Field.BIG_ENDIAN]
@@ -307,13 +307,13 @@ class _Handler(xml.sax.handler.ContentHandler):
                 else:
                     assert encoding == fld.Field.LITTLE_ENDIAN
                     integer = self._integers.signed_litte_endian(length)
-            except IntegerError, error:
+            except IntegerError as error:
                 raise self._error(str(error))
             return self._references.get_common(name, integer.name)
 
         # We'll create the field, then use it to create the expected value.
         result = fld.Field(name, length, format, encoding)
-        if attributes.has_key('value'):
+        if 'value' in attributes:
             # Get the correct object type by encoding, then decoding, the text
             # value.
             expected_text = attributes['value']
@@ -329,7 +329,7 @@ class _Handler(xml.sax.handler.ContentHandler):
                         # We'll align it to whole bytes, just in case.
                         expected_length += 4
                         assert expected_length % 8 == 0
-                data = dt.Data('\x00' * (expected_length / 8 + 8))
+                data = dt.Data('\x00' * (expected_length // 8 + 8))
                 data += dt.Data.from_hex(expected_text[2:])
                 unused = data.pop(len(data) - expected_length)
                 if len(unused) and int(unused) != 0:
@@ -340,14 +340,14 @@ class _Handler(xml.sax.handler.ContentHandler):
                 # native format.
                 try:
                     value = convert_value_context(result, expected_text, {})
-                except fld.FieldDataError, ex:
+                except fld.FieldDataError as ex:
                     raise self._error(ex)
             result.constraints.append(Equals(value))
         return result
 
     def _sequence(self, attributes, children, name, length, breaks):
         value = None
-        if attributes.has_key('value'):
+        if 'value' in attributes:
             # A sequence can have a value derived from its children...
             value = self._parse_expression(attributes['value'])
         return seq.Sequence(name, children, value, length)
@@ -363,7 +363,7 @@ class _Handler(xml.sax.handler.ContentHandler):
 
         # Default to being a greedy sequenceof, unless we have a length specified
         count = None
-        if attributes.has_key('count'):
+        if 'count' in attributes:
             count = self._parse_expression(attributes['count'])
         result = sof.SequenceOf(name, children[0], count, length, breaks)
         return result
@@ -384,7 +384,7 @@ def load(filename, specfile, references):
     parser.setContentHandler(handler)
     try:
         parser.parse(specfile)
-    except xml.sax.SAXParseException, ex:
+    except xml.sax.SAXParseException as ex:
         # The sax parse exception object can operate as a locator
         raise XmlError(ex.args[0], filename, ex)
     return (handler.decoder, handler.lookup)
@@ -468,7 +468,7 @@ def _write_entry(gen, entry, common, end_entry):
         attributes.append(('name', entry.name))
     name = _handlers[type(entry)](entry, attributes)
     if entry.length is not None:
-	attributes.append(('length', str(entry.length)))
+        attributes.append(('length', str(entry.length)))
     for constraint in entry.constraints:
         if isinstance(constraint, Minimum):
             attributes.append(('min', str(constraint.limit)))
@@ -526,7 +526,7 @@ def dump(spec, common, output):
 
 def dumps(spec, common=[]):
     """Save a specification in the xml format."""
-    output = StringIO.StringIO()
+    output = io.StringIO()
     dump(spec, common, output)
     return output.getvalue()
 save = dumps

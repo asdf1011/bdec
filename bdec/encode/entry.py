@@ -99,7 +99,7 @@ def _mock_query(parent, entry, offset, name):
     """A mock query object to return data for hidden common entries.
 
     It will return null data for fields, etc."""
-    if isinstance(parent, (int, long)) or parent is None:
+    if isinstance(parent, int) or parent is None:
         raise MissingInstanceError(parent, entry)
 
     try:
@@ -109,7 +109,7 @@ def _mock_query(parent, entry, offset, name):
 
     # Check to see if it's a compound name...
     result = {}
-    for param, value in parent.items():
+    for param, value in list(parent.items()):
         names = param.split('.')
         if names[0] == name:
             child_name = '.'.join(names[1:])
@@ -131,7 +131,7 @@ def _mock_query(parent, entry, offset, name):
         elif entry.format == Field.FLOAT:
             return 0.0
         else:
-            return Data('\x00' * (length / 8 + 1), length)
+            return Data('\x00' * (length // 8 + 1), length)
     elif isinstance(entry, Sequence):
         return MockSequenceValue()
     elif isinstance(entry, SequenceOf):
@@ -162,7 +162,7 @@ class EntryEncoder:
         be resolved correctly.'''
         ref_values = solve(expression, self.entry, self._params, context, value)
 
-        for ref, ref_value in ref_values.items():
+        for ref, ref_value in list(ref_values.items()):
             context[ref.name] = ref_value
 
     def _get_value(self, query, parent, offset, name, context):
@@ -262,7 +262,7 @@ class EntryEncoder:
             # Check that the expression length matches the 'real' length
             try:
                 self._solve(self.entry.length, encode_length, context)
-            except SolverError, ex:
+            except SolverError as ex:
                 raise DataLengthError(self.entry, ex.expr, ex.expected)
         if self._is_length_referenced:
             context[self.entry.name + ' length'] = length

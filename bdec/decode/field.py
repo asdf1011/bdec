@@ -32,7 +32,7 @@ class FieldDecoder(EntryDecoder):
         # wrap all access to it in an exception handler.
         try:
             value = self.entry.decode_value(field_data)
-        except dt.DataError, ex:
+        except dt.DataError as ex:
             raise FieldDataError(self.entry, ex)
 
         yield (False, name, self.entry, field_data, value)

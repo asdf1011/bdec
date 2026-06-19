@@ -194,12 +194,12 @@ def load(filename, contents, references):
     """
     # Load the parts of protocol buffers implemented in bdec
     proto_filename = os.path.join(os.path.dirname(__file__), '..', '..', 'specs', 'protobuffer.xml')
-    generic_spec, lookup = bdec.spec.xmlspec.load(proto_filename, file(proto_filename, 'r'), references)
+    generic_spec, lookup = bdec.spec.xmlspec.load(proto_filename, open(proto_filename, 'r'), references)
 
     parser = _Parser(references)
     try:
         entries = parser.parse(contents.read())
-    except ParseException, ex:
+    except ParseException as ex:
         raise Error(filename, ex.lineno, ex.col, ex)
     return entries[-1], lookup
 

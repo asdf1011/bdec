@@ -57,7 +57,7 @@ class Minimum(Constraint):
 
     def check(self, entry, value, context):
         expected = self.limit.evaluate(context)
-        if isinstance(value, basestring):
+        if isinstance(value, str):
             # It is useful to check the bounds of a text character...
             value = ord(value)
         if int(value) < expected:
@@ -72,7 +72,7 @@ class Maximum(Constraint):
 
     def check(self, entry, value, context):
         expected = self.limit.evaluate(context)
-        if isinstance(value, basestring):
+        if isinstance(value, str):
             # It is useful to check the bounds of a text character...
             value = ord(value)
         if int(value) > expected:
@@ -98,7 +98,7 @@ class Equals(Constraint):
             length_diff = len(value) - len(expected)
             if length_diff > 0:
                 # The expected value is shorter than the actual, so grow it.
-                expected = Data('\x00' * (length_diff / 8 + 1), 0, length_diff) + expected
+                expected = Data('\x00' * (length_diff // 8 + 1), 0, length_diff) + expected
             elif length_diff < 0:
                 # The expected value is longer than the actual, so shrink it.
                 shorter = expected.copy()

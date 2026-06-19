@@ -72,17 +72,17 @@ def main():
     try:
         protocol, common, lookup = load_specs([(spec, None, None) for spec in args],
                 options.main, options.remove_unused)
-    except bdec.spec.LoadError, ex:
+    except bdec.spec.LoadError as ex:
         sys.exit(str(ex))
 
     if options.filename:
-        xml = file(options.filename, 'rb').read()
+        xml = open(options.filename, 'rb').read()
     else:
         xml = sys.stdin.read()
 
     try:
         binary = xmlout.encode(protocol, xml).bytes()
-    except bdec.DecodeError, ex:
+    except bdec.DecodeError as ex:
         try:
             (filename, line_number, column_number) = lookup[ex.entry]
         except KeyError:

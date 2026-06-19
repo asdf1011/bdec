@@ -44,12 +44,13 @@
 
 import bdec.data as dt
 import operator
+from functools import reduce
 
 # A list of supported operators, in order of precedence
 _operators = [
         [
             ('*', operator.mul),
-            ('/', operator.div),
+            ('/', operator.floordiv),
             ('%', operator.mod),
         ],
         [
@@ -75,7 +76,7 @@ class UndecodedReferenceError(Exception):
 
     def __str__(self):
         return "Missing context '%s' (have %s)" % (self.name,
-                ', '.join("'%s'" % k for k in self.context.keys()))
+                ', '.join("'%s'" % k for k in list(self.context.keys())))
 
 class NullReferenceError(UndecodedReferenceError):
     def __str__(self):
@@ -99,8 +100,10 @@ class Expression(object):
     def __mul__(self, other):
         return ArithmeticExpression(operator.mul, self, other)
 
-    def __div__(self, other):
-        return ArithmeticExpression(operator.div, self, other)
+    def __truediv__(self, other):
+        return ArithmeticExpression(operator.floordiv, self, other)
+
+    __div__ = __truediv__
 
     def __mod__(self, other):
         return ArithmeticExpression(operator.mod, self, other)
@@ -159,7 +162,7 @@ class RoundUpDivisionExpression(Expression):
 
         # In python -ve / +ve will round towards minus infinity, so we only
         # need to handle the round up case.
-        result = numerator / denominator
+        result = numerator // denominator
         if numerator % denominator and self.should_round_up:
             result += 1
         return result
@@ -187,7 +190,7 @@ class Constant(Expression):
 class ReferenceExpression(Expression):
     """A reference to a value or length of another entry."""
     def __init__(self, name):
-        assert isinstance(name, basestring)
+        assert isinstance(name, str)
         self.name = name
 
     def param_name(self):
@@ -288,7 +291,7 @@ def parse(text):
     complete = _int_expression() + StringEnd()
     try:
         return complete.parseString(text)[0]
-    except ParseException, ex:
+    except ParseException as ex:
         raise ExpressionError(ex)
 # Legacy name for parse function
 compile = parse
@@ -354,6 +357,6 @@ def parse_conditional_inverse(text):
     complete = bool_expr + StringEnd()
     try:
         return complete.parseString(text)[0]
-    except ParseException, ex:
+    except ParseException as ex:
         raise ExpressionError(ex)
 
