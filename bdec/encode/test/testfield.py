@@ -101,4 +101,4 @@ class TestField(unittest.TestCase):
                 Field('c', format=Field.TEXT, length=parse('${b:} * 8'), encoding='utf8')
                 ])
         self.assertEqual('\x0c\xe3\x83\xad\xe3\x82\xb0\xe3\x82\xa4\xe3\x83\xb3',
-                encode(a, {'c':u'ログイン'}).bytes())
+                encode(a, {'c':'ログイン'}).bytes())

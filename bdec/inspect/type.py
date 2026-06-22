@@ -55,6 +55,7 @@ from bdec.expression import ArithmeticExpression, Constant, ValueResult, \
 import bdec.field as fld
 from bdec.inspect.range import Range
 import bdec.sequence as seq
+from functools import reduce
 
 
 def _delayed_range(delayed, entry, parameters, entries_stack):
@@ -159,6 +160,9 @@ class IntegerType(VariableType):
 
 class ShouldEndType(IntegerType):
     """Parameter used to pass the 'should end' up to the parent."""
+    def __hash__(self):
+        return hash(ShouldEndType)
+
     def __eq__(self, other):
         return isinstance(other, ShouldEndType)
 
@@ -276,6 +280,9 @@ class MultiSourceType(IntegerType):
         for source in sources:
             assert isinstance(source, VariableType)
         self.sources = sources
+
+    def __hash__(self):
+        return hash(tuple(self.sources))
 
     def __eq__(self, other):
         if not isinstance(other, MultiSourceType):

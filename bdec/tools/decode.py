@@ -55,24 +55,24 @@ from bdec.spec import load_specs
 from bdec.spec.xmlspec import dumps
 
 def usage(program):
-    print 'Decode standard input to xml given a bdec specification.'
-    print 'Usage:'
-    print '   %s [options] <spec_filename>' % program
-    print
-    print 'Arguments:'
-    print '   spec_filename -- The filename of the specification to be compiled.'
-    print
-    print 'Options:'
-    print '  -f <filename>     Decode from filename instead of stdin.'
-    print '  -h, --help        Print this help.'
-    print '  -l                Log status messages.'
-    print '  --main=<name>     Specify the entry to be used as the decoder.'
-    print '  -q                Quiet output. Only errors will be printed to stderr.'
-    print '  --remove-unused   Remove any entries that are not referenced from the main'
-    print '                    entry.'
-    print '  -S                Print an xml representation of the specification.'
-    print '  --verbose         Include hidden entries and raw data in the decoded output.'
-    print '  -V                Print the version of the bdec compiler.'
+    print('Decode standard input to xml given a bdec specification.')
+    print('Usage:')
+    print('   %s [options] <spec_filename>' % program)
+    print()
+    print('Arguments:')
+    print('   spec_filename -- The filename of the specification to be compiled.')
+    print()
+    print('Options:')
+    print('  -f <filename>     Decode from filename instead of stdin.')
+    print('  -h, --help        Print this help.')
+    print('  -l                Log status messages.')
+    print('  --main=<name>     Specify the entry to be used as the decoder.')
+    print('  -q                Quiet output. Only errors will be printed to stderr.')
+    print('  --remove-unused   Remove any entries that are not referenced from the main')
+    print('                    entry.')
+    print('  -S                Print an xml representation of the specification.')
+    print('  --verbose         Include hidden entries and raw data in the decoded output.')
+    print('  -V                Print the version of the bdec compiler.')
 
 def _parse_args():
     verbose = 1
@@ -82,7 +82,7 @@ def _parse_args():
     should_print_spec = False
     try:
         opts, args = getopt.getopt(sys.argv[1:], 'f:hlqSV', ['help', 'main=', 'remove-unused', 'verbose'])
-    except getopt.GetoptError, ex:
+    except getopt.GetoptError as ex:
         sys.exit("%s\nSee '%s -h' for correct usage." % (ex, sys.argv[0]))
     for opt, arg in opts:
         if opt == '-f':
@@ -103,7 +103,7 @@ def _parse_args():
         elif opt == '-S':
             should_print_spec = True
         elif opt == '-V':
-            print bdec.__version__
+            print(bdec.__version__)
             sys.exit(0)
         else:
             assert 0, 'Unhandled option %s!' % opt
@@ -118,11 +118,11 @@ def main():
     main_spec, specs, binary, verbose, should_remove_unused, should_print_spec = _parse_args()
     try:
         decoder, common, lookup = load_specs([(s, None, None) for s in specs], main_spec, should_remove_unused)
-    except bdec.spec.LoadError, ex:
+    except bdec.spec.LoadError as ex:
         sys.exit(str(ex))
 
     if should_print_spec:
-        print dumps(decoder, common)
+        print(dumps(decoder, common))
         return
 
     data = dt.Data(binary)
@@ -131,8 +131,8 @@ def main():
             for item in decoder.decode(data):
                 pass
         else:
-            xmlout.to_file(decoder.decode(data), sys.stdout, verbose=(verbose==2))
-    except bdec.DecodeError, ex:
+            xmlout.to_open(decoder.decode(data), sys.stdout, verbose=(verbose==2))
+    except bdec.DecodeError as ex:
         try:
             (filename, line_number, column_number) = lookup[ex.entry]
         except KeyError:
@@ -140,7 +140,7 @@ def main():
 
         # We include an extra new line, as the xml is unlikely to have finished
         # on a new line (issue164).
-        print
+        print()
         sys.exit("%s[%i]: %s" % (filename, line_number, str(ex)))
 
     try:

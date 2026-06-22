@@ -57,6 +57,7 @@ import os.path
 from pyparsing import Word, nums, alphanums, StringEnd, \
     ParseException, Optional, Combine, oneOf, alphas,\
     QuotedString, empty, lineno, SkipTo, ParserElement
+from functools import reduce
 
 ParserElement.enablePackrat()
 
@@ -123,7 +124,7 @@ class _Loader:
             def _handler(text, location, tokens):
                 raise NotImplementedError(name, tokens, filename, lineno(location, text))
             return _handler
-        for name, entry in parsers.items():
+        for name, entry in list(parsers.items()):
             entry.setParseAction(not_implemented_handler(name))
         self._common_entries = {}
         self._constants = {}
@@ -219,7 +220,7 @@ class _Loader:
     def _load_ebnf(self):
         # Load the xml spec that we will use for doing the decoding.
         asn1_filename = os.path.join(os.path.dirname(__file__), '..', '..', 'specs', 'asn1.ber.xml')
-        generic_spec, lookup = xmlspec.load(asn1_filename, file(asn1_filename, 'r'), self._references)
+        generic_spec, lookup = xmlspec.load(asn1_filename, open(asn1_filename, 'r'), self._references)
 
         table = {
                 'bstring' : Combine("'" + Word('01') + "'B"),
@@ -243,7 +244,7 @@ class _Loader:
         parser = parsers['ModuleDefinition'] + StringEnd()
         parser.ignore('--' + SkipTo('\n'))
 
-        return parser, dict((name, entry) for name, entry in parsers.items() if name not in table), lookup
+        return parser, dict((name, entry) for name, entry in list(parsers.items()) if name not in table), lookup
 
     def _create_named_numeric_list(self, s, l, t):
         value = 0
@@ -261,7 +262,7 @@ class _Loader:
         value = 0
         options = []
         for token in t[0]['items']:
-            if not isinstance(token, basestring):
+            if not isinstance(token, str):
                 name = token['name']
                 value = int(token['value'])
             else:
@@ -331,11 +332,11 @@ class _Loader:
         """Load a bdec specification from an asn.1 document."""
         try:
             name, modules =  self._parser.parseString(text)[0]
-        except ParseException, ex:
+        except ParseException as ex:
             raise Asn1ParseError(ex, self.filename, ex.lineno)
         common = dict((entry.name, entry) for entry in modules)
         common.update(self._common_entries)
-        for module in common.values():
+        for module in list(common.values()):
             self._references.add_common(module)
         return modules[0], self._source_lookup
 

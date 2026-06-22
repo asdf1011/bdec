@@ -45,7 +45,7 @@
 import logging
 import operator
 import string
-import StringIO
+import io
 import xml.dom.minidom
 import xml.sax.saxutils
 import xml.sax.xmlreader
@@ -58,6 +58,7 @@ from bdec.data import Data
 import bdec.field as fld
 from bdec.sequence import Sequence
 import bdec.sequenceof as sof
+from functools import reduce
 
 def escape_name(name):
     if not name:
@@ -105,7 +106,7 @@ def _has_expected_value(entry):
             return True
     return False
 
-def to_file(items, output, encoding="utf-8", verbose=False):
+def to_open(items, output, encoding="utf-8", verbose=False):
     handler = _XMLGenerator(output, encoding)
     offset = 0
     is_first = True
@@ -143,7 +144,7 @@ def to_file(items, output, encoding="utf-8", verbose=False):
                 if has_children:
                     _print_whitespace(handler, offset)
 
-                text = xml_strip(unicode(value))
+                text = xml_strip(str(value))
                 handler.characters(text)
 
             if verbose and data:
@@ -157,8 +158,8 @@ def to_file(items, output, encoding="utf-8", verbose=False):
     handler.ignorableWhitespace('\n')
 
 def to_string(items, verbose=False):
-    buffer  = StringIO.StringIO()
-    to_file(items, buffer, verbose=verbose)
+    buffer  = io.StringIO()
+    to_open(items, buffer, verbose=verbose)
     return buffer.getvalue()
 
 class _SequenceOfEntry:
@@ -227,8 +228,8 @@ def encode(protocol, xmldata):
 
     Returns an iterator to data objects representing the encoded structure.
     """
-    if isinstance(xmldata, basestring):
-        xmldata = StringIO.StringIO(xmldata)
+    if isinstance(xmldata, str):
+        xmldata = io.StringIO(xmldata)
     document = xml.dom.minidom.parse(xmldata)
     return reduce(operator.add, protocol.encode(_query_element, document), Data())
 

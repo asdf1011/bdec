@@ -91,7 +91,7 @@ def _break_into_parts(entry, expression, input_params):
             # We need to add / subtract the common components
             constant = ArithmeticExpression(expression.op, lconst, rconst)
             result = left
-            for ref, expr in right.items():
+            for ref, expr in list(right.items()):
                 existing = result.get(ref, Constant(0))
                 result[ref] = ArithmeticExpression(expression.op, existing, expr)
         elif left and right:
@@ -105,30 +105,30 @@ def _break_into_parts(entry, expression, input_params):
                 #   f(y) = (left(params) + kl) * (right(params) + kr)
                 # where left(params) or right(params) is zero. So the result will be
                 #   f(y) = kr * left(params) + kl * right(params) + kl * kr
-                for ref, expr in left.items():
+                for ref, expr in list(left.items()):
                     result[ref] = expr * rconst
-                for ref, expr in right.items():
+                for ref, expr in list(right.items()):
                     result[ref] = expr * lconst
                 constant = lconst * rconst
             elif expression.op == operator.lshift:
                 if right:
                     # Don't support shifting by a non-constant
                     raise SolverError(entry, expression, 'Shifting by a non constant not supported')
-                for ref, expr in left.items():
+                for ref, expr in list(left.items()):
                     result[ref] = expr << rconst
                 constant = lconst << rconst
-            elif expression.op == operator.div:
+            elif expression.op == operator.floordiv:
                 if right:
                     raise SolverError(entry, expression, 'Dividing by a non-constant not supported')
                 if len(left) > 1:
                     raise SolverError(entr, expression, 'Dividing two unknowns not supported.')
-                for ref, expr in left.items():
+                for ref, expr in list(left.items()):
                     result[ref] = expr / rconst
                 constant = lconst / rconst
             elif expression.op == operator.mod:
                 if right:
                     raise SolverError(entry, expression, 'Modding by a non-constant not supported')
-                for ref, expr in left.items():
+                for ref, expr in list(left.items()):
                     result[ref] = expr % rconst
                 constant = lconst % rconst
             else:
@@ -169,11 +169,11 @@ def _invert(result_expr, entry, expression, params, input_params, remainder_rang
             if right.op == operator.mul:
                 if is_right_const:
                     # left = right * k  ->   left / k = right
-                    left = ArithmeticExpression(operator.div, left, right.right)
+                    left = ArithmeticExpression(operator.floordiv, left, right.right)
                     right = right.left
                 else:
                     # left = k * right  -> left / k = right
-                    left = ArithmeticExpression(operator.div, left, right.left)
+                    left = ArithmeticExpression(operator.floordiv, left, right.left)
                     right = right.right
 
                 # To correctly handle solving signed integers, eg:
@@ -257,7 +257,7 @@ def solve_expression(result_expr, expression, entry, params, input_params):
             # be really big.
             result = 1e1024
         return result
-    variables = sorted(components.items(), key=influence, reverse=True)
+    variables = sorted(list(components.items()), key=influence, reverse=True)
     result_params = []
     for i, (ref, expr) in enumerate(variables):
         # Get the range of the remaining references (required so we know what
@@ -284,7 +284,7 @@ def solve(expression, entry, params, context, value):
     # 'solve result' variable which we will reference in the inverted
     # expressions.
     solve_result = ValueResult('solve result')
-    constant, variables = solve_expression(solve_result, expression, entry, params, context.keys())
+    constant, variables = solve_expression(solve_result, expression, entry, params, list(context.keys()))
     result = {}
     original_value = value
     value -= constant.evaluate(context)

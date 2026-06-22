@@ -50,6 +50,21 @@ range.
 import decimal
 
 class _Infinite:
+    def __eq__(self, other):
+        return isinstance(other, _Infinite)
+
+    def __lt__(self, other):
+        return False
+
+    def __gt__(self, other):
+        return not isinstance(other, _Infinite)
+
+    def __le__(self, other):
+        return isinstance(other, _Infinite)
+
+    def __ge__(self, other):
+        return True
+
     def __mul__(self, other):
         if other == 0:
             return 0
@@ -67,6 +82,21 @@ class _Infinite:
 
 
 class _MinusInfinite:
+    def __eq__(self, other):
+        return isinstance(other, _MinusInfinite)
+
+    def __lt__(self, other):
+        return not isinstance(other, _MinusInfinite)
+
+    def __gt__(self, other):
+        return False
+
+    def __le__(self, other):
+        return True
+
+    def __ge__(self, other):
+        return isinstance(other, _MinusInfinite)
+
     def __mul__(self, other):
         if other == 0:
             return 0
@@ -105,8 +135,12 @@ class Range:
     def intersect(self, other):
         """Return the intesection of self and other."""
         result = Range()
-        # max of None and X will always return X
-        result.min = max(self.min, other.min)
+        if self.min is None:
+            result.min = other.min
+        elif other.min is None:
+            result.min = self.min
+        else:
+            result.min = max(self.min, other.min)
         if self.max is not None:
             if other.max is not None:
                 result.max = min(self.max, other.max)
@@ -119,8 +153,10 @@ class Range:
     def union(self, other):
         """Return the outer bounds of self and other."""
         result = Range()
-        # min of None and X will always return None
-        result.min = min(self.min, other.min)
+        if self.min is None or other.min is None:
+            result.min = None
+        else:
+            result.min = min(self.min, other.min)
         if self.max is not None and other.max is not None:
             result.max = max(self.max, other.max)
         return result
@@ -169,11 +205,11 @@ class Range:
         values.append(maxx * maxy)
 
         values.sort()
-        min = values[0] if isinstance(values[0], (int, long)) else None
-        max = values[3] if isinstance(values[3], (int, long)) else None
+        min = values[0] if isinstance(values[0], int) else None
+        max = values[3] if isinstance(values[3], int) else None
         return Range(min, max)
 
-    def __div__(self, other):
+    def __truediv__(self, other):
          # Instead of implementing division, we'll just figure out the inverse,
          # and multiply the two together.
         if other.min == 0:
@@ -203,6 +239,9 @@ class Range:
         min = int(values[0]) if isinstance(values[0], decimal.Decimal) else None
         max = int(values[3]) if isinstance(values[3], decimal.Decimal) else None
         return Range(min, max)
+
+    __div__ = __truediv__
+    __floordiv__ = __truediv__
 
     def __mod__(self, other):
         if other.max is not None:
@@ -236,7 +275,7 @@ class Range:
             maximum = max(self.max, other.max)
         return Range(minimum, maximum)
 
-    def __nonzero__(self):
+    def __bool__(self):
         if self.min is not None and self.max is not None:
             if self.min > self.max:
                 # This is an empty span...
@@ -286,7 +325,7 @@ class Ranges:
                 subsequent_ranges = self._ranges[i:]
                 del self._ranges[i:]
                 for j, r in enumerate(subsequent_ranges):
-                    if r.min < range.min:
+                    if range.min is not None and (r.min is None or r.min < range.min):
                         # This range starts before the range we are removing,
                         # so add the start non-overlapping section.
                         self._ranges.append(Range(r.min, range.min - 1))

@@ -61,6 +61,7 @@ import bdec.sequenceof as sof
 from bdec.spec import load_specs, ReferenceError, UnspecifiedMainEntry, LoadError
 import bdec.spec.xmlspec as xml
 from bdec.test.decoders import assert_xml_equivalent
+from functools import reduce
 
 def loads(text):
     return load_specs([('<string>', text, 'xml')])
@@ -200,8 +201,8 @@ class TestXml(unittest.TestCase):
         try:
             loads(text)
             raise Exception('Exception not thrown!')
-        except bdec.spec.LoadError, ex:
-            print str(ex)
+        except bdec.spec.LoadError as ex:
+            print(str(ex))
             self.assertTrue("Can't reference " in str(ex))
 
     def test_expression_references_sub_field(self):
@@ -618,7 +619,7 @@ class TestXml(unittest.TestCase):
                """
         try:
             loads(text)
-        except xml.XmlError, ex:
+        except xml.XmlError as ex:
             self.assertTrue("end-sequenceof cannot be used within a referenced item" in str(ex))
 
     def test_break_in_break(self):
@@ -641,13 +642,13 @@ class TestXml(unittest.TestCase):
 
         data = dt.Data("chicken\x00bob\x00\00")
         list(decoder.decode(data))
-        self.assertEquals(0, len(data))
+        self.assertEqual(0, len(data))
 
         data = dt.Data("chicken\x00bob\x00")
         try:
             list(decoder.decode(dt.Data("chicken\x00bob\x00")))
-        except fld.FieldDataError, ex:
-            self.assertEquals(dt.NotEnoughDataError, type(ex.error))
+        except fld.FieldDataError as ex:
+            self.assertEqual(dt.NotEnoughDataError, type(ex.error))
 
     def test_nameless_entry(self):
         text = """
@@ -829,7 +830,7 @@ class TestXml(unittest.TestCase):
             </protocol>'''
         a = loads(text)[0]
 
-        print xml.save(a)
+        print(xml.save(a))
         # Test decoding without a footer
         list(a.decode(dt.Data('\x00\x00')))
 
@@ -876,7 +877,7 @@ class TestXml(unittest.TestCase):
             </protocol>'''
         try:
             loads(text)
-        except ReferenceError, ex:
+        except ReferenceError as ex:
             self.assertEqual("<string>[4]: binary 'b' references "
                     "unknown entry 'c'!\n"
                     "  <string>[3]: sequence 'a'" , str(ex))
@@ -890,7 +891,7 @@ class TestXml(unittest.TestCase):
             </protocol>'''
         try:
             loads(text)
-        except ReferenceError, ex:
+        except ReferenceError as ex:
             self.assertEqual("<string>[4]: Reference to unknown entry 'missing'!" , str(ex))
 
     def test_conditional_reference(self):
@@ -910,7 +911,7 @@ class TestXml(unittest.TestCase):
         spec = loads(text)[0]
         data = dt.Data('\x00')
         list(spec.decode(data))
-        self.assertEquals(0, len(data))
+        self.assertEqual(0, len(data))
         self.assertRaises(bdec.DecodeError, list, spec.decode(dt.Data('\x01')))
         data = dt.Data('\x01a')
         list(spec.decode(data))
@@ -955,8 +956,8 @@ class TestXml(unittest.TestCase):
         try:
             loads(text)
             assert 0, "Whoops, specification didn't fail!"
-        except ReferenceError, ex:
-            self.assertEquals("<string>[5]: binary 'a' references unknown "
+        except ReferenceError as ex:
+            self.assertEqual("<string>[5]: binary 'a' references unknown "
                 "entry 'unknown:'!\n"
                 "  <string>[6]: sequence 'b'\n"
                 "  <string>[9]: sequence 'c'",
@@ -972,8 +973,8 @@ class TestXml(unittest.TestCase):
         try:
             loads(text)
             assert 0, "Whoops, specification didn't fail!"
-        except ReferenceError, ex:
-            self.assertEquals("<string>[3]: sequence 'not present:' references "
+        except ReferenceError as ex:
+            self.assertEqual("<string>[3]: sequence 'not present:' references "
                 "unknown entry 'unknown'!\n"
                 "  <string>[3]: choice 'optional a'",
                     str(ex))
@@ -983,8 +984,8 @@ class TestXml(unittest.TestCase):
         try:
             loads(text)
             self.fail('Whoops, should have failed to load spec!')
-        except xml.XmlError, ex:
-            self.assertEquals("<string>[1]: binary 'a' - Invalid binary text 'bad'", str(ex))
+        except xml.XmlError as ex:
+            self.assertEqual("<string>[1]: binary 'a' - Invalid binary text 'bad'", str(ex))
 
     def test_cross_specification_references(self):
         # Test that we can reference entries between specifications
@@ -1003,8 +1004,8 @@ class TestXml(unittest.TestCase):
         spec, common, lookup = load_specs([('<string a>', a, 'xml'), ('<string b>', b, 'xml')])
         data = dt.Data('\x0a')
         items = list(spec.decode(data))
-        self.assertEquals(4, len(items))
-        self.assertEquals(10, items[-2][-1])
+        self.assertEqual(4, len(items))
+        self.assertEqual(10, items[-2][-1])
 
     def test_error_with_multiple_decoders(self):
         # We should get an error when multiple specifications have the top
@@ -1020,7 +1021,7 @@ class TestXml(unittest.TestCase):
         try:
             load_specs([('<string a>', a, 'xml'), ('<string b>', b, 'xml')])
             self.fail("Should have failed to load the spec, but didn't!")
-        except UnspecifiedMainEntry, ex:
+        except UnspecifiedMainEntry as ex:
             self.assertEqual('Multiple top level protocols available! Choose one of:\n  a\n  b', str(ex))
 
     def test_no_main_decoder(self):
@@ -1028,7 +1029,7 @@ class TestXml(unittest.TestCase):
         try:
             load_specs([('<string a>', a, 'xml')])
             self.fail("Should have failed to load the spec, but didn't!")
-        except UnspecifiedMainEntry, ex:
+        except UnspecifiedMainEntry as ex:
             self.assertEqual('No top level protocol present! Choose one of '
                     'the common entries to be the main:\n  a', str(ex))
 
@@ -1055,7 +1056,7 @@ class TestXml(unittest.TestCase):
             # The user specifies a decoder that doesn't exist....
             load_specs([('<string a>', a, 'xml')], 'missing')
             self.fail('Oh dang. Should have failed.')
-        except ReferenceError, ex:
+        except ReferenceError as ex:
             self.assertEqual("unknown[0]: Reference to unknown entry 'missing'!", str(ex))
 
     def test_remove_unused(self):
@@ -1101,7 +1102,7 @@ class TestXml(unittest.TestCase):
             </protocol>'''
         try:
             loads(text)
-        except LoadError, ex:
+        except LoadError as ex:
             self.assertEqual("<string>[6]: Duplicate common entry 'a'", str(ex))
 
     def test_variable_length_with_expected_value(self):

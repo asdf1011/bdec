@@ -49,7 +49,7 @@ Generate test classes for each type of decoder.
 See the create_decoder_classes function.
 """
 
-from ConfigParser import NoOptionError, NoSectionError
+from configparser import NoOptionError, NoSectionError
 import glob
 import itertools
 import os
@@ -58,7 +58,7 @@ import unittest
 import shutil
 import subprocess
 import stat
-import StringIO
+import io
 import time
 import xml.etree.ElementTree
 
@@ -96,7 +96,7 @@ def _is_xml_text_equal(a, b):
     return a.strip() == b.strip()
 
 def _get_elem_text(a, event):
-    attribs = ' '.join('%s="%s"' % (name, value) for name, value in a.attrib.items())
+    attribs = ' '.join('%s="%s"' % (name, value) for name, value in list(a.attrib.items()))
     text = a.text or ""
     prefix = ''
     if event == 'start':
@@ -104,9 +104,9 @@ def _get_elem_text(a, event):
     return "%s%s</%s>" % (prefix, text.strip(), a.tag)
 
 def assert_xml_equivalent(expected, actual):
-    a = xml.etree.ElementTree.iterparse(StringIO.StringIO(expected), ['start', 'end'])
-    b = xml.etree.ElementTree.iterparse(StringIO.StringIO(actual), ['start', 'end'])
-    for (a_event, a_elem), (b_event, b_elem) in itertools.izip(a, b):
+    a = xml.etree.ElementTree.iterparse(io.StringIO(expected), ['start', 'end'])
+    b = xml.etree.ElementTree.iterparse(io.StringIO(actual), ['start', 'end'])
+    for (a_event, a_elem), (b_event, b_elem) in zip(a, b):
         if a_event != b_event or a_elem.tag != b_elem.tag or \
                 a_elem.attrib != b_elem.attrib or \
                 (a_event == 'end' and not _is_xml_text_equal(a_elem, b_elem)):
@@ -126,7 +126,7 @@ def _find_executable(name):
 def _get_valgrind():
     path =  _find_executable('valgrind')
     if path is None:
-        print 'Failed to find valgrind! Code will not be tested with valgrind.'
+        print('Failed to find valgrind! Code will not be tested with valgrind.')
     return path
 
 _template_cache = {}
@@ -263,9 +263,9 @@ def _validate_xml(spec, data, xmltext):
     there may be differences in whitespace, and some fields can be represented
     in multiple ways (eg: 5.0 vs 5.00000 vs 5).
     """
-    xml_entries = xml.etree.ElementTree.iterparse(StringIO.StringIO(xmltext), ['start', 'end'])
+    xml_entries = xml.etree.ElementTree.iterparse(io.StringIO(xmltext), ['start', 'end'])
     child_tail=None
-    for (is_starting, name, entry, data, expected), (a_event, a_elem) in itertools.izip(_decode_visible(spec, data), xml_entries):
+    for (is_starting, name, entry, data, expected), (a_event, a_elem) in zip(_decode_visible(spec, data), xml_entries):
         if is_starting and a_event != 'start':
             raise Exception ("Expected '%s' to be starting, but got '%s' ending" %
                     (name, a_elem.tag))
@@ -309,7 +309,7 @@ def _validate_xml(spec, data, xmltext):
                     # be represented in xml (eg: a string with a binary
                     # character). Encode and decode the expected value to see if
                     # matches now (being escaped itself...)
-                    expected_text = xmlout.xml_strip(unicode(expected))
+                    expected_text = xmlout.xml_strip(str(expected))
                     escaped_expected = convert_value(entry, expected_text, len(data))
                     constraint = Equals(escaped_expected)
                     constraint.check(entry, actual, {})
@@ -330,7 +330,7 @@ def _check_encoded_data(spec, sourcefile, actual, actual_xml, require_exact_enco
         try:
             regenerated_xml = xmlout.to_string(spec.decode(dt.Data(actual)))
             assert_xml_equivalent(actual_xml, regenerated_xml)
-        except Exception, ex:
+        except Exception as ex:
             raise Exception('Re-decoding of encoded data failed: %s' % str(ex))
 
         if require_exact_encoding:
@@ -354,7 +354,7 @@ class _CompiledDecoder(object):
     TEST_DIR = os.path.join(os.path.dirname(__file__), 'temp')
     VALGRIND = _get_valgrind()
 
-    def decode_file(self, spec, common, data, should_check_encoding=True, require_exact_encoding=False):
+    def decode_open(self, spec, common, data, should_check_encoding=True, require_exact_encoding=False):
         """Return a tuple containing the exit code and the decoded xml."""
         generate(spec, common, self, should_check_encoding)
         encode_filename = os.path.join(self.TEST_DIR, 'encoded.bin') if should_check_encoding else None
@@ -368,7 +368,7 @@ class _CompiledDecoder(object):
 
         try:
             _validate_xml(spec, dt.Data(data), xml)
-        except bdec.DecodeError, ex:
+        except bdec.DecodeError as ex:
             raise Exception("Compiled decoder succeeded, but should have failed with: %s" % str(ex))
         if should_check_encoding:
             _check_encoded_data(spec, data, open(encode_filename, 'rb').read(), xml, require_exact_encoding)
@@ -378,11 +378,11 @@ class _PythonDecoder:
     """Use the builtin python decoder for the tests."""
     NAME = 'Python'
 
-    def decode_file(self, spec, common, sourcefile, should_check_encoding=True, require_exact_encoding=False):
+    def decode_open(self, spec, common, sourcefile, should_check_encoding=True, require_exact_encoding=False):
         data = dt.Data(sourcefile)
         try:
             xml = xmlout.to_string(spec.decode(data))
-        except bdec.DecodeError, ex:
+        except bdec.DecodeError as ex:
             raise ExecuteError(3, ex)
 
         if should_check_encoding:
@@ -394,6 +394,8 @@ def _decoder(name, template, compiler):
     # FIXME: We don't need to create a new class here!!
     return type('%sDecode' % name, (_CompiledDecoder, ),
             {'NAME':name, 'LANGUAGE':template, 'COMPILER':compiler.split(' ')})()
+
+_CDecoder = _decoder('C', 'c', 'gcc -Wall -Werror -g -Wno-long-long -pedantic -o decode')
 
 def create_decoder_classes(base_classes, module):
     """
@@ -435,9 +437,9 @@ class _BaseRegressionTest:
     def _test_failure(self, spec, common, spec_filename, data_filename, should_encode):
         datafile = open(data_filename, 'rb')
         try:
-            xml = self.decoder.decode_file(spec, common, datafile, should_encode)
+            xml = self.decoder.decode_open(spec, common, datafile, should_encode)
             raise Exception("'%s' should have failed to decode '%s', but succeeded with output:\n%s" % (spec_filename, data_filename, xml))
-        except ExecuteError, ex:
+        except ExecuteError as ex:
             if ex.exit_code != 3:
                 # It should have been a decode error...
                 raise
@@ -447,10 +449,10 @@ class _BaseRegressionTest:
         if os.path.splitext(data_filename)[1] == ".gz":
             # As gzip'ed files seek extremely poorly, we'll read the file completely into memory.
             import gzip
-            datafile = StringIO.StringIO(gzip.GzipFile(data_filename, 'rb').read())
+            datafile = io.StringIO(gzip.GzipFile(data_filename, 'rb').read().decode('latin1'))
         else:
             datafile = open(data_filename, 'rb')
-        xml = self.decoder.decode_file(spec, common, datafile, should_encode, require_exact_encoding)
+        xml = self.decoder.decode_open(spec, common, datafile, should_encode, require_exact_encoding)
         datafile.close()
         if expected_xml:
             assert_xml_equivalent(expected_xml, xml)
@@ -471,7 +473,7 @@ class _BaseRegressionTest:
                 self._get(config, 'default', test_path.lower())
 
         if skip == 'decoding-broken':
-            print 'Skipping test.'
+            print('Skipping test.')
             return
         elif skip == 'encoding-broken':
             should_encode = False
@@ -489,7 +491,7 @@ class _BaseRegressionTest:
             expected_xml = None
             expected_filename = '%s.expected.xml' % os.path.splitext(data_filename)[0]
             if os.path.exists(expected_filename):
-                xml_file = file(expected_filename, 'r')
+                xml_file = open(expected_filename, 'r')
                 expected_xml = xml_file.read()
                 xml_file.close()
             if entry_name is not None:
@@ -526,7 +528,7 @@ def create_classes(name, tests, config):
     config_filename -- The path to the fixme config file.
     """
     clsname = name[0].upper() + name[1:]
-    cls = type(clsname, (object, _BaseRegressionTest,), {})
+    cls = type(clsname, (_BaseRegressionTest,), {})
     for test_name, spec_filename, entry, successes, failures in tests:
         cls.add_method(test_name, '%s/%s' % (name, test_name), spec_filename, entry, successes, failures, config)
     return create_decoder_classes([(cls, clsname)], __name__)

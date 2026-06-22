@@ -94,19 +94,19 @@ def escaped_type(entry):
         # as possible to their unescaped name.
         names = esc_names(common_names, esc_name)
         names += esc_names(embedded_names, esc_name, names)
-        _escaped_types.update(zip(entries, names))
+        _escaped_types.update(list(zip(entries, names)))
     return _escaped_types[entry]
 
 def _int_types():
-    possible = [(name, -1 << (info[0] - 1), (1 << (info[0] - 1)) - 1) for name, info in signed_types.items()]
-    possible.extend((name, 0, (1 << info[0]) - 1) for name, info in unsigned_types.items())
+    possible = [(name, -1 << (info[0] - 1), (1 << (info[0] - 1)) - 1) for name, info in list(signed_types.items())]
+    possible.extend((name, 0, (1 << info[0]) - 1) for name, info in list(unsigned_types.items()))
     possible.sort(key=lambda a:a[2])
     for name, minimum, maximum in possible:
         yield name, minimum, maximum
 
 def _biggest(types):
     """ Return the biggest possible type."""
-    return reduce(lambda a, b: a if a[1][0] > b[1][0] else b, types.items())[0]
+    return reduce(lambda a, b: a if a[1][0] > b[1][0] else b, list(types.items()))[0]
 
 def _integer_type(type):
     """Choose an appropriate integral type for the given type."""
@@ -366,7 +366,7 @@ def encode_passed_params(parent, i, result_name):
     return _call_params(parent, i, result_name, encode_params)
 
 _OPERATORS = {
-        operator.__div__ : '/', 
+        operator.__floordiv__ : '/', 
         operator.__mod__ : '%',
         operator.__mul__ : '*',
         operator.__sub__ : '-',
@@ -443,7 +443,7 @@ def enum_value(parent, child_index):
         offsets = {}
         for e in iter_entries():
             if isinstance(e, chc.Choice):
-                offsets[e] = range(len(options), len(options) + len(e.children))
+                offsets[e] = list(range(len(options), len(options) + len(e.children)))
                 options.extend(c.name for c in e.children)
         names = esc_names(options, constant)
         for e in iter_entries():

@@ -61,6 +61,10 @@ import bdec.sequenceof as sof
 import bdec.expression as expr
 from bdec.inspect.type import VariableType, IntegerType, MultiSourceType, \
         EntryType, EntryValueType, EntryLengthType, ShouldEndType
+from functools import cmp_to_key
+# cmp shim removed (Python 2 builtin no longer exists).
+# The single call site below now uses a key function directly.
+
 
 MAGIC_UNKNOWN_NAME = 'magic unknown param'
 
@@ -248,7 +252,7 @@ class _VariableParam:
         if len(self.types) > 1:
             type = MultiSourceType(self.types)
         elif len(self.types) == 1:
-            type = iter(self.types).next()
+            type = next(iter(self.types))
         else:
             raise _FailedToResolveError(self.reference.name)
         return type
@@ -302,7 +306,7 @@ class ExpressionParameters(_Parameters):
             self._populate_child_input_parameter_type(entry, name, param_type, visited)
 
         should_have_failed = False
-        for entry, references in unreferenced_entries.iteritems():
+        for entry, references in unreferenced_entries.items():
             for param in self._params[entry]:
                 if not param.types:
                     should_have_failed = True
@@ -311,7 +315,7 @@ class ExpressionParameters(_Parameters):
                         # We only want top-level entries as this provides the
                         # most context to the user (and if a child entry is
                         # failing, so to will the top level entry).
-                        name = iter(references).next().name
+                        name = next(iter(references)).name
                         stack = self._find_child_using_param(entry, name)
                         raise UnknownReferenceError(stack[0], name, stack[1:])
         assert not should_have_failed, 'Found a parameter with an unknown type, ' \
@@ -456,7 +460,7 @@ class ExpressionParameters(_Parameters):
 
     def is_output_param_used(self, entry, child, param):
         assert param.direction == Param.OUT
-        return param.name in self._local_child_param_name[entry][child].values()
+        return param.name in list(self._local_child_param_name[entry][child].values())
 
     def _get_local_reference(self, entry, child, param):
         """Get the local of a parameter used by a child entry.
@@ -586,7 +590,7 @@ class ExpressionParameters(_Parameters):
                     if _VariableParam(local, child_param.direction, None) not in params:
                         locals.setdefault(local.param_name(), set()).add(child_param.get_type())
         result = []
-        for name, types in locals.items():
+        for name, types in list(locals.items()):
             if len(types) == 1:
                 type = types.pop()
             else:
@@ -603,7 +607,7 @@ class ExpressionParameters(_Parameters):
             # It doesn't really matter what order we use for parameters, but it
             # has to be consistent. As such we order by name, and put value types
             # before length types.
-            result = cmp(left.reference.name, right.reference.name)
+            result = (left.reference.name > right.reference.name) - (left.reference.name < right.reference.name)
             if result:
                 return result
             if isinstance(left.reference, expr.ValueResult) and \
@@ -614,7 +618,7 @@ class ExpressionParameters(_Parameters):
                 return 1
             return 0
 
-        params.sort(cmp=compare_references)
+        params.sort(key=cmp_to_key(compare_references))
         return params
 
     def get_params(self, entry):
@@ -623,7 +627,7 @@ class ExpressionParameters(_Parameters):
         """
         try:
             return [param.get_param() for param in self._get_params(entry)]
-        except _FailedToResolveError, ex:
+        except _FailedToResolveError as ex:
             raise UnknownReferenceError(entry, ex.name)
 
     def get_passed_variables(self, entry, child):

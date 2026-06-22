@@ -55,6 +55,7 @@ import bdec.data as dt
 import bdec.field as fld
 import bdec.sequence as seq
 import bdec.expression as expr
+from functools import reduce
 
 
 def get_best_guess(entry, data):
@@ -63,8 +64,8 @@ def get_best_guess(entry, data):
     try:
         for is_starting, name, entry, entry_data, value in entry.decode(data):
             results.append((is_starting, entry))
-    except ConstraintError, ex:
-        pass
+    except ConstraintError as caught:
+        ex = caught
     assert ex is not None
     return ex.entry, results
 

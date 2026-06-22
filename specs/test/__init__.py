@@ -4,7 +4,7 @@ Unit tests for testing all of the provided specifications.
 It attempts to load each example specification, and will attempt to decode all
 of the supplied sample files.
 """
-from ConfigParser import ConfigParser
+from configparser import ConfigParser
 import glob
 import os.path
 
@@ -17,7 +17,7 @@ def _create_decode_classes():
     testdir = os.path.dirname(__file__)
     path = os.path.join(testdir, '..')
     result = {}
-    config = ConfigParser()
+    config = ConfigParser(strict=False)
     config.read(os.path.join(os.path.dirname(__file__), 'fixme.cfg'))
     for filename in glob.glob(os.path.join(path, '*.xml')):
         # Create a test class per specification, which each sample file being

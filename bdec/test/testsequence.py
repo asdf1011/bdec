@@ -51,6 +51,7 @@ import bdec.entry as ent
 import bdec.expression as expr
 import bdec.field as fld
 import bdec.sequence as seq
+from functools import reduce
 
 class TestSequence(unittest.TestCase):
     def test_simple_sequence(self):

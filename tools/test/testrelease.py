@@ -1,6 +1,6 @@
 
 import os.path
-import StringIO
+import io
 import unittest
 
 import bdec
@@ -52,7 +52,7 @@ This is the current version
             def request(self, actual, path, json, headers):
                 self.json = json
             def getresponse(self):
-                response = StringIO.StringIO()
+                response = io.StringIO()
                 response.status = 200
                 response.reason = ''
                 return response

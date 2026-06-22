@@ -51,7 +51,7 @@ import mako.template
 import mako.runtime
 import os
 import os.path
-import pkg_resources
+from importlib import resources
 import sys
 
 import bdec.choice as chc
@@ -74,11 +74,10 @@ class BuiltinTemplate(TemplateDir):
         self.directory = os.path.join('templates', name)
 
     def listdir(self):
-        return pkg_resources.resource_listdir('bdec', self.directory)
+        return [child.name for child in resources.files('bdec').joinpath(self.directory).iterdir() if child.is_file()]
 
     def read(self, filename):
-        return pkg_resources.resource_string('bdec',
-                os.path.join(self.directory, filename))
+        return resources.files('bdec').joinpath(self.directory, filename).read_text()
 
 class FilesystemTemplate(TemplateDir):
     def __init__(self, directory):
@@ -133,7 +132,7 @@ def load_templates(template_dir):
     return Templates(common_templates, entry_templates, config_file)
 
 def _generate_template(output_dir, filename, lookup, template):
-    output = file(os.path.join(output_dir, filename), 'w')
+    output = open(os.path.join(output_dir, filename), 'w')
     try:
         context = mako.runtime.Context(output, **lookup)
         template.render_context(context)

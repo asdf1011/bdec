@@ -33,7 +33,7 @@ class TestProtocolStream(unittest.TestCase):
         a = fld.Field('a', 8)
         stream = chsr._ProtocolStream(a)
         self.assertEqual(a, stream.entry)
-        self.assertEqual([], stream.next())
+        self.assertEqual([], next(stream))
 
     def test_sequence(self):
         blah = seq.Sequence('blah', [fld.Field('a', 8), fld.Field('b', 8)])
@@ -41,17 +41,17 @@ class TestProtocolStream(unittest.TestCase):
         self.assertEqual(0, len(stream.data))
 
         # Now we should move to 'a'
-        next = stream.next()
-        self.assertEqual(1, len(next))
-        self.assertEqual('a', next[0].entry.name)
+        next_items = next(stream)
+        self.assertEqual(1, len(next_items))
+        self.assertEqual('a', next_items[0].entry.name)
 
         # Now we should move to 'b'
-        next = next[0].next()
-        self.assertEqual(1, len(next))
-        self.assertEqual('b', next[0].entry.name)
+        next_items = next(next_items[0])
+        self.assertEqual(1, len(next_items))
+        self.assertEqual('b', next_items[0].entry.name)
 
         # And then we should be done.
-        self.assertEqual(0, len(next[0].next()))
+        self.assertEqual(0, len(next(next_items[0])))
 
     def test_choice(self):
         blah = chc.Choice('blah', [fld.Field('a', 8), fld.Field('b', 8)])
@@ -59,13 +59,13 @@ class TestProtocolStream(unittest.TestCase):
         self.assertEqual(0, len(stream.data))
 
         # Now we should move to 'a' or 'b'
-        next = stream.next()
-        self.assertEqual(2, len(next))
-        self.assertEqual('a', next[0].entry.name)
+        next_items = next(stream)
+        self.assertEqual(2, len(next_items))
+        self.assertEqual('a', next_items[0].entry.name)
 
         # Now both options should finish
-        self.assertEqual(0, len(next[0].next()))
-        self.assertEqual(0, len(next[1].next()))
+        self.assertEqual(0, len(next(next_items[0])))
+        self.assertEqual(0, len(next(next_items[1])))
 
 
 class TestChooser(unittest.TestCase):

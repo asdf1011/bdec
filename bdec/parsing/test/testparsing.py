@@ -57,13 +57,13 @@ class TestParsing(unittest.TestCase):
         comment = '//' + CharsNotIn('\n') + '\n'
         words = ZeroOrMore(Word(alphas)) + StringEnd()
         words.ignore(comment)
-        self.assertEquals(['run', 'dog', 'run'], list(words.parseString('''run // Ignore me
+        self.assertEqual(['run', 'dog', 'run'], list(words.parseString('''run // Ignore me
             // Ignore me too
             dog run''')))
 
         # Test that an entry 'in the middle' can have an ignore entry
         a = Suppress('start:') + words
-        self.assertEquals(['run', 'dog', 'run'], list(a.parseString('''start: run // Ignore me
+        self.assertEqual(['run', 'dog', 'run'], list(a.parseString('''start: run // Ignore me
             dog //ignore me
             // ignore me too
             run''')))
@@ -133,8 +133,8 @@ class TestParsing(unittest.TestCase):
 
     def test_word_body_chars(self):
         a = Word(alphas, alphas + nums) + StringEnd()
-        self.assertEquals(['Dab0c'], list(a.parseString(' Dab0c ')))
-        self.assertEquals(['Aabc123'], list(a.parseString(' Aabc123 ')))
+        self.assertEqual(['Dab0c'], list(a.parseString(' Dab0c ')))
+        self.assertEqual(['Aabc123'], list(a.parseString(' Aabc123 ')))
         self.assertRaises(ParseException, a.parseString, '0abcd')
         self.assertRaises(ParseException, a.parseString, '/AbCd')
         self.assertRaises(ParseException, a.parseString, 'AbCd/')
@@ -156,7 +156,7 @@ class TestParsing(unittest.TestCase):
 
     def test_parse_results(self):
         def to_int(tokens):
-            self.assertEquals(ParseResults, tokens.__class__)
+            self.assertEqual(ParseResults, tokens.__class__)
             return int(tokens[0])
         number = Word(srange('[0-9]')).setParseAction(to_int)('number')
         expr = (number('a') + number('b'))('c') + StringEnd()

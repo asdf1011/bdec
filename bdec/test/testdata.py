@@ -45,13 +45,14 @@
 #!/usr/bin/env python
 
 import operator
-import StringIO
+import io
 import unittest
 
 import bdec
 import bdec.data as dt
+from functools import reduce
 
-class NonSeekable(StringIO.StringIO):
+class NonSeekable(io.StringIO):
     def seek(self, *args):
         raise IOError()
     def tell(self):
@@ -179,7 +180,7 @@ class TestData(unittest.TestCase):
         self.assertRaises(dt.BadTextEncodingError, dt.Data.text, data, "ascii")
 
     def test_file_buffer(self):
-        buffer = StringIO.StringIO()
+        buffer = io.StringIO()
         buffer.write('\x04abcd')
         data = dt.Data(buffer)
         self.assertEqual(4, int(data.pop(8)))
@@ -189,15 +190,16 @@ class TestData(unittest.TestCase):
         # There was a bug in the size of available data we were popping; check
         # the sizes reported in the exception.
         data = dt.Data('abcd', 8, 48)
+        ex = None
         try:
             data.text('ascii')
             self.fail('NotEnoughDataError not thrown!')
-        except dt.NotEnoughDataError, ex:
-            pass
+        except dt.NotEnoughDataError as caught:
+            ex = caught
         self.assertEqual(40, ex.requested)
         self.assertEqual(24, ex.available)
 
-    def test_non_seeking_file(self):
+    def test_non_seeking_open(self):
         file = NonSeekable('abcdef')
         data = dt.Data(file)
         self.assertEqual('abc', data.pop(24).text('ascii'))
@@ -210,7 +212,7 @@ class TestData(unittest.TestCase):
         try:
             dt.Data.from_binary_text('abcd')
             self.fail('Whoops, from_binary_test should have failed!')
-        except dt.InvalidBinaryTextError, ex:
+        except dt.InvalidBinaryTextError as ex:
             self.assertEqual("Invalid binary text 'abcd'", str(ex))
 
     def test_large_add(self):
@@ -221,7 +223,7 @@ class TestData(unittest.TestCase):
         try:
             a = dt.Data('', 0, 4) + dt.Data('b')
             self.fail('Should have thrown NotEnoughDataError...')
-        except dt.NotEnoughDataError, ex:
+        except dt.NotEnoughDataError as ex:
             self.assertEqual('Asked for 4 bits, but only have 0 bits available!', str(ex))
 
     def test_len_not_enough_data(self):

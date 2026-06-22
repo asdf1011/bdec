@@ -51,6 +51,7 @@ import bdec.field as fld
 import bdec.output
 import bdec.sequence as seq
 import bdec.sequenceof as sof
+from functools import reduce
 
 def escape(name):
     return name.replace(' ', '_')
@@ -67,7 +68,7 @@ class _Item(object):
             raise AttributeError(name)
 
     def __repr__(self):
-        result = unicode(self._children)
+        result = str(self._children)
         if self._value is not None:
             result = '%i %s' % (self._value, result)
         return result

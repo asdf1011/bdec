@@ -67,8 +67,8 @@ class Decoder:
 
             # Construct the children decoders
             for child in entry.children:
-                passed_params = zip(lookup.get_passed_variables(entry, child),
-                        lookup.get_params(child.entry))
+                passed_params = list(zip(lookup.get_passed_variables(entry, child),
+                        lookup.get_params(child.entry)))
                 decoder.children.append(Child(child.name,
                     self._get_decoder(child.entry, lookup), passed_params))
 

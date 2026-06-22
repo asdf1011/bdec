@@ -114,14 +114,14 @@ def convert_value(entry, value, length, params=None):
         try:
             if isinstance(value, Data):
                 value = value.copy()
-            elif isinstance(value, int) or isinstance(value, long):
+            elif isinstance(value, int) or isinstance(value, int):
                 try:
                     value = Data.from_int_big_endian(value, int(length))
                 except UndecodedReferenceError:
                     value = _encode_unknown_variable_length_integer(entry, value, params)
             else:
                 value = Data.from_binary_text(_convert_type(entry, value, str))
-        except DataError, ex:
+        except DataError as ex:
             raise FieldDataError(entry, ex)
     elif entry.format == Field.HEX:
         if isinstance(value, Data):
@@ -129,7 +129,7 @@ def convert_value(entry, value, length, params=None):
         else:
             value = Data.from_hex(_convert_type(entry, value, str))
     elif entry.format == Field.TEXT:
-        value = _convert_type(entry, value, unicode)
+        value = _convert_type(entry, value, str)
     elif entry.format == Field.INTEGER:
         value = _convert_type(entry, value, int)
     elif entry.format == Field.FLOAT:
@@ -154,13 +154,13 @@ def _encode_data(entry, value, length):
         assert isinstance(value, Data)
         result = value.copy()
     elif entry.format == Field.TEXT:
-        assert isinstance(value, basestring)
+        assert isinstance(value, str)
         try:
             result = Data(value.encode(entry.encoding))
         except UnicodeDecodeError:
             raise BadEncodingError(entry, value)
     elif entry.format == Field.INTEGER:
-        assert isinstance(value, (int, long))
+        assert isinstance(value, int)
         if length is None:
             raise FieldDataError(entry, 'Unable to encode integer field '
                     'without explicit length')
@@ -196,7 +196,7 @@ def encode_value(entry, value, length=None):
 
     try:
         return _encode_data(entry, value, length)
-    except DataError, ex:
+    except DataError as ex:
         raise FieldDataError(entry, ex)
 
 
@@ -218,13 +218,13 @@ class FieldEncoder(EntryEncoder):
                     # to add leading nulls.
                     try:
                         length = self.entry.length.evaluate(context)
-                    except UndecodedReferenceError, ex:
+                    except UndecodedReferenceError as ex:
                         # We don't know what length it should be. Just make
                         # it a multiple of whole bytes.
                         length = len(value)
                         if length % 8:
                             length = length + (8 - length % 8)
-                    value = Data('\x00' * (length / 8 + 1), 0, length - len(value)) + value
+                    value = Data('\x00' * (length // 8 + 1), 0, length - len(value)) + value
                 break
         else:
             if self.is_hidden:
@@ -232,7 +232,7 @@ class FieldEncoder(EntryEncoder):
                 value = Ranges([range]).get_default()
                 try:
                     length = self.entry.length.evaluate(context)
-                except UndecodedReferenceError, ex:
+                except UndecodedReferenceError as ex:
                     # We don't know, and can't calculate, the length
                     if value == 0:
                         length = 0
@@ -241,7 +241,7 @@ class FieldEncoder(EntryEncoder):
                 if self.entry.format in [Field.HEX, Field.BINARY]:
                     value = Data.from_int_big_endian(value, length)
                 elif self.entry.format in [Field.TEXT]:
-                    value = '\x00' * (length / 8 - 1) + chr(value)
+                    value = '\x00' * (length // 8 - 1) + chr(value)
             else:
                 # We don't have a default for this entry
                 raise MissingFieldException(self.entry)
@@ -251,7 +251,7 @@ class FieldEncoder(EntryEncoder):
         try:
             length = self.entry.length.evaluate(context)
             return encode_value(self.entry, value, length)
-        except UndecodedReferenceError, ex:
+        except UndecodedReferenceError as ex:
             # We don't know how long this entry should be.
             if self.entry.format == self.entry.INTEGER:
                 return _encode_unknown_variable_length_integer(self.entry, value, self._params)

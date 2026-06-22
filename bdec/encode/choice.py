@@ -118,7 +118,7 @@ def get_default_option_params(choice, child, expression_params, encode_expressio
     Returns a {param_name: value} dictionary."""
     result = {}
     outputs = _get_unpopulated_outputs(choice, child, encode_expression_params)
-    for name, params in outputs.items():
+    for name, params in list(outputs.items()):
         # Find the possible range of source values, and intersect it with
         # the constraints placed on it by other earlier children.
         possible = Ranges(p.type.range(expression_params) for p in params)

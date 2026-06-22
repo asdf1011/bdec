@@ -52,6 +52,7 @@ from bdec.encode.entry import EntryEncoder, MockSequenceValue
 from bdec.expression import UndecodedReferenceError
 from bdec.inspect.solver import solve
 from bdec.inspect.type import EntryValueType, EntryLengthType
+from functools import reduce
 
 class CyclicEncodingError(DecodeError):
     def __init__(self, entry, loop):
@@ -165,7 +166,7 @@ class SequenceEncoder(EntryEncoder):
     def _fixup_expression_value(self, value):
         # A sequence is always an integer; when we're encoding from xml the raw
         # value is a string, which means something else in constraints.
-        return int(value)
+        return self._sequence_int_value(value)
 
     def _fixup_value(self, value, context):
         """
@@ -185,12 +186,19 @@ class SequenceEncoder(EntryEncoder):
                     return constraint.limit.evaluate(context)
         return value
 
+    def _sequence_int_value(self, value):
+        if hasattr(value, 'childNodes'):
+            text = ''.join(child.data for child in value.childNodes
+                    if getattr(child, 'nodeType', None) == child.TEXT_NODE)
+            return int(text)
+        return int(value)
+
     def _encode(self, query, value, context):
         if self.entry.value:
             # Update the context with the detected parameters
             if value is None:
                 raise MissingValueError(self.entry)
-            self._solve(self.entry.value, int(value), context)
+            self._solve(self.entry.value, self._sequence_int_value(value), context)
 
         sequence_data = {}
         for child in self.order():
