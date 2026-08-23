@@ -76,7 +76,7 @@ class TestSequenceOf(unittest.TestCase):
         sequenceof = sof.SequenceOf("blah", fld.Field("cat", 8, format=fld.Field.INTEGER), 3)
         data = [5, 9, 0xf6]
         data = encode(sequenceof, data)
-        self.assertEqual("\x05\x09\xf6", data.bytes())
+        self.assertEqual(b"\x05\x09\xf6", data.bytes())
 
     def test_invalid_encoding_count(self):
         sequenceof = sof.SequenceOf("blah", fld.Field("cat", 8, format=fld.Field.INTEGER), 3)
@@ -89,7 +89,7 @@ class TestSequenceOf(unittest.TestCase):
         items = [value for is_starting, name, entry, data, value in sequenceof.decode(rawdata) if isinstance(entry, fld.Field) and not is_starting]
         self.assertEqual(4, len(items))
         self.assertEqual('date', ''.join(items))
-        self.assertEqual('', rawdata.bytes())
+        self.assertEqual(b'', rawdata.bytes())
 
     def test_length_decode(self):
         sequenceof = sof.SequenceOf("blah", fld.Field("cat", 8, format=fld.Field.TEXT), None, length=32)
@@ -97,7 +97,7 @@ class TestSequenceOf(unittest.TestCase):
         items = [value for is_starting, name, entry, data, value in sequenceof.decode(rawdata) if isinstance(entry, fld.Field) and not is_starting]
         self.assertEqual(4, len(items))
         self.assertEqual('date', ''.join(items))
-        self.assertEqual('unused', rawdata.bytes())
+        self.assertEqual(b'unused', rawdata.bytes())
 
     def test_run_out_of_data_length(self):
         sequenceof = sof.SequenceOf("blah", fld.Field("cat", 8, format=fld.Field.TEXT), None, length=32)
@@ -105,13 +105,13 @@ class TestSequenceOf(unittest.TestCase):
         items = [value for is_starting, name, entry, data, value in sequenceof.decode(rawdata) if isinstance(entry, fld.Field) and not is_starting]
         self.assertEqual(4, len(items))
         self.assertEqual('date', ''.join(items))
-        self.assertEqual('', rawdata.bytes())
+        self.assertEqual(b'', rawdata.bytes())
 
     def test_encoding_greedy_sequenceof(self):
         sequenceof = sof.SequenceOf("blah", fld.Field("cat", 8, format=fld.Field.INTEGER), None)
         data = [5, 9, 0xf6]
         data = encode(sequenceof, data)
-        self.assertEqual("\x05\x09\xf6", data.bytes())
+        self.assertEqual(b"\x05\x09\xf6", data.bytes())
 
     def test_negative_count(self):
         sequenceof = sof.SequenceOf("blah", fld.Field("cat", 8, format=fld.Field.INTEGER), -1)
@@ -123,13 +123,13 @@ class TestSequenceOf(unittest.TestCase):
         sequenceof = sof.SequenceOf("null terminated string", chc.Choice('entry', [null, char]), None, end_entries=[null])
         actual = []
         data = dt.Data("hello\x00bob")
-        result = ""
+        result = b""
         for is_starting, name, entry, entry_data, value in sequenceof.decode(data):
             if not is_starting and entry.name == "char":
                 result += entry_data.bytes()
 
-        self.assertEqual("hello", result)
-        self.assertEqual("bob", data.bytes())
+        self.assertEqual(b"hello", result)
+        self.assertEqual(b"bob", data.bytes())
 
     def test_sequenceof_ended_early(self):
         null = fld.Field("null", 8, constraints=[Equals(dt.Data('\x00'))])

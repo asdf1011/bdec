@@ -62,7 +62,7 @@ class TestSequence(unittest.TestCase):
             Field("b:", 8, format=Field.INTEGER),
             Sequence('c', [], value=parse('${b:}'))])
 
-        self.assertEqual("\x01", encode(a, {"c" : 0x01}).bytes())
+        self.assertEqual(b"\x01", encode(a, {"c" : 0x01}).bytes())
 
     def test_encode_length_reference(self):
         a = Sequence('a', [
@@ -73,13 +73,13 @@ class TestSequence(unittest.TestCase):
         data = {
                 'payload':{'data':'abcd'}
                 }
-        self.assertEqual('\x04abcd', encode(a, data).bytes())
+        self.assertEqual(b'\x04abcd', encode(a, data).bytes())
 
     def test_full_names(self):
         a = Sequence('a', [
             Sequence('b', [Field('length:', length=8)]),
             Sequence('c', [Field('data', length=parse('${b.length:} * 8'), format=Field.TEXT)])])
-        self.assertEqual('\x03abc', encode(a, {'b':{}, 'c':{'data':'abc'}}).bytes())
+        self.assertEqual(b'\x03abc', encode(a, {'b':{}, 'c':{'data':'abc'}}).bytes())
 
     def test_multi_digit_encode(self):
         # Test encoding a multiple text digit entry
@@ -93,14 +93,14 @@ class TestSequence(unittest.TestCase):
             Child('digits 1:', two_digits), Child('digits 2:', two_digits)],
             value=parse('${digits 1:} * 100 + ${digits 2:}'))
 
-        self.assertEqual('12', encode(two_digits, 12).bytes())
-        self.assertEqual('1234', encode(four_digits, 1234).bytes())
-        self.assertEqual('7632', encode(four_digits, 7632).bytes())
+        self.assertEqual(b'12', encode(two_digits, 12).bytes())
+        self.assertEqual(b'1234', encode(four_digits, 1234).bytes())
+        self.assertEqual(b'7632', encode(four_digits, 7632).bytes())
 
     def test_encode_hidden_sequence(self):
         # When encoding an item that is hidden, we should use null characters.
         a = Sequence('a', [Sequence('b:', [Field('c', length=8)])])
-        self.assertEqual('\x00', encode(a, None).bytes())
+        self.assertEqual(b'\x00', encode(a, None).bytes())
 
     def test_cyclic_dependency_error(self):
         # This tests that we get a good error when we are unable to encode due
@@ -122,7 +122,7 @@ class TestSequence(unittest.TestCase):
             Field('data length:', length=8),
             Field('data', length=parse('${data length:} * 8'), format=Field.TEXT),
             Field('unused', length=parse('${packet length:} * 8 - len{data}'), format=Field.TEXT)])
-        self.assertEqual('\x05\x03aaabb', encode(a, {'data':'aaa', 'unused':'bb'}).bytes())
+        self.assertEqual(b'\x05\x03aaabb', encode(a, {'data':'aaa', 'unused':'bb'}).bytes())
 
     def test_complex_length_reference(self):
         # Here we try to encode a complex length reference that includes a
@@ -132,7 +132,7 @@ class TestSequence(unittest.TestCase):
             Field('header length:', length=8, format=Field.INTEGER),
             Field('header', length=parse('${header length:} * 8'), format=Field.TEXT),
             Field('packet', length=parse('${packet length:} * 8 - len{header}'), format=Field.TEXT)])
-        self.assertEqual('\x06\x02hhpppp', encode(a, {'header':'hh', 'packet':'pppp'}).bytes())
+        self.assertEqual(b'\x06\x02hhpppp', encode(a, {'header':'hh', 'packet':'pppp'}).bytes())
 
     def test_common_entry_with_referenced_value(self):
         # Just because an entry is sometimes referenced doesn't mean it always
@@ -142,7 +142,7 @@ class TestSequence(unittest.TestCase):
         c = Sequence('c', [
             a,
             Sequence('b', [Child('a:', a)], value=parse('${a:}'))])
-        self.assertEqual('\x45\x23', encode(c, {'a':0x45, 'b':0x23}).bytes())
+        self.assertEqual(b'\x45\x23', encode(c, {'a':0x45, 'b':0x23}).bytes())
 
     def test_fixed_sequence_value(self):
         # We create an entry with a fixed / visible value, and reference it
@@ -167,12 +167,12 @@ class TestSequence(unittest.TestCase):
         a = Sequence('a', [
             Sequence('is big endian:', [], value=parse('1')),
             Child('value', optional_endian)])
-        self.assertEqual('\x00\x01', encode(a, {'value':1}).bytes())
+        self.assertEqual(b'\x00\x01', encode(a, {'value':1}).bytes())
 
         b = Sequence('b', [
             Sequence('is big endian:', [], value=parse('0')),
             Child('value', optional_endian)])
-        self.assertEqual('\x01\x00', encode(b, {'value':1}).bytes())
+        self.assertEqual(b'\x01\x00', encode(b, {'value':1}).bytes())
 
         # FIXME: This fails, because the 'number:' decide that as 'is big endian:'
         # is hidden (and doesn't have an expected value) that it must be derived,
@@ -183,8 +183,8 @@ class TestSequence(unittest.TestCase):
             Field('is big endian', length=8, format=Field.INTEGER),
             Sequence('is big endian:', [], value=parse('${is big endian}')),
             Child('value', optional_endian)])
-        #self.assertEqual('\x00\x00\x01', encode(c, {'is big endian':0, 'value':1}).bytes())
-        #self.assertEqual('\x01\x01\x00', encode(c, {'is big endian':1, 'value':1}).bytes())
+        #self.assertEqual(b'\x00\x00\x01', encode(c, {'is big endian':0, 'value':1}).bytes())
+        #self.assertEqual(b'\x01\x01\x00', encode(c, {'is big endian':1, 'value':1}).bytes())
 
     def test_visible_common_entry_is_hidden(self):
         # When we have a visible common integer that is referenced elsewhere,
@@ -206,19 +206,19 @@ class TestSequence(unittest.TestCase):
         b = Sequence('b', [
             Sequence('c', [Child('a:', a)], value=parse('${a:}')),
             Sequence('d', [a, Sequence('d1', [], value=parse('${a}'))])])
-        self.assertEqual('\x05\x07', encode(b, {'c' : 5, 'd':{'a':7, 'd1':7}}).bytes())
+        self.assertEqual(b'\x05\x07', encode(b, {'c' : 5, 'd':{'a':7, 'd1':7}}).bytes())
 
     def test_param_from_hidden_entry_with_visible_child(self):
         a = Sequence('a', [
             Sequence('b:', [Field('c', length=8)])],
             value=parse('${b:.c}'))
-        self.assertEqual('\x0a', encode(a, 10).bytes())
+        self.assertEqual(b'\x0a', encode(a, 10).bytes())
 
     def test_hidden_sequence_with_value(self):
         # Test encoding a hidden sequence with an unknown value
         a = Sequence('a', [Sequence('b', [], value=parse('${constant}'))])
         c = Sequence('c', [Field('constant', length=8), Child('a:', a)])
-        self.assertEqual('\x07', encode(c, {'constant':7}).bytes())
+        self.assertEqual(b'\x07', encode(c, {'constant':7}).bytes())
 
     def test_hidden_sequence_with_input_param(self):
         # Here we have a hidden entry that will have to be mocked, but still
@@ -226,7 +226,7 @@ class TestSequence(unittest.TestCase):
         c = Sequence('a', [
             Child('b:', Sequence('b', [Field('c', length=8)])),
             Sequence('d', [], value=parse('${b:.c}'))])
-        self.assertEqual('\x09', encode(c, {'d':9}).bytes())
+        self.assertEqual(b'\x09', encode(c, {'d':9}).bytes())
 
     def test_hidden_detection(self):
         # Test the parameter passing when the common entry is first found
@@ -241,7 +241,7 @@ class TestSequence(unittest.TestCase):
             Field('d', length=parse('${c:.a} * 8'), format=Field.TEXT),
             a,
             Field('e', length=parse('${a} * 8'), format=Field.TEXT)])
-        self.assertEqual('\x02dd\x03eee', encode(b, {'d':'dd', 'a':3, 'e':'eee'}).bytes())
+        self.assertEqual(b'\x02dd\x03eee', encode(b, {'d':'dd', 'a':3, 'e':'eee'}).bytes())
 
     def test_visible_param_passed_in(self):
         # Test that we correctly pass visible parameters into hidden entries.
@@ -249,9 +249,9 @@ class TestSequence(unittest.TestCase):
         a = Sequence('a', [
             Field('b', length=8, format=Field.INTEGER),
             Sequence('c:', [Field('d:', length=parse('${b} * 8'))])])
-        self.assertEqual('\x00', encode(a, {'b':0}).bytes())
-        self.assertEqual('\x01\x00', encode(a, {'b':1}).bytes())
-        self.assertEqual('\x03\x00\x00\x00', encode(a, {'b':3}).bytes())
+        self.assertEqual(b'\x00', encode(a, {'b':0}).bytes())
+        self.assertEqual(b'\x01\x00', encode(a, {'b':1}).bytes())
+        self.assertEqual(b'\x03\x00\x00\x00', encode(a, {'b':3}).bytes())
 
     def test_reference_in_constraint(self):
         # Test that the code correctly encodes when constraints have references
@@ -268,9 +268,9 @@ class TestSequence(unittest.TestCase):
                     value=parse('${uint8:}'), constraints=[Equals(parse('${b:.b3}'))]),
                 ])
             ])
-        self.assertEqual('\x01', encode(a, {'c1':None}).bytes())
-        self.assertEqual('\x02', encode(a, {'c2':None}).bytes())
-        self.assertEqual('\x03', encode(a, {'c3':None}).bytes())
+        self.assertEqual(b'\x01', encode(a, {'c1':None}).bytes())
+        self.assertEqual(b'\x02', encode(a, {'c2':None}).bytes())
+        self.assertEqual(b'\x03', encode(a, {'c3':None}).bytes())
 
     def test_referencing_implicit_length(self):
         # There was a problem when encoding length references to entries that
@@ -282,7 +282,7 @@ class TestSequence(unittest.TestCase):
                 Field('b1', length=parse('${b1 length:} * 8'), format=Field.TEXT)]),
             Field('unused:', length=parse('${length:} * 8 - len{b}'))
             ])
-        self.assertEqual('\x05\x04abcd', encode(a, {'b':{'b1':'abcd'}}).bytes())
+        self.assertEqual(b'\x05\x04abcd', encode(a, {'b':{'b1':'abcd'}}).bytes())
 
     def test_secondary_dependency(self):
         # Test that when A depends on C, and B depends on A, we don't attempt
@@ -293,7 +293,7 @@ class TestSequence(unittest.TestCase):
                 Field('a2:', 8, format=Field.INTEGER)]),
             Field('b', parse('${a.a1} * 8'), format=Field.TEXT),
             Field('c', parse('${a.a2:} * 8'), format=Field.TEXT)])
-        self.assertEqual('\x03\x02xyzst', encode(blah, {
+        self.assertEqual(b'\x03\x02xyzst', encode(blah, {
             'a' : {'a1' : 3},
             'b' : 'xyz',
             'c' : 'st'}).bytes())
@@ -308,5 +308,5 @@ class TestSequence(unittest.TestCase):
             number,
             Sequence('c', [], value=parse('${b:}'))
             ])
-        self.assertEqual('\x01\x00', encode(a, {'c':0}).bytes())
-        self.assertEqual('\x02\x10\xff', encode(a, {'c':0x10ff}).bytes())
+        self.assertEqual(b'\x01\x00', encode(a, {'c':0}).bytes())
+        self.assertEqual(b'\x02\x10\xff', encode(a, {'c':0x10ff}).bytes())

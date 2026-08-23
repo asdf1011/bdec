@@ -77,7 +77,7 @@ class TestSequence(unittest.TestCase):
         struct = {'blah':{"bob" : 0x01, "cat" : 0x7a}}
         query = lambda context, child, i, name: context[name]
         data = reduce(lambda a,b:a+b, sequence.encode(query, struct))
-        self.assertEqual("\x01\x7a", data.bytes())
+        self.assertEqual(b"\x01\x7a", data.bytes())
 
     def test_bad_length(self):
         embedded = [fld.Field("bob", 8, format=fld.Field.INTEGER), fld.Field("cat", 8, format=fld.Field.INTEGER)]
