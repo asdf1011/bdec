@@ -59,46 +59,46 @@ class TestField(unittest.TestCase):
             Sequence('length:', [], value=parse('16')),
             Field('b:', format=Field.INTEGER, length=parse('${length:}'))],
             value=parse('${b:}'))
-        self.assertEqual('\x00\x00', encode(a, 0).bytes())
-        self.assertEqual('\x00\xff', encode(a, 255).bytes())
-        self.assertEqual('\xff\xff', encode(a, 65535).bytes())
+        self.assertEqual(b'\x00\x00', encode(a, 0).bytes())
+        self.assertEqual(b'\x00\xff', encode(a, 255).bytes())
+        self.assertEqual(b'\xff\xff', encode(a, 65535).bytes())
 
     def test_integer_with_variable_length(self):
         a = Sequence('a', [
             Field('length:', length=8 ),
             Field('b:', format=Field.INTEGER, length=parse('${length:} * 8'))],
             value=parse('${b:}'))
-        self.assertEqual('\x01\x00', encode(a, 0).bytes())
-        self.assertEqual('\x01\xff', encode(a, 255).bytes())
-        self.assertEqual('\x02\xff\xff', encode(a, 65535).bytes())
+        self.assertEqual(b'\x01\x00', encode(a, 0).bytes())
+        self.assertEqual(b'\x01\xff', encode(a, 255).bytes())
+        self.assertEqual(b'\x02\xff\xff', encode(a, 65535).bytes())
 
     def test_sometimes_referenced_hidden_field(self):
         # Test encoding a field that is sometimes referenced (but not always).
         a = Field('a:', length=8, format=Field.INTEGER)
         b = Sequence('b', [a], value=parse('${a:}'))
         c = Sequence('c', [a, b])
-        self.assertEqual('\x00\x07', encode(c, {'b':7}).bytes())
+        self.assertEqual(b'\x00\x07', encode(c, {'b':7}).bytes())
 
     def test_encode_zero_length_field(self):
         a = Sequence('a', [
                 Field('b:', length=8),
                 Field('c', format=Field.TEXT, length=parse('${b:} * 8'))
                 ])
-        self.assertEqual('\x02ab', encode(a, {'c':'ab'}).bytes())
-        self.assertEqual('\x00', encode(a, {'c':''}).bytes())
+        self.assertEqual(b'\x02ab', encode(a, {'c':'ab'}).bytes())
+        self.assertEqual(b'\x00', encode(a, {'c':''}).bytes())
 
     def test_encode_zero_length_hex_field(self):
         a = Sequence('a', [
                 Field('b:', length=8),
                 Field('c', format=Field.HEX, length=parse('${b:} * 8'))
                 ])
-        self.assertEqual('\x02ab', encode(a, {'c':'6162'}).bytes())
-        self.assertEqual('\x00', encode(a, {'c':''}).bytes())
+        self.assertEqual(b'\x02ab', encode(a, {'c':'6162'}).bytes())
+        self.assertEqual(b'\x00', encode(a, {'c':''}).bytes())
 
     def test_unicode_field(self):
         a = Sequence('a', [
                 Field('b:', length=8),
                 Field('c', format=Field.TEXT, length=parse('${b:} * 8'), encoding='utf8')
                 ])
-        self.assertEqual('\x0c\xe3\x83\xad\xe3\x82\xb0\xe3\x82\xa4\xe3\x83\xb3',
+        self.assertEqual(b'\x0c\xe3\x83\xad\xe3\x82\xb0\xe3\x82\xa4\xe3\x83\xb3',
                 encode(a, {'c':'ログイン'}).bytes())

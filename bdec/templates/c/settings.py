@@ -44,6 +44,7 @@
 
 import operator
 import string
+from functools import reduce
 
 import bdec.choice as chc
 from bdec.constraints import Equals
@@ -79,6 +80,18 @@ def printf_format(type):
     a = unsigned_types.copy()
     a.update(signed_types)
     return a[type][1]
+
+def printf_cast(type):
+    """Return a C cast that makes the value match the printf format string.
+
+    On 64 bit platforms uint64_t is 'unsigned long' (not 'unsigned long
+    long'), so '%llu' would be a format mismatch (and with -Werror, a compile
+    failure). Casting to 'long long' / 'unsigned long long' makes the format
+    correct on all platforms.
+    """
+    if type in ('uint64_t', 'int64_t'):
+        return '(unsigned long long)' if type == 'uint64_t' else '(long long)'
+    return ''
 
 _escaped_types = {}
 def escaped_type(entry):
@@ -474,6 +487,9 @@ def free_name(entry):
 
 _PRINTABLE = string.ascii_letters + string.digits
 def _c_repr(char):
+    if isinstance(char, int):
+        # data may be a bytes instance, in which case iteration yields ints
+        char = chr(char)
     if char == '\\':
         return '\\\\'
     if char in _PRINTABLE:

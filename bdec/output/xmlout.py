@@ -56,7 +56,6 @@ import bdec.entry as ent
 import bdec.choice as chc
 from bdec.data import Data
 import bdec.field as fld
-from bdec.sequence import Sequence
 import bdec.sequenceof as sof
 from functools import reduce
 
@@ -75,13 +74,6 @@ class _XMLGenerator(xml.sax.saxutils.XMLGenerator):
 
     def comment(self, text):
         self.__out.write('<!-- %s -->' % text)
-
-class UnknownIntegerError(Exception):
-    def __str__(self):
-        return 'Sequence has unknown integer value'
-
-def _unknown_integer_error():
-    raise UnknownIntegerError()
 
 def _escape_char(character):
     # The list of 'safe' xml characters is from http://www.w3.org/TR/REC-xml/#NT-Char
@@ -207,12 +199,6 @@ def _get_element_value(element, entry):
             has_children = True
         elif child.nodeType == xml.dom.Node.TEXT_NODE:
             text += child.data
-
-    if isinstance(entry, Sequence) and entry.value:
-        if text.strip():
-            element.__int__ = lambda: int(text)
-        else:
-            element.__int__ = _unknown_integer_error
 
     if has_children:
         # This element has sub-elements, so return the high-level element

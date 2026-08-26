@@ -39,4 +39,4 @@ class TestSequenceOf(unittest.TestCase):
             Field('count:', length=8),
             SequenceOf('c', Field('d', length=8, format=Field.TEXT), count=parse("${count:}")),
             ])
-        self.assertEqual('\x03abc', encode(a, {'c' : ['a', 'b', 'c']}).bytes())
+        self.assertEqual(b'\x03abc', encode(a, {'c' : ['a', 'b', 'c']}).bytes())

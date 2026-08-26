@@ -74,7 +74,7 @@ class TestXml(unittest.TestCase):
         sequence = seq.Sequence("blah", [
             fld.Field("cat", 8, fld.Field.INTEGER),
             fld.Field("dog", 8, fld.Field.INTEGER)])
-        self.assertEqual("\x05\x12", xml.encode(sequence, text).bytes())
+        self.assertEqual(b"\x05\x12", xml.encode(sequence, text).bytes())
 
     def test_choice_encode(self):
         a = fld.Field('a', 8, constraints=[Equals(dt.Data('a'))])
@@ -82,7 +82,7 @@ class TestXml(unittest.TestCase):
         choice = chc.Choice('blah', [a, b])
         text = "<b />"
         data = xml.encode(choice, text)
-        self.assertEqual("b", data.bytes())
+        self.assertEqual(b"b", data.bytes())
 
     def test_verbose(self):
         sequence = seq.Sequence("bob", [
@@ -98,19 +98,19 @@ class TestXml(unittest.TestCase):
 
         # Now test that we can re-encode verbose generated xml...
         data = xml.encode(sequence, text)
-        self.assertEqual("mzip", data.bytes())
+        self.assertEqual(b"mzip", data.bytes())
 
     def test_encode_sequenceof(self):
         spec = sof.SequenceOf('cat', fld.Field('dog', 8, fld.Field.TEXT), 4)
         text = "<cat> <dog>a</dog> <dog>b</dog> <dog>c</dog> <dog>d</dog> </cat>"
         data = xml.encode(spec, text)
-        self.assertEqual("abcd", data.bytes())
+        self.assertEqual(b"abcd", data.bytes())
 
     def test_re_encoding_of_whitespace(self):
         spec = fld.Field('blah', 64, fld.Field.TEXT)
         text = xml.to_string(spec.decode(dt.Data('  bob   ')))
         data = xml.encode(spec, text)
-        self.assertEqual("  bob   ", data.bytes())
+        self.assertEqual(b"  bob   ", data.bytes())
 
     def test_nameless_entry(self):
         hidden = fld.Field('', 8, fld.Field.INTEGER, constraints=[Equals(0)])
@@ -152,22 +152,22 @@ class TestXml(unittest.TestCase):
         a = seq.Sequence('a', [
             fld.Field('b:', 8),
             seq.Sequence('c', [], value=parse('${b:}'), constraints=[Equals(5)])])
-        self.assertEqual('\x05', xml.encode(a, text).bytes())
+        self.assertEqual(b'\x05', xml.encode(a, text).bytes())
 
     def test_integer_field_with_expected_value(self):
         a = fld.Field('a', length=16, format=fld.Field.INTEGER,
                 encoding=fld.Field.LITTLE_ENDIAN, constraints=[Equals(7)])
-        self.assertEqual('\x07\x00', xml.encode(a, '<a/>').bytes())
+        self.assertEqual(b'\x07\x00', xml.encode(a, '<a/>').bytes())
 
     def test_text_field_with_expected_value(self):
         a = fld.Field('a', length=32, format=fld.Field.TEXT, constraints=[Equals('abcd')])
-        self.assertEqual('abcd', xml.encode(a, '<a/>').bytes())
+        self.assertEqual(b'abcd', xml.encode(a, '<a/>').bytes())
 
     def test_sequence_with_children_and_value(self):
         a = seq.Sequence('a',
                 [fld.Field('b', length=8, format=fld.Field.INTEGER)],
                 value=parse('${b}'))
-        self.assertEqual('\x05', xml.encode(a, '<a><b>5</b>5</a>').bytes())
+        self.assertEqual(b'\x05', xml.encode(a, '<a><b>5</b>5</a>').bytes())
 
     def test_sequenceof_choice(self):
         a = sof.SequenceOf('a', chc.Choice('b', [
@@ -175,5 +175,5 @@ class TestXml(unittest.TestCase):
                 fld.Field('b2', length=8, constraints=[Equals(5)]),
                 fld.Field('b3', length=8, constraints=[Equals(7)]),
                 ]), count=3)
-        self.assertEqual('\x03\x05\x07', xml.encode(a, '<a><b1/><b2/><b3/></a>').bytes())
+        self.assertEqual(b'\x03\x05\x07', xml.encode(a, '<a><b1/><b2/><b3/></a>').bytes())
 

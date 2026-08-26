@@ -267,7 +267,11 @@ class EntryEncoder:
         if self._is_length_referenced:
             context[self.entry.name + ' length'] = length
         if self._is_value_referenced:
-            context[self.entry.name] = int(value)
+            # The value may be an xml element (eg: from minidom); fix it up to
+            # an integer. In python 2 this relied on old-style class lookup of
+            # an instance '__int__' attribute, which no longer works in
+            # python 3.
+            context[self.entry.name] = int(self._fixup_expression_value(value))
 
     def __repr__(self):
         return 'encoder for %s' % self.entry

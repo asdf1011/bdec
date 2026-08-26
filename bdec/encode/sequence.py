@@ -54,6 +54,11 @@ from bdec.inspect.solver import solve
 from bdec.inspect.type import EntryValueType, EntryLengthType
 from functools import reduce
 
+class UnknownIntegerError(Exception):
+    """The value of a sequence was unknown (eg: an empty xml element)."""
+    def __str__(self):
+        return 'Sequence has unknown integer value'
+
 class CyclicEncodingError(DecodeError):
     def __init__(self, entry, loop):
         DecodeError.__init__(self, entry)
@@ -190,6 +195,11 @@ class SequenceEncoder(EntryEncoder):
         if hasattr(value, 'childNodes'):
             text = ''.join(child.data for child in value.childNodes
                     if getattr(child, 'nodeType', None) == child.TEXT_NODE)
+            if not text.strip():
+                # An empty xml element provides no value for the sequence
+                # expression. Report it here rather than letting int('')
+                # raise a bare ValueError.
+                raise UnknownIntegerError()
             return int(text)
         return int(value)
 

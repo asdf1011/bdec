@@ -63,7 +63,7 @@ class TestData(unittest.TestCase):
         self.assertRaises(dt.NotEnoughDataError, int, dt.Data("").pop(1))
 
     def test_pop_negative_number(self):
-        self.assertEqual("abcd", dt.Data("abcd").pop(32).bytes())
+        self.assertEqual(b"abcd", dt.Data("abcd").pop(32).bytes())
         self.assertRaises(dt.NotEnoughDataError, int, dt.Data("abcd").pop(33))
 
     def test_integer(self):
@@ -74,8 +74,8 @@ class TestData(unittest.TestCase):
         self.assertEqual(0x030201, data.get_little_endian_integer())
 
     def test_string(self):
-        self.assertEqual("Some text", dt.Data("Some text").bytes())
-        self.assertEqual("", dt.Data().bytes())
+        self.assertEqual(b"Some text", dt.Data("Some text").bytes())
+        self.assertEqual(b"", dt.Data().bytes())
 
     def test_unaligned_string(self):
         # The first 4 bits (the 'a') will be popped, then the 5 byte
@@ -83,7 +83,7 @@ class TestData(unittest.TestCase):
         data = dt.Data.from_hex("a68656c6c6fa")
         data.pop(4)
         text = data.pop(5 * 8)
-        self.assertEqual('hello', text.bytes())
+        self.assertEqual(b'hello', text.bytes())
     
     def test_pop(self):
         data = dt.Data.from_hex("f0")
@@ -112,7 +112,7 @@ class TestData(unittest.TestCase):
         self.assertEqual(10000, int(data))
 
     def test_integer_too_big(self):
-        self.assertEqual(chr(255), dt.Data.from_int_big_endian(255, 8).bytes())
+        self.assertEqual(bytes([255]), dt.Data.from_int_big_endian(255, 8).bytes())
         self.assertRaises(dt.IntegerTooLongError, dt.Data.from_int_big_endian, 255, 7)
         self.assertRaises(dt.IntegerTooLongError, dt.Data.from_int_big_endian, 100000, 7)
 
@@ -131,16 +131,16 @@ class TestData(unittest.TestCase):
 
     def test_to_and_from_hex(self):
         hex = dt.Data('blah blah').get_hex()
-        self.assertEqual('blah blah', dt.Data.from_hex(hex).bytes())
+        self.assertEqual(b'blah blah', dt.Data.from_hex(hex).bytes())
 
     def test_adding_data(self):
-        self.assertEqual("chicken little", (dt.Data("chicken ") + dt.Data("little")).bytes())
-        self.assertEqual('1abcd', (dt.Data('1') + dt.Data('abcd')).bytes())
-        self.assertEqual('1234a', (dt.Data('1234') + dt.Data('a')).bytes())
-        self.assertEqual('\x7c', (dt.Data('\x70', 0, 4) + dt.Data('\x0c', 4, 8)).bytes())
+        self.assertEqual(b"chicken little", (dt.Data("chicken ") + dt.Data("little")).bytes())
+        self.assertEqual(b'1abcd', (dt.Data('1') + dt.Data('abcd')).bytes())
+        self.assertEqual(b'1234a', (dt.Data('1234') + dt.Data('a')).bytes())
+        self.assertEqual(b'\x7c', (dt.Data('\x70', 0, 4) + dt.Data('\x0c', 4, 8)).bytes())
 
     def test_add_data_with_unused(self):
-        self.assertEqual('ab', (dt.Data('ax', 0, 8) + dt.Data('b')).bytes())
+        self.assertEqual(b'ab', (dt.Data('ax', 0, 8) + dt.Data('b')).bytes())
 
     def test_adding_empty_unaligned(self):
         self.assertEqual(dt.Data(), dt.Data('', 4, 4) + dt.Data('', 7, 7))
@@ -152,7 +152,7 @@ class TestData(unittest.TestCase):
         self.assertEqual(0x2d, int(dt.Data.from_binary_text("010") + dt.Data.from_binary_text("1101")))
 
     def test_hex_conversion(self):
-        self.assertEqual("\x23\x45\x67", dt.Data.from_hex("23 45 67").bytes())
+        self.assertEqual(b"\x23\x45\x67", dt.Data.from_hex("23 45 67").bytes())
 
     def test_conversion_needs_bytes(self):
         self.assertRaises(dt.ConversionNeedsBytesError, dt.Data.bytes, dt.Data("00", 0, 4))
@@ -184,7 +184,7 @@ class TestData(unittest.TestCase):
         buffer.write('\x04abcd')
         data = dt.Data(buffer)
         self.assertEqual(4, int(data.pop(8)))
-        self.assertEqual('abcd', data.bytes())
+        self.assertEqual(b'abcd', data.bytes())
 
     def test_not_enough_data(self):
         # There was a bug in the size of available data we were popping; check
@@ -216,8 +216,8 @@ class TestData(unittest.TestCase):
             self.assertEqual("Invalid binary text 'abcd'", str(ex))
 
     def test_large_add(self):
-        self.assertEqual('a' * 10001, (dt.Data('a') + dt.Data('a' * 10000)).bytes())
-        self.assertEqual('a' * 10001, (dt.Data('a' * 10000) + dt.Data('a')).bytes())
+        self.assertEqual(b'a' * 10001, (dt.Data('a') + dt.Data('a' * 10000)).bytes())
+        self.assertEqual(b'a' * 10001, (dt.Data('a' * 10000) + dt.Data('a')).bytes())
 
     def test_add_unknown_length(self):
         try:
@@ -237,7 +237,7 @@ class TestData(unittest.TestCase):
         # Remove data from the from of the data
         data.pop(36)
         data = data + dt.Data('\x00', 0, 4)
-        self.assertEqual('\x10\x20\x30\x40', data.bytes())
+        self.assertEqual(b'\x10\x20\x30\x40', data.bytes())
 
     def test_join_single_bit(self):
         data = dt.Data('\x01', 7, 8)

@@ -536,7 +536,7 @@ ${settings.print_name(child.entry)}(offset + ${offset}, ${'"%s"' % xmlname(child
       %if not contains_data(entry):
     printf(${'"<%s />\\n"'}, name);
       %elif entry.format == Field.INTEGER:
-    printf(${'"<%s>' + settings.printf_format(settings.ctype(entry)) + '</%s>\\n"'}, name, *data, name);
+    printf(${'"<%s>' + settings.printf_format(settings.ctype(entry)) + '</%s>\\n"'}, name, ${settings.printf_cast(settings.ctype(entry))}*data, name);
       %elif entry.format == Field.TEXT:
     printf(${'"<%s>"'}, name);
     print_escaped_string(data);
@@ -607,7 +607,7 @@ ${settings.print_name(child.entry)}(offset + ${offset}, ${'"%s"' % xmlname(child
   %if settings.is_numeric(settings.ctype(entry)):
     ${print_whitespace()}
       %if contains_data(entry):
-    printf(${'"<%s>' + settings.printf_format(settings.ctype(entry)) + '</%s>\\n"'}, name, *data, name);
+    printf(${'"<%s>' + settings.printf_format(settings.ctype(entry)) + '</%s>\\n"'}, name, ${settings.printf_cast(settings.ctype(entry))}*data, name);
       %else:
     printf(${'"<%s />\\n"'}, name);
       %endif

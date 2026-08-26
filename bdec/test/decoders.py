@@ -104,6 +104,10 @@ def _get_elem_text(a, event):
     return "%s%s</%s>" % (prefix, text.strip(), a.tag)
 
 def assert_xml_equivalent(expected, actual):
+    if isinstance(expected, bytes):
+        expected = expected.decode('latin1')
+    if isinstance(actual, bytes):
+        actual = actual.decode('latin1')
     a = xml.etree.ElementTree.iterparse(io.StringIO(expected), ['start', 'end'])
     b = xml.etree.ElementTree.iterparse(io.StringIO(actual), ['start', 'end'])
     for (a_event, a_elem), (b_event, b_elem) in zip(a, b):
@@ -263,6 +267,8 @@ def _validate_xml(spec, data, xmltext):
     there may be differences in whitespace, and some fields can be represented
     in multiple ways (eg: 5.0 vs 5.00000 vs 5).
     """
+    if isinstance(xmltext, bytes):
+        xmltext = xmltext.decode('latin1')
     xml_entries = xml.etree.ElementTree.iterparse(io.StringIO(xmltext), ['start', 'end'])
     child_tail=None
     for (is_starting, name, entry, data, expected), (a_event, a_elem) in zip(_decode_visible(spec, data), xml_entries):
@@ -365,6 +371,8 @@ class _CompiledDecoder(object):
             xml = compile_and_run(data, self, encode_filename)
         finally:
             os.chdir(old_dir)
+        if isinstance(xml, bytes):
+            xml = xml.decode('latin1')
 
         try:
             _validate_xml(spec, dt.Data(data), xml)

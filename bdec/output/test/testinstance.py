@@ -108,14 +108,14 @@ class TestInstance(unittest.TestCase):
 
     def test_field_encode(self):
         field = fld.Field("bob", 8, fld.Field.INTEGER)
-        self.assertEqual("\x6e", self._encode(field, 0x6e))
+        self.assertEqual(b"\x6e", self._encode(field, 0x6e))
 
     def test_sequence_encode(self):
         sequence = seq.Sequence("bob", [fld.Field("cat", 8, fld.Field.INTEGER), fld.Field("dog", 8, fld.Field.INTEGER)])
         blah = _Inst()
         blah.cat = 0x38
         blah.dog = 0x7a
-        self.assertEqual("\x38\x7a", self._encode(sequence, blah))
+        self.assertEqual(b"\x38\x7a", self._encode(sequence, blah))
 
     def test_children_of_hidden_entries_are_not_visible(self):
         sequence = seq.Sequence("bob:", [fld.Field("cat", 8, fld.Field.INTEGER), fld.Field("dog", 8, fld.Field.INTEGER)])
@@ -125,23 +125,23 @@ class TestInstance(unittest.TestCase):
     def test_sequenceof_encode(self):
         sequenceof = sof.SequenceOf("bob", fld.Field("cat", 8, fld.Field.INTEGER), 4)
         blah = [0x38, 0xa7, 0x70, 0x60]
-        self.assertEqual("\x38\xa7\x70\x60", self._encode(sequenceof, blah))
+        self.assertEqual(b"\x38\xa7\x70\x60", self._encode(sequenceof, blah))
 
     def test_choice_encode(self):
         choice = chc.Choice("bob", [fld.Field("blah", 60, fld.Field.INTEGER), fld.Field("text", 56, fld.Field.TEXT)])
         blah = _Inst()
         blah.text = "chicken"
-        self.assertEqual("chicken", self._encode(choice, blah))
+        self.assertEqual(b"chicken", self._encode(choice, blah))
 
     def test_encode_item_with_space(self):
         field = seq.Sequence('a', [fld.Field("bobs cat", 8, fld.Field.INTEGER)])
         blah = _Inst()
         blah.bobs_cat = 0x6e
-        self.assertEqual("\x6e", self._encode(field, blah))
+        self.assertEqual(b"\x6e", self._encode(field, blah))
 
     def test_encode_of_missing_hidden_field_doesnt_use_parent_context(self):
         field = fld.Field("bob:", 8, constraints=[Equals(dt.Data("c"))])
-        self.assertEqual("c", self._encode(field, None))
+        self.assertEqual(b"c", self._encode(field, None))
 
     def test_reference_name(self):
         a = fld.Field('a', 8)

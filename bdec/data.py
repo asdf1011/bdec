@@ -344,22 +344,22 @@ class Data(object):
         return klass(self._buffer, self._start, self._end)
 
     def bytes(self):
-        """Return a str instance representing the bytes held by this data.
+        """Return a bytes instance representing the bytes held by this data.
 
         If the data length isn't a multiple of 8 bits, a DataError will be
         raised."""
-        return "".join(chr(byte) for byte in self._get_bytes())
+        return bytes(self._get_bytes())
 
     def text(self, encoding):
-        """Return a unicode object that represents the data buffer.
+        """Return a str instance representing the data buffer.
 
         If the data length isn't a multiple of 8 bits, a DataError will be
         raised. If the data cannot be converted to the given encoding, a
         BadTextEncodingError error will be raised.
         
-        encoding -- The unicode encoding the data is in. """
+        encoding -- The encoding the data is in. """
         try:
-            return self.bytes().encode('latin1').decode(encoding)
+            return self.bytes().decode(encoding)
         except UnicodeDecodeError:
             raise BadTextEncodingError(self, encoding)
 
@@ -414,6 +414,44 @@ class Data(object):
 
             if a_bit != b_bit:
                 return False
+
+    def _cmp(self, other):
+        """Compare self with other, returning -1, 0 or 1.
+
+        Data is treated as smaller than any non-Data value (eg: int); this
+        mirrors Python 2's default ordering, which the C type selection code
+        relied upon when intersecting ranges of binary values with integers.
+        """
+        if not isinstance(other, Data):
+            return -1
+        a = list(self._get_bits())
+        b = list(other._get_bits())
+        if len(a) != len(b):
+            return -1 if len(a) < len(b) else 1
+        for a_bit, b_bit in zip(a, b):
+            if a_bit != b_bit:
+                return -1 if a_bit < b_bit else 1
+        return 0
+
+    def __lt__(self, other):
+        if not isinstance(other, Data):
+            return True
+        return self._cmp(other) < 0
+
+    def __le__(self, other):
+        if not isinstance(other, Data):
+            return True
+        return self._cmp(other) <= 0
+
+    def __gt__(self, other):
+        if not isinstance(other, Data):
+            return False
+        return self._cmp(other) > 0
+
+    def __ge__(self, other):
+        if not isinstance(other, Data):
+            return False
+        return self._cmp(other) >= 0
 
     def __ne__(self, other):
         if not isinstance(other, Data):
@@ -594,7 +632,7 @@ class Data(object):
         """
         Convert the data buffer to a float that has been encoded in big endian.
         """
-        raw = self.bytes().encode('latin1')
+        raw = self.bytes()
         if len(self) == 4 * 8:
             return struct.unpack('>f', raw)[0]
         elif len(self) == 8 * 8:
@@ -606,7 +644,7 @@ class Data(object):
         """
         Convert the data buffer to a float that has been encoded in little endian.
         """
-        raw = self.bytes().encode('latin1')
+        raw = self.bytes()
         if len(self) == 4 * 8:
             return struct.unpack('<f', raw)[0]
         elif len(self) == 8 * 8:

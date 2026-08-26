@@ -139,15 +139,15 @@ class TestField(unittest.TestCase):
     def test_encoded_size_matches_expected_size(self):
         # When we specify a size for a field, what we actually encode should match it.
         text = fld.Field("bob", 48, format=fld.Field.TEXT)
-        self.assertEqual("rabbit", next(text.encode(query, "rabbit")).bytes())
+        self.assertEqual(b"rabbit", next(text.encode(query, "rabbit")).bytes())
         self.assertRaises(DataLengthError, list, text.encode(query, "boxfish"))
 
         binary = fld.Field("bob", 8, format=fld.Field.BINARY)
-        self.assertEqual("\x39", next(binary.encode(query, "00111001")).bytes())
+        self.assertEqual(b"\x39", next(binary.encode(query, "00111001")).bytes())
         self.assertRaises(DataLengthError, list, binary.encode(query, "1011"))
 
         hex = fld.Field("bob", 8, format=fld.Field.HEX)
-        self.assertEqual("\xe7", next(hex.encode(query, "e7")).bytes())
+        self.assertEqual(b"\xe7", next(hex.encode(query, "e7")).bytes())
         self.assertRaises(DataLengthError, list, hex.encode(query, "ecd"))
 
     def test_string_conversion(self):
@@ -173,7 +173,7 @@ class TestField(unittest.TestCase):
         field = fld.Field("bob", 8, constraints=[Equals(dt.Data("c"))])
         def no_data_query(obj, entry, i, name):
             return ''
-        self.assertEqual("c", next(field.encode(no_data_query, None)).bytes())
+        self.assertEqual(b"c", next(field.encode(no_data_query, None)).bytes())
 
     def test_range(self):
         field = fld.Field("bob", 8, min=8, max=15)
